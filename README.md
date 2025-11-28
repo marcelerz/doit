@@ -1,4 +1,15 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Doit - Simple Todo App
+
+A beautiful and simple todo application built with Next.js, TypeScript, and Tailwind CSS. Features local storage persistence and a mobile-responsive design.
+
+## Features
+
+- ✅ Add, edit, and delete tasks
+- ✅ Mark tasks as complete/incomplete
+- ✅ Persistent storage using localStorage
+- ✅ Mobile-responsive design
+- ✅ Dark mode support
+- ✅ Clean and modern UI with Tailwind CSS
 
 ## Getting Started
 
@@ -6,31 +17,70 @@ First, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Structure
 
-## Learn More
+```
+doit/
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx       # Root layout with metadata
+│   │   ├── page.tsx         # Main page component
+│   │   └── globals.css      # Global styles
+│   ├── components/
+│   │   ├── TodoList.tsx     # Main todo list component
+│   │   └── TodoItem.tsx     # Individual todo item component
+│   ├── hooks/
+│   │   └── useTodos.ts      # Custom hook for todo management
+│   └── types/
+│       └── todo.ts          # TypeScript type definitions
+├── public/                  # Static assets
+└── package.json
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Technologies Used
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Next.js 16** - React framework with App Router
+- **TypeScript** - Type-safe JavaScript
+- **Tailwind CSS 4** - Utility-first CSS framework
+- **React 19** - UI library
+- **localStorage** - Client-side data persistence
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Features in Detail
+
+### Todo Management
+- Create new todos with a simple input form
+- Edit existing todos inline
+- Delete unwanted todos
+- Toggle completion status with a checkbox
+
+### Responsive Design
+- Full-page layout optimized for both desktop and mobile
+- Touch-friendly UI elements
+- Adaptive spacing and sizing
+
+### Data Persistence
+- All todos are automatically saved to localStorage
+- Data persists across browser sessions
+- No backend required
+
+## Build for Production
+
+Create an optimized production build:
+
+```bash
+npm run build
+npm start
+```
 
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
