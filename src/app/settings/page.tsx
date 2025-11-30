@@ -9,8 +9,9 @@ import { PrioritiesTab } from "@/components/settings/PrioritiesTab";
 import { LinksTab } from "@/components/settings/LinksTab";
 import { MarkersTab } from "@/components/settings/MarkersTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
+import { BackupTab } from "@/components/settings/BackupTab";
 
-type Tab = "general" | "people" | "projects" | "priorities" | "links" | "markers";
+type Tab = "general" | "people" | "projects" | "priorities" | "links" | "markers" | "backup";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
@@ -121,6 +122,16 @@ export default function SettingsPage() {
             >
               Markers
             </button>
+            <button
+              onClick={() => setActiveTab("backup")}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                activeTab === "backup"
+                  ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
+                  : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+              }`}
+            >
+              Backup
+            </button>
           </div>
 
           <div className="p-6">
@@ -155,6 +166,7 @@ export default function SettingsPage() {
             {activeTab === "markers" && (
               <MarkersTab markerColors={settings.markerColors} onUpdate={updateMarkerColors} />
             )}
+            {activeTab === "backup" && <BackupTab />}
           </div>
         </div>
       </div>

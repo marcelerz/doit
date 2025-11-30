@@ -5,6 +5,7 @@
 
 import { Todo, TodoMetadata } from "@/types/todo";
 import { Settings, defaultSettings, Person, Project, Priority } from "@/types/settings";
+import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
 
 const CURRENT_VERSION = 2; // Increment when adding new migrations
 const VERSION_KEY = "doit-data-version";
@@ -173,9 +174,18 @@ export function checkAndUpdateVersion(): boolean {
     const currentVersion = storedVersion ? parseInt(storedVersion, 10) : 0;
 
     if (currentVersion < CURRENT_VERSION) {
+      // Create auto-backup before migration if enabled
+      autoBackupIfNeeded();
+
       localStorage.setItem(VERSION_KEY, CURRENT_VERSION.toString());
       return true; // Migration needed
     }
+
+    // Even if no migration needed, check for auto-backup
+    autoBackupIfNeeded();
+
+    // Cleanup old backups
+    cleanupOldBackups();
 
     return false; // No migration needed
   } catch (error) {
