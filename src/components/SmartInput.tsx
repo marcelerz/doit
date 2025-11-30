@@ -29,6 +29,7 @@ export interface SmartEditableInputProps {
 export interface SmartEditableInputHandle {
   clear: () => void;
   setValue: (text: string) => void;
+  focus: () => void;
 }
 
 const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInputProps>(
@@ -88,6 +89,11 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           if (onTokensChange) {
             onTokensChange(tokens, text, plainText);
           }
+        }
+      },
+      focus: () => {
+        if (editableRef.current) {
+          editableRef.current.focus();
         }
       },
     }));

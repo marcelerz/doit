@@ -73,6 +73,9 @@ export function TodoList() {
   // Expanded todo detail state
   const [expandedTodoId, setExpandedTodoId] = useState<string | null>(null);
 
+  // Add todo overlay state
+  const [isAddOverlayOpen, setIsAddOverlayOpen] = useState(false);
+
   // Filter states - Load from localStorage
   const [filters, setFilters] = useState<TodoFilters>(() => {
     try {
@@ -152,6 +155,16 @@ export function TodoList() {
   useEffect(() => {
     localStorage.setItem("doit-group-by", groupBy);
   }, [groupBy]);
+
+  // Auto-focus the input when the overlay opens
+  useEffect(() => {
+    if (isAddOverlayOpen && smartInputRef.current) {
+      // Use setTimeout to ensure the overlay is fully rendered
+      setTimeout(() => {
+        smartInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isAddOverlayOpen]);
 
   const handleTokensChange = (tokens: TokenMatch[], fullText: string, plainText: string) => {
     setCurrentTokens(tokens);
@@ -586,72 +599,27 @@ export function TodoList() {
         <header className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-100">Doit</h1>
-            <Link
-              href="/settings"
-              className="px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors text-sm"
-            >
-              ⚙️ Settings
-            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsAddOverlayOpen(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
+                title="Add new todo"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add
+              </button>
+              <Link
+                href="/settings"
+                className="px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors text-sm"
+              >
+                ⚙️ Settings
+              </Link>
+            </div>
           </div>
           <p className="text-zinc-600 dark:text-zinc-400">Your simple and beautiful todo app</p>
         </header>
-
-        <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-          <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">✨ Smart Input Markers</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-blue-800 dark:text-blue-200">
-            <div>
-              <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">@name</code> Assign
-            </div>
-            <div>
-              <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">#project</code> Project
-            </div>
-            <div>
-              <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">$name</code> Source
-            </div>
-            <div>
-              <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">^name</code> Mention
-            </div>
-            <div>
-              <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">!!high</code> Priority
-            </div>
-            <div>
-              <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">~date</code> Due
-            </div>
-            <div>
-              <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">*2h</code> Duration
-            </div>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mb-8">
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <SmartEditableInput
-                ref={smartInputRef}
-                markers={markers}
-                markerColors={settings.markerColors}
-                availablePeople={settings.people}
-                availableProjects={settings.projects}
-                availablePriorities={settings.priorities}
-                dateTimeSettings={settings.general.dateTime}
-                onAddPerson={handleAddPerson}
-                onAddProject={handleAddProject}
-                onAddPriority={handleAddPriority}
-                onTokensChange={handleTokensChange}
-                onEnterPress={() => {
-                  const event = new Event("submit", { bubbles: true, cancelable: true });
-                  handleSubmit(event as any);
-                }}
-              />
-            </div>
-            <button
-              type="submit"
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
-            >
-              Add
-            </button>
-          </div>
-        </form>
 
         {/* Filter Section */}
         <div className="mb-6 space-y-3">
@@ -1210,6 +1178,107 @@ export function TodoList() {
                 )}
               </section>
             )}
+          </div>
+        )}
+
+        {/* Add Todo Overlay */}
+        {isAddOverlayOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={() => setIsAddOverlayOpen(false)}
+          >
+            <div
+              className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Add New Todo</h2>
+                  <button
+                    onClick={() => setIsAddOverlayOpen(false)}
+                    className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Smart Input Markers Legend */}
+                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                    ✨ Smart Input Markers
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-blue-800 dark:text-blue-200">
+                    <div>
+                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">@name</code> Assign
+                    </div>
+                    <div>
+                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">#project</code> Project
+                    </div>
+                    <div>
+                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">$name</code> Source
+                    </div>
+                    <div>
+                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">^name</code> Mention
+                    </div>
+                    <div>
+                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">!!high</code> Priority
+                    </div>
+                    <div>
+                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">~date</code> Due
+                    </div>
+                    <div>
+                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">*2h</code> Duration
+                    </div>
+                  </div>
+                </div>
+
+                {/* Add Form */}
+                <form
+                  onSubmit={(e) => {
+                    handleSubmit(e);
+                    setIsAddOverlayOpen(false);
+                  }}
+                >
+                  <div className="mb-4">
+                    <SmartEditableInput
+                      ref={smartInputRef}
+                      markers={markers}
+                      markerColors={settings.markerColors}
+                      availablePeople={settings.people}
+                      availableProjects={settings.projects}
+                      availablePriorities={settings.priorities}
+                      dateTimeSettings={settings.general.dateTime}
+                      onAddPerson={handleAddPerson}
+                      onAddProject={handleAddProject}
+                      onAddPriority={handleAddPriority}
+                      onTokensChange={handleTokensChange}
+                      onEnterPress={() => {
+                        const event = new Event("submit", { bubbles: true, cancelable: true });
+                        handleSubmit(event as any);
+                        setIsAddOverlayOpen(false);
+                      }}
+                    />
+                  </div>
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddOverlayOpen(false)}
+                      className="px-6 py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
+                    >
+                      Add Todo
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           </div>
         )}
       </div>
