@@ -70,7 +70,7 @@ export function MarkedText({
     { regex: /\$[\w-_]+/g, type: "source" as const },
     { regex: /\^[\w-_]+/g, type: "mentioned" as const },
     { regex: /!![\w-_]+/g, type: "priority" as const },
-    { regex: /~[\w-_]+/g, type: "dueDate" as const },
+    { regex: /~([^@#$^*~\n]+?)(?=\s+[@#$^*~!]|\s{2,}|\s+[^0-9:apmAPM,.]|$)/g, type: "dueDate" as const },
     { regex: /\*[\w-_]+/g, type: "duration" as const },
   ];
 
@@ -100,12 +100,16 @@ export function MarkedText({
           duration: "*",
         };
         const symbol = markerSymbols[type] || "";
-        const name = match[0].slice(symbol.length);
+
+        // For dueDate with capturing group, match[0] is the full match including ~
+        // For other patterns, match[0] is also the full match
+        const fullText = match[0];
+        const name = type === "dueDate" && match[1] ? match[1] : fullText.slice(symbol.length);
 
         allMatches.push({
           start: match.index,
-          end: match.index + match[0].length,
-          text: match[0],
+          end: match.index + fullText.length,
+          text: fullText,
           type,
           name,
         });

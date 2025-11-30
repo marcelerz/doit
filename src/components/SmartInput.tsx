@@ -273,7 +273,9 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         let match: RegExpExecArray | null;
         while ((match = regex.exec(text))) {
           const raw = match[0];
-          let value = raw.slice(symbol.length); // remove prefix symbol
+          // For dueDate, match[1] contains the captured value without ~
+          // For other types, extract by removing the symbol prefix
+          let value = type === "dueDate" && match[1] ? match[1].trim() : raw.slice(symbol.length);
 
           // For people markers, resolve alternatives to canonical name
           if (["assigned", "source", "mentioned"].includes(type)) {

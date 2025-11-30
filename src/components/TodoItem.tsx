@@ -209,6 +209,7 @@ export function TodoItem({
             availablePeople={availablePeople}
             availableProjects={availableProjects}
             availablePriorities={availablePriorities}
+            dateTimeSettings={generalSettings.dateTime}
             onAddPerson={onAddPerson}
             onAddProject={onAddProject}
             onAddPriority={onAddPriority}
