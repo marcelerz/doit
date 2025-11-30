@@ -159,16 +159,23 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       }
 
       // Build patterns for other markers (dueDate, duration)
-      const otherMarkers = [
-        { type: "dueDate", symbol: "~" },
-        { type: "duration", symbol: "*" },
-      ];
+      const otherMarkers = [{ type: "dueDate", symbol: "~" }];
 
       for (const { type, symbol } of otherMarkers) {
         const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const regex = new RegExp(`${escaped}[\\w-_]+(?=\\s|$)`, "gi");
         patterns.push({ type, symbol, regex });
       }
+
+      // Build pattern for duration marker (*) with specific format support
+      // Supports: 5sec/secs/seconds, 5min/mins/minute/minutes, 3hr/hrs/h/hour/hours,
+      // 5d/day/days, 2w/wk/wks/week/weeks, 1m/month/months, 3y/yr/yrs/year/years
+      const durationPattern = `\\*(\\d+(?:sec|secs?|seconds?|mins?|minutes?|h|hrs?|hours?|d|days?|w|wks?|weeks?|m|months?|y|yrs?|years?))(?=\\s|$)`;
+      patterns.push({
+        type: "duration",
+        symbol: "*",
+        regex: new RegExp(durationPattern, "gi"),
+      });
 
       return patterns;
     };
@@ -223,6 +230,31 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           p.name.toLowerCase().includes(lowerSearch) ||
           p.alternatives.some((alt) => alt.toLowerCase().includes(lowerSearch)),
       );
+    };
+
+    const getDurationSuggestions = (search: string): string[] => {
+      // Duration units with descriptions
+      const units = [
+        { suffix: "sec", label: "sec - seconds" },
+        { suffix: "min", label: "min - minutes" },
+        { suffix: "h", label: "h - hours" },
+        { suffix: "d", label: "d - days" },
+        { suffix: "w", label: "w - weeks" },
+        { suffix: "m", label: "m - months" },
+        { suffix: "y", label: "y - years" },
+      ];
+
+      // Extract the number part if present
+      const numberMatch = search.match(/^(\d+)/);
+      const hasNumber = !!numberMatch;
+      const number = numberMatch ? numberMatch[1] : "";
+      const textAfterNumber = hasNumber ? search.slice(number.length) : search;
+
+      // Filter units based on what's typed after the number
+      const filtered = units.filter((u) => u.suffix.startsWith(textAfterNumber.toLowerCase()));
+
+      // Return suggestions with the number prepended
+      return filtered.map((u) => (hasNumber ? `${number}${u.suffix}` : u.label));
     };
 
     const renderTokensFromText = (
@@ -337,7 +369,8 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const peopleMarkers = ["@", "$", "^"];
       const projectMarker = "#";
       const priorityMarker = "!!";
-      const allMarkers = [...peopleMarkers, projectMarker, priorityMarker];
+      const durationMarker = "*";
+      const allMarkers = [...peopleMarkers, projectMarker, priorityMarker, durationMarker];
 
       // Find the last marker before the caret
       let lastMarkerPos = -1;
@@ -383,6 +416,11 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
             autocompleteMarker = lastMarker;
             const filteredPriorities = filterPrioritiesBySearch(searchText);
             options = filteredPriorities.map((p) => p.name);
+          } else if (lastMarker === durationMarker) {
+            shouldShowAutocomplete = true;
+            autocompleteType = "duration";
+            autocompleteMarker = lastMarker;
+            options = getDurationSuggestions(searchText);
           }
         }
       }
@@ -393,7 +431,8 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         const divRect = div.getBoundingClientRect();
 
         // Show "Add new" option if there are no matches and search text is not empty
-        const showAddNew = options.length === 0 && searchText.trim() !== "";
+        // (but not for duration, which is just a format suggestion)
+        const showAddNew = options.length === 0 && searchText.trim() !== "" && autocompleteType !== "duration";
         const canAddNew =
           (autocompleteType === "person" && onAddPerson) ||
           (autocompleteType === "project" && onAddProject) ||
@@ -497,7 +536,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const fullText = div.innerText.replace(/\n/g, " ");
 
       // Find the last marker position
-      const allMarkers = ["@", "$", "^", "#", "!!"];
+      const allMarkers = ["@", "$", "^", "#", "!!", "*"];
       let lastMarkerPos = -1;
       let lastMarker = "";
 
