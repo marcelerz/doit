@@ -32,6 +32,9 @@ export function TodoList() {
     editTodoComment,
     deleteTodoComment,
     isLoaded,
+    undoAction,
+    undo,
+    dismissUndo,
   } = useTodos();
   const { settings, addPerson, addProject, addPriority } = useSettings();
   const [currentTokens, setCurrentTokens] = useState<TokenMatch[]>([]);
@@ -76,10 +79,50 @@ export function TodoList() {
   // Add todo overlay state
   const [isAddOverlayOpen, setIsAddOverlayOpen] = useState(false);
 
+  // View presets state
+  const [isSavePresetOpen, setIsSavePresetOpen] = useState(false);
+  const [presetName, setPresetName] = useState("");
+  const [activePreset, setActivePreset] = useState<string>("custom");
+
   // Sorting and grouping types
   type SortField = "dueDate" | "duration" | "assigned" | "source" | "mentioned" | "project" | "priority" | "created";
   type SortDirection = "asc" | "desc";
   type GroupBy = "none" | "dueDate";
+
+  interface ViewPreset {
+    name: string;
+    filters: {
+      searchText: string;
+      assignedPeople: string[];
+      sourcePeople: string[];
+      mentionedPeople: string[];
+      projects: string[];
+      priorities: string[];
+      dueDates: string[];
+      durations: string[];
+    };
+    sortField: SortField;
+    sortDirection: SortDirection;
+    groupBy: GroupBy;
+  }
+
+  // Load saved view presets
+  const [viewPresets, setViewPresets] = useState<ViewPreset[]>(() => {
+    try {
+      const saved = localStorage.getItem("doit-view-presets");
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Failed to load view presets from localStorage:", e);
+    }
+    return [];
+  });
+
+  // Save view presets to localStorage
+  useEffect(() => {
+    localStorage.setItem("doit-view-presets", JSON.stringify(viewPresets));
+  }, [viewPresets]);
 
   // Load all view options from a single localStorage key
   const [filters, setFilters] = useState<TodoFilters>(() => {
@@ -172,7 +215,95 @@ export function TodoList() {
       groupBy,
     };
     localStorage.setItem("doit-view-options", JSON.stringify(viewOptions));
-  }, [filters, sortField, sortDirection, groupBy]);
+
+    // Check if current view matches any preset
+    const matchingPreset = viewPresets.find((preset) => {
+      return (
+        preset.filters.searchText === filters.searchText &&
+        arraysEqual(preset.filters.assignedPeople, Array.from(filters.assignedPeople)) &&
+        arraysEqual(preset.filters.sourcePeople, Array.from(filters.sourcePeople)) &&
+        arraysEqual(preset.filters.mentionedPeople, Array.from(filters.mentionedPeople)) &&
+        arraysEqual(preset.filters.projects, Array.from(filters.projects)) &&
+        arraysEqual(preset.filters.priorities, Array.from(filters.priorities)) &&
+        arraysEqual(preset.filters.dueDates, Array.from(filters.dueDates)) &&
+        arraysEqual(preset.filters.durations, Array.from(filters.durations)) &&
+        preset.sortField === sortField &&
+        preset.sortDirection === sortDirection &&
+        preset.groupBy === groupBy
+      );
+    });
+
+    setActivePreset(matchingPreset ? matchingPreset.name : "custom");
+  }, [filters, sortField, sortDirection, groupBy, viewPresets]);
+
+  // Helper function to compare arrays
+  const arraysEqual = (a: string[], b: string[]) => {
+    if (a.length !== b.length) return false;
+    const sortedA = [...a].sort();
+    const sortedB = [...b].sort();
+    return sortedA.every((val, idx) => val === sortedB[idx]);
+  };
+
+  // Load a preset
+  const loadPreset = (preset: ViewPreset) => {
+    setFilters({
+      searchText: preset.filters.searchText,
+      assignedPeople: new Set(preset.filters.assignedPeople),
+      sourcePeople: new Set(preset.filters.sourcePeople),
+      mentionedPeople: new Set(preset.filters.mentionedPeople),
+      projects: new Set(preset.filters.projects),
+      priorities: new Set(preset.filters.priorities),
+      dueDates: new Set(preset.filters.dueDates),
+      durations: new Set(preset.filters.durations),
+    });
+    setSortField(preset.sortField);
+    setSortDirection(preset.sortDirection);
+    setGroupBy(preset.groupBy);
+    setActivePreset(preset.name);
+  };
+
+  // Save current view as a preset
+  const savePreset = (name: string) => {
+    const newPreset: ViewPreset = {
+      name,
+      filters: {
+        searchText: filters.searchText,
+        assignedPeople: Array.from(filters.assignedPeople),
+        sourcePeople: Array.from(filters.sourcePeople),
+        mentionedPeople: Array.from(filters.mentionedPeople),
+        projects: Array.from(filters.projects),
+        priorities: Array.from(filters.priorities),
+        dueDates: Array.from(filters.dueDates),
+        durations: Array.from(filters.durations),
+      },
+      sortField,
+      sortDirection,
+      groupBy,
+    };
+
+    // Replace if exists, otherwise add
+    setViewPresets((prev) => {
+      const existing = prev.findIndex((p) => p.name === name);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = newPreset;
+        return updated;
+      }
+      return [...prev, newPreset];
+    });
+
+    setActivePreset(name);
+    setIsSavePresetOpen(false);
+    setPresetName("");
+  };
+
+  // Delete a preset
+  const deletePreset = (name: string) => {
+    setViewPresets((prev) => prev.filter((p) => p.name !== name));
+    if (activePreset === name) {
+      setActivePreset("custom");
+    }
+  };
 
   // Auto-focus the input when the overlay opens
   useEffect(() => {
@@ -641,7 +772,32 @@ export function TodoList() {
 
         {/* Filter Section */}
         <div className="mb-6 space-y-3">
-          {/* Top Row: Search + Show Filters Toggle + Group By + Sort By */}
+          {/* View Presets Row */}
+          {viewPresets.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Views:</span>
+              {viewPresets.map((preset) => (
+                <button
+                  key={preset.name}
+                  onClick={() => loadPreset(preset)}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors text-sm ${
+                    activePreset === preset.name
+                      ? "bg-blue-600 text-white"
+                      : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                  }`}
+                >
+                  {preset.name}
+                </button>
+              ))}
+              {activePreset === "custom" && (
+                <span className="px-3 py-1.5 rounded-lg font-medium text-sm bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                  Custom
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Top Row: Search + Show Filters Toggle + Group By + Sort By + Save */}
           <div className="flex items-center gap-3">
             {/* Search Input */}
             <input
@@ -721,6 +877,23 @@ export function TodoList() {
                 </svg>
               </button>
             </div>
+
+            {/* Save View Button */}
+            <button
+              onClick={() => setIsSavePresetOpen(true)}
+              className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors flex items-center gap-2 whitespace-nowrap ml-auto"
+              title="Save current view"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                />
+              </svg>
+              Save View
+            </button>
           </div>
 
           {/* Filter Badges Row */}
@@ -1296,6 +1469,128 @@ export function TodoList() {
                   </div>
                 </form>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Save Preset Modal */}
+        {isSavePresetOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={() => setIsSavePresetOpen(false)}
+          >
+            <div
+              className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Save View Preset</h2>
+                  <button
+                    onClick={() => setIsSavePresetOpen(false)}
+                    className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Input for new preset name */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Preset Name</label>
+                  <input
+                    type="text"
+                    value={presetName}
+                    onChange={(e) => setPresetName(e.target.value)}
+                    placeholder="Enter preset name..."
+                    className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && presetName.trim()) {
+                        savePreset(presetName.trim());
+                      }
+                    }}
+                  />
+                </div>
+
+                <button
+                  onClick={() => presetName.trim() && savePreset(presetName.trim())}
+                  disabled={!presetName.trim()}
+                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors mb-4"
+                >
+                  Save as New Preset
+                </button>
+
+                {/* Existing presets */}
+                {viewPresets.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+                      Or overwrite existing:
+                    </h3>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {viewPresets.map((preset) => (
+                        <div
+                          key={preset.name}
+                          className="flex items-center justify-between p-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg"
+                        >
+                          <button
+                            onClick={() => savePreset(preset.name)}
+                            className="flex-1 text-left font-medium text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          >
+                            {preset.name}
+                          </button>
+                          <button
+                            onClick={() => deletePreset(preset.name)}
+                            className="ml-2 p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors"
+                            title="Delete preset"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Undo Notification */}
+        {undoAction && (
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-slide-up">
+            <div className="bg-zinc-900 dark:bg-zinc-800 text-white rounded-lg shadow-2xl px-6 py-4 flex items-center gap-4 min-w-[320px]">
+              <div className="flex-1">
+                <p className="font-medium">
+                  {undoAction.type === "delete" && "Todo deleted"}
+                  {undoAction.type === "complete" && "Todo completed"}
+                  {undoAction.type === "uncomplete" && "Todo marked as active"}
+                  {undoAction.type === "archive" && "Todo archived"}
+                </p>
+                <p className="text-sm text-zinc-400 mt-0.5 truncate max-w-[200px]">{undoAction.todo.plainText}</p>
+              </div>
+              <button
+                onClick={undo}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors flex-shrink-0"
+              >
+                Undo
+              </button>
+              <button
+                onClick={dismissUndo}
+                className="p-2 text-zinc-400 hover:text-white transition-colors flex-shrink-0"
+                aria-label="Dismiss"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
         )}
