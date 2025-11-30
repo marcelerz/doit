@@ -17,6 +17,7 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
     prefix: "",
     urlTemplate: "",
     description: "",
+    color: "#3b82f6",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -27,6 +28,7 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
       prefix: formData.prefix.trim().toUpperCase(),
       urlTemplate: formData.urlTemplate.trim(),
       description: formData.description.trim(),
+      color: formData.color,
     };
 
     if (editingId) {
@@ -36,7 +38,7 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
       onAdd(patternData);
     }
 
-    setFormData({ prefix: "", urlTemplate: "", description: "" });
+    setFormData({ prefix: "", urlTemplate: "", description: "", color: "#3b82f6" });
     setIsAdding(false);
   };
 
@@ -46,6 +48,7 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
       prefix: pattern.prefix,
       urlTemplate: pattern.urlTemplate,
       description: pattern.description,
+      color: pattern.color || "#3b82f6",
     });
     setIsAdding(true);
   };
@@ -53,7 +56,7 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
   const handleCancel = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ prefix: "", urlTemplate: "", description: "" });
+    setFormData({ prefix: "", urlTemplate: "", description: "", color: "#3b82f6" });
   };
 
   return (
@@ -133,6 +136,16 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Link Color</label>
+            <input
+              type="color"
+              value={formData.color}
+              onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+              className="w-full h-10 rounded-md border border-zinc-300 dark:border-zinc-600 cursor-pointer"
+            />
+          </div>
+
           <div className="flex gap-2">
             <button
               type="submit"
@@ -162,7 +175,10 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
               key={pattern.id}
               className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 flex items-center gap-4"
             >
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 flex items-center justify-center font-bold text-lg text-purple-700 dark:text-purple-300">
+              <div
+                className="w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg text-white"
+                style={{ backgroundColor: pattern.color || "#3b82f6" }}
+              >
                 {pattern.prefix}
               </div>
               <div className="flex-1">

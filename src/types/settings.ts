@@ -29,6 +29,7 @@ export interface LinkPattern {
   prefix: string; // e.g., "T", "D", "S"
   urlTemplate: string; // e.g., "http://www.google.com/{id}"
   description: string;
+  color: string; // Color for the link display
 }
 
 export interface Comment {

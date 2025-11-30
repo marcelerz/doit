@@ -34,8 +34,14 @@ export function MarkedText({ text, completed = false, markerColors, linkPatterns
   ];
 
   // Find all matches across all patterns
-  const allMatches: { start: number; end: number; text: string; type: keyof MarkerColors | "link"; url?: string }[] =
-    [];
+  const allMatches: {
+    start: number;
+    end: number;
+    text: string;
+    type: keyof MarkerColors | "link";
+    url?: string;
+    color?: string;
+  }[] = [];
 
   markerPatterns.forEach(({ regex, type }) => {
     const matches = text.matchAll(regex);
@@ -71,6 +77,7 @@ export function MarkedText({ text, completed = false, markerColors, linkPatterns
           text: match[0],
           type: "link",
           url,
+          color: linkPattern.color,
         });
       }
     }
@@ -95,7 +102,11 @@ export function MarkedText({ text, completed = false, markerColors, linkPatterns
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="inline-block px-1.5 py-0.5 mx-0.5 text-sm rounded font-medium text-blue-600 dark:text-blue-400 hover:underline hover:bg-blue-50 dark:hover:bg-blue-900/20"
+          title="Opens in new tab"
+          className="inline-block px-1.5 py-0.5 mx-0.5 text-sm rounded font-bold underline hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
+          style={{
+            color: match.color || "#3b82f6",
+          }}
         >
           {match.text}
         </a>,

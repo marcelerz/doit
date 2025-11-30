@@ -415,7 +415,20 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
             autocompleteType = "priority";
             autocompleteMarker = lastMarker;
             const filteredPriorities = filterPrioritiesBySearch(searchText);
-            options = filteredPriorities.map((p) => p.name);
+            // Show both the priority name and matching alternatives
+            options = [];
+            filteredPriorities.forEach((p) => {
+              // Always add the canonical name
+              if (!options.includes(p.name)) {
+                options.push(p.name);
+              }
+              // Add matching alternatives
+              p.alternatives.forEach((alt) => {
+                if (alt.toLowerCase().includes(searchText) && !options.includes(alt)) {
+                  options.push(alt);
+                }
+              });
+            });
           } else if (lastMarker === durationMarker) {
             shouldShowAutocomplete = true;
             autocompleteType = "duration";
