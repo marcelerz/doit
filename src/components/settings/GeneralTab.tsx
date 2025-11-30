@@ -14,6 +14,26 @@ export function GeneralTab({ general, onUpdate }: GeneralTabProps) {
     onUpdate({ archiveDays: days });
   };
 
+  const handleAutoDeleteToggle = (enabled: boolean) => {
+    onUpdate({
+      autoDelete: {
+        ...general.autoDelete,
+        enabled,
+      },
+    });
+  };
+
+  const handleAutoDeleteDaysChange = (value: number) => {
+    // Ensure value is at least 1
+    const days = Math.max(1, value);
+    onUpdate({
+      autoDelete: {
+        ...general.autoDelete,
+        deleteDays: days,
+      },
+    });
+  };
+
   const handleAutoAssignToggle = (enabled: boolean) => {
     onUpdate({
       autoAssign: {
@@ -74,6 +94,42 @@ export function GeneralTab({ general, onUpdate }: GeneralTabProps) {
                 />
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">days</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Auto-Delete Settings */}
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="flex-1">
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Auto-Delete Completed Tasks</h3>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                Automatically delete completed tasks after a specified number of days. This is useful for keeping your
+                todo list clean and removing old tasks you no longer need.
+              </p>
+              <label className="flex items-center gap-3 cursor-pointer mb-4">
+                <input
+                  type="checkbox"
+                  checked={general.autoDelete.enabled}
+                  onChange={(e) => handleAutoDeleteToggle(e.target.checked)}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-600"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">Enable auto-delete</span>
+              </label>
+              {general.autoDelete.enabled && (
+                <div className="flex items-center gap-4 ml-7">
+                  <span className="text-sm text-zinc-600 dark:text-zinc-400">Delete after</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={general.autoDelete.deleteDays}
+                    onChange={(e) => handleAutoDeleteDaysChange(parseInt(e.target.value) || 1)}
+                    className="w-24 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-zinc-600 dark:text-zinc-400">days</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

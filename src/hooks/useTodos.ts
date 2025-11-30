@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { Todo, TodoMetadata } from "@/types/todo";
-import { migrateTodos, checkAndUpdateVersion } from "@/utils/migrations";
+import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/utils/migrations";
+import { defaultSettings } from "@/types/settings";
 
 const STORAGE_KEY = "doit-todos";
+const SETTINGS_KEY = "doit-settings";
 
 export function useTodos() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -16,10 +18,17 @@ export function useTodos() {
       // Check if migration is needed
       const migrationNeeded = checkAndUpdateVersion();
 
+      // Load settings first to use for migration
+      let settings = defaultSettings;
+      const storedSettings = localStorage.getItem(SETTINGS_KEY);
+      if (storedSettings) {
+        settings = migrateSettings(JSON.parse(storedSettings));
+      }
+
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const loadedTodos = JSON.parse(stored);
-        const migratedTodos = migrateTodos(loadedTodos);
+        const migratedTodos = migrateTodos(loadedTodos, settings);
         setTodos(migratedTodos);
 
         // If migration was needed, save the migrated data immediately

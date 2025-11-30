@@ -87,6 +87,10 @@ export const defaultDateTimeSettings: DateTimeSettings = {
 
 export interface GeneralSettings {
   archiveDays: number; // Number of days before completed tasks are archived
+  autoDelete: {
+    enabled: boolean; // Enable automatic deletion of old completed/archived tasks
+    deleteDays: number; // Number of days after completion before tasks are deleted
+  };
   dateTime: DateTimeSettings;
   autoAssign: {
     enabled: boolean;
@@ -102,6 +106,10 @@ export interface GeneralSettings {
 
 export const defaultGeneralSettings: GeneralSettings = {
   archiveDays: 7, // Archive completed tasks after 7 days by default
+  autoDelete: {
+    enabled: false,
+    deleteDays: 90, // Delete after 90 days (3 months) by default
+  },
   dateTime: defaultDateTimeSettings,
   autoAssign: {
     enabled: false,
@@ -121,10 +129,10 @@ export const defaultSettings: Settings = {
   people: [],
   projects: [],
   priorities: [
-    { id: "1", name: "urgent", alternatives: ["asap", "critical"], color: "#ff0000", order: 1 },
-    { id: "2", name: "high", alternatives: [], color: "#ff6b00", order: 2 },
-    { id: "3", name: "medium", alternatives: ["normal", "med"], color: "#ffa500", order: 3 },
-    { id: "4", name: "low", alternatives: [], color: "#ffff00", order: 4 },
+    { id: "1", name: "urgent", alternatives: ["asap", "critical"], color: "#ff0000", order: 1, comments: [] },
+    { id: "2", name: "high", alternatives: [], color: "#ff6b00", order: 2, comments: [] },
+    { id: "3", name: "medium", alternatives: ["normal", "med"], color: "#ffa500", order: 3, comments: [] },
+    { id: "4", name: "low", alternatives: [], color: "#ffff00", order: 4, comments: [] },
   ],
   linkPatterns: [],
   markerColors: defaultMarkerColors,

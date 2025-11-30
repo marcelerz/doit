@@ -25,6 +25,7 @@ export interface Todo {
   completed: boolean;
   createdAt: number;
   completedAt?: number; // Timestamp when task was marked as completed
+  archived?: boolean; // Whether the task is archived (auto-set based on completion date)
   metadata: TodoMetadata;
   comments: Comment[];
 }

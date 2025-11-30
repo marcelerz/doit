@@ -597,28 +597,6 @@ export function TodoItem({
                       <span className="font-medium">Completed:</span> {new Date(todo.completedAt).toLocaleString()}
                     </div>
                   )}
-                  <div>
-                    <span className="font-medium">Status:</span> {todo.completed ? "✓ Completed" : "○ Active"}
-                  </div>
-                  <div>
-                    <span className="font-medium">ID:</span> {todo.id}
-                  </div>
-                </div>
-              </div>
-
-              {/* Full Text */}
-              <div className="border-t border-zinc-200 dark:border-zinc-800 pt-2">
-                <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📝 Full Text</h4>
-                <div className="text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 p-2 rounded">
-                  {todo.text}
-                </div>
-              </div>
-
-              {/* Plain Text (without markers) */}
-              <div className="border-t border-zinc-200 dark:border-zinc-800 pt-2">
-                <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📄 Plain Text</h4>
-                <div className="text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 p-2 rounded">
-                  {todo.plainText}
                 </div>
               </div>
 

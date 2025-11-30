@@ -84,6 +84,15 @@ export function TodoList() {
   });
   const [showFilters, setShowFilters] = useState(false);
 
+  // Sorting and grouping states
+  type SortField = "dueDate" | "duration" | "assigned" | "source" | "mentioned" | "project" | "priority" | "created";
+  type SortDirection = "asc" | "desc";
+  type GroupBy = "none" | "dueDate";
+
+  const [sortField, setSortField] = useState<SortField>("created");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [groupBy, setGroupBy] = useState<GroupBy>("none");
+
   const handleTokensChange = (tokens: TokenMatch[], fullText: string, plainText: string) => {
     setCurrentTokens(tokens);
     setCurrentFullText(fullText);
@@ -309,7 +318,150 @@ export function TodoList() {
     });
   };
 
-  // Sort todos by priority
+  // Sort todos by the selected field and direction
+  const sortTodos = (todoList: typeof todos) => {
+    return [...todoList].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortField) {
+        case "dueDate":
+          const aDate = a.metadata.dueDate || "";
+          const bDate = b.metadata.dueDate || "";
+          comparison = aDate.localeCompare(bDate);
+          // Put empty dates at the end
+          if (!aDate && bDate) return 1;
+          if (aDate && !bDate) return -1;
+          break;
+
+        case "duration":
+          const aDuration = a.metadata.duration || "";
+          const bDuration = b.metadata.duration || "";
+          comparison = aDuration.localeCompare(bDuration);
+          if (!aDuration && bDuration) return 1;
+          if (aDuration && !bDuration) return -1;
+          break;
+
+        case "assigned":
+          const aAssigned = a.metadata.assignedPeople[0] || "";
+          const bAssigned = b.metadata.assignedPeople[0] || "";
+          comparison = aAssigned.localeCompare(bAssigned);
+          break;
+
+        case "source":
+          const aSource = a.metadata.sourcePeople[0] || "";
+          const bSource = b.metadata.sourcePeople[0] || "";
+          comparison = aSource.localeCompare(bSource);
+          break;
+
+        case "mentioned":
+          const aMentioned = a.metadata.mentionedPeople[0] || "";
+          const bMentioned = b.metadata.mentionedPeople[0] || "";
+          comparison = aMentioned.localeCompare(bMentioned);
+          break;
+
+        case "project":
+          const aProject = a.metadata.projects[0] || "";
+          const bProject = b.metadata.projects[0] || "";
+          comparison = aProject.localeCompare(bProject);
+          break;
+
+        case "priority":
+          const priorityOrder: Record<string, number> = {};
+          settings.priorities.forEach((p, idx) => {
+            priorityOrder[p.name.toLowerCase()] = p.order;
+            p.alternatives.forEach((alt) => {
+              priorityOrder[alt.toLowerCase()] = p.order;
+            });
+          });
+          const aPriority = a.metadata.priority?.toLowerCase() || "";
+          const bPriority = b.metadata.priority?.toLowerCase() || "";
+          const aOrder = priorityOrder[aPriority] ?? 999;
+          const bOrder = priorityOrder[bPriority] ?? 999;
+          comparison = aOrder - bOrder;
+          break;
+
+        case "created":
+        default:
+          comparison = b.createdAt - a.createdAt; // Newest first by default
+          break;
+      }
+
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  };
+
+  // Group todos by the selected grouping
+  const groupTodos = (todoList: typeof todos): Record<string, typeof todos> => {
+    if (groupBy === "none") {
+      return { "": todoList };
+    }
+
+    if (groupBy === "dueDate") {
+      const grouped: Record<string, typeof todos> = {};
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayMs = today.getTime();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+
+      todoList.forEach((todo) => {
+        let groupKey = "No Due Date";
+
+        if (todo.metadata.dueDate) {
+          try {
+            // Parse the due date string
+            const dueDate = new Date(todo.metadata.dueDate);
+            dueDate.setHours(0, 0, 0, 0);
+            const dueDateMs = dueDate.getTime();
+
+            if (dueDateMs < todayMs) {
+              groupKey = "Overdue";
+            } else if (dueDateMs === todayMs) {
+              groupKey = "Today";
+            } else if (dueDateMs === todayMs + oneDayMs) {
+              groupKey = "Tomorrow";
+            } else if (dueDateMs < todayMs + 7 * oneDayMs) {
+              groupKey = "This Week";
+            } else if (dueDateMs < todayMs + 30 * oneDayMs) {
+              groupKey = "This Month";
+            } else {
+              groupKey = "Later";
+            }
+          } catch (e) {
+            groupKey = "Invalid Date";
+          }
+        }
+
+        if (!grouped[groupKey]) {
+          grouped[groupKey] = [];
+        }
+        grouped[groupKey].push(todo);
+      });
+
+      // Sort groups by priority
+      const groupOrder = [
+        "Overdue",
+        "Today",
+        "Tomorrow",
+        "This Week",
+        "This Month",
+        "Later",
+        "No Due Date",
+        "Invalid Date",
+      ];
+      const sortedGroups: Record<string, typeof todos> = {};
+      groupOrder.forEach((key) => {
+        if (grouped[key]) {
+          sortedGroups[key] = grouped[key];
+        }
+      });
+
+      return sortedGroups;
+    }
+
+    return { "": todoList };
+  };
+
+  // Sort todos by priority (legacy - now part of sortTodos)
   const sortByPriority = (todoList: typeof todos) => {
     const priorityOrder: Record<string, number> = {
       "0": 0,
@@ -359,9 +511,10 @@ export function TodoList() {
     return timeSinceCompletion >= archiveThresholdMs;
   });
 
-  const activeTodos = sortByPriority(applyFilters(allActiveTodos));
-  const completedTodos = sortByPriority(applyFilters(allCompletedTodos));
-  const archivedTodos = sortByPriority(applyFilters(allArchivedTodos));
+  const activeTodos = sortTodos(applyFilters(allActiveTodos));
+  const groupedActiveTodos = groupTodos(activeTodos);
+  const completedTodos = sortTodos(applyFilters(allCompletedTodos));
+  const archivedTodos = sortTodos(applyFilters(allArchivedTodos));
 
   if (!isLoaded) {
     return (
@@ -445,13 +598,28 @@ export function TodoList() {
         </form>
 
         {/* Filter Section */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
+        <div className="mb-6 space-y-3">
+          {/* Top Row: Search + Show Filters Toggle + Group By + Sort By */}
+          <div className="flex items-center gap-3">
+            {/* Search Input */}
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={filters.searchText}
+              onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
+              className="flex-1 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            {/* Show Filters Toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
+                showFilters || hasActiveFilters
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+              }`}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -459,31 +627,71 @@ export function TodoList() {
                   d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                 />
               </svg>
-              {showFilters ? "Hide Filters" : "Show Filters"}
-              {hasActiveFilters && (
-                <span className="px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">Active</span>
+              {showFilters ? "Hide" : "Filter"}
+              {hasActiveFilters && !showFilters && (
+                <span className="px-1.5 py-0.5 text-xs bg-white/20 rounded-full">
+                  {Object.values(filters).filter((v) => v && (typeof v === "string" ? v : v.size > 0)).length}
+                </span>
               )}
             </button>
-            {hasActiveFilters && (
+
+            {/* Group By */}
+            <div className="flex items-center gap-2 ml-4">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">Group:</label>
+              <select
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+                className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="none">None</option>
+                <option value="dueDate">Due Date</option>
+              </select>
+            </div>
+
+            {/* Sort By */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">Sort:</label>
+              <select
+                value={sortField}
+                onChange={(e) => setSortField(e.target.value as SortField)}
+                className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="created">Created</option>
+                <option value="dueDate">Due Date</option>
+                <option value="duration">Duration</option>
+                <option value="assigned">Assigned</option>
+                <option value="source">Source</option>
+                <option value="mentioned">Mentioned</option>
+                <option value="project">Project</option>
+                <option value="priority">Priority</option>
+              </select>
+              <button
+                onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
+                className="p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                title={sortDirection === "asc" ? "Ascending" : "Descending"}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {sortDirection === "asc" ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  )}
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Badges Row */}
+          {hasActiveFilters && (
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={handleClearAllFilters}
                 className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
               >
-                Clear All Filters
+                Clear All
               </button>
-            )}
-          </div>
-
-          {/* Text Search */}
-          <div className="mb-3">
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={filters.searchText}
-              onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
-              className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+            </div>
+          )}
 
           {showFilters && (
             <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 space-y-2">
@@ -798,32 +1006,43 @@ export function TodoList() {
                   </svg>
                 </button>
                 {activeExpanded && (
-                  <ul className="space-y-2">
-                    {activeTodos.map((todo) => (
-                      <TodoItem
-                        key={todo.id}
-                        todo={todo}
-                        onToggle={toggleTodo}
-                        onDelete={deleteTodo}
-                        onEdit={editTodo}
-                        markerColors={settings.markerColors}
-                        generalSettings={settings.general}
-                        linkPatterns={settings.linkPatterns}
-                        availablePeople={settings.people}
-                        availableProjects={settings.projects}
-                        availablePriorities={settings.priorities}
-                        onAddPerson={handleAddPerson}
-                        onAddProject={handleAddProject}
-                        onAddPriority={handleAddPriority}
-                        onMarkerClick={handleFilterClick}
-                        isExpanded={expandedTodoId === todo.id}
-                        onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
-                        onAddComment={addTodoComment}
-                        onEditComment={editTodoComment}
-                        onDeleteComment={deleteTodoComment}
-                      />
+                  <div className="space-y-4">
+                    {Object.entries(groupedActiveTodos).map(([groupName, groupTodos]) => (
+                      <div key={groupName}>
+                        {groupName && (
+                          <h3 className="text-xs font-semibold text-zinc-600 dark:text-zinc-500 uppercase tracking-wide mb-2 pl-2">
+                            {groupName} ({groupTodos.length})
+                          </h3>
+                        )}
+                        <ul className="space-y-2">
+                          {groupTodos.map((todo) => (
+                            <TodoItem
+                              key={todo.id}
+                              todo={todo}
+                              onToggle={toggleTodo}
+                              onDelete={deleteTodo}
+                              onEdit={editTodo}
+                              markerColors={settings.markerColors}
+                              generalSettings={settings.general}
+                              linkPatterns={settings.linkPatterns}
+                              availablePeople={settings.people}
+                              availableProjects={settings.projects}
+                              availablePriorities={settings.priorities}
+                              onAddPerson={handleAddPerson}
+                              onAddProject={handleAddProject}
+                              onAddPriority={handleAddPriority}
+                              onMarkerClick={handleFilterClick}
+                              isExpanded={expandedTodoId === todo.id}
+                              onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
+                              onAddComment={addTodoComment}
+                              onEditComment={editTodoComment}
+                              onDeleteComment={deleteTodoComment}
+                            />
+                          ))}
+                        </ul>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 )}
               </section>
             )}

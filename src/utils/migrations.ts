@@ -10,6 +10,30 @@ const CURRENT_VERSION = 2; // Increment when adding new migrations
 const VERSION_KEY = "doit-data-version";
 
 /**
+ * Check if a todo should be archived based on settings
+ */
+function shouldArchive(todo: Todo, archiveDays: number): boolean {
+  if (!todo.completed || !todo.completedAt) {
+    return false;
+  }
+
+  const daysSinceCompletion = (Date.now() - todo.completedAt) / (1000 * 60 * 60 * 24);
+  return daysSinceCompletion >= archiveDays;
+}
+
+/**
+ * Check if a todo should be deleted based on settings
+ */
+function shouldDelete(todo: Todo, autoDeleteEnabled: boolean, deleteDays: number): boolean {
+  if (!autoDeleteEnabled || !todo.completed || !todo.completedAt) {
+    return false;
+  }
+
+  const daysSinceCompletion = (Date.now() - todo.completedAt) / (1000 * 60 * 60 * 24);
+  return daysSinceCompletion >= deleteDays;
+}
+
+/**
  * Migrate a todo to the current format
  */
 function migrateTodo(todo: any): Todo {
@@ -33,6 +57,8 @@ function migrateTodo(todo: any): Todo {
     // Ensure timestamps exist
     createdAt: todo.createdAt || Date.now(),
     completedAt: todo.completedAt || null,
+    // Ensure archived flag exists
+    archived: todo.archived || false,
   };
 }
 
@@ -88,6 +114,11 @@ export function migrateSettings(loadedSettings: any): Settings {
     general: {
       ...defaultSettings.general,
       ...(loadedSettings.general || {}),
+      archiveDays: loadedSettings.general?.archiveDays ?? defaultSettings.general.archiveDays,
+      autoDelete: {
+        ...defaultSettings.general.autoDelete,
+        ...(loadedSettings.general?.autoDelete || {}),
+      },
       dateTime: {
         ...defaultSettings.general.dateTime,
         ...(loadedSettings.general?.dateTime || {}),
@@ -101,13 +132,36 @@ export function migrateSettings(loadedSettings: any): Settings {
 }
 
 /**
- * Migrate todos to the current format
+ * Migrate todos to the current format and apply archive/delete rules
  */
-export function migrateTodos(loadedTodos: any[]): Todo[] {
+export function migrateTodos(loadedTodos: any[], settings: Settings): Todo[] {
   if (!Array.isArray(loadedTodos)) {
     return [];
   }
-  return loadedTodos.map(migrateTodo);
+
+  const { archiveDays, autoDelete } = settings.general;
+
+  return loadedTodos
+    .map(migrateTodo)
+    .filter((todo) => {
+      // Remove todos that should be auto-deleted
+      if (shouldDelete(todo, autoDelete.enabled, autoDelete.deleteDays)) {
+        console.log(
+          `Auto-deleting todo: ${todo.id} (completed ${Math.floor(
+            (Date.now() - (todo.completedAt || 0)) / (1000 * 60 * 60 * 24),
+          )} days ago)`,
+        );
+        return false;
+      }
+      return true;
+    })
+    .map((todo) => {
+      // Apply archive flag to completed todos that should be archived
+      if (shouldArchive(todo, archiveDays) && !todo.archived) {
+        return { ...todo, archived: true };
+      }
+      return todo;
+    });
 }
 
 /**
