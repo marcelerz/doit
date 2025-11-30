@@ -33,17 +33,3 @@ export interface Todo {
   metadata: TodoMetadata;
   comments: Comment[];
 }
-
-// Legacy interface for backward compatibility during migration
-export interface LegacyTodo {
-  id: string;
-  text: string;
-  plainText: string;
-  completed: boolean;
-  createdAt: number;
-  updatedAt?: number;
-  completedAt?: number;
-  archived?: boolean;
-  metadata: TodoMetadata;
-  comments: Comment[];
-}

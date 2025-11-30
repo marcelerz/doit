@@ -3,7 +3,7 @@
  * Ensures backward compatibility when data structures change
  */
 
-import { Todo, TodoMetadata, TodoState, LegacyTodo } from "@/types/todo";
+import { Todo, TodoMetadata, TodoState } from "@/types/todo";
 import { Settings, defaultSettings, Person, Project, Priority } from "@/types/settings";
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
 

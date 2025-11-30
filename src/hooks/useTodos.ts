@@ -163,10 +163,22 @@ export function useTodos() {
     const todoToDelete = todos.find((t) => t.id === id);
     if (!todoToDelete) return;
 
+    // Mark as deleted with timestamp
     const now = Date.now();
+    const deletedTodo: Todo = {
+      ...todoToDelete,
+      state: "deleted",
+      deletedAt: now,
+      updatedAt: now,
+    };
+
+    // Update the todo to deleted state (keeps it in the list but hidden)
+    setTodos((prev) => prev.map((todo) => (todo.id === id ? deletedTodo : todo)));
+
     const action: UndoAction = {
       type: "delete",
-      todo: todoToDelete,
+      todo: deletedTodo,
+      previousState: todoToDelete,
       timestamp: now,
     };
     setUndoAction(action);
