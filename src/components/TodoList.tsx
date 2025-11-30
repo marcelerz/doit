@@ -25,6 +25,7 @@ export function TodoList() {
     addTodo,
     toggleTodo,
     deleteTodo,
+    archiveTodo,
     editTodo,
     addTodoComment,
     editTodoComment,
@@ -1021,6 +1022,7 @@ export function TodoList() {
                               todo={todo}
                               onToggle={toggleTodo}
                               onDelete={deleteTodo}
+                              onArchive={archiveTodo}
                               onEdit={editTodo}
                               markerColors={settings.markerColors}
                               generalSettings={settings.general}
@@ -1075,6 +1077,7 @@ export function TodoList() {
                         todo={todo}
                         onToggle={toggleTodo}
                         onDelete={deleteTodo}
+                        onArchive={archiveTodo}
                         onEdit={editTodo}
                         markerColors={settings.markerColors}
                         generalSettings={settings.general}
@@ -1126,6 +1129,7 @@ export function TodoList() {
                         todo={todo}
                         onToggle={toggleTodo}
                         onDelete={deleteTodo}
+                        onArchive={archiveTodo}
                         onEdit={editTodo}
                         markerColors={settings.markerColors}
                         generalSettings={settings.general}

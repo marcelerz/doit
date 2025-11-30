@@ -12,6 +12,7 @@ interface TodoItemProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
+  onArchive?: (id: string) => void;
   markerColors: MarkerColors;
   generalSettings: GeneralSettings;
   linkPatterns: LinkPattern[];
@@ -37,6 +38,7 @@ export function TodoItem({
   onToggle,
   onDelete,
   onEdit,
+  onArchive,
   markerColors,
   generalSettings,
   linkPatterns,
@@ -309,114 +311,125 @@ export function TodoItem({
               todo.metadata.priority ||
               todo.metadata.dueDate ||
               todo.metadata.duration) && (
-              <div className="flex flex-wrap gap-1">
-                {todo.metadata.assignedPeople.map((person, idx) => {
-                  const bgColor = getPersonColor(person);
-                  const textColor = getTextColor(bgColor);
-                  return (
-                    <button
-                      key={`assigned-${idx}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMarkerClick?.("assignedPeople", person);
-                      }}
-                      style={{ backgroundColor: bgColor, color: textColor }}
-                      className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
-                    >
-                      @{person}
-                    </button>
-                  );
-                })}
-                {todo.metadata.projects.map((project, idx) => {
-                  const bgColor = getProjectColor(project);
-                  const textColor = getTextColor(bgColor);
-                  return (
-                    <button
-                      key={`project-${idx}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMarkerClick?.("projects", project);
-                      }}
-                      style={{ backgroundColor: bgColor, color: textColor }}
-                      className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
-                    >
-                      #{project}
-                    </button>
-                  );
-                })}
-                {todo.metadata.sourcePeople.map((person, idx) => {
-                  const bgColor = getPersonColor(person);
-                  const textColor = getTextColor(bgColor);
-                  return (
-                    <button
-                      key={`source-${idx}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMarkerClick?.("sourcePeople", person);
-                      }}
-                      style={{ backgroundColor: bgColor, color: textColor }}
-                      className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
-                    >
-                      ${person}
-                    </button>
-                  );
-                })}
-                {todo.metadata.mentionedPeople.map((person, idx) => {
-                  const bgColor = getPersonColor(person);
-                  const textColor = getTextColor(bgColor);
-                  return (
-                    <button
-                      key={`mentioned-${idx}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMarkerClick?.("mentionedPeople", person);
-                      }}
-                      style={{ backgroundColor: bgColor, color: textColor }}
-                      className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
-                    >
-                      ^{person}
-                    </button>
-                  );
-                })}
-                {todo.metadata.priority &&
-                  (() => {
-                    const bgColor = getPriorityColor(todo.metadata.priority);
+              <div className="flex items-center justify-between gap-2">
+                {/* Left group: Assigned, Source, Mentioned */}
+                <div className="flex flex-wrap gap-1">
+                  {todo.metadata.assignedPeople.map((person, idx) => {
+                    const bgColor = getPersonColor(person);
                     const textColor = getTextColor(bgColor);
                     return (
                       <button
+                        key={`assigned-${idx}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          onMarkerClick?.("priorities", todo.metadata.priority!);
+                          onMarkerClick?.("assignedPeople", person);
                         }}
                         style={{ backgroundColor: bgColor, color: textColor }}
                         className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
                       >
-                        !!{todo.metadata.priority}
+                        @{person}
                       </button>
                     );
-                  })()}
-                {todo.metadata.dueDate && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMarkerClick?.("dueDates", todo.metadata.dueDate!);
-                    }}
-                    className="px-2 py-0.5 text-xs rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors cursor-pointer"
-                  >
-                    ~{todo.metadata.dueDate}
-                  </button>
-                )}
-                {todo.metadata.duration && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMarkerClick?.("durations", todo.metadata.duration!);
-                    }}
-                    className="px-2 py-0.5 text-xs rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-200 dark:hover:bg-cyan-900/50 transition-colors cursor-pointer"
-                  >
-                    *{todo.metadata.duration}
-                  </button>
-                )}
+                  })}
+                  {todo.metadata.sourcePeople.map((person, idx) => {
+                    const bgColor = getPersonColor(person);
+                    const textColor = getTextColor(bgColor);
+                    return (
+                      <button
+                        key={`source-${idx}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMarkerClick?.("sourcePeople", person);
+                        }}
+                        style={{ backgroundColor: bgColor, color: textColor }}
+                        className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
+                      >
+                        ${person}
+                      </button>
+                    );
+                  })}
+                  {todo.metadata.mentionedPeople.map((person, idx) => {
+                    const bgColor = getPersonColor(person);
+                    const textColor = getTextColor(bgColor);
+                    return (
+                      <button
+                        key={`mentioned-${idx}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMarkerClick?.("mentionedPeople", person);
+                        }}
+                        style={{ backgroundColor: bgColor, color: textColor }}
+                        className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
+                      >
+                        ^{person}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Center group: Projects, Priority */}
+                <div className="flex flex-wrap gap-1 justify-center">
+                  {todo.metadata.projects.map((project, idx) => {
+                    const bgColor = getProjectColor(project);
+                    const textColor = getTextColor(bgColor);
+                    return (
+                      <button
+                        key={`project-${idx}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMarkerClick?.("projects", project);
+                        }}
+                        style={{ backgroundColor: bgColor, color: textColor }}
+                        className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
+                      >
+                        #{project}
+                      </button>
+                    );
+                  })}
+                  {todo.metadata.priority &&
+                    (() => {
+                      const bgColor = getPriorityColor(todo.metadata.priority);
+                      const textColor = getTextColor(bgColor);
+                      return (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onMarkerClick?.("priorities", todo.metadata.priority!);
+                          }}
+                          style={{ backgroundColor: bgColor, color: textColor }}
+                          className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
+                        >
+                          !!{todo.metadata.priority}
+                        </button>
+                      );
+                    })()}
+                </div>
+
+                {/* Right group: Due date, Duration */}
+                <div className="flex flex-wrap gap-1 justify-end">
+                  {todo.metadata.dueDate && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMarkerClick?.("dueDates", todo.metadata.dueDate!);
+                      }}
+                      className="px-2 py-0.5 text-xs rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors cursor-pointer"
+                    >
+                      ~{todo.metadata.dueDate}
+                    </button>
+                  )}
+                  {todo.metadata.duration && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMarkerClick?.("durations", todo.metadata.duration!);
+                      }}
+                      className="px-2 py-0.5 text-xs rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-200 dark:hover:bg-cyan-900/50 transition-colors cursor-pointer"
+                    >
+                      *{todo.metadata.duration}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -634,26 +647,62 @@ export function TodoItem({
             </div>
           )}
         </div>
-        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button
             onClick={(e) => {
               e.stopPropagation();
               setIsEditing(true);
             }}
-            className="px-3 py-1 text-sm bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-md transition-colors"
+            className="p-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-md transition-colors"
             aria-label="Edit todo"
+            title="Edit"
           >
-            Edit
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
           </button>
+          {todo.completed && onArchive && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onArchive(todo.id);
+              }}
+              className="p-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-md transition-colors"
+              aria-label="Archive todo"
+              title="Archive"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                />
+              </svg>
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
               onDelete(todo.id);
             }}
-            className="px-3 py-1 text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
+            className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
             aria-label="Delete todo"
+            title="Delete"
           >
-            Delete
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
           </button>
         </div>
       </div>

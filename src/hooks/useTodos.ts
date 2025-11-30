@@ -91,6 +91,12 @@ export function useTodos() {
     setTodos((prev) => prev.filter((todo) => todo.id !== id));
   };
 
+  const archiveTodo = (id: string) => {
+    setTodos((prev) =>
+      prev.map((todo) => (todo.id === id ? { ...todo, archived: true, updatedAt: Date.now() } : todo)),
+    );
+  };
+
   const editTodo = (id: string, text: string, plainText: string, metadata: TodoMetadata) => {
     setTodos((prev) =>
       prev.map((todo) => (todo.id === id ? { ...todo, text, plainText, metadata, updatedAt: Date.now() } : todo)),
@@ -146,6 +152,7 @@ export function useTodos() {
     addTodo,
     toggleTodo,
     deleteTodo,
+    archiveTodo,
     editTodo,
     addTodoComment,
     editTodoComment,
