@@ -255,6 +255,9 @@ export function TodoItem({
               completed={todo.completed}
               markerColors={markerColors}
               linkPatterns={linkPatterns}
+              availablePeople={availablePeople}
+              availableProjects={availableProjects}
+              availablePriorities={availablePriorities}
             />
           </div>
 

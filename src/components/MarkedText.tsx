@@ -1,14 +1,25 @@
 import React from "react";
-import { MarkerColors, LinkPattern } from "@/types/settings";
+import { MarkerColors, LinkPattern, Person, Project, Priority } from "@/types/settings";
 
 interface MarkedTextProps {
   text: string;
   completed?: boolean;
   markerColors?: MarkerColors;
   linkPatterns?: LinkPattern[];
+  availablePeople?: Person[];
+  availableProjects?: Project[];
+  availablePriorities?: Priority[];
 }
 
-export function MarkedText({ text, completed = false, markerColors, linkPatterns = [] }: MarkedTextProps) {
+export function MarkedText({
+  text,
+  completed = false,
+  markerColors,
+  linkPatterns = [],
+  availablePeople = [],
+  availableProjects = [],
+  availablePriorities = [],
+}: MarkedTextProps) {
   // Parse the text and create elements with markers highlighted
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
@@ -20,6 +31,36 @@ export function MarkedText({ text, completed = false, markerColors, linkPatterns
       backgroundColor: hexColor,
       color: "#333",
     };
+  };
+
+  // Helper to find person color by name or alternative
+  const findPersonColor = (name: string): string | undefined => {
+    const person = availablePeople.find(
+      (p) =>
+        p.name.toLowerCase() === name.toLowerCase() ||
+        p.alternatives.some((alt) => alt.toLowerCase() === name.toLowerCase()),
+    );
+    return person?.color;
+  };
+
+  // Helper to find project color by name or alternative
+  const findProjectColor = (name: string): string | undefined => {
+    const project = availableProjects.find(
+      (p) =>
+        p.name.toLowerCase() === name.toLowerCase() ||
+        p.alternatives.some((alt) => alt.toLowerCase() === name.toLowerCase()),
+    );
+    return project?.color;
+  };
+
+  // Helper to find priority color by name or alternative
+  const findPriorityColor = (name: string): string | undefined => {
+    const priority = availablePriorities.find(
+      (p) =>
+        p.name.toLowerCase() === name.toLowerCase() ||
+        p.alternatives.some((alt) => alt.toLowerCase() === name.toLowerCase()),
+    );
+    return priority?.color;
   };
 
   // Define all marker patterns with their types
@@ -41,17 +82,32 @@ export function MarkedText({ text, completed = false, markerColors, linkPatterns
     type: keyof MarkerColors | "link";
     url?: string;
     color?: string;
+    name?: string;
   }[] = [];
 
   markerPatterns.forEach(({ regex, type }) => {
     const matches = text.matchAll(regex);
     for (const match of matches) {
       if (match.index !== undefined) {
+        // Extract the name without the marker symbol
+        const markerSymbols: Record<string, string> = {
+          assigned: "@",
+          project: "#",
+          source: "$",
+          mentioned: "^",
+          priority: "!!",
+          dueDate: "~",
+          duration: "*",
+        };
+        const symbol = markerSymbols[type] || "";
+        const name = match[0].slice(symbol.length);
+
         allMatches.push({
           start: match.index,
           end: match.index + match[0].length,
           text: match[0],
           type,
+          name,
         });
       }
     }
@@ -113,7 +169,24 @@ export function MarkedText({ text, completed = false, markerColors, linkPatterns
       );
     } else {
       // Add the marker as a badge with custom color
-      const bgColor = markerColors?.[match.type as keyof MarkerColors];
+      let bgColor: string | undefined;
+
+      // Use individual colors for people, projects, and priorities
+      if (match.type === "assigned" || match.type === "source" || match.type === "mentioned") {
+        bgColor = match.name ? findPersonColor(match.name) : undefined;
+        // Fallback to marker color if person not found
+        if (!bgColor) bgColor = markerColors?.[match.type];
+      } else if (match.type === "project") {
+        bgColor = match.name ? findProjectColor(match.name) : undefined;
+        if (!bgColor) bgColor = markerColors?.[match.type];
+      } else if (match.type === "priority") {
+        bgColor = match.name ? findPriorityColor(match.name) : undefined;
+        if (!bgColor) bgColor = markerColors?.[match.type];
+      } else {
+        // For dueDate and duration, use marker colors
+        bgColor = markerColors?.[match.type as keyof MarkerColors];
+      }
+
       parts.push(
         <span
           key={`marker-${idx}`}
