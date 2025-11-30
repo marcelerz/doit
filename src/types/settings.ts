@@ -16,6 +16,14 @@ export interface Project {
   comments: Comment[];
 }
 
+export interface Priority {
+  id: string;
+  name: string;
+  alternatives: string[];
+  color: string;
+  order: number; // Lower number = higher priority
+}
+
 export interface LinkPattern {
   id: string;
   prefix: string; // e.g., "T", "D", "S"
@@ -77,6 +85,7 @@ export const defaultGeneralSettings: GeneralSettings = {
 export interface Settings {
   people: Person[];
   projects: Project[];
+  priorities: Priority[];
   linkPatterns: LinkPattern[];
   markerColors: MarkerColors;
   general: GeneralSettings;
@@ -85,6 +94,12 @@ export interface Settings {
 export const defaultSettings: Settings = {
   people: [],
   projects: [],
+  priorities: [
+    { id: "1", name: "urgent", alternatives: ["asap", "critical"], color: "#ff0000", order: 1 },
+    { id: "2", name: "high", alternatives: [], color: "#ff6b00", order: 2 },
+    { id: "3", name: "medium", alternatives: ["normal", "med"], color: "#ffa500", order: 3 },
+    { id: "4", name: "low", alternatives: [], color: "#ffff00", order: 4 },
+  ],
   linkPatterns: [],
   markerColors: defaultMarkerColors,
   general: defaultGeneralSettings,

@@ -1,5 +1,5 @@
 import React, { useRef, forwardRef, useImperativeHandle, useState, useEffect } from "react";
-import { Person, Project } from "@/types/settings";
+import { Person, Project, Priority } from "@/types/settings";
 
 export interface TokenMatch {
   type: string;
@@ -18,6 +18,10 @@ export interface SmartEditableInputProps {
   onEnterPress?: () => void;
   availablePeople?: Person[]; // List of valid people with alternatives
   availableProjects?: Project[]; // List of valid projects with alternatives
+  availablePriorities?: Priority[]; // List of valid priorities with alternatives
+  onAddPerson?: (name: string) => void; // Callback to add a new person
+  onAddProject?: (name: string) => void; // Callback to add a new project
+  onAddPriority?: (name: string) => void; // Callback to add a new priority
 }
 
 export interface SmartEditableInputHandle {
@@ -36,6 +40,10 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       onEnterPress,
       availablePeople = [],
       availableProjects = [],
+      availablePriorities = [],
+      onAddPerson,
+      onAddProject,
+      onAddPriority,
     },
     ref,
   ) => {
@@ -47,6 +55,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       type: string;
       marker: string;
       searchText: string;
+      showAddNew: boolean;
       position: { top: number; left: number };
     }>({
       show: false,
@@ -55,6 +64,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       type: "",
       marker: "",
       searchText: "",
+      showAddNew: false,
       position: { top: 0, left: 0 },
     });
 
@@ -79,6 +89,20 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       },
     }));
 
+    // Re-render content when availablePeople, availableProjects, or availablePriorities change
+    // This ensures highlighting updates when new people/projects/priorities are added
+    useEffect(() => {
+      if (editableRef.current && editableRef.current.textContent) {
+        const currentText = editableRef.current.textContent;
+        const { fragment, tokens, plainText } = renderTokensFromText(currentText);
+        editableRef.current.innerHTML = "";
+        editableRef.current.appendChild(fragment);
+        if (onTokensChange) {
+          onTokensChange(tokens, currentText, plainText);
+        }
+      }
+    }, [availablePeople, availableProjects, availablePriorities]);
+
     const defaultColors: string[] = [
       "#cce5ff",
       "#e2ccff",
@@ -93,14 +117,63 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
     ];
 
     const buildTokenRegex = (): { type: string; symbol: string; regex: RegExp }[] => {
-      return Object.entries(markers).map(([type, symbol]) => {
+      const patterns: { type: string; symbol: string; regex: RegExp }[] = [];
+
+      // Build patterns for people markers (@, $, ^)
+      const peopleMarkers = [
+        { type: "assigned", symbol: "@" },
+        { type: "source", symbol: "$" },
+        { type: "mentioned", symbol: "^" },
+      ];
+
+      for (const { type, symbol } of peopleMarkers) {
+        // Create a pattern that matches the symbol followed by any known person name or alternative
+        const allNames = availablePeople.flatMap((p) => [p.name, ...p.alternatives]);
+        if (allNames.length > 0) {
+          // Sort by length (longest first) to match longer names before shorter ones
+          const sortedNames = allNames.sort((a, b) => b.length - a.length);
+          const escapedSymbol = symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          // Escape special regex characters in names and join with |
+          const namesPattern = sortedNames.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+          const regex = new RegExp(`${escapedSymbol}(${namesPattern})(?=\\s|$)`, "gi");
+          patterns.push({ type, symbol, regex });
+        }
+      }
+
+      // Build pattern for project marker (#)
+      const allProjects = availableProjects.flatMap((p) => [p.name, ...p.alternatives]);
+      if (allProjects.length > 0) {
+        const sortedProjects = allProjects.sort((a, b) => b.length - a.length);
+        const namesPattern = sortedProjects.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+        const regex = new RegExp(`#(${namesPattern})(?=\\s|$)`, "gi");
+        patterns.push({ type: "project", symbol: "#", regex });
+      }
+
+      // Build pattern for priority marker (!!)
+      const allPriorities = availablePriorities.flatMap((p) => [p.name, ...p.alternatives]);
+      if (allPriorities.length > 0) {
+        const sortedPriorities = allPriorities.sort((a, b) => b.length - a.length);
+        const namesPattern = sortedPriorities.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+        const regex = new RegExp(`!!(${namesPattern})(?=\\s|$)`, "gi");
+        patterns.push({ type: "priority", symbol: "!!", regex });
+      }
+
+      // Build patterns for other markers (dueDate, duration)
+      const otherMarkers = [
+        { type: "dueDate", symbol: "~" },
+        { type: "duration", symbol: "*" },
+      ];
+
+      for (const { type, symbol } of otherMarkers) {
         const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const regex = new RegExp(`${escaped}[\\w-_]+(?=\\s|$)`, "gi");
-        return { type, symbol, regex };
-      });
+        patterns.push({ type, symbol, regex });
+      }
+
+      return patterns;
     };
 
-    // Helper to find person/project by name or alternative
+    // Helper to find person/project/priority by name or alternative
     const findPersonByNameOrAlternative = (input: string): Person | undefined => {
       const lowerInput = input.toLowerCase();
       return availablePeople.find(
@@ -111,6 +184,13 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
     const findProjectByNameOrAlternative = (input: string): Project | undefined => {
       const lowerInput = input.toLowerCase();
       return availableProjects.find(
+        (p) => p.name.toLowerCase() === lowerInput || p.alternatives.some((alt) => alt.toLowerCase() === lowerInput),
+      );
+    };
+
+    const findPriorityByNameOrAlternative = (input: string): Priority | undefined => {
+      const lowerInput = input.toLowerCase();
+      return availablePriorities.find(
         (p) => p.name.toLowerCase() === lowerInput || p.alternatives.some((alt) => alt.toLowerCase() === lowerInput),
       );
     };
@@ -129,6 +209,16 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const lowerSearch = search.toLowerCase();
       if (search === "") return availableProjects;
       return availableProjects.filter(
+        (p) =>
+          p.name.toLowerCase().includes(lowerSearch) ||
+          p.alternatives.some((alt) => alt.toLowerCase().includes(lowerSearch)),
+      );
+    };
+
+    const filterPrioritiesBySearch = (search: string): Priority[] => {
+      const lowerSearch = search.toLowerCase();
+      if (search === "") return availablePriorities;
+      return availablePriorities.filter(
         (p) =>
           p.name.toLowerCase().includes(lowerSearch) ||
           p.alternatives.some((alt) => alt.toLowerCase().includes(lowerSearch)),
@@ -160,6 +250,13 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
             const project = findProjectByNameOrAlternative(value);
             if (project) {
               value = project.name; // Use canonical name
+            }
+          }
+          // For priority marker, resolve alternatives to canonical name
+          else if (type === "priority") {
+            const priority = findPriorityByNameOrAlternative(value);
+            if (priority) {
+              value = priority.name; // Use canonical name
             }
           }
 
@@ -236,44 +333,71 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const caretPosition = fullText.indexOf("\u200B");
       const textBeforeCaret = caretPosition >= 0 ? fullText.substring(0, caretPosition) : fullText;
 
-      // Get the word being typed (everything after the last space before caret)
-      const lastSpaceIndex = textBeforeCaret.lastIndexOf(" ");
-      const currentWord = lastSpaceIndex >= 0 ? textBeforeCaret.substring(lastSpaceIndex + 1) : textBeforeCaret;
-
-      // Check if we're typing a marker
+      // Look for marker symbols starting from the end backwards
       const peopleMarkers = ["@", "$", "^"];
       const projectMarker = "#";
+      const priorityMarker = "!!";
+      const allMarkers = [...peopleMarkers, projectMarker, priorityMarker];
 
+      // Find the last marker before the caret
+      let lastMarkerPos = -1;
+      let lastMarker = "";
+      for (const marker of allMarkers) {
+        const pos = textBeforeCaret.lastIndexOf(marker);
+        if (pos > lastMarkerPos) {
+          lastMarkerPos = pos;
+          lastMarker = marker;
+        }
+      }
+
+      // Check if we found a marker and there's no space after it (meaning we're still typing the name)
       let shouldShowAutocomplete = false;
       let autocompleteType = "";
       let autocompleteMarker = "";
       let searchText = "";
       let options: string[] = [];
 
-      if (currentWord.length > 0) {
-        const firstChar = currentWord[0];
+      if (lastMarkerPos >= 0) {
+        const textAfterMarker = textBeforeCaret.substring(lastMarkerPos + lastMarker.length);
+        // Only show autocomplete if there's no completed token (no space after the marker's content)
+        const hasSpaceAfter = textAfterMarker.includes(" ");
 
-        if (peopleMarkers.includes(firstChar)) {
-          shouldShowAutocomplete = true;
-          autocompleteType = "person";
-          autocompleteMarker = firstChar;
-          searchText = currentWord.slice(1).toLowerCase();
-          const filteredPeople = filterPeopleBySearch(searchText);
-          options = filteredPeople.map((p) => p.name);
-        } else if (firstChar === projectMarker) {
-          shouldShowAutocomplete = true;
-          autocompleteType = "project";
-          autocompleteMarker = firstChar;
-          searchText = currentWord.slice(1).toLowerCase();
-          const filteredProjects = filterProjectsBySearch(searchText);
-          options = filteredProjects.map((p) => p.name);
+        if (!hasSpaceAfter) {
+          searchText = textAfterMarker.toLowerCase();
+
+          if (peopleMarkers.includes(lastMarker)) {
+            shouldShowAutocomplete = true;
+            autocompleteType = "person";
+            autocompleteMarker = lastMarker;
+            const filteredPeople = filterPeopleBySearch(searchText);
+            options = filteredPeople.map((p) => p.name);
+          } else if (lastMarker === projectMarker) {
+            shouldShowAutocomplete = true;
+            autocompleteType = "project";
+            autocompleteMarker = lastMarker;
+            const filteredProjects = filterProjectsBySearch(searchText);
+            options = filteredProjects.map((p) => p.name);
+          } else if (lastMarker === priorityMarker) {
+            shouldShowAutocomplete = true;
+            autocompleteType = "priority";
+            autocompleteMarker = lastMarker;
+            const filteredPriorities = filterPrioritiesBySearch(searchText);
+            options = filteredPriorities.map((p) => p.name);
+          }
         }
       }
 
-      if (shouldShowAutocomplete && options.length > 0) {
+      if (shouldShowAutocomplete) {
         // Get caret position for dropdown placement
         const markerRect = caretMarker.getBoundingClientRect();
         const divRect = div.getBoundingClientRect();
+
+        // Show "Add new" option if there are no matches and search text is not empty
+        const showAddNew = options.length === 0 && searchText.trim() !== "";
+        const canAddNew =
+          (autocompleteType === "person" && onAddPerson) ||
+          (autocompleteType === "project" && onAddProject) ||
+          (autocompleteType === "priority" && onAddPriority);
 
         setAutocomplete({
           show: true,
@@ -282,6 +406,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           type: autocompleteType,
           marker: autocompleteMarker,
           searchText,
+          showAddNew: showAddNew && !!canAddNew,
           position: {
             top: markerRect.bottom - divRect.top + 5,
             left: markerRect.left - divRect.left,
@@ -318,11 +443,13 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
       // Handle autocomplete navigation
       if (autocomplete.show) {
+        const totalItems = autocomplete.options.length + (autocomplete.showAddNew ? 1 : 0);
+
         if (e.key === "ArrowDown") {
           e.preventDefault();
           setAutocomplete((prev) => ({
             ...prev,
-            selected: Math.min(prev.selected + 1, prev.options.length - 1),
+            selected: Math.min(prev.selected + 1, totalItems - 1),
           }));
           return;
         } else if (e.key === "ArrowUp") {
@@ -333,11 +460,14 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           }));
           return;
         } else if (e.key === "Tab" || e.key === "Enter") {
-          if (autocomplete.options.length > 0) {
-            e.preventDefault();
+          e.preventDefault();
+          if (autocomplete.showAddNew && autocomplete.selected === autocomplete.options.length) {
+            // Selected "Add new" option
+            handleAddNew();
+          } else if (autocomplete.options.length > 0) {
             insertAutocomplete(autocomplete.options[autocomplete.selected]);
-            return;
           }
+          return;
         } else if (e.key === "Escape") {
           e.preventDefault();
           setAutocomplete((prev) => ({ ...prev, show: false }));
@@ -366,18 +496,30 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
 
       const fullText = div.innerText.replace(/\n/g, " ");
 
-      // Find the current word being typed
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0) return;
+      // Find the last marker position
+      const allMarkers = ["@", "$", "^", "#", "!!"];
+      let lastMarkerPos = -1;
+      let lastMarker = "";
 
-      // Get text content and find last incomplete marker
-      const textBeforeCaret = fullText.substring(0, fullText.length);
-      const lastSpaceIndex = textBeforeCaret.lastIndexOf(" ");
-      const beforeWord = lastSpaceIndex >= 0 ? textBeforeCaret.substring(0, lastSpaceIndex + 1) : "";
-      const afterCaret = ""; // Text after caret if needed
+      for (const marker of allMarkers) {
+        const pos = fullText.lastIndexOf(marker);
+        if (pos > lastMarkerPos) {
+          lastMarkerPos = pos;
+          lastMarker = marker;
+        }
+      }
 
-      // Replace with completed marker
-      const newText = beforeWord + autocomplete.marker + value + " " + afterCaret;
+      if (lastMarkerPos === -1) return;
+
+      // Split text: before marker, and after the incomplete name
+      const beforeMarker = fullText.substring(0, lastMarkerPos);
+      // Find if there's any text after the current typing position
+      const afterMarker = fullText.substring(lastMarkerPos);
+      const spaceAfterIndex = afterMarker.indexOf(" ", 1); // Start from 1 to skip the marker itself
+      const afterText = spaceAfterIndex >= 0 ? afterMarker.substring(spaceAfterIndex) : "";
+
+      // Build the new text with the completed name
+      const newText = beforeMarker + autocomplete.marker + value + " " + afterText;
       const { fragment, tokens, plainText } = renderTokensFromText(newText);
 
       if (onTokensChange) onTokensChange(tokens, newText.trim(), plainText);
@@ -385,7 +527,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       div.innerHTML = "";
       div.appendChild(fragment);
 
-      // Place cursor at the end
+      // Place cursor after the inserted name
       const range = document.createRange();
       const newSel = window.getSelection();
       range.selectNodeContents(div);
@@ -395,6 +537,23 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
 
       setAutocomplete((prev) => ({ ...prev, show: false }));
       div.focus();
+    };
+
+    const handleAddNew = () => {
+      const name = autocomplete.searchText.trim();
+      if (!name) return;
+
+      // Call the appropriate callback to add the person/project/priority
+      if (autocomplete.type === "person" && onAddPerson) {
+        onAddPerson(name);
+      } else if (autocomplete.type === "project" && onAddProject) {
+        onAddProject(name);
+      } else if (autocomplete.type === "priority" && onAddPriority) {
+        onAddPriority(name);
+      }
+
+      // Insert the new name into the text
+      insertAutocomplete(name);
     };
 
     return (
@@ -438,6 +597,22 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
                 {option}
               </button>
             ))}
+            {autocomplete.showAddNew && (
+              <button
+                key="add-new"
+                type="button"
+                onClick={handleAddNew}
+                onMouseEnter={() => setAutocomplete((prev) => ({ ...prev, selected: prev.options.length }))}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors border-t border-zinc-200 dark:border-zinc-700 ${
+                  autocomplete.selected === autocomplete.options.length
+                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100"
+                    : "text-zinc-900 dark:text-zinc-100"
+                }`}
+              >
+                <span className="font-medium">➕ Add new {autocomplete.type}: </span>
+                <span className="italic">{autocomplete.searchText}</span>
+              </button>
+            )}
           </div>
         )}
       </div>

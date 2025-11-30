@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, defaultSettings, Person, Project, LinkPattern, MarkerColors } from "@/types/settings";
+import { Settings, defaultSettings, Person, Project, Priority, LinkPattern, MarkerColors } from "@/types/settings";
 
 const SETTINGS_KEY = "doit-settings";
 
@@ -19,6 +19,7 @@ export function useSettings() {
         setSettings({
           ...defaultSettings,
           ...loadedSettings,
+          priorities: loadedSettings.priorities || defaultSettings.priorities,
           markerColors: loadedSettings.markerColors || defaultSettings.markerColors,
           general: {
             ...defaultSettings.general,
@@ -100,6 +101,31 @@ export function useSettings() {
     }));
   };
 
+  const addPriority = (priority: Omit<Priority, "id">) => {
+    const newPriority: Priority = {
+      ...priority,
+      id: Date.now().toString(),
+    };
+    setSettings((prev) => ({
+      ...prev,
+      priorities: [...prev.priorities, newPriority],
+    }));
+  };
+
+  const updatePriority = (id: string, updates: Partial<Priority>) => {
+    setSettings((prev) => ({
+      ...prev,
+      priorities: prev.priorities.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+    }));
+  };
+
+  const deletePriority = (id: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      priorities: prev.priorities.filter((p) => p.id !== id),
+    }));
+  };
+
   const addLinkPattern = (pattern: Omit<LinkPattern, "id">) => {
     const newPattern: LinkPattern = {
       ...pattern,
@@ -154,6 +180,9 @@ export function useSettings() {
     addProject,
     updateProject,
     deleteProject,
+    addPriority,
+    updatePriority,
+    deletePriority,
     addLinkPattern,
     updateLinkPattern,
     deleteLinkPattern,

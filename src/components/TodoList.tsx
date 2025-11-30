@@ -21,11 +21,37 @@ interface TodoFilters {
 
 export function TodoList() {
   const { todos, addTodo, toggleTodo, deleteTodo, editTodo, isLoaded } = useTodos();
-  const { settings } = useSettings();
+  const { settings, addPerson, addProject, addPriority } = useSettings();
   const [currentTokens, setCurrentTokens] = useState<TokenMatch[]>([]);
   const [currentFullText, setCurrentFullText] = useState("");
   const [currentPlainText, setCurrentPlainText] = useState("");
   const smartInputRef = useRef<SmartEditableInputHandle>(null);
+
+  // Wrapper functions to convert name string to object format
+  const handleAddPerson = (name: string) => {
+    addPerson({
+      name,
+      alternatives: [],
+      color: "#3b82f6", // default blue
+    });
+  };
+
+  const handleAddProject = (name: string) => {
+    addProject({
+      name,
+      alternatives: [],
+      color: "#8b5cf6", // default purple
+    });
+  };
+
+  const handleAddPriority = (name: string) => {
+    addPriority({
+      name,
+      alternatives: [],
+      color: "#ffa500", // default orange
+      order: settings.priorities.length + 1,
+    });
+  };
 
   // Collapsible section states
   const [activeExpanded, setActiveExpanded] = useState(true);
@@ -387,6 +413,10 @@ export function TodoList() {
                 markerColors={settings.markerColors}
                 availablePeople={settings.people}
                 availableProjects={settings.projects}
+                availablePriorities={settings.priorities}
+                onAddPerson={handleAddPerson}
+                onAddProject={handleAddProject}
+                onAddPriority={handleAddPriority}
                 onTokensChange={handleTokensChange}
                 onEnterPress={() => {
                   const event = new Event("submit", { bubbles: true, cancelable: true });
@@ -770,6 +800,10 @@ export function TodoList() {
                         linkPatterns={settings.linkPatterns}
                         availablePeople={settings.people}
                         availableProjects={settings.projects}
+                        availablePriorities={settings.priorities}
+                        onAddPerson={handleAddPerson}
+                        onAddProject={handleAddProject}
+                        onAddPriority={handleAddPriority}
                         onMarkerClick={handleFilterClick}
                         isExpanded={expandedTodoId === todo.id}
                         onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
@@ -814,6 +848,10 @@ export function TodoList() {
                         linkPatterns={settings.linkPatterns}
                         availablePeople={settings.people}
                         availableProjects={settings.projects}
+                        availablePriorities={settings.priorities}
+                        onAddPerson={handleAddPerson}
+                        onAddProject={handleAddProject}
+                        onAddPriority={handleAddPriority}
                         onMarkerClick={handleFilterClick}
                         isExpanded={expandedTodoId === todo.id}
                         onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
@@ -858,6 +896,10 @@ export function TodoList() {
                         linkPatterns={settings.linkPatterns}
                         availablePeople={settings.people}
                         availableProjects={settings.projects}
+                        availablePriorities={settings.priorities}
+                        onAddPerson={handleAddPerson}
+                        onAddProject={handleAddProject}
+                        onAddPriority={handleAddPriority}
                         onMarkerClick={handleFilterClick}
                         isExpanded={expandedTodoId === todo.id}
                         onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}

@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useSettings } from "@/hooks/useSettings";
 import { PeopleTab } from "@/components/settings/PeopleTab";
 import { ProjectsTab } from "@/components/settings/ProjectsTab";
+import { PrioritiesTab } from "@/components/settings/PrioritiesTab";
 import { LinksTab } from "@/components/settings/LinksTab";
 import { MarkersTab } from "@/components/settings/MarkersTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
 
-type Tab = "general" | "people" | "projects" | "links" | "markers";
+type Tab = "general" | "people" | "projects" | "priorities" | "links" | "markers";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
@@ -22,6 +23,9 @@ export default function SettingsPage() {
     addProject,
     updateProject,
     deleteProject,
+    addPriority,
+    updatePriority,
+    deletePriority,
     addLinkPattern,
     updateLinkPattern,
     deleteLinkPattern,
@@ -51,7 +55,7 @@ export default function SettingsPage() {
             </Link>
           </div>
           <p className="text-zinc-600 dark:text-zinc-400">
-            Configure general settings, people, projects, link patterns, and marker colors for your todo app
+            Configure general settings, people, projects, priorities, link patterns, and marker colors for your todo app
           </p>
         </header>
 
@@ -88,6 +92,16 @@ export default function SettingsPage() {
               Projects
             </button>
             <button
+              onClick={() => setActiveTab("priorities")}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                activeTab === "priorities"
+                  ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
+                  : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+              }`}
+            >
+              Priorities
+            </button>
+            <button
               onClick={() => setActiveTab("links")}
               className={`flex-1 px-6 py-4 font-medium transition-colors ${
                 activeTab === "links"
@@ -120,6 +134,14 @@ export default function SettingsPage() {
                 onAdd={addProject}
                 onUpdate={updateProject}
                 onDelete={deleteProject}
+              />
+            )}
+            {activeTab === "priorities" && (
+              <PrioritiesTab
+                priorities={settings.priorities}
+                onAdd={addPriority}
+                onUpdate={updatePriority}
+                onDelete={deletePriority}
               />
             )}
             {activeTab === "links" && (
