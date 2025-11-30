@@ -22,6 +22,7 @@ export interface Priority {
   alternatives: string[];
   color: string;
   order: number; // Lower number = higher priority
+  comments: Comment[];
 }
 
 export interface LinkPattern {

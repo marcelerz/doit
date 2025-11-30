@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Settings, defaultSettings, Person, Project, Priority, LinkPattern, MarkerColors } from "@/types/settings";
+import { migrateSettings } from "@/utils/migrations";
 
 const SETTINGS_KEY = "doit-settings";
 
@@ -15,25 +16,8 @@ export function useSettings() {
       const stored = localStorage.getItem(SETTINGS_KEY);
       if (stored) {
         const loadedSettings = JSON.parse(stored);
-        // Merge with defaults to ensure all fields exist
-        setSettings({
-          ...defaultSettings,
-          ...loadedSettings,
-          priorities: loadedSettings.priorities || defaultSettings.priorities,
-          markerColors: loadedSettings.markerColors || defaultSettings.markerColors,
-          general: {
-            ...defaultSettings.general,
-            ...(loadedSettings.general || {}),
-            dateTime: {
-              ...defaultSettings.general.dateTime,
-              ...(loadedSettings.general?.dateTime || {}),
-            },
-            autoAssign: {
-              ...defaultSettings.general.autoAssign,
-              ...(loadedSettings.general?.autoAssign || {}),
-            },
-          },
-        });
+        const migratedSettings = migrateSettings(loadedSettings);
+        setSettings(migratedSettings);
       }
     } catch (error) {
       console.error("Failed to load settings:", error);
@@ -105,10 +89,11 @@ export function useSettings() {
     }));
   };
 
-  const addPriority = (priority: Omit<Priority, "id">) => {
+  const addPriority = (priority: Omit<Priority, "id" | "comments">) => {
     const newPriority: Priority = {
       ...priority,
       id: Date.now().toString(),
+      comments: [],
     };
     setSettings((prev) => ({
       ...prev,
@@ -175,6 +160,150 @@ export function useSettings() {
     }));
   };
 
+  // Person comment management
+  const addPersonComment = (personId: string, content: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      people: prev.people.map((person) => {
+        if (person.id === personId) {
+          const newComment = {
+            commentId: Date.now(),
+            history: [{ date: Date.now(), content }],
+          };
+          return { ...person, comments: [...person.comments, newComment] };
+        }
+        return person;
+      }),
+    }));
+  };
+
+  const editPersonComment = (personId: string, commentId: number, content: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      people: prev.people.map((person) => {
+        if (person.id === personId) {
+          return {
+            ...person,
+            comments: person.comments.map((comment) =>
+              comment.commentId === commentId
+                ? { ...comment, history: [...comment.history, { date: Date.now(), content }] }
+                : comment,
+            ),
+          };
+        }
+        return person;
+      }),
+    }));
+  };
+
+  const deletePersonComment = (personId: string, commentId: number) => {
+    setSettings((prev) => ({
+      ...prev,
+      people: prev.people.map((person) => {
+        if (person.id === personId) {
+          return { ...person, comments: person.comments.filter((c) => c.commentId !== commentId) };
+        }
+        return person;
+      }),
+    }));
+  };
+
+  // Project comment management
+  const addProjectComment = (projectId: string, content: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      projects: prev.projects.map((project) => {
+        if (project.id === projectId) {
+          const newComment = {
+            commentId: Date.now(),
+            history: [{ date: Date.now(), content }],
+          };
+          return { ...project, comments: [...project.comments, newComment] };
+        }
+        return project;
+      }),
+    }));
+  };
+
+  const editProjectComment = (projectId: string, commentId: number, content: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      projects: prev.projects.map((project) => {
+        if (project.id === projectId) {
+          return {
+            ...project,
+            comments: project.comments.map((comment) =>
+              comment.commentId === commentId
+                ? { ...comment, history: [...comment.history, { date: Date.now(), content }] }
+                : comment,
+            ),
+          };
+        }
+        return project;
+      }),
+    }));
+  };
+
+  const deleteProjectComment = (projectId: string, commentId: number) => {
+    setSettings((prev) => ({
+      ...prev,
+      projects: prev.projects.map((project) => {
+        if (project.id === projectId) {
+          return { ...project, comments: project.comments.filter((c) => c.commentId !== commentId) };
+        }
+        return project;
+      }),
+    }));
+  };
+
+  // Priority comment management
+  const addPriorityComment = (priorityId: string, content: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      priorities: prev.priorities.map((priority) => {
+        if (priority.id === priorityId) {
+          const newComment = {
+            commentId: Date.now(),
+            history: [{ date: Date.now(), content }],
+          };
+          return { ...priority, comments: [...priority.comments, newComment] };
+        }
+        return priority;
+      }),
+    }));
+  };
+
+  const editPriorityComment = (priorityId: string, commentId: number, content: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      priorities: prev.priorities.map((priority) => {
+        if (priority.id === priorityId) {
+          return {
+            ...priority,
+            comments: priority.comments.map((comment) =>
+              comment.commentId === commentId
+                ? { ...comment, history: [...comment.history, { date: Date.now(), content }] }
+                : comment,
+            ),
+          };
+        }
+        return priority;
+      }),
+    }));
+  };
+
+  const deletePriorityComment = (priorityId: string, commentId: number) => {
+    setSettings((prev) => ({
+      ...prev,
+      priorities: prev.priorities.map((priority) => {
+        if (priority.id === priorityId) {
+          return { ...priority, comments: priority.comments.filter((c) => c.commentId !== commentId) };
+        }
+        return priority;
+      }),
+    }));
+  };
+
   return {
     settings,
     isLoaded,
@@ -192,5 +321,14 @@ export function useSettings() {
     deleteLinkPattern,
     updateMarkerColors,
     updateGeneralSettings,
+    addPersonComment,
+    editPersonComment,
+    deletePersonComment,
+    addProjectComment,
+    editProjectComment,
+    deleteProjectComment,
+    addPriorityComment,
+    editPriorityComment,
+    deletePriorityComment,
   };
 }

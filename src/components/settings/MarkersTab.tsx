@@ -10,21 +10,34 @@ interface MarkersTabProps {
 const markerInfo = [
   {
     key: "assigned" as keyof MarkerColors,
-    symbol: "@",
-    label: "Assigned Person",
-    description: "Person assigned to the task",
+    symbol: "@/$^",
+    label: "People (Default)",
+    description: "Default color for new people (assigned, source, mentioned)",
   },
-  { key: "source" as keyof MarkerColors, symbol: "$", label: "Source Person", description: "Where the task came from" },
   {
-    key: "mentioned" as keyof MarkerColors,
-    symbol: "^",
-    label: "Mentioned Person",
-    description: "Person mentioned in the task",
+    key: "project" as keyof MarkerColors,
+    symbol: "#",
+    label: "Project (Default)",
+    description: "Default color for new projects",
   },
-  { key: "project" as keyof MarkerColors, symbol: "#", label: "Project", description: "Project assignment" },
-  { key: "priority" as keyof MarkerColors, symbol: "!!", label: "Priority", description: "Task priority level" },
-  { key: "dueDate" as keyof MarkerColors, symbol: "~", label: "Due Date", description: "Target completion date" },
-  { key: "duration" as keyof MarkerColors, symbol: "*", label: "Duration", description: "Estimated time to complete" },
+  {
+    key: "priority" as keyof MarkerColors,
+    symbol: "!!",
+    label: "Priority (Default)",
+    description: "Default color for new priorities",
+  },
+  {
+    key: "dueDate" as keyof MarkerColors,
+    symbol: "~",
+    label: "Due Date",
+    description: "Color for due dates",
+  },
+  {
+    key: "duration" as keyof MarkerColors,
+    symbol: "*",
+    label: "Duration",
+    description: "Color for task durations",
+  },
 ];
 
 export function MarkersTab({ markerColors, onUpdate }: MarkersTabProps) {
@@ -39,7 +52,8 @@ export function MarkersTab({ markerColors, onUpdate }: MarkersTabProps) {
       </div>
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Customize the colors used for each marker type in the smart input and todo display.
+        Configure default colors used when creating new items. Individual people, projects, and priorities can have
+        their own colors set in their respective tabs.
       </p>
 
       <div className="space-y-3">

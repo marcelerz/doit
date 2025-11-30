@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Todo, TodoMetadata } from "@/types/todo";
+import { migrateTodos, checkAndUpdateVersion } from "@/utils/migrations";
 
 const STORAGE_KEY = "doit-todos";
 
@@ -12,21 +13,19 @@ export function useTodos() {
   // Load todos from localStorage on mount
   useEffect(() => {
     try {
+      // Check if migration is needed
+      const migrationNeeded = checkAndUpdateVersion();
+
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const loadedTodos = JSON.parse(stored);
-        // Migrate old todos without metadata
-        const migratedTodos = loadedTodos.map((todo: any) => ({
-          ...todo,
-          plainText: todo.plainText || todo.text,
-          metadata: todo.metadata || {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-          },
-        }));
+        const migratedTodos = migrateTodos(loadedTodos);
         setTodos(migratedTodos);
+
+        // If migration was needed, save the migrated data immediately
+        if (migrationNeeded) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedTodos));
+        }
       }
     } catch (error) {
       console.error("Failed to load todos:", error);
@@ -54,6 +53,7 @@ export function useTodos() {
       completed: false,
       createdAt: Date.now(),
       metadata,
+      comments: [],
     };
     setTodos((prev) => [newTodo, ...prev]);
   };
@@ -82,12 +82,59 @@ export function useTodos() {
     setTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, text, plainText, metadata } : todo)));
   };
 
+  const addTodoComment = (todoId: string, content: string) => {
+    setTodos((prev) =>
+      prev.map((todo) => {
+        if (todo.id === todoId) {
+          const newComment = {
+            commentId: Date.now(),
+            history: [{ date: Date.now(), content }],
+          };
+          return { ...todo, comments: [...todo.comments, newComment] };
+        }
+        return todo;
+      }),
+    );
+  };
+
+  const editTodoComment = (todoId: string, commentId: number, content: string) => {
+    setTodos((prev) =>
+      prev.map((todo) => {
+        if (todo.id === todoId) {
+          return {
+            ...todo,
+            comments: todo.comments.map((comment) =>
+              comment.commentId === commentId
+                ? { ...comment, history: [...comment.history, { date: Date.now(), content }] }
+                : comment,
+            ),
+          };
+        }
+        return todo;
+      }),
+    );
+  };
+
+  const deleteTodoComment = (todoId: string, commentId: number) => {
+    setTodos((prev) =>
+      prev.map((todo) => {
+        if (todo.id === todoId) {
+          return { ...todo, comments: todo.comments.filter((c) => c.commentId !== commentId) };
+        }
+        return todo;
+      }),
+    );
+  };
+
   return {
     todos,
     addTodo,
     toggleTodo,
     deleteTodo,
     editTodo,
+    addTodoComment,
+    editTodoComment,
+    deleteTodoComment,
     isLoaded,
   };
 }

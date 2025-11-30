@@ -8,6 +8,16 @@ export interface TodoMetadata {
   duration?: string; // * marker
 }
 
+export interface Comment {
+  commentId: number;
+  history: CommentHistoryEntry[];
+}
+
+export interface CommentHistoryEntry {
+  date: number;
+  content: string;
+}
+
 export interface Todo {
   id: string;
   text: string; // Full text with markers
@@ -16,4 +26,5 @@ export interface Todo {
   createdAt: number;
   completedAt?: number; // Timestamp when task was marked as completed
   metadata: TodoMetadata;
+  comments: Comment[];
 }

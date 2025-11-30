@@ -5,6 +5,7 @@ import { Todo, TodoMetadata } from "@/types/todo";
 import { MarkerColors, GeneralSettings, LinkPattern, Person, Project, Priority } from "@/types/settings";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/SmartInput";
 import { MarkedText } from "./MarkedText";
+import { Comments } from "./Comments";
 
 interface TodoItemProps {
   todo: Todo;
@@ -26,6 +27,9 @@ interface TodoItemProps {
   ) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onAddComment?: (todoId: string, content: string) => void;
+  onEditComment?: (todoId: string, commentId: number, content: string) => void;
+  onDeleteComment?: (todoId: string, commentId: number) => void;
 }
 
 export function TodoItem({
@@ -45,6 +49,9 @@ export function TodoItem({
   onMarkerClick,
   isExpanded,
   onToggleExpand,
+  onAddComment,
+  onEditComment,
+  onDeleteComment,
 }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentTokens, setCurrentTokens] = useState<TokenMatch[]>([]);
@@ -60,6 +67,37 @@ export function TodoItem({
     priority: "!!",
     dueDate: "~",
     duration: "*",
+  };
+
+  // Helper functions to get entity colors
+  const getPersonColor = (name: string): string => {
+    const person = availablePeople.find((p) => p.name === name || p.alternatives.includes(name));
+    return person?.color || markerColors.assigned;
+  };
+
+  const getProjectColor = (name: string): string => {
+    const project = availableProjects.find((p) => p.name === name || p.alternatives.includes(name));
+    return project?.color || markerColors.project;
+  };
+
+  const getPriorityColor = (name: string): string => {
+    const priority = availablePriorities.find((p) => p.name === name || p.alternatives.includes(name));
+    return priority?.color || markerColors.priority;
+  };
+
+  // Helper to determine if text should be white or black based on background color
+  const getTextColor = (bgColor: string): string => {
+    // Convert hex to RGB
+    const hex = bgColor.replace("#", "");
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    // Calculate relative luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    // Return white for dark backgrounds, black for light backgrounds
+    return luminance > 0.5 ? "#000000" : "#FFFFFF";
   };
 
   useEffect(() => {
@@ -271,65 +309,91 @@ export function TodoItem({
               todo.metadata.dueDate ||
               todo.metadata.duration) && (
               <div className="flex flex-wrap gap-1">
-                {todo.metadata.assignedPeople.map((person, idx) => (
-                  <button
-                    key={`assigned-${idx}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMarkerClick?.("assignedPeople", person);
-                    }}
-                    className="px-2 py-0.5 text-xs rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
-                  >
-                    @{person}
-                  </button>
-                ))}
-                {todo.metadata.projects.map((project, idx) => (
-                  <button
-                    key={`project-${idx}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMarkerClick?.("projects", project);
-                    }}
-                    className="px-2 py-0.5 text-xs rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors cursor-pointer"
-                  >
-                    #{project}
-                  </button>
-                ))}
-                {todo.metadata.sourcePeople.map((person, idx) => (
-                  <button
-                    key={`source-${idx}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMarkerClick?.("sourcePeople", person);
-                    }}
-                    className="px-2 py-0.5 text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors cursor-pointer"
-                  >
-                    ${person}
-                  </button>
-                ))}
-                {todo.metadata.mentionedPeople.map((person, idx) => (
-                  <button
-                    key={`mentioned-${idx}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMarkerClick?.("mentionedPeople", person);
-                    }}
-                    className="px-2 py-0.5 text-xs rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors cursor-pointer"
-                  >
-                    ^{person}
-                  </button>
-                ))}
-                {todo.metadata.priority && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMarkerClick?.("priorities", todo.metadata.priority!);
-                    }}
-                    className="px-2 py-0.5 text-xs rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
-                  >
-                    !!{todo.metadata.priority}
-                  </button>
-                )}
+                {todo.metadata.assignedPeople.map((person, idx) => {
+                  const bgColor = getPersonColor(person);
+                  const textColor = getTextColor(bgColor);
+                  return (
+                    <button
+                      key={`assigned-${idx}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMarkerClick?.("assignedPeople", person);
+                      }}
+                      style={{ backgroundColor: bgColor, color: textColor }}
+                      className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
+                    >
+                      @{person}
+                    </button>
+                  );
+                })}
+                {todo.metadata.projects.map((project, idx) => {
+                  const bgColor = getProjectColor(project);
+                  const textColor = getTextColor(bgColor);
+                  return (
+                    <button
+                      key={`project-${idx}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMarkerClick?.("projects", project);
+                      }}
+                      style={{ backgroundColor: bgColor, color: textColor }}
+                      className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
+                    >
+                      #{project}
+                    </button>
+                  );
+                })}
+                {todo.metadata.sourcePeople.map((person, idx) => {
+                  const bgColor = getPersonColor(person);
+                  const textColor = getTextColor(bgColor);
+                  return (
+                    <button
+                      key={`source-${idx}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMarkerClick?.("sourcePeople", person);
+                      }}
+                      style={{ backgroundColor: bgColor, color: textColor }}
+                      className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
+                    >
+                      ${person}
+                    </button>
+                  );
+                })}
+                {todo.metadata.mentionedPeople.map((person, idx) => {
+                  const bgColor = getPersonColor(person);
+                  const textColor = getTextColor(bgColor);
+                  return (
+                    <button
+                      key={`mentioned-${idx}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMarkerClick?.("mentionedPeople", person);
+                      }}
+                      style={{ backgroundColor: bgColor, color: textColor }}
+                      className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
+                    >
+                      ^{person}
+                    </button>
+                  );
+                })}
+                {todo.metadata.priority &&
+                  (() => {
+                    const bgColor = getPriorityColor(todo.metadata.priority);
+                    const textColor = getTextColor(bgColor);
+                    return (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMarkerClick?.("priorities", todo.metadata.priority!);
+                        }}
+                        style={{ backgroundColor: bgColor, color: textColor }}
+                        className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
+                      >
+                        !!{todo.metadata.priority}
+                      </button>
+                    );
+                  })()}
                 {todo.metadata.dueDate && (
                   <button
                     onClick={(e) => {
@@ -368,18 +432,23 @@ export function TodoItem({
                   <div>
                     <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">👤 Assigned</h4>
                     <div className="flex flex-wrap gap-1">
-                      {todo.metadata.assignedPeople.map((person, idx) => (
-                        <button
-                          key={idx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onMarkerClick?.("assignedPeople", person);
-                          }}
-                          className="px-2 py-0.5 text-xs rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
-                        >
-                          @{person}
-                        </button>
-                      ))}
+                      {todo.metadata.assignedPeople.map((person, idx) => {
+                        const bgColor = getPersonColor(person);
+                        const textColor = getTextColor(bgColor);
+                        return (
+                          <button
+                            key={idx}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMarkerClick?.("assignedPeople", person);
+                            }}
+                            style={{ backgroundColor: bgColor, color: textColor }}
+                            className="px-2 py-0.5 text-xs rounded hover:opacity-80 transition-opacity"
+                          >
+                            @{person}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -389,18 +458,23 @@ export function TodoItem({
                   <div>
                     <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📁 Projects</h4>
                     <div className="flex flex-wrap gap-1">
-                      {todo.metadata.projects.map((project, idx) => (
-                        <button
-                          key={idx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onMarkerClick?.("projects", project);
-                          }}
-                          className="px-2 py-0.5 text-xs rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
-                        >
-                          #{project}
-                        </button>
-                      ))}
+                      {todo.metadata.projects.map((project, idx) => {
+                        const bgColor = getProjectColor(project);
+                        const textColor = getTextColor(bgColor);
+                        return (
+                          <button
+                            key={idx}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMarkerClick?.("projects", project);
+                            }}
+                            style={{ backgroundColor: bgColor, color: textColor }}
+                            className="px-2 py-0.5 text-xs rounded hover:opacity-80 transition-opacity"
+                          >
+                            #{project}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -410,18 +484,23 @@ export function TodoItem({
                   <div>
                     <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📤 Source</h4>
                     <div className="flex flex-wrap gap-1">
-                      {todo.metadata.sourcePeople.map((person, idx) => (
-                        <button
-                          key={idx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onMarkerClick?.("sourcePeople", person);
-                          }}
-                          className="px-2 py-0.5 text-xs rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
-                        >
-                          ${person}
-                        </button>
-                      ))}
+                      {todo.metadata.sourcePeople.map((person, idx) => {
+                        const bgColor = getPersonColor(person);
+                        const textColor = getTextColor(bgColor);
+                        return (
+                          <button
+                            key={idx}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMarkerClick?.("sourcePeople", person);
+                            }}
+                            style={{ backgroundColor: bgColor, color: textColor }}
+                            className="px-2 py-0.5 text-xs rounded hover:opacity-80 transition-opacity"
+                          >
+                            ${person}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -431,37 +510,48 @@ export function TodoItem({
                   <div>
                     <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">💬 Mentioned</h4>
                     <div className="flex flex-wrap gap-1">
-                      {todo.metadata.mentionedPeople.map((person, idx) => (
-                        <button
-                          key={idx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onMarkerClick?.("mentionedPeople", person);
-                          }}
-                          className="px-2 py-0.5 text-xs rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors"
-                        >
-                          ^{person}
-                        </button>
-                      ))}
+                      {todo.metadata.mentionedPeople.map((person, idx) => {
+                        const bgColor = getPersonColor(person);
+                        const textColor = getTextColor(bgColor);
+                        return (
+                          <button
+                            key={idx}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMarkerClick?.("mentionedPeople", person);
+                            }}
+                            style={{ backgroundColor: bgColor, color: textColor }}
+                            className="px-2 py-0.5 text-xs rounded hover:opacity-80 transition-opacity"
+                          >
+                            ^{person}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
                 {/* Priority */}
-                {todo.metadata.priority && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">🔥 Priority</h4>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMarkerClick?.("priorities", todo.metadata.priority!);
-                      }}
-                      className="px-2 py-0.5 text-xs rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
-                    >
-                      !!{todo.metadata.priority}
-                    </button>
-                  </div>
-                )}
+                {todo.metadata.priority &&
+                  (() => {
+                    const bgColor = getPriorityColor(todo.metadata.priority);
+                    const textColor = getTextColor(bgColor);
+                    return (
+                      <div>
+                        <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">🔥 Priority</h4>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onMarkerClick?.("priorities", todo.metadata.priority!);
+                          }}
+                          style={{ backgroundColor: bgColor, color: textColor }}
+                          className="px-2 py-0.5 text-xs rounded hover:opacity-80 transition-opacity"
+                        >
+                          !!{todo.metadata.priority}
+                        </button>
+                      </div>
+                    );
+                  })()}
 
                 {/* Due Date */}
                 {todo.metadata.dueDate && (
@@ -530,6 +620,17 @@ export function TodoItem({
                 <div className="text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 p-2 rounded">
                   {todo.plainText}
                 </div>
+              </div>
+
+              {/* Comments Section */}
+              <div className="border-t border-zinc-200 dark:border-zinc-800 pt-2">
+                <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">💬 Comments</h4>
+                <Comments
+                  comments={todo.comments}
+                  onAddComment={(content: string) => onAddComment?.(todo.id, content)}
+                  onEditComment={(commentId: number, content: string) => onEditComment?.(todo.id, commentId, content)}
+                  onDeleteComment={(commentId: number) => onDeleteComment?.(todo.id, commentId)}
+                />
               </div>
             </div>
           )}

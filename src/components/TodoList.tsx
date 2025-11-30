@@ -20,7 +20,17 @@ interface TodoFilters {
 }
 
 export function TodoList() {
-  const { todos, addTodo, toggleTodo, deleteTodo, editTodo, isLoaded } = useTodos();
+  const {
+    todos,
+    addTodo,
+    toggleTodo,
+    deleteTodo,
+    editTodo,
+    addTodoComment,
+    editTodoComment,
+    deleteTodoComment,
+    isLoaded,
+  } = useTodos();
   const { settings, addPerson, addProject, addPriority } = useSettings();
   const [currentTokens, setCurrentTokens] = useState<TokenMatch[]>([]);
   const [currentFullText, setCurrentFullText] = useState("");
@@ -808,6 +818,9 @@ export function TodoList() {
                         onMarkerClick={handleFilterClick}
                         isExpanded={expandedTodoId === todo.id}
                         onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
+                        onAddComment={addTodoComment}
+                        onEditComment={editTodoComment}
+                        onDeleteComment={deleteTodoComment}
                       />
                     ))}
                   </ul>
@@ -856,6 +869,9 @@ export function TodoList() {
                         onMarkerClick={handleFilterClick}
                         isExpanded={expandedTodoId === todo.id}
                         onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
+                        onAddComment={addTodoComment}
+                        onEditComment={editTodoComment}
+                        onDeleteComment={deleteTodoComment}
                       />
                     ))}
                   </ul>
@@ -904,6 +920,9 @@ export function TodoList() {
                         onMarkerClick={handleFilterClick}
                         isExpanded={expandedTodoId === todo.id}
                         onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
+                        onAddComment={addTodoComment}
+                        onEditComment={editTodoComment}
+                        onDeleteComment={deleteTodoComment}
                       />
                     ))}
                   </ul>
