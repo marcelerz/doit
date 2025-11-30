@@ -677,8 +677,8 @@ export function TodoItem({
             </button>
           )}
 
-          {/* Archive button - only for completed but not archived todos */}
-          {todo.state === "completed" && onArchive && (
+          {/* Archive button - for active and completed todos */}
+          {(todo.state === "active" || todo.state === "completed") && onArchive && (
             <button
               onClick={(e) => {
                 e.stopPropagation();

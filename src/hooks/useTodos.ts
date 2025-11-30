@@ -79,6 +79,8 @@ export function useTodos() {
             ...todo,
             state: newState,
             completedAt: newState === "completed" ? now : undefined,
+            archivedAt: undefined,
+            deletedAt: undefined,
             updatedAt: now,
           };
         }
@@ -101,6 +103,8 @@ export function useTodos() {
               state: "archived",
               archivedAt: now,
               updatedAt: now,
+              // Clear deletedAt when archiving
+              deletedAt: undefined,
             }
           : todo,
       ),
@@ -109,15 +113,21 @@ export function useTodos() {
 
   const unarchiveTodo = (id: string) => {
     setTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === id
-          ? {
-              ...todo,
-              state: "completed",
-              updatedAt: Date.now(),
-            }
-          : todo,
-      ),
+      prev.map((todo) => {
+        if (todo.id === id) {
+          // If there's no completedAt timestamp, restore to active state
+          // Otherwise restore to completed state
+          const newState = todo.completedAt ? "completed" : "active";
+          return {
+            ...todo,
+            state: newState,
+            archivedAt: undefined,
+            deletedAt: undefined,
+            updatedAt: Date.now(),
+          };
+        }
+        return todo;
+      }),
     );
   };
 
