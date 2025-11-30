@@ -13,6 +13,7 @@ interface TodoItemProps {
   onDelete: (id: string) => void;
   onEdit: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
   onArchive?: (id: string) => void;
+  onUnarchive?: (id: string) => void;
   markerColors: MarkerColors;
   generalSettings: GeneralSettings;
   linkPatterns: LinkPattern[];
@@ -39,6 +40,7 @@ export function TodoItem({
   onDelete,
   onEdit,
   onArchive,
+  onUnarchive,
   markerColors,
   generalSettings,
   linkPatterns,
@@ -648,25 +650,30 @@ export function TodoItem({
           )}
         </div>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsEditing(true);
-            }}
-            className="p-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-md transition-colors"
-            aria-label="Edit todo"
-            title="Edit"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              />
-            </svg>
-          </button>
-          {todo.completed && onArchive && (
+          {/* Edit button - only for active (not completed, not archived) todos */}
+          {!todo.completed && !todo.archived && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditing(true);
+              }}
+              className="p-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-md transition-colors"
+              aria-label="Edit todo"
+              title="Edit"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+            </button>
+          )}
+
+          {/* Archive button - only for completed but not archived todos */}
+          {todo.completed && !todo.archived && onArchive && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -686,6 +693,30 @@ export function TodoItem({
               </svg>
             </button>
           )}
+
+          {/* Unarchive button - only for archived todos */}
+          {todo.archived && onUnarchive && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onUnarchive(todo.id);
+              }}
+              className="p-2 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 rounded-md transition-colors"
+              aria-label="Unarchive todo"
+              title="Unarchive"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                />
+              </svg>
+            </button>
+          )}
+
+          {/* Delete button - always available */}
           <button
             onClick={(e) => {
               e.stopPropagation();

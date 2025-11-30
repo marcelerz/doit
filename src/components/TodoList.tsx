@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useTodos } from "@/hooks/useTodos";
 import { useSettings } from "@/hooks/useSettings";
@@ -26,6 +26,7 @@ export function TodoList() {
     toggleTodo,
     deleteTodo,
     archiveTodo,
+    unarchiveTodo,
     editTodo,
     addTodoComment,
     editTodoComment,
@@ -72,27 +73,85 @@ export function TodoList() {
   // Expanded todo detail state
   const [expandedTodoId, setExpandedTodoId] = useState<string | null>(null);
 
-  // Filter states
-  const [filters, setFilters] = useState<TodoFilters>({
-    searchText: "",
-    assignedPeople: new Set(),
-    sourcePeople: new Set(),
-    mentionedPeople: new Set(),
-    projects: new Set(),
-    priorities: new Set(),
-    dueDates: new Set(),
-    durations: new Set(),
+  // Filter states - Load from localStorage
+  const [filters, setFilters] = useState<TodoFilters>(() => {
+    try {
+      const saved = localStorage.getItem("doit-filters");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          searchText: parsed.searchText || "",
+          assignedPeople: new Set(parsed.assignedPeople || []),
+          sourcePeople: new Set(parsed.sourcePeople || []),
+          mentionedPeople: new Set(parsed.mentionedPeople || []),
+          projects: new Set(parsed.projects || []),
+          priorities: new Set(parsed.priorities || []),
+          dueDates: new Set(parsed.dueDates || []),
+          durations: new Set(parsed.durations || []),
+        };
+      }
+    } catch (e) {
+      console.error("Failed to load filters from localStorage:", e);
+    }
+    return {
+      searchText: "",
+      assignedPeople: new Set(),
+      sourcePeople: new Set(),
+      mentionedPeople: new Set(),
+      projects: new Set(),
+      priorities: new Set(),
+      dueDates: new Set(),
+      durations: new Set(),
+    };
   });
   const [showFilters, setShowFilters] = useState(false);
+
+  // Save filters to localStorage whenever they change
+  useEffect(() => {
+    const toSave = {
+      searchText: filters.searchText,
+      assignedPeople: Array.from(filters.assignedPeople),
+      sourcePeople: Array.from(filters.sourcePeople),
+      mentionedPeople: Array.from(filters.mentionedPeople),
+      projects: Array.from(filters.projects),
+      priorities: Array.from(filters.priorities),
+      dueDates: Array.from(filters.dueDates),
+      durations: Array.from(filters.durations),
+    };
+    localStorage.setItem("doit-filters", JSON.stringify(toSave));
+  }, [filters]);
 
   // Sorting and grouping states
   type SortField = "dueDate" | "duration" | "assigned" | "source" | "mentioned" | "project" | "priority" | "created";
   type SortDirection = "asc" | "desc";
   type GroupBy = "none" | "dueDate";
 
-  const [sortField, setSortField] = useState<SortField>("created");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [groupBy, setGroupBy] = useState<GroupBy>("none");
+  // Load saved preferences from localStorage
+  const [sortField, setSortField] = useState<SortField>(() => {
+    const saved = localStorage.getItem("doit-sort-field");
+    return (saved as SortField) || "created";
+  });
+  const [sortDirection, setSortDirection] = useState<SortDirection>(() => {
+    const saved = localStorage.getItem("doit-sort-direction");
+    return (saved as SortDirection) || "desc";
+  });
+  const [groupBy, setGroupBy] = useState<GroupBy>(() => {
+    const saved = localStorage.getItem("doit-group-by");
+    return (saved as GroupBy) || "none";
+  });
+
+  // Save preferences to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("doit-sort-field", sortField);
+  }, [sortField]);
+
+  useEffect(() => {
+    localStorage.setItem("doit-sort-direction", sortDirection);
+  }, [sortDirection]);
+
+  useEffect(() => {
+    localStorage.setItem("doit-group-by", groupBy);
+  }, [groupBy]);
 
   const handleTokensChange = (tokens: TokenMatch[], fullText: string, plainText: string) => {
     setCurrentTokens(tokens);
@@ -1023,6 +1082,7 @@ export function TodoList() {
                               onToggle={toggleTodo}
                               onDelete={deleteTodo}
                               onArchive={archiveTodo}
+                              onUnarchive={unarchiveTodo}
                               onEdit={editTodo}
                               markerColors={settings.markerColors}
                               generalSettings={settings.general}
@@ -1078,6 +1138,7 @@ export function TodoList() {
                         onToggle={toggleTodo}
                         onDelete={deleteTodo}
                         onArchive={archiveTodo}
+                        onUnarchive={unarchiveTodo}
                         onEdit={editTodo}
                         markerColors={settings.markerColors}
                         generalSettings={settings.general}
@@ -1130,6 +1191,7 @@ export function TodoList() {
                         onToggle={toggleTodo}
                         onDelete={deleteTodo}
                         onArchive={archiveTodo}
+                        onUnarchive={unarchiveTodo}
                         onEdit={editTodo}
                         markerColors={settings.markerColors}
                         generalSettings={settings.general}
