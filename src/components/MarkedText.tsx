@@ -119,9 +119,9 @@ export function MarkedText({
 
   // Find link pattern matches
   linkPatterns.forEach((linkPattern) => {
-    // Create regex for this link pattern: prefix followed by numbers
-    // e.g., "T" becomes /T\d+/g
-    const linkRegex = new RegExp(`${linkPattern.prefix}\\d+`, "gi");
+    // Create regex for this link pattern: prefix followed by at least 4 digits
+    // e.g., "T" becomes /T\d{4,}/g
+    const linkRegex = new RegExp(`${linkPattern.prefix}\\d{4,}`, "gi");
     const matches = text.matchAll(linkRegex);
 
     for (const match of matches) {
