@@ -287,7 +287,7 @@ export function TodoItem({
       <div className="flex items-start gap-3">
         <input
           type="checkbox"
-          checked={todo.completed}
+          checked={todo.state === "completed" || todo.state === "archived"}
           onChange={() => onToggle(todo.id)}
           className="w-5 h-5 mt-0.5 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer flex-shrink-0"
         />
@@ -295,7 +295,7 @@ export function TodoItem({
           <div className="text-base mb-2">
             <MarkedText
               text={todo.text}
-              completed={todo.completed}
+              completed={todo.state === "completed" || todo.state === "archived"}
               markerColors={markerColors}
               linkPatterns={linkPatterns}
               availablePeople={availablePeople}
@@ -455,6 +455,11 @@ export function TodoItem({
                   {todo.completedAt && (
                     <div>
                       <span className="font-medium">Completed:</span> {new Date(todo.completedAt).toLocaleString()}
+                    </div>
+                  )}
+                  {todo.archivedAt && (
+                    <div>
+                      <span className="font-medium">Archived:</span> {new Date(todo.archivedAt).toLocaleString()}
                     </div>
                   )}
                 </div>
@@ -651,7 +656,7 @@ export function TodoItem({
         </div>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           {/* Edit button - only for active (not completed, not archived) todos */}
-          {!todo.completed && !todo.archived && (
+          {todo.state === "active" && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -673,7 +678,7 @@ export function TodoItem({
           )}
 
           {/* Archive button - only for completed but not archived todos */}
-          {todo.completed && !todo.archived && onArchive && (
+          {todo.state === "completed" && onArchive && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -695,7 +700,7 @@ export function TodoItem({
           )}
 
           {/* Unarchive button - only for archived todos */}
-          {todo.archived && onUnarchive && (
+          {todo.state === "archived" && onUnarchive && (
             <button
               onClick={(e) => {
                 e.stopPropagation();

@@ -558,18 +558,14 @@ export function TodoList() {
   const now = Date.now();
 
   // Categorize todos and apply filters
-  const allActiveTodos = todos.filter((todo) => !todo.completed);
+  const allActiveTodos = todos.filter((todo) => todo.state === "active");
   const allCompletedTodos = todos.filter((todo) => {
-    if (!todo.completed) return false;
+    if (todo.state !== "completed") return false;
     if (!todo.completedAt) return true; // Legacy completed todos without timestamp
     const timeSinceCompletion = now - todo.completedAt;
     return timeSinceCompletion < archiveThresholdMs;
   });
-  const allArchivedTodos = todos.filter((todo) => {
-    if (!todo.completed || !todo.completedAt) return false;
-    const timeSinceCompletion = now - todo.completedAt;
-    return timeSinceCompletion >= archiveThresholdMs;
-  });
+  const allArchivedTodos = todos.filter((todo) => todo.state === "archived");
 
   const activeTodos = sortTodos(applyFilters(allActiveTodos));
   const groupedActiveTodos = groupTodos(activeTodos);

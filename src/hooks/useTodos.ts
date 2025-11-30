@@ -60,7 +60,7 @@ export function useTodos() {
       id: now.toString(),
       text,
       plainText,
-      completed: false,
+      state: "active",
       createdAt: now,
       updatedAt: now,
       metadata,
@@ -73,12 +73,12 @@ export function useTodos() {
     setTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === id) {
-          const newCompleted = !todo.completed;
+          const newState = todo.state === "completed" ? "active" : "completed";
           const now = Date.now();
           return {
             ...todo,
-            completed: newCompleted,
-            completedAt: newCompleted ? now : undefined,
+            state: newState,
+            completedAt: newState === "completed" ? now : undefined,
             updatedAt: now,
           };
         }
@@ -92,14 +92,32 @@ export function useTodos() {
   };
 
   const archiveTodo = (id: string) => {
+    const now = Date.now();
     setTodos((prev) =>
-      prev.map((todo) => (todo.id === id ? { ...todo, archived: true, updatedAt: Date.now() } : todo)),
+      prev.map((todo) =>
+        todo.id === id
+          ? {
+              ...todo,
+              state: "archived",
+              archivedAt: now,
+              updatedAt: now,
+            }
+          : todo,
+      ),
     );
   };
 
   const unarchiveTodo = (id: string) => {
     setTodos((prev) =>
-      prev.map((todo) => (todo.id === id ? { ...todo, archived: false, updatedAt: Date.now() } : todo)),
+      prev.map((todo) =>
+        todo.id === id
+          ? {
+              ...todo,
+              state: "completed",
+              updatedAt: Date.now(),
+            }
+          : todo,
+      ),
     );
   };
 

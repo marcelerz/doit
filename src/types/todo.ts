@@ -18,15 +18,32 @@ export interface CommentHistoryEntry {
   content: string;
 }
 
+export type TodoState = "active" | "completed" | "archived" | "deleted";
+
 export interface Todo {
   id: string;
   text: string; // Full text with markers
   plainText: string; // Text without markers
-  completed: boolean;
+  state: TodoState; // Current state of the todo
   createdAt: number;
   updatedAt?: number; // Timestamp when task was last updated
   completedAt?: number; // Timestamp when task was marked as completed
-  archived?: boolean; // Whether the task is archived (auto-set based on completion date)
+  archivedAt?: number; // Timestamp when task was archived
+  deletedAt?: number; // Timestamp when task was deleted
+  metadata: TodoMetadata;
+  comments: Comment[];
+}
+
+// Legacy interface for backward compatibility during migration
+export interface LegacyTodo {
+  id: string;
+  text: string;
+  plainText: string;
+  completed: boolean;
+  createdAt: number;
+  updatedAt?: number;
+  completedAt?: number;
+  archived?: boolean;
   metadata: TodoMetadata;
   comments: Comment[];
 }

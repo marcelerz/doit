@@ -3,18 +3,18 @@
  * Ensures backward compatibility when data structures change
  */
 
-import { Todo, TodoMetadata } from "@/types/todo";
+import { Todo, TodoMetadata, TodoState, LegacyTodo } from "@/types/todo";
 import { Settings, defaultSettings, Person, Project, Priority } from "@/types/settings";
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
 
-const CURRENT_VERSION = 3; // Increment when adding new migrations
+const CURRENT_VERSION = 4; // Increment when adding new migrations
 const VERSION_KEY = "doit-data-version";
 
 /**
  * Check if a todo should be archived based on settings
  */
 function shouldArchive(todo: Todo, archiveDays: number): boolean {
-  if (!todo.completed || !todo.completedAt) {
+  if (todo.state !== "completed" || !todo.completedAt) {
     return false;
   }
 
@@ -26,7 +26,7 @@ function shouldArchive(todo: Todo, archiveDays: number): boolean {
  * Check if a todo should be deleted based on settings
  */
 function shouldDelete(todo: Todo, autoDeleteEnabled: boolean, deleteDays: number): boolean {
-  if (!autoDeleteEnabled || !todo.completed || !todo.completedAt) {
+  if (!autoDeleteEnabled || todo.state !== "completed" || !todo.completedAt) {
     return false;
   }
 
@@ -38,8 +38,25 @@ function shouldDelete(todo: Todo, autoDeleteEnabled: boolean, deleteDays: number
  * Migrate a todo to the current format
  */
 function migrateTodo(todo: any): Todo {
+  // Determine the state based on legacy fields
+  let state: TodoState = "active";
+  let completedAt = todo.completedAt || null;
+  let archivedAt = todo.archivedAt || null;
+  let deletedAt = todo.deletedAt || null;
+
+  if (todo.archived === true) {
+    state = "archived";
+    // Set archivedAt if not present
+    if (!archivedAt && completedAt) {
+      archivedAt = completedAt;
+    }
+  } else if (todo.completed === true) {
+    state = "completed";
+  }
+
   return {
     ...todo,
+    state,
     // Ensure plainText exists
     plainText: todo.plainText || todo.text || "",
     // Ensure metadata exists with all required fields
@@ -58,9 +75,9 @@ function migrateTodo(todo: any): Todo {
     // Ensure timestamps exist
     createdAt: todo.createdAt || Date.now(),
     updatedAt: todo.updatedAt || todo.createdAt || Date.now(),
-    completedAt: todo.completedAt || null,
-    // Ensure archived flag exists
-    archived: todo.archived || false,
+    completedAt,
+    archivedAt,
+    deletedAt,
   };
 }
 
@@ -158,9 +175,13 @@ export function migrateTodos(loadedTodos: any[], settings: Settings): Todo[] {
       return true;
     })
     .map((todo) => {
-      // Apply archive flag to completed todos that should be archived
-      if (shouldArchive(todo, archiveDays) && !todo.archived) {
-        return { ...todo, archived: true };
+      // Apply archive state to completed todos that should be archived
+      if (shouldArchive(todo, archiveDays) && todo.state === "completed") {
+        return {
+          ...todo,
+          state: "archived" as TodoState,
+          archivedAt: Date.now(),
+        };
       }
       return todo;
     });
