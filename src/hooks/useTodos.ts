@@ -55,12 +55,14 @@ export function useTodos() {
   }, [todos, isLoaded]);
 
   const addTodo = (text: string, plainText: string, metadata: TodoMetadata) => {
+    const now = Date.now();
     const newTodo: Todo = {
-      id: Date.now().toString(),
+      id: now.toString(),
       text,
       plainText,
       completed: false,
-      createdAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
       metadata,
       comments: [],
     };
@@ -72,10 +74,12 @@ export function useTodos() {
       prev.map((todo) => {
         if (todo.id === id) {
           const newCompleted = !todo.completed;
+          const now = Date.now();
           return {
             ...todo,
             completed: newCompleted,
-            completedAt: newCompleted ? Date.now() : undefined,
+            completedAt: newCompleted ? now : undefined,
+            updatedAt: now,
           };
         }
         return todo;
@@ -88,7 +92,9 @@ export function useTodos() {
   };
 
   const editTodo = (id: string, text: string, plainText: string, metadata: TodoMetadata) => {
-    setTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, text, plainText, metadata } : todo)));
+    setTodos((prev) =>
+      prev.map((todo) => (todo.id === id ? { ...todo, text, plainText, metadata, updatedAt: Date.now() } : todo)),
+    );
   };
 
   const addTodoComment = (todoId: string, content: string) => {

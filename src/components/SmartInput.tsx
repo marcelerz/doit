@@ -162,10 +162,11 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       }
 
       // Build pattern for due date marker (~)
-      // Matches dates like: ~tomorrow, ~2024-12-25, ~Wed, 25th Dec 2024 5:00pm, ~23.12.2025 13:40, ~eod
-      // Pattern matches everything after ~ until we hit a known marker, double space, or end
-      // Single space followed by non-date chars (letters that aren't month/day names) ends the match
-      const dueDatePattern = `~([^@#$^*~\\n]+?)(?=\\s+[@#$^*~!]|\\s{2,}|\\s+[^0-9:apmAPM,.]|$)`;
+      // Matches dates like: ~tomorrow, ~2024-12-25, ~Mon, 1st Dec 2025 3:12pm, ~23.12.2025 13:40, ~eod
+      // Pattern matches everything after ~ until we hit a known marker or end of input
+      // Allows letters (for month names, day names), digits, punctuation (commas, colons, slashes, dots)
+      // and am/pm indicators. Stops at other markers or double spaces.
+      const dueDatePattern = `~([^@#$^*~\\n]+?)(?=\\s{2,}|\\s+[@#$^*~!]{1,2}|$)`;
       patterns.push({
         type: "dueDate",
         symbol: "~",
@@ -318,7 +319,17 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         }
 
         const span = document.createElement("span");
-        span.textContent = token.raw;
+
+        // For due dates, try to parse and show formatted date as preview
+        let displayText = token.raw;
+        if (token.type === "dueDate" && dateTimeSettings) {
+          const parsed = parseDate(token.value, dateTimeSettings);
+          if (parsed) {
+            displayText = `~${parsed.formatted}`;
+          }
+        }
+
+        span.textContent = displayText;
         span.contentEditable = "false";
         span.dataset.token = token.type;
 

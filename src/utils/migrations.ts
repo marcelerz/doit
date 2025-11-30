@@ -7,7 +7,7 @@ import { Todo, TodoMetadata } from "@/types/todo";
 import { Settings, defaultSettings, Person, Project, Priority } from "@/types/settings";
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
 
-const CURRENT_VERSION = 2; // Increment when adding new migrations
+const CURRENT_VERSION = 3; // Increment when adding new migrations
 const VERSION_KEY = "doit-data-version";
 
 /**
@@ -57,6 +57,7 @@ function migrateTodo(todo: any): Todo {
     comments: todo.comments || [],
     // Ensure timestamps exist
     createdAt: todo.createdAt || Date.now(),
+    updatedAt: todo.updatedAt || todo.createdAt || Date.now(),
     completedAt: todo.completedAt || null,
     // Ensure archived flag exists
     archived: todo.archived || false,

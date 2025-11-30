@@ -297,6 +297,7 @@ export function TodoItem({
               availablePeople={availablePeople}
               availableProjects={availableProjects}
               availablePriorities={availablePriorities}
+              dateTimeSettings={generalSettings.dateTime}
             />
           </div>
 
@@ -425,14 +426,33 @@ export function TodoItem({
               className="mt-2 space-y-2 border-t border-zinc-200 dark:border-zinc-800 pt-2"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Created/Completed Info */}
+              <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-600 dark:text-zinc-400">
+                  <div>
+                    <span className="font-medium">Created:</span> {new Date(todo.createdAt).toLocaleString()}
+                  </div>
+                  {todo.updatedAt && (
+                    <div>
+                      <span className="font-medium">Updated:</span> {new Date(todo.updatedAt).toLocaleString()}
+                    </div>
+                  )}
+                  {todo.completedAt && (
+                    <div>
+                      <span className="font-medium">Completed:</span> {new Date(todo.completedAt).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Task Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {/* Assigned People */}
-                {todo.metadata.assignedPeople.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">👤 Assigned</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {todo.metadata.assignedPeople.map((person, idx) => {
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">👤 Assigned</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {todo.metadata.assignedPeople.length > 0 ? (
+                      todo.metadata.assignedPeople.map((person, idx) => {
                         const bgColor = getPersonColor(person);
                         const textColor = getTextColor(bgColor);
                         return (
@@ -448,17 +468,19 @@ export function TodoItem({
                             @{person}
                           </button>
                         );
-                      })}
-                    </div>
+                      })
+                    ) : (
+                      <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
+                    )}
                   </div>
-                )}
+                </div>
 
                 {/* Projects */}
-                {todo.metadata.projects.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📁 Projects</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {todo.metadata.projects.map((project, idx) => {
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📁 Projects</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {todo.metadata.projects.length > 0 ? (
+                      todo.metadata.projects.map((project, idx) => {
                         const bgColor = getProjectColor(project);
                         const textColor = getTextColor(bgColor);
                         return (
@@ -474,17 +496,19 @@ export function TodoItem({
                             #{project}
                           </button>
                         );
-                      })}
-                    </div>
+                      })
+                    ) : (
+                      <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
+                    )}
                   </div>
-                )}
+                </div>
 
                 {/* Source People */}
-                {todo.metadata.sourcePeople.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📤 Source</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {todo.metadata.sourcePeople.map((person, idx) => {
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📤 Source</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {todo.metadata.sourcePeople.length > 0 ? (
+                      todo.metadata.sourcePeople.map((person, idx) => {
                         const bgColor = getPersonColor(person);
                         const textColor = getTextColor(bgColor);
                         return (
@@ -500,17 +524,19 @@ export function TodoItem({
                             ${person}
                           </button>
                         );
-                      })}
-                    </div>
+                      })
+                    ) : (
+                      <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
+                    )}
                   </div>
-                )}
+                </div>
 
                 {/* Mentioned People */}
-                {todo.metadata.mentionedPeople.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">💬 Mentioned</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {todo.metadata.mentionedPeople.map((person, idx) => {
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">💬 Mentioned</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {todo.metadata.mentionedPeople.length > 0 ? (
+                      todo.metadata.mentionedPeople.map((person, idx) => {
                         const bgColor = getPersonColor(person);
                         const textColor = getTextColor(bgColor);
                         return (
@@ -526,19 +552,21 @@ export function TodoItem({
                             ^{person}
                           </button>
                         );
-                      })}
-                    </div>
+                      })
+                    ) : (
+                      <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
+                    )}
                   </div>
-                )}
+                </div>
 
                 {/* Priority */}
-                {todo.metadata.priority &&
-                  (() => {
-                    const bgColor = getPriorityColor(todo.metadata.priority);
-                    const textColor = getTextColor(bgColor);
-                    return (
-                      <div>
-                        <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">🔥 Priority</h4>
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">🔥 Priority</h4>
+                  {todo.metadata.priority ? (
+                    (() => {
+                      const bgColor = getPriorityColor(todo.metadata.priority);
+                      const textColor = getTextColor(bgColor);
+                      return (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -549,14 +577,17 @@ export function TodoItem({
                         >
                           !!{todo.metadata.priority}
                         </button>
-                      </div>
-                    );
-                  })()}
+                      );
+                    })()
+                  ) : (
+                    <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
+                  )}
+                </div>
 
                 {/* Due Date */}
-                {todo.metadata.dueDate && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📅 Due</h4>
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📅 Due</h4>
+                  {todo.metadata.dueDate ? (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -566,13 +597,15 @@ export function TodoItem({
                     >
                       ~{todo.metadata.dueDate}
                     </button>
-                  </div>
-                )}
+                  ) : (
+                    <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
+                  )}
+                </div>
 
                 {/* Duration */}
-                {todo.metadata.duration && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">⏱️ Duration</h4>
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">⏱️ Duration</h4>
+                  {todo.metadata.duration ? (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -582,20 +615,8 @@ export function TodoItem({
                     >
                       *{todo.metadata.duration}
                     </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Metadata Info */}
-              <div className="border-t border-zinc-200 dark:border-zinc-800 pt-2">
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-600 dark:text-zinc-400">
-                  <div>
-                    <span className="font-medium">Created:</span> {new Date(todo.createdAt).toLocaleString()}
-                  </div>
-                  {todo.completedAt && (
-                    <div>
-                      <span className="font-medium">Completed:</span> {new Date(todo.completedAt).toLocaleString()}
-                    </div>
+                  ) : (
+                    <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
                   )}
                 </div>
               </div>

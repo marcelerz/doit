@@ -408,8 +408,8 @@ export function TodoList() {
 
         if (todo.metadata.dueDate) {
           try {
-            // Parse the due date string
-            const dueDate = new Date(todo.metadata.dueDate);
+            // Parse the due date string (YYYY-MM-DD format)
+            const dueDate = new Date(todo.metadata.dueDate + "T00:00:00");
             dueDate.setHours(0, 0, 0, 0);
             const dueDateMs = dueDate.getTime();
 
@@ -419,9 +419,9 @@ export function TodoList() {
               groupKey = "Today";
             } else if (dueDateMs === todayMs + oneDayMs) {
               groupKey = "Tomorrow";
-            } else if (dueDateMs < todayMs + 7 * oneDayMs) {
+            } else if (dueDateMs <= todayMs + 7 * oneDayMs) {
               groupKey = "This Week";
-            } else if (dueDateMs < todayMs + 30 * oneDayMs) {
+            } else if (dueDateMs <= todayMs + 30 * oneDayMs) {
               groupKey = "This Month";
             } else {
               groupKey = "Later";

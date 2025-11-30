@@ -1,5 +1,6 @@
 import React from "react";
-import { MarkerColors, LinkPattern, Person, Project, Priority } from "@/types/settings";
+import { MarkerColors, LinkPattern, Person, Project, Priority, DateTimeSettings } from "@/types/settings";
+import { parseDate } from "@/utils/dateParser";
 
 interface MarkedTextProps {
   text: string;
@@ -9,6 +10,7 @@ interface MarkedTextProps {
   availablePeople?: Person[];
   availableProjects?: Project[];
   availablePriorities?: Priority[];
+  dateTimeSettings?: DateTimeSettings;
 }
 
 export function MarkedText({
@@ -19,6 +21,7 @@ export function MarkedText({
   availablePeople = [],
   availableProjects = [],
   availablePriorities = [],
+  dateTimeSettings,
 }: MarkedTextProps) {
   // Parse the text and create elements with markers highlighted
   const parts: React.ReactNode[] = [];
@@ -70,7 +73,7 @@ export function MarkedText({
     { regex: /\$[\w-_]+/g, type: "source" as const },
     { regex: /\^[\w-_]+/g, type: "mentioned" as const },
     { regex: /!![\w-_]+/g, type: "priority" as const },
-    { regex: /~([^@#$^*~\n]+?)(?=\s+[@#$^*~!]|\s{2,}|\s+[^0-9:apmAPM,.]|$)/g, type: "dueDate" as const },
+    { regex: /~([^@#$^*~\n]+?)(?=\s{2,}|\s+[@#$^*~!]{1,2}|$)/g, type: "dueDate" as const },
     { regex: /\*[\w-_]+/g, type: "duration" as const },
   ];
 
@@ -174,6 +177,7 @@ export function MarkedText({
     } else {
       // Add the marker as a badge with custom color
       let bgColor: string | undefined;
+      let displayText = match.text;
 
       // Use individual colors for people, projects, and priorities
       if (match.type === "assigned" || match.type === "source" || match.type === "mentioned") {
@@ -186,8 +190,17 @@ export function MarkedText({
       } else if (match.type === "priority") {
         bgColor = match.name ? findPriorityColor(match.name) : undefined;
         if (!bgColor) bgColor = markerColors?.[match.type];
+      } else if (match.type === "dueDate") {
+        // For dueDate, parse and format the date for display
+        bgColor = markerColors?.[match.type as keyof MarkerColors];
+        if (match.name && dateTimeSettings) {
+          const parsed = parseDate(match.name, dateTimeSettings);
+          if (parsed) {
+            displayText = `~${parsed.formatted}`;
+          }
+        }
       } else {
-        // For dueDate and duration, use marker colors
+        // For duration, use marker colors
         bgColor = markerColors?.[match.type as keyof MarkerColors];
       }
 
@@ -197,7 +210,7 @@ export function MarkedText({
           className="inline-block px-1.5 py-0.5 mx-0.5 text-sm rounded font-medium"
           style={getColorStyle(bgColor)}
         >
-          {match.text}
+          {displayText}
         </span>,
       );
     }
