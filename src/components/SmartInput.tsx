@@ -162,9 +162,10 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       }
 
       // Build pattern for due date marker (~)
-      // Matches dates like: ~tomorrow, ~2024-12-25, ~Wed, 25th Dec 2024 5:00pm, ~eod
-      // Pattern matches everything after ~ until we hit a known marker or double space
-      const dueDatePattern = `~([^@#$^*~\\n]+?)(?=\\s+[@#$^*~]|\\s{2,}|$)`;
+      // Matches dates like: ~tomorrow, ~2024-12-25, ~Wed, 25th Dec 2024 5:00pm, ~23.12.2025 13:40, ~eod
+      // Pattern matches everything after ~ until we hit a known marker, double space, or end
+      // Single space followed by non-date chars (letters that aren't month/day names) ends the match
+      const dueDatePattern = `~([^@#$^*~\\n]+?)(?=\\s+[@#$^*~!]|\\s{2,}|\\s+[^0-9:apmAPM,.]|$)`;
       patterns.push({
         type: "dueDate",
         symbol: "~",

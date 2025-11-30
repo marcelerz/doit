@@ -254,6 +254,62 @@ export function GeneralTab({ general, onUpdate }: GeneralTabProps) {
               </p>
             </div>
 
+            {/* Morning */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Morning</label>
+              <input
+                type="time"
+                value={general.dateTime.morning}
+                onChange={(e) => handleDateTimeChange("morning", e.target.value)}
+                className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
+                Used when interpreting "morning" in due dates
+              </p>
+            </div>
+
+            {/* Noon */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Noon</label>
+              <input
+                type="time"
+                value={general.dateTime.noon}
+                onChange={(e) => handleDateTimeChange("noon", e.target.value)}
+                className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
+                Used when interpreting "noon" in due dates (typically 12:00)
+              </p>
+            </div>
+
+            {/* Afternoon */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Afternoon</label>
+              <input
+                type="time"
+                value={general.dateTime.afternoon}
+                onChange={(e) => handleDateTimeChange("afternoon", e.target.value)}
+                className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
+                Used when interpreting "afternoon" in due dates
+              </p>
+            </div>
+
+            {/* Evening */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Evening</label>
+              <input
+                type="time"
+                value={general.dateTime.evening}
+                onChange={(e) => handleDateTimeChange("evening", e.target.value)}
+                className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
+                Used when interpreting "evening" in due dates
+              </p>
+            </div>
+
             {/* Work Week Start */}
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">

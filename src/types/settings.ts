@@ -65,6 +65,10 @@ export const defaultMarkerColors: MarkerColors = {
 export interface DateTimeSettings {
   startOfDay: string; // e.g., "09:00"
   endOfDay: string; // e.g., "17:00"
+  morning: string; // e.g., "08:00"
+  noon: string; // e.g., "12:00"
+  afternoon: string; // e.g., "14:00"
+  evening: string; // e.g., "18:00"
   workWeekStart: number; // 0-6, where 0 = Sunday, 1 = Monday
   fiscalYearStart: number; // Month (1-12) when fiscal year starts
 }
@@ -72,6 +76,10 @@ export interface DateTimeSettings {
 export const defaultDateTimeSettings: DateTimeSettings = {
   startOfDay: "09:00",
   endOfDay: "17:00",
+  morning: "08:00",
+  noon: "12:00",
+  afternoon: "14:00",
+  evening: "18:00",
   workWeekStart: 1, // Monday
   fiscalYearStart: 1, // January
 };

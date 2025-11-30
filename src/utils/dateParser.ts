@@ -154,6 +154,30 @@ export const parseShorthand = (shorthand: string, dateTimeSettings: DateTimeSett
       return eod;
     }
 
+    case "morning": {
+      const morning = new Date(now);
+      setTime(morning, dateTimeSettings.morning);
+      return morning;
+    }
+
+    case "noon": {
+      const noon = new Date(now);
+      setTime(noon, dateTimeSettings.noon);
+      return noon;
+    }
+
+    case "afternoon": {
+      const afternoon = new Date(now);
+      setTime(afternoon, dateTimeSettings.afternoon);
+      return afternoon;
+    }
+
+    case "evening": {
+      const evening = new Date(now);
+      setTime(evening, dateTimeSettings.evening);
+      return evening;
+    }
+
     case "bow": // Beginning of week
     case "startofweek": {
       const bow = new Date(now);
@@ -328,6 +352,10 @@ export const getDueDateSuggestions = (search: string, dateTimeSettings: DateTime
   const suggestions = [
     { value: "today", label: "today - Today" },
     { value: "tomorrow", label: "tomorrow - Tomorrow" },
+    { value: "morning", label: "morning - Morning" },
+    { value: "noon", label: "noon - Noon (12:00)" },
+    { value: "afternoon", label: "afternoon - Afternoon" },
+    { value: "evening", label: "evening - Evening" },
     { value: "eod", label: "eod - End of day" },
     { value: "bod", label: "bod - Beginning of day" },
     { value: "eow", label: "eow - End of week" },
