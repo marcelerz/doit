@@ -1,0 +1,195 @@
+"use client";
+
+import { useState } from "react";
+import { LinkPattern } from "@/types/settings";
+
+interface LinksTabProps {
+  linkPatterns: LinkPattern[];
+  onAdd: (pattern: Omit<LinkPattern, "id">) => void;
+  onUpdate: (id: string, updates: Partial<LinkPattern>) => void;
+  onDelete: (id: string) => void;
+}
+
+export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabProps) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    prefix: "",
+    urlTemplate: "",
+    description: "",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.prefix.trim() || !formData.urlTemplate.trim()) return;
+
+    const patternData = {
+      prefix: formData.prefix.trim().toUpperCase(),
+      urlTemplate: formData.urlTemplate.trim(),
+      description: formData.description.trim(),
+    };
+
+    if (editingId) {
+      onUpdate(editingId, patternData);
+      setEditingId(null);
+    } else {
+      onAdd(patternData);
+    }
+
+    setFormData({ prefix: "", urlTemplate: "", description: "" });
+    setIsAdding(false);
+  };
+
+  const handleEdit = (pattern: LinkPattern) => {
+    setEditingId(pattern.id);
+    setFormData({
+      prefix: pattern.prefix,
+      urlTemplate: pattern.urlTemplate,
+      description: pattern.description,
+    });
+    setIsAdding(true);
+  };
+
+  const handleCancel = () => {
+    setIsAdding(false);
+    setEditingId(null);
+    setFormData({ prefix: "", urlTemplate: "", description: "" });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Link Patterns</h2>
+        {!isAdding && (
+          <button
+            onClick={() => setIsAdding(true)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          >
+            Add Link Pattern
+          </button>
+        )}
+      </div>
+
+      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+        <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">How it works</h3>
+        <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+          Link patterns convert text like{" "}
+          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">T12345</code> into clickable links.
+        </p>
+        <p className="text-sm text-blue-800 dark:text-blue-200">
+          Pattern: Capital letter followed by 4+ digits. Use{" "}
+          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">{"{id}"}</code> in the URL template as a
+          placeholder for the number.
+        </p>
+      </div>
+
+      {isAdding && (
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-3"
+        >
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              Prefix (Capital Letter) *
+            </label>
+            <input
+              type="text"
+              value={formData.prefix}
+              onChange={(e) => setFormData({ ...formData, prefix: e.target.value.toUpperCase() })}
+              className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+              placeholder="T"
+              maxLength={3}
+              pattern="[A-Z]{1,3}"
+              required
+            />
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              Enter 1-3 capital letters (e.g., T, D, S, ABC)
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">URL Template *</label>
+            <input
+              type="text"
+              value={formData.urlTemplate}
+              onChange={(e) => setFormData({ ...formData, urlTemplate: e.target.value })}
+              className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              placeholder="http://www.google.com/{id}"
+              required
+            />
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              Use {"{id}"} where the number should be inserted
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Description</label>
+            <input
+              type="text"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ticket link"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors"
+            >
+              {editingId ? "Update" : "Add"} Pattern
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="flex-1 px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-md font-medium transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="space-y-2">
+        {linkPatterns.length === 0 ? (
+          <p className="text-center py-8 text-zinc-500 dark:text-zinc-400">
+            No link patterns added yet. Click "Add Link Pattern" to get started.
+          </p>
+        ) : (
+          linkPatterns.map((pattern) => (
+            <div
+              key={pattern.id}
+              className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 flex items-center gap-4"
+            >
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 flex items-center justify-center font-bold text-lg text-purple-700 dark:text-purple-300">
+                {pattern.prefix}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{pattern.prefix}##### → Link</h3>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 font-mono break-all">{pattern.urlTemplate}</p>
+                {pattern.description && (
+                  <p className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">{pattern.description}</p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleEdit(pattern)}
+                  className="px-3 py-1 text-sm bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-md transition-colors"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => onDelete(pattern.id)}
+                  className="px-3 py-1 text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

@@ -54,17 +54,20 @@ doit/
 ## Features in Detail
 
 ### Todo Management
+
 - Create new todos with a simple input form
 - Edit existing todos inline
 - Delete unwanted todos
 - Toggle completion status with a checkbox
 
 ### Responsive Design
+
 - Full-page layout optimized for both desktop and mobile
 - Touch-friendly UI elements
 - Adaptive spacing and sizing
 
 ### Data Persistence
+
 - All todos are automatically saved to localStorage
 - Data persists across browser sessions
 - No backend required
@@ -83,4 +86,3 @@ npm start
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-

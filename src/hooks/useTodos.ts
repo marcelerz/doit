@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Todo } from '@/types/todo';
+import { useState, useEffect } from "react";
+import { Todo, TodoMetadata } from "@/types/todo";
 
-const STORAGE_KEY = 'doit-todos';
+const STORAGE_KEY = "doit-todos";
 
 export function useTodos() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -14,10 +14,22 @@ export function useTodos() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setTodos(JSON.parse(stored));
+        const loadedTodos = JSON.parse(stored);
+        // Migrate old todos without metadata
+        const migratedTodos = loadedTodos.map((todo: any) => ({
+          ...todo,
+          plainText: todo.plainText || todo.text,
+          metadata: todo.metadata || {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+          },
+        }));
+        setTodos(migratedTodos);
       }
     } catch (error) {
-      console.error('Failed to load todos:', error);
+      console.error("Failed to load todos:", error);
     } finally {
       setIsLoaded(true);
     }
@@ -29,26 +41,36 @@ export function useTodos() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
       } catch (error) {
-        console.error('Failed to save todos:', error);
+        console.error("Failed to save todos:", error);
       }
     }
   }, [todos, isLoaded]);
 
-  const addTodo = (text: string) => {
+  const addTodo = (text: string, plainText: string, metadata: TodoMetadata) => {
     const newTodo: Todo = {
       id: Date.now().toString(),
       text,
+      plainText,
       completed: false,
       createdAt: Date.now(),
+      metadata,
     };
     setTodos((prev) => [newTodo, ...prev]);
   };
 
   const toggleTodo = (id: string) => {
     setTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
+      prev.map((todo) => {
+        if (todo.id === id) {
+          const newCompleted = !todo.completed;
+          return {
+            ...todo,
+            completed: newCompleted,
+            completedAt: newCompleted ? Date.now() : undefined,
+          };
+        }
+        return todo;
+      }),
     );
   };
 
@@ -56,10 +78,8 @@ export function useTodos() {
     setTodos((prev) => prev.filter((todo) => todo.id !== id));
   };
 
-  const editTodo = (id: string, text: string) => {
-    setTodos((prev) =>
-      prev.map((todo) => (todo.id === id ? { ...todo, text } : todo))
-    );
+  const editTodo = (id: string, text: string, plainText: string, metadata: TodoMetadata) => {
+    setTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, text, plainText, metadata } : todo)));
   };
 
   return {
