@@ -16,6 +16,8 @@ export interface BackupData {
   date: string; // ISO date string for display
   todos: string; // JSON stringified todos
   settings: string; // JSON stringified settings
+  uploadedAt?: number; // Timestamp when this backup was uploaded (if imported)
+  source?: "auto" | "manual" | "imported"; // How this backup was created
 }
 
 export const defaultBackupSettings: BackupSettings = {
@@ -65,7 +67,7 @@ function getTodayDateString(): string {
 /**
  * Create a backup of current data
  */
-export function createBackup(): boolean {
+export function createBackup(source: "auto" | "manual" = "manual"): boolean {
   try {
     const todosData = localStorage.getItem("doit-todos") || "[]";
     const settingsData = localStorage.getItem("doit-settings") || "{}";
@@ -76,15 +78,18 @@ export function createBackup(): boolean {
       date: now.toISOString(),
       todos: todosData,
       settings: settingsData,
+      source,
     };
 
     const backupKey = `${BACKUP_KEY_PREFIX}${now.getTime()}`;
     localStorage.setItem(backupKey, JSON.stringify(backup));
 
-    // Update last backup date
-    const backupSettings = getBackupSettings();
-    backupSettings.lastBackupDate = getTodayDateString();
-    saveBackupSettings(backupSettings);
+    // Update last backup date if auto backup
+    if (source === "auto") {
+      const backupSettings = getBackupSettings();
+      backupSettings.lastBackupDate = getTodayDateString();
+      saveBackupSettings(backupSettings);
+    }
 
     return true;
   } catch (error) {
@@ -111,7 +116,7 @@ export function shouldCreateBackupToday(): boolean {
  */
 export function autoBackupIfNeeded(): void {
   if (shouldCreateBackupToday()) {
-    const success = createBackup();
+    const success = createBackup("auto");
     if (success) {
       console.log("Auto-backup created successfully");
     }
@@ -214,6 +219,70 @@ export function exportBackupAsFile(backup: BackupData): void {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Export current data as downloadable JSON file
+ */
+export function exportCurrentDataAsFile(): void {
+  const todosData = localStorage.getItem("doit-todos") || "[]";
+  const settingsData = localStorage.getItem("doit-settings") || "{}";
+
+  const now = new Date();
+  const backup: BackupData = {
+    timestamp: now.getTime(),
+    date: now.toISOString(),
+    todos: todosData,
+    settings: settingsData,
+    source: "manual",
+  };
+
+  exportBackupAsFile(backup);
+}
+
+/**
+ * Import a backup from a JSON file
+ */
+export function importBackupFromFile(file: File): Promise<{ success: boolean; error?: string }> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const importedBackup = JSON.parse(content) as BackupData;
+
+        // Validate backup structure
+        if (!importedBackup.timestamp || !importedBackup.date || !importedBackup.todos || !importedBackup.settings) {
+          resolve({ success: false, error: "Invalid backup file format" });
+          return;
+        }
+
+        // Add upload metadata
+        const now = Date.now();
+        const backupWithMetadata: BackupData = {
+          ...importedBackup,
+          uploadedAt: now,
+          source: "imported",
+        };
+
+        // Store the imported backup
+        const backupKey = `${BACKUP_KEY_PREFIX}${importedBackup.timestamp}`;
+        localStorage.setItem(backupKey, JSON.stringify(backupWithMetadata));
+
+        resolve({ success: true });
+      } catch (error) {
+        console.error("Failed to import backup:", error);
+        resolve({ success: false, error: "Failed to parse backup file" });
+      }
+    };
+
+    reader.onerror = () => {
+      resolve({ success: false, error: "Failed to read file" });
+    };
+
+    reader.readAsText(file);
+  });
 }
 
 /**

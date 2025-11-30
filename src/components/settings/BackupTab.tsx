@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   getBackupSettings,
   saveBackupSettings,
@@ -9,6 +9,8 @@ import {
   restoreBackup,
   deleteBackup,
   exportBackupAsFile,
+  exportCurrentDataAsFile,
+  importBackupFromFile,
   getBackupStats,
   type BackupSettings,
   type BackupData,
@@ -23,7 +25,9 @@ export function BackupTab({ onRestore }: BackupTabProps) {
   const [backups, setBackups] = useState<BackupData[]>([]);
   const [stats, setStats] = useState(() => getBackupStats());
   const [isCreating, setIsCreating] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadBackups();
@@ -94,6 +98,45 @@ export function BackupTab({ onRestore }: BackupTabProps) {
 
   const handleExportBackup = (backup: BackupData) => {
     exportBackupAsFile(backup);
+  };
+
+  const handleExportCurrent = () => {
+    exportCurrentDataAsFile();
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const result = await importBackupFromFile(file);
+      if (result.success) {
+        loadBackups();
+        alert("Backup imported successfully!");
+      } else {
+        alert(`Failed to import backup: ${result.error || "Unknown error"}`);
+      }
+    } catch (error) {
+      console.error("Import error:", error);
+      alert("An error occurred while importing the backup.");
+    } finally {
+      setIsImporting(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const getBackupSourceLabel = (backup: BackupData) => {
+    if (backup.source === "auto") return "🔄 Auto";
+    if (backup.source === "imported") return "📥 Imported";
+    return "✋ Manual";
   };
 
   const formatDate = (timestamp: number) => {
@@ -192,19 +235,59 @@ export function BackupTab({ onRestore }: BackupTabProps) {
         </div>
       </div>
 
-      {/* Manual Backup */}
+      {/* Manual Backup & Import/Export */}
       <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
-        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Manual Backup</h3>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-          Create a backup of your current data at any time.
-        </p>
-        <button
-          onClick={handleCreateBackup}
-          disabled={isCreating}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 text-white rounded-lg font-medium transition-colors"
-        >
-          {isCreating ? "Creating..." : "Create Backup Now"}
-        </button>
+        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Manual Actions</h3>
+
+        <div className="space-y-4">
+          {/* Create Backup */}
+          <div>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+              Create a backup of your current data at any time.
+            </p>
+            <button
+              onClick={handleCreateBackup}
+              disabled={isCreating}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 text-white rounded-lg font-medium transition-colors"
+            >
+              {isCreating ? "Creating..." : "Create Backup Now"}
+            </button>
+          </div>
+
+          {/* Export Current Data */}
+          <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+              Export your current data as a JSON file to save offline.
+            </p>
+            <button
+              onClick={handleExportCurrent}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+            >
+              Export Current Data
+            </button>
+          </div>
+
+          {/* Import Backup */}
+          <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+              Import a backup file from your computer. It will be added to your backup list.
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,application/json"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <button
+              onClick={handleImportClick}
+              disabled={isImporting}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-zinc-400 text-white rounded-lg font-medium transition-colors"
+            >
+              {isImporting ? "Importing..." : "Import Backup File"}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Backup List */}
@@ -228,9 +311,17 @@ export function BackupTab({ onRestore }: BackupTabProps) {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="font-medium text-zinc-900 dark:text-zinc-100">{formatDate(backup.timestamp)}</div>
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                      Size: {formatSize((backup.todos?.length || 0) + (backup.settings?.length || 0))}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                        {formatDate(backup.timestamp)}
+                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                        {getBackupSourceLabel(backup)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 space-y-0.5">
+                      <div>Size: {formatSize((backup.todos?.length || 0) + (backup.settings?.length || 0))}</div>
+                      {backup.uploadedAt && <div>Uploaded: {formatDate(backup.uploadedAt)}</div>}
                     </div>
                   </div>
                   <div className="flex gap-2">
