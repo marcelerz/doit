@@ -1,5 +1,6 @@
 import React, { useRef, forwardRef, useImperativeHandle, useState, useEffect } from "react";
-import { Person, Project, Priority } from "@/types/settings";
+import { Person, Project, Priority, DateTimeSettings } from "@/types/settings";
+import { getDueDateSuggestions, parseDate, formatDateTime } from "@/utils/dateParser";
 
 export interface TokenMatch {
   type: string;
@@ -22,6 +23,7 @@ export interface SmartEditableInputProps {
   onAddPerson?: (name: string) => void; // Callback to add a new person
   onAddProject?: (name: string) => void; // Callback to add a new project
   onAddPriority?: (name: string) => void; // Callback to add a new priority
+  dateTimeSettings?: DateTimeSettings; // Settings for parsing shorthand dates
 }
 
 export interface SmartEditableInputHandle {
@@ -44,6 +46,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       onAddPerson,
       onAddProject,
       onAddPriority,
+      dateTimeSettings,
     },
     ref,
   ) => {
@@ -158,14 +161,15 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         patterns.push({ type: "priority", symbol: "!!", regex });
       }
 
-      // Build patterns for other markers (dueDate, duration)
-      const otherMarkers = [{ type: "dueDate", symbol: "~" }];
-
-      for (const { type, symbol } of otherMarkers) {
-        const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const regex = new RegExp(`${escaped}[\\w-_]+(?=\\s|$)`, "gi");
-        patterns.push({ type, symbol, regex });
-      }
+      // Build pattern for due date marker (~)
+      // Matches dates like: ~tomorrow, ~2024-12-25, ~Wed, 25th Dec 2024 5:00pm, ~eod
+      // Pattern matches everything after ~ until we hit a known marker or double space
+      const dueDatePattern = `~([^@#$^*~\\n]+?)(?=\\s+[@#$^*~]|\\s{2,}|$)`;
+      patterns.push({
+        type: "dueDate",
+        symbol: "~",
+        regex: new RegExp(dueDatePattern, "gi"),
+      });
 
       // Build pattern for duration marker (*) with specific format support
       // Supports: 5sec/secs/seconds, 5min/mins/minute/minutes, 3hr/hrs/h/hour/hours,
@@ -370,7 +374,8 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const projectMarker = "#";
       const priorityMarker = "!!";
       const durationMarker = "*";
-      const allMarkers = [...peopleMarkers, projectMarker, priorityMarker, durationMarker];
+      const dueDateMarker = "~";
+      const allMarkers = [...peopleMarkers, projectMarker, priorityMarker, durationMarker, dueDateMarker];
 
       // Find the last marker before the caret
       let lastMarkerPos = -1;
@@ -434,6 +439,11 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
             autocompleteType = "duration";
             autocompleteMarker = lastMarker;
             options = getDurationSuggestions(searchText);
+          } else if (lastMarker === dueDateMarker && dateTimeSettings) {
+            shouldShowAutocomplete = true;
+            autocompleteType = "duedate";
+            autocompleteMarker = lastMarker;
+            options = getDueDateSuggestions(searchText, dateTimeSettings);
           }
         }
       }
@@ -444,8 +454,12 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         const divRect = div.getBoundingClientRect();
 
         // Show "Add new" option if there are no matches and search text is not empty
-        // (but not for duration, which is just a format suggestion)
-        const showAddNew = options.length === 0 && searchText.trim() !== "" && autocompleteType !== "duration";
+        // (but not for duration or duedate, which are just format suggestions)
+        const showAddNew =
+          options.length === 0 &&
+          searchText.trim() !== "" &&
+          autocompleteType !== "duration" &&
+          autocompleteType !== "duedate";
         const canAddNew =
           (autocompleteType === "person" && onAddPerson) ||
           (autocompleteType === "project" && onAddProject) ||
@@ -549,7 +563,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const fullText = div.innerText.replace(/\n/g, " ");
 
       // Find the last marker position
-      const allMarkers = ["@", "$", "^", "#", "!!", "*"];
+      const allMarkers = ["@", "$", "^", "#", "!!", "*", "~"];
       let lastMarkerPos = -1;
       let lastMarker = "";
 
@@ -563,6 +577,17 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
 
       if (lastMarkerPos === -1) return;
 
+      // For due date, parse the shorthand and convert to actual date
+      let finalValue = value;
+      if (autocomplete.type === "duedate" && dateTimeSettings) {
+        // Extract the shorthand value from the label if it's in "shorthand - description" format
+        const shorthand = value.includes(" - ") ? value.split(" - ")[0] : value;
+        const parsed = parseDate(shorthand, dateTimeSettings);
+        if (parsed) {
+          finalValue = parsed.formatted;
+        }
+      }
+
       // Split text: before marker, and after the incomplete name
       const beforeMarker = fullText.substring(0, lastMarkerPos);
       // Find if there's any text after the current typing position
@@ -571,7 +596,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const afterText = spaceAfterIndex >= 0 ? afterMarker.substring(spaceAfterIndex) : "";
 
       // Build the new text with the completed name
-      const newText = beforeMarker + autocomplete.marker + value + " " + afterText;
+      const newText = beforeMarker + autocomplete.marker + finalValue + " " + afterText;
       const { fragment, tokens, plainText } = renderTokensFromText(newText);
 
       if (onTokensChange) onTokensChange(tokens, newText.trim(), plainText);

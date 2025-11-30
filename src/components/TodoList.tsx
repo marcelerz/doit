@@ -414,6 +414,7 @@ export function TodoList() {
                 availablePeople={settings.people}
                 availableProjects={settings.projects}
                 availablePriorities={settings.priorities}
+                dateTimeSettings={settings.general.dateTime}
                 onAddPerson={handleAddPerson}
                 onAddProject={handleAddProject}
                 onAddPriority={handleAddPriority}

@@ -62,8 +62,23 @@ export const defaultMarkerColors: MarkerColors = {
   duration: "#d4faff", // Cyan
 };
 
+export interface DateTimeSettings {
+  startOfDay: string; // e.g., "09:00"
+  endOfDay: string; // e.g., "17:00"
+  workWeekStart: number; // 0-6, where 0 = Sunday, 1 = Monday
+  fiscalYearStart: number; // Month (1-12) when fiscal year starts
+}
+
+export const defaultDateTimeSettings: DateTimeSettings = {
+  startOfDay: "09:00",
+  endOfDay: "17:00",
+  workWeekStart: 1, // Monday
+  fiscalYearStart: 1, // January
+};
+
 export interface GeneralSettings {
   archiveDays: number; // Number of days before completed tasks are archived
+  dateTime: DateTimeSettings;
   autoAssign: {
     enabled: boolean;
     assignedPerson?: string; // Default person to assign (@)
@@ -78,6 +93,7 @@ export interface GeneralSettings {
 
 export const defaultGeneralSettings: GeneralSettings = {
   archiveDays: 7, // Archive completed tasks after 7 days by default
+  dateTime: defaultDateTimeSettings,
   autoAssign: {
     enabled: false,
   },

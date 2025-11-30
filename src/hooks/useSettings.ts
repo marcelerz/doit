@@ -24,6 +24,10 @@ export function useSettings() {
           general: {
             ...defaultSettings.general,
             ...(loadedSettings.general || {}),
+            dateTime: {
+              ...defaultSettings.general.dateTime,
+              ...(loadedSettings.general?.dateTime || {}),
+            },
             autoAssign: {
               ...defaultSettings.general.autoAssign,
               ...(loadedSettings.general?.autoAssign || {}),

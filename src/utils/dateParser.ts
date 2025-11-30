@@ -1,0 +1,362 @@
+import { DateTimeSettings } from "@/types/settings";
+
+export interface ParsedDate {
+  original: string;
+  formatted: string; // "Wed, 5th Jan 2025 10:23am" format
+  timestamp: number;
+}
+
+// Helper to get ordinal suffix
+const getOrdinalSuffix = (day: number): string => {
+  if (day > 3 && day < 21) return "th";
+  switch (day % 10) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
+};
+
+// Format date to "Wed, 5th Jan 2025 10:23am" or "Wed, 5th Jan 2025 14:23" (24hr)
+export const formatDateTime = (date: Date, use24Hour: boolean = false): string => {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const dayName = days[date.getDay()];
+  const day = date.getDate();
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  const hours24 = date.getHours();
+  const minutes = date.getMinutes();
+
+  const ordinal = getOrdinalSuffix(day);
+  const minutesStr = minutes.toString().padStart(2, "0");
+
+  if (use24Hour) {
+    const hoursStr = hours24.toString().padStart(2, "0");
+    return `${dayName}, ${day}${ordinal} ${month} ${year} ${hoursStr}:${minutesStr}`;
+  } else {
+    const hours12 = hours24 % 12 || 12;
+    const ampm = hours24 >= 12 ? "pm" : "am";
+    return `${dayName}, ${day}${ordinal} ${month} ${year} ${hours12}:${minutesStr}${ampm}`;
+  }
+};
+
+// Parse date with slashes or dots - tries both US (MM/DD/YYYY) and European (DD/MM/YYYY) formats
+const parseSlashOrDotDate = (input: string): Date | null => {
+  // Match formats: 12/25/2024, 25.12.2024, etc. with optional time
+  const patterns = [
+    // With seconds: XX/XX/XXXX HH:MM:SS
+    /^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/,
+    // With minutes: XX/XX/XXXX HH:MM
+    /^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})\s+(\d{1,2}):(\d{2})$/,
+    // Date only: XX/XX/XXXX
+    /^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})$/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = input.match(pattern);
+    if (match) {
+      const first = parseInt(match[1], 10);
+      const second = parseInt(match[2], 10);
+      const year = parseInt(match[3], 10);
+      const hours = match[4] ? parseInt(match[4], 10) : 0;
+      const minutes = match[5] ? parseInt(match[5], 10) : 0;
+      const seconds = match[6] ? parseInt(match[6], 10) : 0;
+
+      // Try US format first (MM/DD/YYYY) - month/day/year
+      // This is the more common format with slashes
+      if (first >= 1 && first <= 12 && second >= 1 && second <= 31) {
+        const month = first - 1; // JS months are 0-indexed
+        const day = second;
+        const usDate = new Date(year, month, day, hours, minutes, seconds);
+        // Verify it's a valid date
+        if (usDate.getMonth() === month && usDate.getDate() === day) {
+          return usDate;
+        }
+      }
+
+      // If US format failed or is ambiguous, try European format (DD/MM/YYYY)
+      // Especially for dots (.) which are more common in Europe
+      if (second >= 1 && second <= 12 && first >= 1 && first <= 31) {
+        const month = second - 1; // JS months are 0-indexed
+        const day = first;
+        const euDate = new Date(year, month, day, hours, minutes, seconds);
+        // Verify it's a valid date
+        if (euDate.getMonth() === month && euDate.getDate() === day) {
+          // If using dots, prefer European format
+          if (input.includes(".")) {
+            return euDate;
+          }
+          // If first > 12, it must be European format (day is > 12)
+          if (first > 12) {
+            return euDate;
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
+// Detect if input contains 24-hour time (HH:MM where HH >= 13)
+const contains24HourTime = (input: string): boolean => {
+  // Match HH:MM or HH:MM:SS where HH is 13-23
+  return /\b([1][3-9]|[2][0-3]):[0-5][0-9]/.test(input);
+};
+
+// Parse shorthand dates
+export const parseShorthand = (shorthand: string, dateTimeSettings: DateTimeSettings): Date | null => {
+  const now = new Date();
+  const lower = shorthand.toLowerCase().trim();
+
+  // Helper to set time from HH:MM format
+  const setTime = (date: Date, timeStr: string) => {
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    date.setHours(hours, minutes, 0, 0);
+  };
+
+  switch (lower) {
+    case "today":
+    case "tod":
+      return now;
+
+    case "tomorrow":
+    case "tmr":
+    case "tom": {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return tomorrow;
+    }
+
+    case "yesterday": {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return yesterday;
+    }
+
+    case "bod": // Beginning of day
+    case "startofday": {
+      const bod = new Date(now);
+      setTime(bod, dateTimeSettings.startOfDay);
+      return bod;
+    }
+
+    case "eod": // End of day
+    case "endofday": {
+      const eod = new Date(now);
+      setTime(eod, dateTimeSettings.endOfDay);
+      return eod;
+    }
+
+    case "bow": // Beginning of week
+    case "startofweek": {
+      const bow = new Date(now);
+      const day = bow.getDay();
+      const diff = (day < dateTimeSettings.workWeekStart ? 7 : 0) + day - dateTimeSettings.workWeekStart;
+      bow.setDate(bow.getDate() - diff);
+      setTime(bow, dateTimeSettings.startOfDay);
+      return bow;
+    }
+
+    case "eow": // End of week
+    case "endofweek": {
+      const eow = new Date(now);
+      const day = eow.getDay();
+      const diff = (dateTimeSettings.workWeekStart + 6 - day) % 7;
+      eow.setDate(eow.getDate() + diff);
+      setTime(eow, dateTimeSettings.endOfDay);
+      return eow;
+    }
+
+    case "nextweek": {
+      const nextWeek = new Date(now);
+      const day = nextWeek.getDay();
+      const daysToAdd = ((dateTimeSettings.workWeekStart + 7 - day) % 7) + 7;
+      nextWeek.setDate(nextWeek.getDate() + daysToAdd);
+      setTime(nextWeek, dateTimeSettings.startOfDay);
+      return nextWeek;
+    }
+
+    case "weekend":
+    case "nextsaturday": {
+      const weekend = new Date(now);
+      const day = weekend.getDay();
+      const daysToSaturday = (6 - day + 7) % 7 || 7;
+      weekend.setDate(weekend.getDate() + daysToSaturday);
+      return weekend;
+    }
+
+    case "bom": // Beginning of month
+    case "startofmonth": {
+      const bom = new Date(now.getFullYear(), now.getMonth(), 1);
+      setTime(bom, dateTimeSettings.startOfDay);
+      return bom;
+    }
+
+    case "eom": // End of month
+    case "endofmonth": {
+      const eom = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      setTime(eom, dateTimeSettings.endOfDay);
+      return eom;
+    }
+
+    case "nextmonth": {
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      setTime(nextMonth, dateTimeSettings.startOfDay);
+      return nextMonth;
+    }
+
+    case "boq": // Beginning of quarter
+    case "startofquarter": {
+      const quarter = Math.floor(now.getMonth() / 3);
+      const boq = new Date(now.getFullYear(), quarter * 3, 1);
+      setTime(boq, dateTimeSettings.startOfDay);
+      return boq;
+    }
+
+    case "eoq": // End of quarter
+    case "endofquarter": {
+      const quarter = Math.floor(now.getMonth() / 3);
+      const eoq = new Date(now.getFullYear(), quarter * 3 + 3, 0);
+      setTime(eoq, dateTimeSettings.endOfDay);
+      return eoq;
+    }
+
+    case "nextquarter": {
+      const quarter = Math.floor(now.getMonth() / 3);
+      const nextQ = new Date(now.getFullYear(), (quarter + 1) * 3, 1);
+      if (nextQ < now) nextQ.setFullYear(nextQ.getFullYear() + 1);
+      setTime(nextQ, dateTimeSettings.startOfDay);
+      return nextQ;
+    }
+
+    case "boh": // Beginning of half (H1/H2)
+    case "startofhalf": {
+      const half = now.getMonth() < 6 ? 0 : 6;
+      const boh = new Date(now.getFullYear(), half, 1);
+      setTime(boh, dateTimeSettings.startOfDay);
+      return boh;
+    }
+
+    case "eoh": // End of half
+    case "endofhalf": {
+      const half = now.getMonth() < 6 ? 5 : 11;
+      const eoh = new Date(now.getFullYear(), half + 1, 0);
+      setTime(eoh, dateTimeSettings.endOfDay);
+      return eoh;
+    }
+
+    case "nexthalf": {
+      const half = now.getMonth() < 6 ? 6 : 0;
+      const nextH = new Date(now.getFullYear(), half, 1);
+      if (nextH < now) nextH.setFullYear(nextH.getFullYear() + 1);
+      setTime(nextH, dateTimeSettings.startOfDay);
+      return nextH;
+    }
+
+    case "boy": // Beginning of year
+    case "startofyear": {
+      const boy = new Date(now.getFullYear(), 0, 1);
+      setTime(boy, dateTimeSettings.startOfDay);
+      return boy;
+    }
+
+    case "eoy": // End of year
+    case "endofyear": {
+      const eoy = new Date(now.getFullYear(), 11, 31);
+      setTime(eoy, dateTimeSettings.endOfDay);
+      return eoy;
+    }
+
+    case "nextyear": {
+      const nextY = new Date(now.getFullYear() + 1, 0, 1);
+      setTime(nextY, dateTimeSettings.startOfDay);
+      return nextY;
+    }
+
+    default:
+      return null;
+  }
+};
+
+// Parse various date formats
+export const parseDate = (input: string, dateTimeSettings: DateTimeSettings): ParsedDate | null => {
+  const trimmedInput = input.trim();
+  const use24Hour = contains24HourTime(trimmedInput);
+
+  // Try shorthand first
+  const shorthandDate = parseShorthand(trimmedInput, dateTimeSettings);
+  if (shorthandDate) {
+    return {
+      original: trimmedInput,
+      formatted: formatDateTime(shorthandDate, use24Hour),
+      timestamp: shorthandDate.getTime(),
+    };
+  }
+
+  // Try European date format (DD/MM/YYYY or DD.MM.YYYY)
+  const slashDotDate = parseSlashOrDotDate(trimmedInput);
+  if (slashDotDate) {
+    return {
+      original: trimmedInput,
+      formatted: formatDateTime(slashDotDate, use24Hour),
+      timestamp: slashDotDate.getTime(),
+    };
+  }
+
+  // Try parsing as Date (handles many formats including ISO, US dates, etc.)
+  const parsed = new Date(trimmedInput);
+  if (!isNaN(parsed.getTime())) {
+    return {
+      original: trimmedInput,
+      formatted: formatDateTime(parsed, use24Hour),
+      timestamp: parsed.getTime(),
+    };
+  }
+
+  return null;
+};
+
+// Get due date suggestions for autocomplete
+export const getDueDateSuggestions = (search: string, dateTimeSettings: DateTimeSettings): string[] => {
+  const suggestions = [
+    { value: "today", label: "today - Today" },
+    { value: "tomorrow", label: "tomorrow - Tomorrow" },
+    { value: "eod", label: "eod - End of day" },
+    { value: "bod", label: "bod - Beginning of day" },
+    { value: "eow", label: "eow - End of week" },
+    { value: "bow", label: "bow - Beginning of week" },
+    { value: "nextweek", label: "nextweek - Next week" },
+    { value: "weekend", label: "weekend - Next Saturday" },
+    { value: "eom", label: "eom - End of month" },
+    { value: "bom", label: "bom - Beginning of month" },
+    { value: "nextmonth", label: "nextmonth - Next month" },
+    { value: "eoq", label: "eoq - End of quarter" },
+    { value: "boq", label: "boq - Beginning of quarter" },
+    { value: "nextquarter", label: "nextquarter - Next quarter" },
+    { value: "eoh", label: "eoh - End of half year" },
+    { value: "boh", label: "boh - Beginning of half year" },
+    { value: "nexthalf", label: "nexthalf - Next half year" },
+    { value: "eoy", label: "eoy - End of year" },
+    { value: "boy", label: "boy - Beginning of year" },
+    { value: "nextyear", label: "nextyear - Next year" },
+  ];
+
+  const lowerSearch = search.toLowerCase();
+
+  if (!lowerSearch) {
+    // Show top suggestions when no search
+    return suggestions.slice(0, 8).map((s) => s.label);
+  }
+
+  // Filter based on search
+  return suggestions
+    .filter((s) => s.value.includes(lowerSearch) || s.label.toLowerCase().includes(lowerSearch))
+    .map((s) => s.label);
+};
