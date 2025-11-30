@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Todo, TodoMetadata } from "@/types/todo";
-import { MarkerColors, GeneralSettings, LinkPattern } from "@/types/settings";
+import { MarkerColors, GeneralSettings, LinkPattern, Person, Project } from "@/types/settings";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/SmartInput";
 import { MarkedText } from "./MarkedText";
 
@@ -14,6 +14,8 @@ interface TodoItemProps {
   markerColors: MarkerColors;
   generalSettings: GeneralSettings;
   linkPatterns: LinkPattern[];
+  availablePeople: Person[];
+  availableProjects: Project[];
   onMarkerClick?: (
     type: "assignedPeople" | "sourcePeople" | "mentionedPeople" | "projects" | "priorities" | "dueDates" | "durations",
     value: string,
@@ -30,6 +32,8 @@ export function TodoItem({
   markerColors,
   generalSettings,
   linkPatterns,
+  availablePeople,
+  availableProjects,
   onMarkerClick,
   isExpanded,
   onToggleExpand,
@@ -194,6 +198,8 @@ export function TodoItem({
             ref={smartInputRef}
             markers={markers}
             markerColors={markerColors}
+            availablePeople={availablePeople}
+            availableProjects={availableProjects}
             onTokensChange={handleTokensChange}
             placeholder="Edit your task..."
             onEnterPress={() => {

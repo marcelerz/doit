@@ -385,6 +385,8 @@ export function TodoList() {
                 ref={smartInputRef}
                 markers={markers}
                 markerColors={settings.markerColors}
+                availablePeople={settings.people}
+                availableProjects={settings.projects}
                 onTokensChange={handleTokensChange}
                 onEnterPress={() => {
                   const event = new Event("submit", { bubbles: true, cancelable: true });
@@ -766,6 +768,8 @@ export function TodoList() {
                         markerColors={settings.markerColors}
                         generalSettings={settings.general}
                         linkPatterns={settings.linkPatterns}
+                        availablePeople={settings.people}
+                        availableProjects={settings.projects}
                         onMarkerClick={handleFilterClick}
                         isExpanded={expandedTodoId === todo.id}
                         onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
@@ -808,6 +812,8 @@ export function TodoList() {
                         markerColors={settings.markerColors}
                         generalSettings={settings.general}
                         linkPatterns={settings.linkPatterns}
+                        availablePeople={settings.people}
+                        availableProjects={settings.projects}
                         onMarkerClick={handleFilterClick}
                         isExpanded={expandedTodoId === todo.id}
                         onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
@@ -850,6 +856,8 @@ export function TodoList() {
                         markerColors={settings.markerColors}
                         generalSettings={settings.general}
                         linkPatterns={settings.linkPatterns}
+                        availablePeople={settings.people}
+                        availableProjects={settings.projects}
                         onMarkerClick={handleFilterClick}
                         isExpanded={expandedTodoId === todo.id}
                         onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
