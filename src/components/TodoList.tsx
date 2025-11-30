@@ -76,25 +76,30 @@ export function TodoList() {
   // Add todo overlay state
   const [isAddOverlayOpen, setIsAddOverlayOpen] = useState(false);
 
-  // Filter states - Load from localStorage
+  // Sorting and grouping types
+  type SortField = "dueDate" | "duration" | "assigned" | "source" | "mentioned" | "project" | "priority" | "created";
+  type SortDirection = "asc" | "desc";
+  type GroupBy = "none" | "dueDate";
+
+  // Load all view options from a single localStorage key
   const [filters, setFilters] = useState<TodoFilters>(() => {
     try {
-      const saved = localStorage.getItem("doit-filters");
+      const saved = localStorage.getItem("doit-view-options");
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
-          searchText: parsed.searchText || "",
-          assignedPeople: new Set(parsed.assignedPeople || []),
-          sourcePeople: new Set(parsed.sourcePeople || []),
-          mentionedPeople: new Set(parsed.mentionedPeople || []),
-          projects: new Set(parsed.projects || []),
-          priorities: new Set(parsed.priorities || []),
-          dueDates: new Set(parsed.dueDates || []),
-          durations: new Set(parsed.durations || []),
+          searchText: parsed.filters?.searchText || "",
+          assignedPeople: new Set(parsed.filters?.assignedPeople || []),
+          sourcePeople: new Set(parsed.filters?.sourcePeople || []),
+          mentionedPeople: new Set(parsed.filters?.mentionedPeople || []),
+          projects: new Set(parsed.filters?.projects || []),
+          priorities: new Set(parsed.filters?.priorities || []),
+          dueDates: new Set(parsed.filters?.dueDates || []),
+          durations: new Set(parsed.filters?.durations || []),
         };
       }
     } catch (e) {
-      console.error("Failed to load filters from localStorage:", e);
+      console.error("Failed to load view options from localStorage:", e);
     }
     return {
       searchText: "",
@@ -107,54 +112,67 @@ export function TodoList() {
       durations: new Set(),
     };
   });
+
   const [showFilters, setShowFilters] = useState(false);
 
-  // Save filters to localStorage whenever they change
-  useEffect(() => {
-    const toSave = {
-      searchText: filters.searchText,
-      assignedPeople: Array.from(filters.assignedPeople),
-      sourcePeople: Array.from(filters.sourcePeople),
-      mentionedPeople: Array.from(filters.mentionedPeople),
-      projects: Array.from(filters.projects),
-      priorities: Array.from(filters.priorities),
-      dueDates: Array.from(filters.dueDates),
-      durations: Array.from(filters.durations),
-    };
-    localStorage.setItem("doit-filters", JSON.stringify(toSave));
-  }, [filters]);
-
-  // Sorting and grouping states
-  type SortField = "dueDate" | "duration" | "assigned" | "source" | "mentioned" | "project" | "priority" | "created";
-  type SortDirection = "asc" | "desc";
-  type GroupBy = "none" | "dueDate";
-
-  // Load saved preferences from localStorage
   const [sortField, setSortField] = useState<SortField>(() => {
-    const saved = localStorage.getItem("doit-sort-field");
-    return (saved as SortField) || "created";
+    try {
+      const saved = localStorage.getItem("doit-view-options");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return (parsed.sortField as SortField) || "created";
+      }
+    } catch (e) {
+      console.error("Failed to load view options from localStorage:", e);
+    }
+    return "created";
   });
+
   const [sortDirection, setSortDirection] = useState<SortDirection>(() => {
-    const saved = localStorage.getItem("doit-sort-direction");
-    return (saved as SortDirection) || "desc";
+    try {
+      const saved = localStorage.getItem("doit-view-options");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return (parsed.sortDirection as SortDirection) || "desc";
+      }
+    } catch (e) {
+      console.error("Failed to load view options from localStorage:", e);
+    }
+    return "desc";
   });
+
   const [groupBy, setGroupBy] = useState<GroupBy>(() => {
-    const saved = localStorage.getItem("doit-group-by");
-    return (saved as GroupBy) || "none";
+    try {
+      const saved = localStorage.getItem("doit-view-options");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return (parsed.groupBy as GroupBy) || "none";
+      }
+    } catch (e) {
+      console.error("Failed to load view options from localStorage:", e);
+    }
+    return "none";
   });
 
-  // Save preferences to localStorage whenever they change
+  // Save all view options to localStorage whenever any of them change
   useEffect(() => {
-    localStorage.setItem("doit-sort-field", sortField);
-  }, [sortField]);
-
-  useEffect(() => {
-    localStorage.setItem("doit-sort-direction", sortDirection);
-  }, [sortDirection]);
-
-  useEffect(() => {
-    localStorage.setItem("doit-group-by", groupBy);
-  }, [groupBy]);
+    const viewOptions = {
+      filters: {
+        searchText: filters.searchText,
+        assignedPeople: Array.from(filters.assignedPeople),
+        sourcePeople: Array.from(filters.sourcePeople),
+        mentionedPeople: Array.from(filters.mentionedPeople),
+        projects: Array.from(filters.projects),
+        priorities: Array.from(filters.priorities),
+        dueDates: Array.from(filters.dueDates),
+        durations: Array.from(filters.durations),
+      },
+      sortField,
+      sortDirection,
+      groupBy,
+    };
+    localStorage.setItem("doit-view-options", JSON.stringify(viewOptions));
+  }, [filters, sortField, sortDirection, groupBy]);
 
   // Auto-focus the input when the overlay opens
   useEffect(() => {
