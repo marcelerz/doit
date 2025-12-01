@@ -48,7 +48,11 @@ export function CalendarView({
   onDeleteComment,
 }: CalendarViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  });
   const [sortField, setSortField] = useState<"priority" | "duration" | "created">("created");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(true);
@@ -297,7 +301,7 @@ export function CalendarView({
           {calendarDays.map((day, i) => (
             <button
               key={i}
-              onClick={() => day.todos.length > 0 && handleDateClick(day.date)}
+              onClick={() => handleDateClick(day.date)}
               className={`h-10 p-0.5 rounded-lg border transition-colors relative ${
                 day.isCurrentMonth
                   ? "border-zinc-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-600"
@@ -306,9 +310,9 @@ export function CalendarView({
                 selectedDate?.toDateString() === day.date.toDateString()
                   ? "bg-blue-100 dark:bg-blue-900/30 border-blue-500"
                   : day.todos.length > 0
-                  ? "bg-white dark:bg-zinc-900 cursor-pointer"
+                  ? "bg-white dark:bg-zinc-900"
                   : "bg-zinc-50 dark:bg-zinc-800/30"
-              }`}
+              } cursor-pointer`}
             >
               {/* Day number in top right */}
               <div className="absolute top-0.5 right-0.5">
@@ -345,74 +349,83 @@ export function CalendarView({
       </div>
 
       {/* Selected date todos */}
-      {selectedDate && selectedDateTodos.length > 0 && (
+      {selectedDate && (
         <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               Tasks for {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             </h3>
 
-            {/* Sort controls */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Sort:</label>
-              <select
-                value={sortField}
-                onChange={(e) => setSortField(e.target.value as any)}
-                className="px-3 py-1 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="created">Created</option>
-                <option value="priority">Priority</option>
-                <option value="duration">Duration</option>
-              </select>
-              <button
-                onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
-                className="p-1 rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                title={sortDirection === "asc" ? "Ascending" : "Descending"}
-              >
-                <svg
-                  className="w-4 h-4 text-zinc-700 dark:text-zinc-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            {/* Sort controls - only show when there are tasks */}
+            {selectedDateTodos.length > 0 && (
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Sort:</label>
+                <select
+                  value={sortField}
+                  onChange={(e) => setSortField(e.target.value as any)}
+                  className="px-3 py-1 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {sortDirection === "asc" ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  )}
-                </svg>
-              </button>
-            </div>
+                  <option value="created">Created</option>
+                  <option value="priority">Priority</option>
+                  <option value="duration">Duration</option>
+                </select>
+                <button
+                  onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
+                  className="p-1 rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                  title={sortDirection === "asc" ? "Ascending" : "Descending"}
+                >
+                  <svg
+                    className="w-4 h-4 text-zinc-700 dark:text-zinc-300"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    {sortDirection === "asc" ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    )}
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="space-y-2">
-            {selectedDateTodos.map((todo) => (
-              <TodoItem
-                key={todo.id}
-                todo={todo}
-                onToggle={onToggle}
-                onDelete={onDelete}
-                onArchive={onArchive}
-                onUnarchive={onUnarchive}
-                onEdit={onEdit}
-                markerColors={markerColors}
-                generalSettings={generalSettings}
-                linkPatterns={linkPatterns}
-                availablePeople={availablePeople}
-                availableProjects={availableProjects}
-                availablePriorities={availablePriorities}
-                onAddPerson={onAddPerson}
-                onAddProject={onAddProject}
-                onAddPriority={onAddPriority}
-                onMarkerClick={() => {}}
-                isExpanded={false}
-                onToggleExpand={() => {}}
-                onAddComment={onAddComment}
-                onEditComment={onEditComment}
-                onDeleteComment={onDeleteComment}
-              />
-            ))}
-          </div>
+          {selectedDateTodos.length > 0 ? (
+            <div className="space-y-2">
+              {selectedDateTodos.map((todo) => (
+                <TodoItem
+                  key={todo.id}
+                  todo={todo}
+                  onToggle={onToggle}
+                  onDelete={onDelete}
+                  onArchive={onArchive}
+                  onUnarchive={onUnarchive}
+                  onEdit={onEdit}
+                  markerColors={markerColors}
+                  generalSettings={generalSettings}
+                  linkPatterns={linkPatterns}
+                  availablePeople={availablePeople}
+                  availableProjects={availableProjects}
+                  availablePriorities={availablePriorities}
+                  onAddPerson={onAddPerson}
+                  onAddProject={onAddProject}
+                  onAddPriority={onAddPriority}
+                  onMarkerClick={() => {}}
+                  isExpanded={false}
+                  onToggleExpand={() => {}}
+                  onAddComment={onAddComment}
+                  onEditComment={onEditComment}
+                  onDeleteComment={onDeleteComment}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-3">📅</div>
+              <p className="text-lg text-zinc-600 dark:text-zinc-400">No tasks planned for this day</p>
+            </div>
+          )}
         </div>
       )}
     </div>
