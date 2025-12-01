@@ -355,10 +355,14 @@ export function BackupTab({ onRestore }: BackupTabProps) {
       <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
         <h4 className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-2">⚠️ Important Notes</h4>
         <ul className="text-xs text-yellow-800 dark:text-yellow-200 space-y-1 list-disc list-inside">
-          <li>Backups are stored in your browser's local storage</li>
-          <li>Clearing browser data will delete all backups</li>
-          <li>Export backups to save them outside the browser</li>
-          <li>Restoring a backup will replace all current data</li>
+          {[
+            "Backups are stored in your browser's local storage",
+            "Clearing browser data will delete all backups",
+            "Export backups to save them outside the browser",
+            "Restoring a backup will replace all current data",
+          ].map((note, index) => (
+            <li key={index}>{note}</li>
+          ))}
         </ul>
       </div>
     </div>
