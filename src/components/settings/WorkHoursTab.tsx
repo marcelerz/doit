@@ -302,6 +302,22 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
           </div>
         )}
       </div>
+
+      {/* Gantt View Settings */}
+      <div className="space-y-3">
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Gantt View</h3>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Default Task Color</label>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">Color for tasks without a project assigned</p>
+          <input
+            type="color"
+            value={workHours.defaultGanttColor}
+            onChange={(e) => onUpdate({ ...workHours, defaultGanttColor: e.target.value })}
+            className="h-10 w-20 rounded border border-zinc-300 dark:border-zinc-700 cursor-pointer"
+          />
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { Todo } from "@/types/todo";
 import { MarkerColors, WorkHoursSettings } from "@/types/settings";
 import { useMemo, useState } from "react";
+import { MarkedText } from "@/components/MarkedText";
 
 interface GanttViewProps {
   todos: Todo[];
@@ -34,6 +35,7 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
     return today;
   });
   const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(true);
+  const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
 
   // Parse duration string to minutes
   const parseDuration = (duration: string | undefined): number => {
@@ -242,6 +244,24 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
     return "bg-blue-500";
   };
 
+  const getProjectColor = (todo: Todo): string => {
+    // If todo has a project, use marker color for that project
+    if (todo.metadata.projects && todo.metadata.projects.length > 0) {
+      const projectName = todo.metadata.projects[0];
+      const projectColor = markerColors[projectName];
+      if (projectColor) {
+        return projectColor;
+      }
+    }
+    // Fall back to default Gantt color from settings
+    return workHours.defaultGanttColor;
+  };
+
+  const getProjectColorClass = (color: string): string => {
+    // Convert hex color to inline style since it's dynamic
+    return "";
+  };
+
   // Generate hour markers
   const hourMarkers = useMemo(() => {
     const markers = [];
@@ -379,17 +399,30 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
               </div>
 
               {/* Tasks timeline */}
-              <div className="space-y-3">
+              <div className="relative space-y-0">
                 {scheduledTasks.map((task, index) => {
                   const startPos = getTimePosition(task.startTime);
                   const endPos = getTimePosition(task.endTime);
                   const width = endPos - startPos;
                   const targetPos = getTimePosition(task.targetDate);
 
+                  // Check if there's a context switch buffer after this task
+                  const nextTask = index < scheduledTasks.length - 1 ? scheduledTasks[index + 1] : null;
+                  const hasContextSwitch = nextTask && workHours.contextSwitchingTime > 0;
+                  const contextSwitchStartPos = endPos;
+                  const contextSwitchEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
+                  const contextSwitchWidth = contextSwitchEndPos - contextSwitchStartPos;
+
+                  const taskColor = getProjectColor(task.todo);
+
                   return (
-                    <div key={task.todo.id} className="relative">
+                    <div
+                      key={task.todo.id}
+                      className="relative"
+                      style={{ marginBottom: hasContextSwitch ? "0" : "2px" }}
+                    >
                       {/* Task row */}
-                      <div className="relative h-16 bg-zinc-50 dark:bg-zinc-800 rounded-lg overflow-visible">
+                      <div className="relative h-10 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
                         {/* Break blocks */}
                         {breakBlocks.map((breakBlock, bi) => {
                           const breakStart = getTimePosition(breakBlock.startTime);
@@ -408,12 +441,11 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
 
                         {/* Task bar */}
                         <div
-                          className={`absolute top-2 bottom-2 ${getPriorityColor(
-                            task.todo.metadata.priority,
-                          )} shadow-md flex items-center justify-between px-3 overflow-hidden`}
+                          className="absolute top-0.5 bottom-0.5 shadow-md flex items-center justify-between px-2 overflow-hidden cursor-pointer hover:shadow-lg transition-shadow z-10"
                           style={{
                             left: `${Math.max(0, startPos)}%`,
                             width: `${Math.min(width, 100 - Math.max(0, startPos))}%`,
+                            backgroundColor: taskColor,
                             borderRadius:
                               startPos < 0
                                 ? "0 0.375rem 0.375rem 0"
@@ -425,6 +457,8 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
                                 ? "polygon(0 0, calc(100% - 8px) 0, 100% 10%, 100% 30%, calc(100% - 8px) 50%, 100% 70%, 100% 90%, calc(100% - 8px) 100%, 0 100%)"
                                 : "none",
                           }}
+                          onMouseEnter={() => setHoveredTaskId(task.todo.id)}
+                          onMouseLeave={() => setHoveredTaskId(null)}
                         >
                           <span className="text-xs font-medium text-white truncate">{task.todo.plainText}</span>
                           <span className="text-xs text-white/80 ml-2 whitespace-nowrap">
@@ -485,6 +519,26 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
                           title={task.isOverdue ? "Overdue point" : "Target time"}
                         />
                       </div>
+
+                      {/* Context switching buffer - spans between this task and next */}
+                      {hasContextSwitch && contextSwitchWidth > 0 && (
+                        <div
+                          className="absolute left-0 right-0 bg-blue-400 dark:bg-blue-600 opacity-40 border-l-2 border-r-2 border-blue-500 dark:border-blue-400 border-dashed z-5"
+                          style={{
+                            top: "100%",
+                            left: `${contextSwitchStartPos}%`,
+                            width: `${contextSwitchWidth}%`,
+                            height: "10px",
+                          }}
+                        />
+                      )}
+
+                      {/* Hover tooltip - positioned outside task bar */}
+                      {hoveredTaskId === task.todo.id && (
+                        <div className="absolute left-4 top-full mt-2 z-50 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-3 min-w-[300px] max-w-[500px] pointer-events-none">
+                          <MarkedText text={task.todo.text} markerColors={markerColors} />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
