@@ -9,6 +9,8 @@ import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/comp
 import { TodoMetadata } from "@/types/todo";
 import { GanttView } from "./views/GanttView";
 import { CalendarView } from "./views/CalendarView";
+import { MarkerReference } from "./MarkerReference";
+import { TodoDetailsOverlay } from "./TodoDetailsOverlay";
 
 interface TodoFilters {
   searchText: string;
@@ -81,6 +83,7 @@ export function TodoList() {
 
   // Expanded todo detail state
   const [expandedTodoId, setExpandedTodoId] = useState<string | null>(null);
+  const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<(typeof todos)[0] | null>(null);
 
   // Add todo overlay state
   const [isAddOverlayOpen, setIsAddOverlayOpen] = useState(false);
@@ -788,9 +791,7 @@ export function TodoList() {
               </Link>
             </div>
           </div>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            Smart tasks with powerful filtering, custom views, and intelligent organization
-          </p>
+          <p className="text-zinc-600 dark:text-zinc-400">A simple, extensible, local todo app</p>
         </header>
 
         {/* View Tabs */}
@@ -1278,7 +1279,27 @@ export function TodoList() {
 
         {/* View Content */}
         {activeView === "gantt" && (
-          <GanttView todos={todos} markerColors={settings.markerColors} workHours={settings.general.workHours} />
+          <GanttView
+            todos={todos}
+            markerColors={settings.markerColors}
+            workHours={settings.general.workHours}
+            onEditTodo={editTodo}
+            availablePeople={settings.people}
+            availableProjects={settings.projects}
+            availablePriorities={settings.priorities}
+            onAddPerson={handleAddPerson}
+            onAddProject={handleAddProject}
+            onAddPriority={handleAddPriority}
+            onToggle={toggleTodo}
+            onDelete={deleteTodo}
+            onArchive={archiveTodo}
+            onUnarchive={unarchiveTodo}
+            generalSettings={settings.general}
+            linkPatterns={settings.linkPatterns}
+            onAddComment={addTodoComment}
+            onEditComment={editTodoComment}
+            onDeleteComment={deleteTodoComment}
+          />
         )}
 
         {activeView === "calendar" && (
@@ -1344,30 +1365,34 @@ export function TodoList() {
                             )}
                             <ul className="space-y-2">
                               {groupTodos.map((todo) => (
-                                <TodoItem
+                                <li
                                   key={todo.id}
-                                  todo={todo}
-                                  onToggle={toggleTodo}
-                                  onDelete={deleteTodo}
-                                  onArchive={archiveTodo}
-                                  onUnarchive={unarchiveTodo}
-                                  onEdit={editTodo}
-                                  markerColors={settings.markerColors}
-                                  generalSettings={settings.general}
-                                  linkPatterns={settings.linkPatterns}
-                                  availablePeople={settings.people}
-                                  availableProjects={settings.projects}
-                                  availablePriorities={settings.priorities}
-                                  onAddPerson={handleAddPerson}
-                                  onAddProject={handleAddProject}
-                                  onAddPriority={handleAddPriority}
-                                  onMarkerClick={handleFilterClick}
-                                  isExpanded={expandedTodoId === todo.id}
-                                  onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
-                                  onAddComment={addTodoComment}
-                                  onEditComment={editTodoComment}
-                                  onDeleteComment={deleteTodoComment}
-                                />
+                                  onClick={() => setDetailsOverlayTodo(todo)}
+                                  className="cursor-pointer"
+                                >
+                                  <TodoItem
+                                    todo={todo}
+                                    onToggle={toggleTodo}
+                                    onDelete={deleteTodo}
+                                    onArchive={archiveTodo}
+                                    onUnarchive={unarchiveTodo}
+                                    onEdit={editTodo}
+                                    markerColors={settings.markerColors}
+                                    generalSettings={settings.general}
+                                    linkPatterns={settings.linkPatterns}
+                                    availablePeople={settings.people}
+                                    availableProjects={settings.projects}
+                                    availablePriorities={settings.priorities}
+                                    onAddPerson={handleAddPerson}
+                                    onAddProject={handleAddProject}
+                                    onAddPriority={handleAddPriority}
+                                    isExpanded={false}
+                                    onToggleExpand={() => {}}
+                                    onAddComment={addTodoComment}
+                                    onEditComment={editTodoComment}
+                                    onDeleteComment={deleteTodoComment}
+                                  />
+                                </li>
                               ))}
                             </ul>
                           </div>
@@ -1400,30 +1425,30 @@ export function TodoList() {
                     {completedExpanded && (
                       <ul className="space-y-2">
                         {completedTodos.map((todo) => (
-                          <TodoItem
-                            key={todo.id}
-                            todo={todo}
-                            onToggle={toggleTodo}
-                            onDelete={deleteTodo}
-                            onArchive={archiveTodo}
-                            onUnarchive={unarchiveTodo}
-                            onEdit={editTodo}
-                            markerColors={settings.markerColors}
-                            generalSettings={settings.general}
-                            linkPatterns={settings.linkPatterns}
-                            availablePeople={settings.people}
-                            availableProjects={settings.projects}
-                            availablePriorities={settings.priorities}
-                            onAddPerson={handleAddPerson}
-                            onAddProject={handleAddProject}
-                            onAddPriority={handleAddPriority}
-                            onMarkerClick={handleFilterClick}
-                            isExpanded={expandedTodoId === todo.id}
-                            onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
-                            onAddComment={addTodoComment}
-                            onEditComment={editTodoComment}
-                            onDeleteComment={deleteTodoComment}
-                          />
+                          <li key={todo.id} onClick={() => setDetailsOverlayTodo(todo)} className="cursor-pointer">
+                            <TodoItem
+                              todo={todo}
+                              onToggle={toggleTodo}
+                              onDelete={deleteTodo}
+                              onArchive={archiveTodo}
+                              onUnarchive={unarchiveTodo}
+                              onEdit={editTodo}
+                              markerColors={settings.markerColors}
+                              generalSettings={settings.general}
+                              linkPatterns={settings.linkPatterns}
+                              availablePeople={settings.people}
+                              availableProjects={settings.projects}
+                              availablePriorities={settings.priorities}
+                              onAddPerson={handleAddPerson}
+                              onAddProject={handleAddProject}
+                              onAddPriority={handleAddPriority}
+                              isExpanded={false}
+                              onToggleExpand={() => {}}
+                              onAddComment={addTodoComment}
+                              onEditComment={editTodoComment}
+                              onDeleteComment={deleteTodoComment}
+                            />
+                          </li>
                         ))}
                       </ul>
                     )}
@@ -1453,30 +1478,30 @@ export function TodoList() {
                     {archivedExpanded && (
                       <ul className="space-y-2">
                         {archivedTodos.map((todo) => (
-                          <TodoItem
-                            key={todo.id}
-                            todo={todo}
-                            onToggle={toggleTodo}
-                            onDelete={deleteTodo}
-                            onArchive={archiveTodo}
-                            onUnarchive={unarchiveTodo}
-                            onEdit={editTodo}
-                            markerColors={settings.markerColors}
-                            generalSettings={settings.general}
-                            linkPatterns={settings.linkPatterns}
-                            availablePeople={settings.people}
-                            availableProjects={settings.projects}
-                            availablePriorities={settings.priorities}
-                            onAddPerson={handleAddPerson}
-                            onAddProject={handleAddProject}
-                            onAddPriority={handleAddPriority}
-                            onMarkerClick={handleFilterClick}
-                            isExpanded={expandedTodoId === todo.id}
-                            onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
-                            onAddComment={addTodoComment}
-                            onEditComment={editTodoComment}
-                            onDeleteComment={deleteTodoComment}
-                          />
+                          <li key={todo.id} onClick={() => setDetailsOverlayTodo(todo)} className="cursor-pointer">
+                            <TodoItem
+                              todo={todo}
+                              onToggle={toggleTodo}
+                              onDelete={deleteTodo}
+                              onArchive={archiveTodo}
+                              onUnarchive={unarchiveTodo}
+                              onEdit={editTodo}
+                              markerColors={settings.markerColors}
+                              generalSettings={settings.general}
+                              linkPatterns={settings.linkPatterns}
+                              availablePeople={settings.people}
+                              availableProjects={settings.projects}
+                              availablePriorities={settings.priorities}
+                              onAddPerson={handleAddPerson}
+                              onAddProject={handleAddProject}
+                              onAddPriority={handleAddPriority}
+                              isExpanded={false}
+                              onToggleExpand={() => {}}
+                              onAddComment={addTodoComment}
+                              onEditComment={editTodoComment}
+                              onDeleteComment={deleteTodoComment}
+                            />
+                          </li>
                         ))}
                       </ul>
                     )}
@@ -1509,34 +1534,7 @@ export function TodoList() {
                     </div>
 
                     {/* Smart Input Markers Legend */}
-                    <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                        ✨ Smart Input Markers
-                      </h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-blue-800 dark:text-blue-200">
-                        <div>
-                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">@name</code> Assign
-                        </div>
-                        <div>
-                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">#project</code> Project
-                        </div>
-                        <div>
-                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">$name</code> Source
-                        </div>
-                        <div>
-                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">^name</code> Mention
-                        </div>
-                        <div>
-                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">!!high</code> Priority
-                        </div>
-                        <div>
-                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">~date</code> Due
-                        </div>
-                        <div>
-                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">*2h</code> Duration
-                        </div>
-                      </div>
-                    </div>
+                    <MarkerReference />
 
                     {/* Add Form */}
                     <form
@@ -1720,6 +1718,39 @@ export function TodoList() {
                 ))}
               </div>
             )}
+
+            {/* Todo Details Overlay */}
+            {detailsOverlayTodo &&
+              (() => {
+                // Find the current version of the todo from the todos array
+                const currentTodo = todos.find((t) => t.id === detailsOverlayTodo.id);
+                if (!currentTodo) return null;
+
+                return (
+                  <TodoDetailsOverlay
+                    todo={currentTodo}
+                    isOpen={true}
+                    onClose={() => setDetailsOverlayTodo(null)}
+                    onToggle={toggleTodo}
+                    onDelete={deleteTodo}
+                    onEdit={editTodo}
+                    onArchive={archiveTodo}
+                    onUnarchive={unarchiveTodo}
+                    markerColors={settings.markerColors}
+                    generalSettings={settings.general}
+                    linkPatterns={settings.linkPatterns}
+                    availablePeople={settings.people}
+                    availableProjects={settings.projects}
+                    availablePriorities={settings.priorities}
+                    onAddPerson={handleAddPerson}
+                    onAddProject={handleAddProject}
+                    onAddPriority={handleAddPriority}
+                    onAddComment={addTodoComment}
+                    onEditComment={editTodoComment}
+                    onDeleteComment={deleteTodoComment}
+                  />
+                );
+              })()}
           </>
         )}
       </div>

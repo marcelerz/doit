@@ -1,14 +1,33 @@
 "use client";
 
-import { Todo } from "@/types/todo";
+import { Todo, TodoMetadata } from "@/types/todo";
 import { MarkerColors, WorkHoursSettings } from "@/types/settings";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { MarkedText } from "@/components/MarkedText";
+import SmartEditableInput, { SmartEditableInputHandle, TokenMatch } from "@/components/SmartInput";
+import { MarkerReference } from "@/components/MarkerReference";
+import { TodoDetailsOverlay } from "@/components/TodoDetailsOverlay";
 
 interface GanttViewProps {
   todos: Todo[];
   markerColors: MarkerColors;
   workHours: WorkHoursSettings;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+  onEditTodo: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
+  onArchive?: (id: string) => void;
+  onUnarchive?: (id: string) => void;
+  generalSettings: import("@/types/settings").GeneralSettings;
+  linkPatterns: import("@/types/settings").LinkPattern[];
+  availablePeople: import("@/types/settings").Person[];
+  availableProjects: import("@/types/settings").Project[];
+  availablePriorities: import("@/types/settings").Priority[];
+  onAddPerson: (person: string) => void;
+  onAddProject: (project: string) => void;
+  onAddPriority: (priority: string) => void;
+  onAddComment?: (todoId: string, content: string) => void;
+  onEditComment?: (todoId: string, commentId: number, content: string) => void;
+  onDeleteComment?: (todoId: string, commentId: number) => void;
 }
 
 interface ScheduledTask {
@@ -28,7 +47,27 @@ interface BreakBlock {
   endTime: Date;
 }
 
-export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
+export function GanttView({
+  todos,
+  markerColors,
+  workHours,
+  onToggle,
+  onDelete,
+  onEditTodo,
+  onArchive,
+  onUnarchive,
+  generalSettings,
+  linkPatterns,
+  availablePeople,
+  availableProjects,
+  availablePriorities,
+  onAddPerson,
+  onAddProject,
+  onAddPriority,
+  onAddComment,
+  onEditComment,
+  onDeleteComment,
+}: GanttViewProps) {
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -36,6 +75,7 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
   });
   const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(true);
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
+  const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<Todo | null>(null);
 
   // Parse duration string to minutes
   const parseDuration = (duration: string | undefined): number => {
@@ -459,6 +499,9 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
                           }}
                           onMouseEnter={() => setHoveredTaskId(task.todo.id)}
                           onMouseLeave={() => setHoveredTaskId(null)}
+                          onClick={() => {
+                            setDetailsOverlayTodo(task.todo);
+                          }}
                         >
                           <span className="text-xs font-medium text-white truncate">{task.todo.plainText}</span>
                           <span className="text-xs text-white/80 ml-2 whitespace-nowrap">
@@ -595,6 +638,39 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
           </div>
         )}
       </div>
+
+      {/* Todo Details Overlay */}
+      {detailsOverlayTodo &&
+        (() => {
+          // Find the current version of the todo from the todos array
+          const currentTodo = todos.find((t) => t.id === detailsOverlayTodo.id);
+          if (!currentTodo) return null;
+
+          return (
+            <TodoDetailsOverlay
+              todo={currentTodo}
+              isOpen={true}
+              onClose={() => setDetailsOverlayTodo(null)}
+              onToggle={onToggle}
+              onDelete={onDelete}
+              onEdit={onEditTodo}
+              onArchive={onArchive}
+              onUnarchive={onUnarchive}
+              markerColors={markerColors}
+              generalSettings={generalSettings}
+              linkPatterns={linkPatterns}
+              availablePeople={availablePeople}
+              availableProjects={availableProjects}
+              availablePriorities={availablePriorities}
+              onAddPerson={onAddPerson}
+              onAddProject={onAddProject}
+              onAddPriority={onAddPriority}
+              onAddComment={onAddComment}
+              onEditComment={onEditComment}
+              onDeleteComment={onDeleteComment}
+            />
+          );
+        })()}
     </div>
   );
 }
