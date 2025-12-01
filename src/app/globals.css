@@ -51,3 +51,8 @@ body {
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
+
+/* Custom 3-second fade duration */
+.duration-3000 {
+  transition-duration: 3000ms;
+}

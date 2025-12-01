@@ -32,7 +32,8 @@ export function TodoList() {
     editTodoComment,
     deleteTodoComment,
     isLoaded,
-    undoAction,
+    undoActions,
+    fadingOutIds,
     undo,
     dismissUndo,
   } = useTodos();
@@ -767,7 +768,9 @@ export function TodoList() {
               </Link>
             </div>
           </div>
-          <p className="text-zinc-600 dark:text-zinc-400">Your simple and beautiful todo app</p>
+          <p className="text-zinc-600 dark:text-zinc-400">
+            Smart tasks with powerful filtering, custom views, and intelligent organization
+          </p>
         </header>
 
         {/* Filter Section */}
@@ -1562,35 +1565,46 @@ export function TodoList() {
           </div>
         )}
 
-        {/* Undo Notification */}
-        {undoAction && (
-          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-slide-up">
-            <div className="bg-zinc-900 dark:bg-zinc-800 text-white rounded-lg shadow-2xl px-6 py-4 flex items-center gap-4 min-w-[320px]">
-              <div className="flex-1">
-                <p className="font-medium">
-                  {undoAction.type === "delete" && "Todo deleted"}
-                  {undoAction.type === "complete" && "Todo completed"}
-                  {undoAction.type === "uncomplete" && "Todo marked as active"}
-                  {undoAction.type === "archive" && "Todo archived"}
-                </p>
-                <p className="text-sm text-zinc-400 mt-0.5 truncate max-w-[200px]">{undoAction.todo.plainText}</p>
+        {/* Undo Notifications */}
+        {undoActions.length > 0 && (
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col-reverse gap-2">
+            {undoActions.map((action) => (
+              <div
+                key={action.id}
+                className={`transition-opacity duration-3000 ${
+                  fadingOutIds.has(action.id) ? "opacity-0" : "opacity-100 animate-slide-up"
+                }`}
+              >
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-100 rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 min-w-[280px]">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">
+                      {action.type === "delete" && "Todo deleted"}
+                      {action.type === "complete" && "Todo completed"}
+                      {action.type === "uncomplete" && "Todo marked as active"}
+                      {action.type === "archive" && "Todo archived"}
+                    </p>
+                    <p className="text-xs text-red-700 dark:text-red-300 mt-0.5 truncate max-w-[180px]">
+                      {action.todo.plainText}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => undo(action.id)}
+                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded-md font-medium transition-colors flex-shrink-0"
+                  >
+                    Undo
+                  </button>
+                  <button
+                    onClick={() => dismissUndo(action.id)}
+                    className="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors flex-shrink-0"
+                    aria-label="Dismiss"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={undo}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors flex-shrink-0"
-              >
-                Undo
-              </button>
-              <button
-                onClick={dismissUndo}
-                className="p-2 text-zinc-400 hover:text-white transition-colors flex-shrink-0"
-                aria-label="Dismiss"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+            ))}
           </div>
         )}
       </div>

@@ -9,17 +9,19 @@ const STORAGE_KEY = "doit-todos";
 const SETTINGS_KEY = "doit-settings";
 
 export type UndoAction = {
+  id: string;
   type: "delete" | "complete" | "archive" | "uncomplete";
   todo: Todo;
   previousState?: Todo;
   timestamp: number;
+  timeoutId: NodeJS.Timeout;
 };
 
 export function useTodos() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
-  const [undoTimeoutId, setUndoTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const [undoActions, setUndoActions] = useState<UndoAction[]>([]);
+  const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
 
   // Load todos from localStorage on mount
   useEffect(() => {
@@ -63,45 +65,63 @@ export function useTodos() {
     }
   }, [todos, isLoaded]);
 
-  // Clear any pending undo timeout
-  const clearUndoTimeout = useCallback(() => {
-    if (undoTimeoutId) {
-      clearTimeout(undoTimeoutId);
-      setUndoTimeoutId(null);
-    }
-  }, [undoTimeoutId]);
-
   // Execute the pending action (actually delete after timeout)
-  const executePendingAction = useCallback(() => {
-    if (undoAction?.type === "delete") {
-      setTodos((prev) => prev.filter((todo) => todo.id !== undoAction.todo.id));
+  const executePendingAction = useCallback((action: UndoAction) => {
+    if (action.type === "delete") {
+      setTodos((prev) => prev.filter((todo) => todo.id !== action.todo.id));
     }
-    setUndoAction(null);
-    clearUndoTimeout();
-  }, [undoAction, clearUndoTimeout]);
+    // Start fade out animation
+    setFadingOutIds((prev) => new Set(prev).add(action.id));
+    // Wait for fade animation to complete before removing
+    setTimeout(() => {
+      setUndoActions((prev) => prev.filter((a) => a.id !== action.id));
+      setFadingOutIds((prev) => {
+        const next = new Set(prev);
+        next.delete(action.id);
+        return next;
+      });
+    }, 3000);
+  }, []);
 
-  // Undo the last action
-  const undo = useCallback(() => {
-    if (!undoAction) return;
+  // Undo a specific action
+  const undo = useCallback(
+    (actionId: string) => {
+      const action = undoActions.find((a) => a.id === actionId);
+      if (!action) return;
 
-    clearUndoTimeout();
+      // Clear the timeout for this action
+      clearTimeout(action.timeoutId);
 
-    if (undoAction.type === "delete") {
-      // Restore the deleted todo
-      setTodos((prev) => [undoAction.todo, ...prev]);
-    } else if (undoAction.previousState) {
-      // Restore previous state for toggle/archive
-      setTodos((prev) => prev.map((todo) => (todo.id === undoAction.todo.id ? undoAction.previousState! : todo)));
-    }
+      if (action.type === "delete") {
+        // Restore the deleted todo with its previous state
+        if (action.previousState) {
+          setTodos((prev) => [action.previousState!, ...prev]);
+        }
+      } else if (action.previousState) {
+        // Restore previous state for toggle/archive
+        setTodos((prev) => prev.map((todo) => (todo.id === action.todo.id ? action.previousState! : todo)));
+      }
 
-    setUndoAction(null);
-  }, [undoAction, clearUndoTimeout]);
+      // Remove this action from the queue
+      setUndoActions((prev) => prev.filter((a) => a.id !== actionId));
+    },
+    [undoActions],
+  );
 
   // Dismiss notification without undoing
-  const dismissUndo = useCallback(() => {
-    clearUndoTimeout();
-    executePendingAction();
-  }, [clearUndoTimeout, executePendingAction]);
+  const dismissUndo = useCallback(
+    (actionId: string) => {
+      const action = undoActions.find((a) => a.id === actionId);
+      if (!action) return;
+
+      // Clear the timeout for this action
+      clearTimeout(action.timeoutId);
+
+      // Execute the action immediately with fade out
+      executePendingAction(action);
+    },
+    [undoActions, executePendingAction],
+  );
 
   const addTodo = (text: string, plainText: string, metadata: TodoMetadata) => {
     const now = Date.now();
@@ -119,51 +139,46 @@ export function useTodos() {
   };
 
   const toggleTodo = (id: string) => {
-    clearUndoTimeout();
+    const todoToToggle = todos.find((t) => t.id === id);
+    if (!todoToToggle) return;
 
-    setTodos((prev) =>
-      prev.map((todo) => {
-        if (todo.id === id) {
-          const previousState = { ...todo };
-          const newState: "active" | "completed" = todo.state === "completed" ? "active" : "completed";
-          const now = Date.now();
-          const updatedTodo: Todo = {
-            ...todo,
-            state: newState,
-            completedAt: newState === "completed" ? now : undefined,
-            archivedAt: undefined,
-            deletedAt: undefined,
-            updatedAt: now,
-          };
+    const previousState = { ...todoToToggle };
+    const newState: "active" | "completed" = todoToToggle.state === "completed" ? "active" : "completed";
+    const now = Date.now();
+    const updatedTodo: Todo = {
+      ...todoToToggle,
+      state: newState,
+      completedAt: newState === "completed" ? now : undefined,
+      archivedAt: undefined,
+      deletedAt: undefined,
+      updatedAt: now,
+    };
 
-          // Set up undo action
-          const action: UndoAction = {
-            type: newState === "completed" ? "complete" : "uncomplete",
-            todo: updatedTodo,
-            previousState,
-            timestamp: now,
-          };
-          setUndoAction(action);
+    setTodos((prev) => prev.map((todo) => (todo.id === id ? updatedTodo : todo)));
 
-          const timeoutId = setTimeout(() => {
-            setUndoAction(null);
-          }, 10000);
-          setUndoTimeoutId(timeoutId);
+    // Create undo action
+    const actionId = `${now}-toggle-${id}`;
+    const timeoutId = setTimeout(() => {
+      setUndoActions((prev) => prev.filter((a) => a.id !== actionId));
+    }, 10000);
 
-          return updatedTodo;
-        }
-        return todo;
-      }),
-    );
+    const action: UndoAction = {
+      id: actionId,
+      type: newState === "completed" ? "complete" : "uncomplete",
+      todo: updatedTodo,
+      previousState,
+      timestamp: now,
+      timeoutId,
+    };
+
+    setUndoActions((prev) => [...prev, action]);
   };
 
   const deleteTodo = (id: string) => {
-    clearUndoTimeout();
-
     const todoToDelete = todos.find((t) => t.id === id);
     if (!todoToDelete) return;
 
-    // Mark as deleted with timestamp
+    const previousState = { ...todoToDelete };
     const now = Date.now();
     const deletedTodo: Todo = {
       ...todoToDelete,
@@ -175,55 +190,59 @@ export function useTodos() {
     // Update the todo to deleted state (keeps it in the list but hidden)
     setTodos((prev) => prev.map((todo) => (todo.id === id ? deletedTodo : todo)));
 
+    // Create undo action
+    const actionId = `${now}-delete-${id}`;
+    const timeoutId = setTimeout(() => {
+      const currentAction = undoActions.find((a) => a.id === actionId);
+      if (currentAction) {
+        executePendingAction(currentAction);
+      }
+    }, 10000);
+
     const action: UndoAction = {
+      id: actionId,
       type: "delete",
       todo: deletedTodo,
-      previousState: todoToDelete,
+      previousState,
       timestamp: now,
+      timeoutId,
     };
-    setUndoAction(action);
 
-    const timeoutId = setTimeout(() => {
-      executePendingAction();
-    }, 10000);
-    setUndoTimeoutId(timeoutId);
+    setUndoActions((prev) => [...prev, action]);
   };
 
   const archiveTodo = (id: string) => {
-    clearUndoTimeout();
+    const todoToArchive = todos.find((t) => t.id === id);
+    if (!todoToArchive) return;
 
+    const previousState = { ...todoToArchive };
     const now = Date.now();
-    setTodos((prev) =>
-      prev.map((todo) => {
-        if (todo.id === id) {
-          const previousState = { ...todo };
-          const updatedTodo: Todo = {
-            ...todo,
-            state: "archived",
-            archivedAt: now,
-            updatedAt: now,
-            deletedAt: undefined,
-          };
+    const updatedTodo: Todo = {
+      ...todoToArchive,
+      state: "archived",
+      archivedAt: now,
+      updatedAt: now,
+      deletedAt: undefined,
+    };
 
-          // Set up undo action
-          const action: UndoAction = {
-            type: "archive",
-            todo: updatedTodo,
-            previousState,
-            timestamp: now,
-          };
-          setUndoAction(action);
+    setTodos((prev) => prev.map((todo) => (todo.id === id ? updatedTodo : todo)));
 
-          const timeoutId = setTimeout(() => {
-            setUndoAction(null);
-          }, 10000);
-          setUndoTimeoutId(timeoutId);
+    // Create undo action
+    const actionId = `${now}-archive-${id}`;
+    const timeoutId = setTimeout(() => {
+      setUndoActions((prev) => prev.filter((a) => a.id !== actionId));
+    }, 10000);
 
-          return updatedTodo;
-        }
-        return todo;
-      }),
-    );
+    const action: UndoAction = {
+      id: actionId,
+      type: "archive",
+      todo: updatedTodo,
+      previousState,
+      timestamp: now,
+      timeoutId,
+    };
+
+    setUndoActions((prev) => [...prev, action]);
   };
 
   const unarchiveTodo = (id: string) => {
@@ -308,7 +327,8 @@ export function useTodos() {
     editTodoComment,
     deleteTodoComment,
     isLoaded,
-    undoAction,
+    undoActions,
+    fadingOutIds,
     undo,
     dismissUndo,
   };
