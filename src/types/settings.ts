@@ -74,6 +74,59 @@ export interface DateTimeSettings {
   fiscalYearStart: number; // Month (1-12) when fiscal year starts
 }
 
+export interface BreakPeriod {
+  id: string;
+  name: string;
+  startTime: string; // e.g., "12:00"
+  endTime: string; // e.g., "13:00"
+}
+
+export interface DaySchedule {
+  startTime: string; // e.g., "09:00"
+  endTime: string; // e.g., "17:00"
+  breaks: BreakPeriod[];
+}
+
+export interface WorkHoursSettings {
+  useCommonSchedule: boolean; // If true, use commonSchedule for all days
+  commonSchedule: DaySchedule;
+  weekdaySchedule: DaySchedule; // For Mon-Fri
+  weekendSchedule: DaySchedule; // For Sat-Sun
+  customSchedules: {
+    monday?: DaySchedule;
+    tuesday?: DaySchedule;
+    wednesday?: DaySchedule;
+    thursday?: DaySchedule;
+    friday?: DaySchedule;
+    saturday?: DaySchedule;
+    sunday?: DaySchedule;
+  };
+  contextSwitchingTime: number; // Minutes between tasks for context switching
+  defaultTaskDuration: number; // Default duration in minutes when not specified
+}
+
+export const defaultWorkHoursSettings: WorkHoursSettings = {
+  useCommonSchedule: true,
+  commonSchedule: {
+    startTime: "09:00",
+    endTime: "17:00",
+    breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+  },
+  weekdaySchedule: {
+    startTime: "09:00",
+    endTime: "17:00",
+    breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+  },
+  weekendSchedule: {
+    startTime: "10:00",
+    endTime: "14:00",
+    breaks: [],
+  },
+  customSchedules: {},
+  contextSwitchingTime: 5, // 5 minutes between tasks
+  defaultTaskDuration: 30, // 30 minutes default
+};
+
 export const defaultDateTimeSettings: DateTimeSettings = {
   startOfDay: "09:00",
   endOfDay: "17:00",
@@ -92,6 +145,7 @@ export interface GeneralSettings {
     deleteDays: number; // Number of days after completion before tasks are deleted
   };
   dateTime: DateTimeSettings;
+  workHours: WorkHoursSettings;
   autoAssign: {
     enabled: boolean;
     assignedPerson?: string; // Default person to assign (@)
@@ -111,6 +165,7 @@ export const defaultGeneralSettings: GeneralSettings = {
     deleteDays: 90, // Delete after 90 days (3 months) by default
   },
   dateTime: defaultDateTimeSettings,
+  workHours: defaultWorkHoursSettings,
   autoAssign: {
     enabled: false,
   },

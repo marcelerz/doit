@@ -10,9 +10,10 @@ import { LinksTab } from "@/components/settings/LinksTab";
 import { MarkersTab } from "@/components/settings/MarkersTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
 import { DateTimeTab } from "@/components/settings/DateTimeTab";
+import { WorkHoursTab } from "@/components/settings/WorkHoursTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 
-type Tab = "general" | "datetime" | "people" | "projects" | "priorities" | "links" | "markers" | "backup";
+type Tab = "general" | "datetime" | "workhours" | "people" | "projects" | "priorities" | "links" | "markers" | "backup";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
@@ -85,6 +86,16 @@ export default function SettingsPage() {
               Date/Time
             </button>
             <button
+              onClick={() => setActiveTab("workhours")}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                activeTab === "workhours"
+                  ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
+                  : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+              }`}
+            >
+              Work Hours
+            </button>
+            <button
               onClick={() => setActiveTab("people")}
               className={`flex-1 px-6 py-4 font-medium transition-colors ${
                 activeTab === "people"
@@ -152,6 +163,12 @@ export default function SettingsPage() {
               <DateTimeTab
                 dateTime={settings.general.dateTime}
                 onUpdate={(dateTime) => updateGeneralSettings({ dateTime })}
+              />
+            )}
+            {activeTab === "workhours" && (
+              <WorkHoursTab
+                workHours={settings.general.workHours}
+                onUpdate={(workHours) => updateGeneralSettings({ workHours })}
               />
             )}
             {activeTab === "people" && (

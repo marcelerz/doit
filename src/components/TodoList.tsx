@@ -1277,7 +1277,9 @@ export function TodoList() {
         )}
 
         {/* View Content */}
-        {activeView === "gantt" && <GanttView todos={todos} markerColors={settings.markerColors} />}
+        {activeView === "gantt" && (
+          <GanttView todos={todos} markerColors={settings.markerColors} workHours={settings.general.workHours} />
+        )}
 
         {activeView === "calendar" && (
           <CalendarView
