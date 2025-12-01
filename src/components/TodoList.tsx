@@ -748,7 +748,7 @@ export function TodoList() {
       <div className="max-w-3xl mx-auto">
         <header className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-100">Doit</h1>
+            <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-100">DoIt</h1>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsAddOverlayOpen(true)}
