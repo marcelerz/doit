@@ -16,14 +16,23 @@
 - [x] Fix date parsing and display
 - [x] Add metadata organization and UI persistence
 - [x] Convert from boolean-based to state-based todo system
+- [x] Add multiple view tabs (List, Gantt, Calendar)
 
 ## Project Details
 
 - **Type**: Next.js TypeScript webapp
-- **Features**: Todo app with localStorage persistence, state-based architecture
+- **Features**: Todo app with localStorage persistence, state-based architecture, multiple views
 - **Design**: Full-page, mobile-responsive
 - **Status**: Complete and running
 - **Migration Version**: 4
+
+## Views
+
+The app now has three different views accessible via tabs:
+
+1. **List View** - Traditional todo list with filtering, sorting, grouping
+2. **Gantt View** - Timeline visualization showing todos with due dates on a horizontal timeline
+3. **Calendar View** - Monthly calendar with dots indicating tasks, click to see details
 
 ## Todo State System
 

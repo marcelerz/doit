@@ -7,6 +7,8 @@ import { useSettings } from "@/hooks/useSettings";
 import { TodoItem } from "./TodoItem";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/SmartInput";
 import { TodoMetadata } from "@/types/todo";
+import { GanttView } from "./views/GanttView";
+import { CalendarView } from "./views/CalendarView";
 
 interface TodoFilters {
   searchText: string;
@@ -18,6 +20,8 @@ interface TodoFilters {
   dueDates: Set<string>;
   durations: Set<string>;
 }
+
+type ViewTab = "list" | "gantt" | "calendar";
 
 export function TodoList() {
   const {
@@ -42,6 +46,7 @@ export function TodoList() {
   const [currentFullText, setCurrentFullText] = useState("");
   const [currentPlainText, setCurrentPlainText] = useState("");
   const smartInputRef = useRef<SmartEditableInputHandle>(null);
+  const [activeView, setActiveView] = useState<ViewTab>("list");
 
   // Wrapper functions to convert name string to object format
   const handleAddPerson = (name: string) => {
@@ -788,839 +793,932 @@ export function TodoList() {
           </p>
         </header>
 
-        {/* Filter Section */}
-        <div className="mb-6 space-y-3">
-          {/* View Presets Row */}
-          {viewPresets.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Views:</span>
-              {viewPresets.map((preset) => (
-                <button
-                  key={preset.name}
-                  onClick={() => loadPreset(preset)}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors text-sm ${
-                    activePreset === preset.name
-                      ? "bg-blue-600 text-white"
-                      : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
-                  }`}
-                >
-                  {preset.name}
-                </button>
-              ))}
-              {activePreset === "custom" && (
-                <span className="px-3 py-1.5 rounded-lg font-medium text-sm bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
-                  Custom
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Top Row: Search + Show Filters Toggle + Group By + Sort By + Save */}
-          <div className="flex items-center gap-3">
-            {/* Search Input */}
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={filters.searchText}
-              onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
-              className="flex-1 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-
-            {/* Show Filters Toggle */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
-                showFilters || hasActiveFilters
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                />
-              </svg>
-              {showFilters ? "Hide" : "Filter"}
-              {hasActiveFilters && !showFilters && (
-                <span className="px-1.5 py-0.5 text-xs bg-white/20 rounded-full">
-                  {Object.values(filters).filter((v) => v && (typeof v === "string" ? v : v.size > 0)).length}
-                </span>
-              )}
-            </button>
-
-            {/* Group By */}
-            <div className="flex items-center gap-2 ml-4">
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">Group:</label>
-              <select
-                value={groupBy}
-                onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-                className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="none">None</option>
-                <option value="dueDate">Due Date</option>
-              </select>
-            </div>
-
-            {/* Sort By */}
+        {/* View Tabs */}
+        <div className="mb-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800">
+          <button
+            onClick={() => setActiveView("list")}
+            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+              activeView === "list"
+                ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+            }`}
+          >
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">Sort:</label>
-              <select
-                value={sortField}
-                onChange={(e) => setSortField(e.target.value as SortField)}
-                className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="created">Created</option>
-                <option value="dueDate">Due Date</option>
-                <option value="duration">Duration</option>
-                <option value="assigned">Assigned</option>
-                <option value="source">Source</option>
-                <option value="mentioned">Mentioned</option>
-                <option value="project">Project</option>
-                <option value="priority">Priority</option>
-              </select>
-              <button
-                onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
-                className="p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                title={sortDirection === "asc" ? "Ascending" : "Descending"}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {sortDirection === "asc" ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  )}
-                </svg>
-              </button>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              List
             </div>
-
-            {/* Save View Button */}
-            <button
-              onClick={() => setIsSavePresetOpen(true)}
-              className="p-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors ml-auto"
-              title="Save current view"
-            >
+          </button>
+          <button
+            onClick={() => setActiveView("gantt")}
+            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+              activeView === "gantt"
+                ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+            }`}
+          >
+            <div className="flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                 />
               </svg>
-            </button>
-          </div>
-
-          {/* Filter Badges Row */}
-          {hasActiveFilters && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                onClick={handleClearAllFilters}
-                className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
-              >
-                Clear All
-              </button>
+              Gantt
             </div>
-          )}
-
-          {showFilters && (
-            <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 space-y-2">
-              {/* Assigned People Filter */}
-              {filterOptions.assignedPeople.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                      Assigned (@) - {filters.assignedPeople.size}
-                    </label>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleSelectAll("assignedPeople")}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        onClick={() => handleClearAll("assignedPeople")}
-                        className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {filterOptions.assignedPeople.map((person) => (
-                      <button
-                        key={person}
-                        onClick={() => handleFilterClick("assignedPeople", person)}
-                        className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                          filters.assignedPeople.has(person)
-                            ? "bg-blue-600 text-white"
-                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                        }`}
-                      >
-                        @{person}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Projects Filter */}
-              {filterOptions.projects.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                      Projects (#) - {filters.projects.size}
-                    </label>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleSelectAll("projects")}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        onClick={() => handleClearAll("projects")}
-                        className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {filterOptions.projects.map((project) => (
-                      <button
-                        key={project}
-                        onClick={() => handleFilterClick("projects", project)}
-                        className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                          filters.projects.has(project)
-                            ? "bg-purple-600 text-white"
-                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                        }`}
-                      >
-                        #{project}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Source People Filter */}
-              {filterOptions.sourcePeople.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                      Source ($) - {filters.sourcePeople.size}
-                    </label>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleSelectAll("sourcePeople")}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        onClick={() => handleClearAll("sourcePeople")}
-                        className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {filterOptions.sourcePeople.map((person) => (
-                      <button
-                        key={person}
-                        onClick={() => handleFilterClick("sourcePeople", person)}
-                        className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                          filters.sourcePeople.has(person)
-                            ? "bg-green-600 text-white"
-                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                        }`}
-                      >
-                        ${person}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Mentioned People Filter */}
-              {filterOptions.mentionedPeople.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                      Mentioned (^) - {filters.mentionedPeople.size}
-                    </label>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleSelectAll("mentionedPeople")}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        onClick={() => handleClearAll("mentionedPeople")}
-                        className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {filterOptions.mentionedPeople.map((person) => (
-                      <button
-                        key={person}
-                        onClick={() => handleFilterClick("mentionedPeople", person)}
-                        className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                          filters.mentionedPeople.has(person)
-                            ? "bg-yellow-600 text-white"
-                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                        }`}
-                      >
-                        ^{person}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Priority Filter */}
-              {filterOptions.priorities.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                      Priority (!!) - {filters.priorities.size}
-                    </label>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleSelectAll("priorities")}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        onClick={() => handleClearAll("priorities")}
-                        className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {filterOptions.priorities.map((priority) => (
-                      <button
-                        key={priority}
-                        onClick={() => handleFilterClick("priorities", priority)}
-                        className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                          filters.priorities.has(priority)
-                            ? "bg-red-600 text-white"
-                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                        }`}
-                      >
-                        !!{priority}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Due Date Filter */}
-              {filterOptions.dueDates.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                      Due Date (~) - {filters.dueDates.size}
-                    </label>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleSelectAll("dueDates")}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        onClick={() => handleClearAll("dueDates")}
-                        className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {filterOptions.dueDates.map((date) => (
-                      <button
-                        key={date}
-                        onClick={() => handleFilterClick("dueDates", date)}
-                        className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                          filters.dueDates.has(date)
-                            ? "bg-pink-600 text-white"
-                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                        }`}
-                      >
-                        ~{date}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Duration Filter */}
-              {filterOptions.durations.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                      Duration (*) - {filters.durations.size}
-                    </label>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleSelectAll("durations")}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        onClick={() => handleClearAll("durations")}
-                        className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {filterOptions.durations.map((duration) => (
-                      <button
-                        key={duration}
-                        onClick={() => handleFilterClick("durations", duration)}
-                        className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                          filters.durations.has(duration)
-                            ? "bg-cyan-600 text-white"
-                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                        }`}
-                      >
-                        *{duration}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+          </button>
+          <button
+            onClick={() => setActiveView("calendar")}
+            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+              activeView === "calendar"
+                ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              Calendar
             </div>
-          )}
+          </button>
         </div>
 
-        {todos.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">📝</div>
-            <p className="text-xl text-zinc-600 dark:text-zinc-400">No tasks yet. Add one to get started!</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {activeTodos.length > 0 && (
-              <section>
-                <button
-                  onClick={() => setActiveExpanded(!activeExpanded)}
-                  className="w-full flex items-center justify-between text-left mb-3 group"
-                >
-                  <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                    Active ({activeTodos.length})
-                  </h2>
-                  <svg
-                    className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
-                      activeExpanded ? "rotate-180" : ""
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {activeExpanded && (
-                  <div className="space-y-4">
-                    {Object.entries(groupedActiveTodos).map(([groupName, groupTodos]) => (
-                      <div key={groupName}>
-                        {groupName && (
-                          <h3 className="text-xs font-semibold text-zinc-600 dark:text-zinc-500 uppercase tracking-wide mb-2 pl-2">
-                            {groupName} ({groupTodos.length})
-                          </h3>
-                        )}
-                        <ul className="space-y-2">
-                          {groupTodos.map((todo) => (
-                            <TodoItem
-                              key={todo.id}
-                              todo={todo}
-                              onToggle={toggleTodo}
-                              onDelete={deleteTodo}
-                              onArchive={archiveTodo}
-                              onUnarchive={unarchiveTodo}
-                              onEdit={editTodo}
-                              markerColors={settings.markerColors}
-                              generalSettings={settings.general}
-                              linkPatterns={settings.linkPatterns}
-                              availablePeople={settings.people}
-                              availableProjects={settings.projects}
-                              availablePriorities={settings.priorities}
-                              onAddPerson={handleAddPerson}
-                              onAddProject={handleAddProject}
-                              onAddPriority={handleAddPriority}
-                              onMarkerClick={handleFilterClick}
-                              isExpanded={expandedTodoId === todo.id}
-                              onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
-                              onAddComment={addTodoComment}
-                              onEditComment={editTodoComment}
-                              onDeleteComment={deleteTodoComment}
-                            />
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            )}
-
-            {completedTodos.length > 0 && (
-              <section>
-                <button
-                  onClick={() => setCompletedExpanded(!completedExpanded)}
-                  className="w-full flex items-center justify-between text-left mb-3 group"
-                >
-                  <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                    Completed ({completedTodos.length})
-                  </h2>
-                  <svg
-                    className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
-                      completedExpanded ? "rotate-180" : ""
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {completedExpanded && (
-                  <ul className="space-y-2">
-                    {completedTodos.map((todo) => (
-                      <TodoItem
-                        key={todo.id}
-                        todo={todo}
-                        onToggle={toggleTodo}
-                        onDelete={deleteTodo}
-                        onArchive={archiveTodo}
-                        onUnarchive={unarchiveTodo}
-                        onEdit={editTodo}
-                        markerColors={settings.markerColors}
-                        generalSettings={settings.general}
-                        linkPatterns={settings.linkPatterns}
-                        availablePeople={settings.people}
-                        availableProjects={settings.projects}
-                        availablePriorities={settings.priorities}
-                        onAddPerson={handleAddPerson}
-                        onAddProject={handleAddProject}
-                        onAddPriority={handleAddPriority}
-                        onMarkerClick={handleFilterClick}
-                        isExpanded={expandedTodoId === todo.id}
-                        onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
-                        onAddComment={addTodoComment}
-                        onEditComment={editTodoComment}
-                        onDeleteComment={deleteTodoComment}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </section>
-            )}
-
-            {archivedTodos.length > 0 && (
-              <section>
-                <button
-                  onClick={() => setArchivedExpanded(!archivedExpanded)}
-                  className="w-full flex items-center justify-between text-left mb-3 group"
-                >
-                  <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                    Archived ({archivedTodos.length})
-                  </h2>
-                  <svg
-                    className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
-                      archivedExpanded ? "rotate-180" : ""
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {archivedExpanded && (
-                  <ul className="space-y-2">
-                    {archivedTodos.map((todo) => (
-                      <TodoItem
-                        key={todo.id}
-                        todo={todo}
-                        onToggle={toggleTodo}
-                        onDelete={deleteTodo}
-                        onArchive={archiveTodo}
-                        onUnarchive={unarchiveTodo}
-                        onEdit={editTodo}
-                        markerColors={settings.markerColors}
-                        generalSettings={settings.general}
-                        linkPatterns={settings.linkPatterns}
-                        availablePeople={settings.people}
-                        availableProjects={settings.projects}
-                        availablePriorities={settings.priorities}
-                        onAddPerson={handleAddPerson}
-                        onAddProject={handleAddProject}
-                        onAddPriority={handleAddPriority}
-                        onMarkerClick={handleFilterClick}
-                        isExpanded={expandedTodoId === todo.id}
-                        onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
-                        onAddComment={addTodoComment}
-                        onEditComment={editTodoComment}
-                        onDeleteComment={deleteTodoComment}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </section>
-            )}
-          </div>
-        )}
-
-        {/* Add Todo Overlay */}
-        {isAddOverlayOpen && (
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-            onClick={() => setIsAddOverlayOpen(false)}
-          >
-            <div
-              className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Add New Todo</h2>
+        {/* Filter Section - Only show in List view */}
+        {activeView === "list" && (
+          <div className="mb-6 space-y-3">
+            {/* View Presets Row */}
+            {viewPresets.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Views:</span>
+                {viewPresets.map((preset) => (
                   <button
-                    onClick={() => setIsAddOverlayOpen(false)}
-                    className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+                    key={preset.name}
+                    onClick={() => loadPreset(preset)}
+                    className={`px-3 py-1.5 rounded-lg font-medium transition-colors text-sm ${
+                      activePreset === preset.name
+                        ? "bg-blue-600 text-white"
+                        : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                    }`}
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    {preset.name}
                   </button>
-                </div>
-
-                {/* Smart Input Markers Legend */}
-                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                    ✨ Smart Input Markers
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-blue-800 dark:text-blue-200">
-                    <div>
-                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">@name</code> Assign
-                    </div>
-                    <div>
-                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">#project</code> Project
-                    </div>
-                    <div>
-                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">$name</code> Source
-                    </div>
-                    <div>
-                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">^name</code> Mention
-                    </div>
-                    <div>
-                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">!!high</code> Priority
-                    </div>
-                    <div>
-                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">~date</code> Due
-                    </div>
-                    <div>
-                      <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">*2h</code> Duration
-                    </div>
-                  </div>
-                </div>
-
-                {/* Add Form */}
-                <form
-                  onSubmit={(e) => {
-                    handleSubmit(e);
-                    setIsAddOverlayOpen(false);
-                  }}
-                >
-                  <div className="mb-4">
-                    <SmartEditableInput
-                      ref={smartInputRef}
-                      markers={markers}
-                      markerColors={settings.markerColors}
-                      availablePeople={settings.people}
-                      availableProjects={settings.projects}
-                      availablePriorities={settings.priorities}
-                      dateTimeSettings={settings.general.dateTime}
-                      onAddPerson={handleAddPerson}
-                      onAddProject={handleAddProject}
-                      onAddPriority={handleAddPriority}
-                      onTokensChange={handleTokensChange}
-                      onEnterPress={() => {
-                        const event = new Event("submit", { bubbles: true, cancelable: true });
-                        handleSubmit(event as any);
-                        setIsAddOverlayOpen(false);
-                      }}
-                    />
-                  </div>
-                  <div className="flex gap-3 justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setIsAddOverlayOpen(false)}
-                      className="px-6 py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
-                    >
-                      Add Todo
-                    </button>
-                  </div>
-                </form>
+                ))}
+                {activePreset === "custom" && (
+                  <span className="px-3 py-1.5 rounded-lg font-medium text-sm bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                    Custom
+                  </span>
+                )}
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* Save Preset Modal */}
-        {isSavePresetOpen && (
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-            onClick={() => setIsSavePresetOpen(false)}
-          >
-            <div
-              className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Save View Preset</h2>
-                  <button
-                    onClick={() => setIsSavePresetOpen(false)}
-                    className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
+            {/* Top Row: Search + Show Filters Toggle + Group By + Sort By + Save */}
+            <div className="flex items-center gap-3">
+              {/* Search Input */}
+              <input
+                type="text"
+                placeholder="Search tasks..."
+                value={filters.searchText}
+                onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
+                className="flex-1 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
 
-                {/* Input for new preset name */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Preset Name</label>
-                  <input
-                    type="text"
-                    value={presetName}
-                    onChange={(e) => setPresetName(e.target.value)}
-                    placeholder="Enter preset name..."
-                    className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && presetName.trim()) {
-                        savePreset(presetName.trim());
-                      }
-                    }}
+              {/* Show Filters Toggle */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
+                  showFilters || hasActiveFilters
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                    : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                   />
-                </div>
+                </svg>
+                {showFilters ? "Hide" : "Filter"}
+                {hasActiveFilters && !showFilters && (
+                  <span className="px-1.5 py-0.5 text-xs bg-white/20 rounded-full">
+                    {Object.values(filters).filter((v) => v && (typeof v === "string" ? v : v.size > 0)).length}
+                  </span>
+                )}
+              </button>
 
-                <button
-                  onClick={() => presetName.trim() && savePreset(presetName.trim())}
-                  disabled={!presetName.trim()}
-                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors mb-4"
+              {/* Group By */}
+              <div className="flex items-center gap-2 ml-4">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">Group:</label>
+                <select
+                  value={groupBy}
+                  onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+                  className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  Save as New Preset
-                </button>
+                  <option value="none">None</option>
+                  <option value="dueDate">Due Date</option>
+                </select>
+              </div>
 
-                {/* Existing presets */}
-                {viewPresets.length > 0 && (
+              {/* Sort By */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">Sort:</label>
+                <select
+                  value={sortField}
+                  onChange={(e) => setSortField(e.target.value as SortField)}
+                  className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="created">Created</option>
+                  <option value="dueDate">Due Date</option>
+                  <option value="duration">Duration</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="source">Source</option>
+                  <option value="mentioned">Mentioned</option>
+                  <option value="project">Project</option>
+                  <option value="priority">Priority</option>
+                </select>
+                <button
+                  onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
+                  className="p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                  title={sortDirection === "asc" ? "Ascending" : "Descending"}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {sortDirection === "asc" ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    )}
+                  </svg>
+                </button>
+              </div>
+
+              {/* Save View Button */}
+              <button
+                onClick={() => setIsSavePresetOpen(true)}
+                className="p-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors ml-auto"
+                title="Save current view"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Filter Badges Row */}
+            {hasActiveFilters && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={handleClearAllFilters}
+                  className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
+                >
+                  Clear All
+                </button>
+              </div>
+            )}
+
+            {showFilters && (
+              <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 space-y-2">
+                {/* Assigned People Filter */}
+                {filterOptions.assignedPeople.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
-                      Or overwrite existing:
-                    </h3>
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {viewPresets.map((preset) => (
-                        <div
-                          key={preset.name}
-                          className="flex items-center justify-between p-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg"
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                        Assigned (@) - {filters.assignedPeople.size}
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSelectAll("assignedPeople")}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                         >
-                          <button
-                            onClick={() => savePreset(preset.name)}
-                            className="flex-1 text-left font-medium text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                          >
-                            {preset.name}
-                          </button>
-                          <button
-                            onClick={() => deletePreset(preset.name)}
-                            className="ml-2 p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors"
-                            title="Delete preset"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
-                        </div>
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => handleClearAll("assignedPeople")}
+                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {filterOptions.assignedPeople.map((person) => (
+                        <button
+                          key={person}
+                          onClick={() => handleFilterClick("assignedPeople", person)}
+                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                            filters.assignedPeople.has(person)
+                              ? "bg-blue-600 text-white"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          @{person}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Projects Filter */}
+                {filterOptions.projects.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                        Projects (#) - {filters.projects.size}
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSelectAll("projects")}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => handleClearAll("projects")}
+                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {filterOptions.projects.map((project) => (
+                        <button
+                          key={project}
+                          onClick={() => handleFilterClick("projects", project)}
+                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                            filters.projects.has(project)
+                              ? "bg-purple-600 text-white"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          #{project}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Source People Filter */}
+                {filterOptions.sourcePeople.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                        Source ($) - {filters.sourcePeople.size}
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSelectAll("sourcePeople")}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => handleClearAll("sourcePeople")}
+                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {filterOptions.sourcePeople.map((person) => (
+                        <button
+                          key={person}
+                          onClick={() => handleFilterClick("sourcePeople", person)}
+                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                            filters.sourcePeople.has(person)
+                              ? "bg-green-600 text-white"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          ${person}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Mentioned People Filter */}
+                {filterOptions.mentionedPeople.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                        Mentioned (^) - {filters.mentionedPeople.size}
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSelectAll("mentionedPeople")}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => handleClearAll("mentionedPeople")}
+                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {filterOptions.mentionedPeople.map((person) => (
+                        <button
+                          key={person}
+                          onClick={() => handleFilterClick("mentionedPeople", person)}
+                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                            filters.mentionedPeople.has(person)
+                              ? "bg-yellow-600 text-white"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          ^{person}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Priority Filter */}
+                {filterOptions.priorities.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                        Priority (!!) - {filters.priorities.size}
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSelectAll("priorities")}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => handleClearAll("priorities")}
+                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {filterOptions.priorities.map((priority) => (
+                        <button
+                          key={priority}
+                          onClick={() => handleFilterClick("priorities", priority)}
+                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                            filters.priorities.has(priority)
+                              ? "bg-red-600 text-white"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          !!{priority}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Due Date Filter */}
+                {filterOptions.dueDates.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                        Due Date (~) - {filters.dueDates.size}
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSelectAll("dueDates")}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => handleClearAll("dueDates")}
+                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {filterOptions.dueDates.map((date) => (
+                        <button
+                          key={date}
+                          onClick={() => handleFilterClick("dueDates", date)}
+                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                            filters.dueDates.has(date)
+                              ? "bg-pink-600 text-white"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          ~{date}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Duration Filter */}
+                {filterOptions.durations.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                        Duration (*) - {filters.durations.size}
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSelectAll("durations")}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => handleClearAll("durations")}
+                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {filterOptions.durations.map((duration) => (
+                        <button
+                          key={duration}
+                          onClick={() => handleFilterClick("durations", duration)}
+                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                            filters.durations.has(duration)
+                              ? "bg-cyan-600 text-white"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          *{duration}
+                        </button>
                       ))}
                     </div>
                   </div>
                 )}
               </div>
-            </div>
+            )}
           </div>
         )}
 
-        {/* Undo Notifications */}
-        {undoActions.length > 0 && (
-          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col-reverse gap-2">
-            {undoActions.map((action) => (
+        {/* View Content */}
+        {activeView === "gantt" && <GanttView todos={todos} markerColors={settings.markerColors} />}
+
+        {activeView === "calendar" && (
+          <CalendarView
+            todos={todos}
+            markerColors={settings.markerColors}
+            generalSettings={settings.general}
+            linkPatterns={settings.linkPatterns}
+            availablePeople={settings.people}
+            availableProjects={settings.projects}
+            availablePriorities={settings.priorities}
+            onToggle={toggleTodo}
+            onDelete={deleteTodo}
+            onArchive={archiveTodo}
+            onUnarchive={unarchiveTodo}
+            onEdit={editTodo}
+            onAddPerson={handleAddPerson}
+            onAddProject={handleAddProject}
+            onAddPriority={handleAddPriority}
+            onAddComment={addTodoComment}
+            onEditComment={editTodoComment}
+            onDeleteComment={deleteTodoComment}
+          />
+        )}
+
+        {activeView === "list" && (
+          <>
+            {todos.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="text-6xl mb-4">📝</div>
+                <p className="text-xl text-zinc-600 dark:text-zinc-400">No tasks yet. Add one to get started!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {activeTodos.length > 0 && (
+                  <section>
+                    <button
+                      onClick={() => setActiveExpanded(!activeExpanded)}
+                      className="w-full flex items-center justify-between text-left mb-3 group"
+                    >
+                      <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+                        Active ({activeTodos.length})
+                      </h2>
+                      <svg
+                        className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
+                          activeExpanded ? "rotate-180" : ""
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {activeExpanded && (
+                      <div className="space-y-4">
+                        {Object.entries(groupedActiveTodos).map(([groupName, groupTodos]) => (
+                          <div key={groupName}>
+                            {groupName && (
+                              <h3 className="text-xs font-semibold text-zinc-600 dark:text-zinc-500 uppercase tracking-wide mb-2 pl-2">
+                                {groupName} ({groupTodos.length})
+                              </h3>
+                            )}
+                            <ul className="space-y-2">
+                              {groupTodos.map((todo) => (
+                                <TodoItem
+                                  key={todo.id}
+                                  todo={todo}
+                                  onToggle={toggleTodo}
+                                  onDelete={deleteTodo}
+                                  onArchive={archiveTodo}
+                                  onUnarchive={unarchiveTodo}
+                                  onEdit={editTodo}
+                                  markerColors={settings.markerColors}
+                                  generalSettings={settings.general}
+                                  linkPatterns={settings.linkPatterns}
+                                  availablePeople={settings.people}
+                                  availableProjects={settings.projects}
+                                  availablePriorities={settings.priorities}
+                                  onAddPerson={handleAddPerson}
+                                  onAddProject={handleAddProject}
+                                  onAddPriority={handleAddPriority}
+                                  onMarkerClick={handleFilterClick}
+                                  isExpanded={expandedTodoId === todo.id}
+                                  onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
+                                  onAddComment={addTodoComment}
+                                  onEditComment={editTodoComment}
+                                  onDeleteComment={deleteTodoComment}
+                                />
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {completedTodos.length > 0 && (
+                  <section>
+                    <button
+                      onClick={() => setCompletedExpanded(!completedExpanded)}
+                      className="w-full flex items-center justify-between text-left mb-3 group"
+                    >
+                      <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+                        Completed ({completedTodos.length})
+                      </h2>
+                      <svg
+                        className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
+                          completedExpanded ? "rotate-180" : ""
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {completedExpanded && (
+                      <ul className="space-y-2">
+                        {completedTodos.map((todo) => (
+                          <TodoItem
+                            key={todo.id}
+                            todo={todo}
+                            onToggle={toggleTodo}
+                            onDelete={deleteTodo}
+                            onArchive={archiveTodo}
+                            onUnarchive={unarchiveTodo}
+                            onEdit={editTodo}
+                            markerColors={settings.markerColors}
+                            generalSettings={settings.general}
+                            linkPatterns={settings.linkPatterns}
+                            availablePeople={settings.people}
+                            availableProjects={settings.projects}
+                            availablePriorities={settings.priorities}
+                            onAddPerson={handleAddPerson}
+                            onAddProject={handleAddProject}
+                            onAddPriority={handleAddPriority}
+                            onMarkerClick={handleFilterClick}
+                            isExpanded={expandedTodoId === todo.id}
+                            onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
+                            onAddComment={addTodoComment}
+                            onEditComment={editTodoComment}
+                            onDeleteComment={deleteTodoComment}
+                          />
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                )}
+
+                {archivedTodos.length > 0 && (
+                  <section>
+                    <button
+                      onClick={() => setArchivedExpanded(!archivedExpanded)}
+                      className="w-full flex items-center justify-between text-left mb-3 group"
+                    >
+                      <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+                        Archived ({archivedTodos.length})
+                      </h2>
+                      <svg
+                        className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
+                          archivedExpanded ? "rotate-180" : ""
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {archivedExpanded && (
+                      <ul className="space-y-2">
+                        {archivedTodos.map((todo) => (
+                          <TodoItem
+                            key={todo.id}
+                            todo={todo}
+                            onToggle={toggleTodo}
+                            onDelete={deleteTodo}
+                            onArchive={archiveTodo}
+                            onUnarchive={unarchiveTodo}
+                            onEdit={editTodo}
+                            markerColors={settings.markerColors}
+                            generalSettings={settings.general}
+                            linkPatterns={settings.linkPatterns}
+                            availablePeople={settings.people}
+                            availableProjects={settings.projects}
+                            availablePriorities={settings.priorities}
+                            onAddPerson={handleAddPerson}
+                            onAddProject={handleAddProject}
+                            onAddPriority={handleAddPriority}
+                            onMarkerClick={handleFilterClick}
+                            isExpanded={expandedTodoId === todo.id}
+                            onToggleExpand={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
+                            onAddComment={addTodoComment}
+                            onEditComment={editTodoComment}
+                            onDeleteComment={deleteTodoComment}
+                          />
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                )}
+              </div>
+            )}
+
+            {/* Add Todo Overlay */}
+            {isAddOverlayOpen && (
               <div
-                key={action.id}
-                className={`transition-opacity duration-3000 ${
-                  fadingOutIds.has(action.id) ? "opacity-0" : "opacity-100 animate-slide-up"
-                }`}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                onClick={() => setIsAddOverlayOpen(false)}
               >
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-100 rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 min-w-[280px]">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">
-                      {action.type === "delete" && "Todo deleted"}
-                      {action.type === "complete" && "Todo completed"}
-                      {action.type === "uncomplete" && "Todo marked as active"}
-                      {action.type === "archive" && "Todo archived"}
-                    </p>
-                    <p className="text-xs text-red-700 dark:text-red-300 mt-0.5 truncate max-w-[180px]">
-                      {action.todo.plainText}
-                    </p>
+                <div
+                  className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Add New Todo</h2>
+                      <button
+                        onClick={() => setIsAddOverlayOpen(false)}
+                        className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Smart Input Markers Legend */}
+                    <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                        ✨ Smart Input Markers
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-blue-800 dark:text-blue-200">
+                        <div>
+                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">@name</code> Assign
+                        </div>
+                        <div>
+                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">#project</code> Project
+                        </div>
+                        <div>
+                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">$name</code> Source
+                        </div>
+                        <div>
+                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">^name</code> Mention
+                        </div>
+                        <div>
+                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">!!high</code> Priority
+                        </div>
+                        <div>
+                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">~date</code> Due
+                        </div>
+                        <div>
+                          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">*2h</code> Duration
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Add Form */}
+                    <form
+                      onSubmit={(e) => {
+                        handleSubmit(e);
+                        setIsAddOverlayOpen(false);
+                      }}
+                    >
+                      <div className="mb-4">
+                        <SmartEditableInput
+                          ref={smartInputRef}
+                          markers={markers}
+                          markerColors={settings.markerColors}
+                          availablePeople={settings.people}
+                          availableProjects={settings.projects}
+                          availablePriorities={settings.priorities}
+                          dateTimeSettings={settings.general.dateTime}
+                          onAddPerson={handleAddPerson}
+                          onAddProject={handleAddProject}
+                          onAddPriority={handleAddPriority}
+                          onTokensChange={handleTokensChange}
+                          onEnterPress={() => {
+                            const event = new Event("submit", { bubbles: true, cancelable: true });
+                            handleSubmit(event as any);
+                            setIsAddOverlayOpen(false);
+                          }}
+                        />
+                      </div>
+                      <div className="flex gap-3 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddOverlayOpen(false)}
+                          className="px-6 py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
+                        >
+                          Add Todo
+                        </button>
+                      </div>
+                    </form>
                   </div>
-                  <button
-                    onClick={() => undo(action.id)}
-                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded-md font-medium transition-colors flex-shrink-0"
-                  >
-                    Undo
-                  </button>
-                  <button
-                    onClick={() => dismissUndo(action.id)}
-                    className="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors flex-shrink-0"
-                    aria-label="Dismiss"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+
+            {/* Save Preset Modal */}
+            {isSavePresetOpen && (
+              <div
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                onClick={() => setIsSavePresetOpen(false)}
+              >
+                <div
+                  className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Save View Preset</h2>
+                      <button
+                        onClick={() => setIsSavePresetOpen(false)}
+                        className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Input for new preset name */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                        Preset Name
+                      </label>
+                      <input
+                        type="text"
+                        value={presetName}
+                        onChange={(e) => setPresetName(e.target.value)}
+                        placeholder="Enter preset name..."
+                        className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && presetName.trim()) {
+                            savePreset(presetName.trim());
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => presetName.trim() && savePreset(presetName.trim())}
+                      disabled={!presetName.trim()}
+                      className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors mb-4"
+                    >
+                      Save as New Preset
+                    </button>
+
+                    {/* Existing presets */}
+                    {viewPresets.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+                          Or overwrite existing:
+                        </h3>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {viewPresets.map((preset) => (
+                            <div
+                              key={preset.name}
+                              className="flex items-center justify-between p-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg"
+                            >
+                              <button
+                                onClick={() => savePreset(preset.name)}
+                                className="flex-1 text-left font-medium text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                              >
+                                {preset.name}
+                              </button>
+                              <button
+                                onClick={() => deletePreset(preset.name)}
+                                className="ml-2 p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors"
+                                title="Delete preset"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Undo Notifications */}
+            {undoActions.length > 0 && (
+              <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col-reverse gap-2">
+                {undoActions.map((action) => (
+                  <div
+                    key={action.id}
+                    className={`transition-opacity duration-3000 ${
+                      fadingOutIds.has(action.id) ? "opacity-0" : "opacity-100 animate-slide-up"
+                    }`}
+                  >
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-100 rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 min-w-[280px]">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">
+                          {action.type === "delete" && "Todo deleted"}
+                          {action.type === "complete" && "Todo completed"}
+                          {action.type === "uncomplete" && "Todo marked as active"}
+                          {action.type === "archive" && "Todo archived"}
+                        </p>
+                        <p className="text-xs text-red-700 dark:text-red-300 mt-0.5 truncate max-w-[180px]">
+                          {action.todo.plainText}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => undo(action.id)}
+                        className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded-md font-medium transition-colors flex-shrink-0"
+                      >
+                        Undo
+                      </button>
+                      <button
+                        onClick={() => dismissUndo(action.id)}
+                        className="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors flex-shrink-0"
+                        aria-label="Dismiss"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
