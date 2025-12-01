@@ -275,7 +275,7 @@ export function CalendarView({
             <button
               key={i}
               onClick={() => day.todos.length > 0 && handleDateClick(day.date)}
-              className={`h-20 p-1 rounded-lg border transition-colors relative ${
+              className={`h-10 p-0.5 rounded-lg border transition-colors relative ${
                 day.isCurrentMonth
                   ? "border-zinc-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-600"
                   : "border-transparent bg-zinc-50 dark:bg-zinc-800/50"
@@ -288,9 +288,9 @@ export function CalendarView({
               }`}
             >
               {/* Day number in top right */}
-              <div className="absolute top-1 right-1">
+              <div className="absolute top-0.5 right-0.5">
                 <span
-                  className={`text-sm font-medium ${
+                  className={`text-xs font-medium ${
                     day.isCurrentMonth ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"
                   }`}
                 >
@@ -300,7 +300,7 @@ export function CalendarView({
 
               {/* Todo dots at bottom center */}
               {day.todos.length > 0 && (
-                <div className="absolute bottom-1 left-0 right-0 flex justify-center gap-0.5">
+                <div className="absolute bottom-0.5 left-0 right-0 flex justify-center gap-0.5">
                   {day.todos.slice(0, 4).map((todo, j) => (
                     <div
                       key={j}
