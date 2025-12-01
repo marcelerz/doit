@@ -10,12 +10,21 @@ interface GanttViewProps {
   workHours: WorkHoursSettings;
 }
 
-interface TimeSlot {
+interface ScheduledTask {
+  todo: Todo;
   startTime: Date;
   endTime: Date;
-  todo: Todo | null;
-  isBreak: boolean;
-  breakName?: string;
+  durationMinutes: number;
+  targetDate: Date;
+  hasBuffer: boolean;
+  bufferMinutes: number;
+  isOverdue: boolean;
+}
+
+interface BreakBlock {
+  name: string;
+  startTime: Date;
+  endTime: Date;
 }
 
 export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
@@ -40,7 +49,7 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
       case "h":
         return value * 60;
       case "d":
-        return value * 8 * 60; // 8 hour workday
+        return value * 8 * 60;
       case "m":
       default:
         return value;
@@ -49,7 +58,7 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
 
   // Get schedule for a specific date
   const getScheduleForDate = (date: Date) => {
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const dayOfWeek = date.getDay();
     const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
     const dayName = dayNames[dayOfWeek];
 
@@ -57,11 +66,9 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
       return workHours.commonSchedule;
     }
 
-    // Check for custom schedule
     const customSchedule = workHours.customSchedules[dayName];
     if (customSchedule) return customSchedule;
 
-    // Use weekday/weekend schedule
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
     return isWeekend ? workHours.weekendSchedule : workHours.weekdaySchedule;
   };
@@ -123,70 +130,78 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
     return todos.filter((todo) => !todo.metadata.dueDate && todo.state !== "deleted").length;
   }, [todos]);
 
-  // Generate time slots for the day
-  const timeSlots = useMemo(() => {
-    const schedule = getScheduleForDate(selectedDate);
-    const slots: TimeSlot[] = [];
+  // Get schedule and time bounds
+  const schedule = getScheduleForDate(selectedDate);
+  const dayStartTime = useMemo(() => parseTime(schedule.startTime, selectedDate), [schedule, selectedDate]);
+  const dayEndTime = useMemo(() => parseTime(schedule.endTime, selectedDate), [schedule, selectedDate]);
+  const totalDayMinutes = (dayEndTime.getTime() - dayStartTime.getTime()) / 60000;
 
-    const startTime = parseTime(schedule.startTime, selectedDate);
-    const endTime = parseTime(schedule.endTime, selectedDate);
+  // Get break blocks
+  const breakBlocks: BreakBlock[] = useMemo(() => {
+    return schedule.breaks.map((b) => ({
+      name: b.name,
+      startTime: parseTime(b.startTime, selectedDate),
+      endTime: parseTime(b.endTime, selectedDate),
+    }));
+  }, [schedule, selectedDate]);
 
-    let currentTime = new Date(startTime);
-    let todoIndex = 0;
+  // Schedule tasks
+  const scheduledTasks: ScheduledTask[] = useMemo(() => {
+    const tasks: ScheduledTask[] = [];
+    let currentTime = new Date(dayStartTime);
+    const now = new Date();
 
-    while (currentTime < endTime && todoIndex < todosForDate.length) {
-      // Check if current time falls within a break
-      const currentBreak = schedule.breaks.find((breakPeriod) => {
-        const breakStart = parseTime(breakPeriod.startTime, selectedDate);
-        const breakEnd = parseTime(breakPeriod.endTime, selectedDate);
-        return currentTime >= breakStart && currentTime < breakEnd;
-      });
-
-      if (currentBreak) {
-        const breakStart = parseTime(currentBreak.startTime, selectedDate);
-        const breakEnd = parseTime(currentBreak.endTime, selectedDate);
-        slots.push({
-          startTime: breakStart,
-          endTime: breakEnd,
-          todo: null,
-          isBreak: true,
-          breakName: currentBreak.name,
-        });
-        currentTime = breakEnd;
-        continue;
+    for (const todo of todosForDate) {
+      // Check if we're in a break
+      let inBreak = true;
+      while (inBreak && currentTime < dayEndTime) {
+        inBreak = false;
+        for (const breakBlock of breakBlocks) {
+          if (currentTime >= breakBlock.startTime && currentTime < breakBlock.endTime) {
+            currentTime = new Date(breakBlock.endTime);
+            inBreak = true;
+            break;
+          }
+        }
       }
 
-      // Add task slot
-      const todo = todosForDate[todoIndex];
-      const duration = parseDuration(todo.metadata.duration);
-      const taskEnd = new Date(currentTime.getTime() + duration * 60000);
+      if (currentTime >= dayEndTime) break;
 
-      slots.push({
+      const durationMinutes = parseDuration(todo.metadata.duration);
+      const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
+
+      // Don't schedule if it would go past end of day
+      if (taskEnd > dayEndTime) break;
+
+      // Calculate target date (end of selected day by default, or now if today)
+      const isToday = selectedDate.toDateString() === new Date().toDateString();
+      const targetDate = isToday && now > dayStartTime && now < dayEndTime ? now : dayEndTime;
+
+      // Calculate buffer/overdue
+      const timeDiff = targetDate.getTime() - taskEnd.getTime();
+      const hasBuffer = timeDiff > 0;
+      const isOverdue = timeDiff < 0;
+      const bufferMinutes = Math.abs(Math.floor(timeDiff / 60000));
+
+      tasks.push({
+        todo,
         startTime: new Date(currentTime),
         endTime: taskEnd,
-        todo,
-        isBreak: false,
+        durationMinutes,
+        targetDate,
+        hasBuffer,
+        bufferMinutes,
+        isOverdue,
       });
 
       // Add context switching time
       currentTime = new Date(taskEnd.getTime() + workHours.contextSwitchingTime * 60000);
-      todoIndex++;
     }
 
-    // Add remaining unscheduled tasks
-    while (todoIndex < todosForDate.length) {
-      const todo = todosForDate[todoIndex];
-      slots.push({
-        startTime: new Date(0),
-        endTime: new Date(0),
-        todo,
-        isBreak: false,
-      });
-      todoIndex++;
-    }
+    return tasks;
+  }, [todosForDate, dayStartTime, dayEndTime, breakBlocks, workHours, selectedDate]);
 
-    return slots;
-  }, [selectedDate, todosForDate, workHours]);
+  const unscheduledTasks = todosForDate.slice(scheduledTasks.length);
 
   const navigateDate = (delta: number) => {
     setSelectedDate((prev) => {
@@ -197,12 +212,24 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
   };
 
   const formatTime = (date: Date): string => {
-    if (date.getTime() === 0) return "";
     return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
   };
 
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  };
+
+  const formatDuration = (minutes: number): string => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0 && mins > 0) return `${hours}h ${mins}m`;
+    if (hours > 0) return `${hours}h`;
+    return `${mins}m`;
+  };
+
+  const getTimePosition = (time: Date): number => {
+    const minutes = (time.getTime() - dayStartTime.getTime()) / 60000;
+    return (minutes / totalDayMinutes) * 100;
   };
 
   const getPriorityColor = (priority?: string) => {
@@ -215,13 +242,24 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
     return "bg-blue-500";
   };
 
-  const schedule = getScheduleForDate(selectedDate);
-  const scheduledSlots = timeSlots.filter((slot) => slot.startTime.getTime() !== 0);
-  const unscheduledSlots = timeSlots.filter((slot) => slot.startTime.getTime() === 0);
-  const totalScheduledMinutes = scheduledSlots.reduce((sum, slot) => {
-    if (slot.isBreak) return sum;
-    return sum + Math.floor((slot.endTime.getTime() - slot.startTime.getTime()) / 60000);
-  }, 0);
+  // Generate hour markers
+  const hourMarkers = useMemo(() => {
+    const markers = [];
+    const startHour = dayStartTime.getHours();
+    const endHour = dayEndTime.getHours();
+
+    for (let hour = startHour; hour <= endHour; hour++) {
+      const markerTime = new Date(selectedDate);
+      markerTime.setHours(hour, 0, 0, 0);
+      if (markerTime >= dayStartTime && markerTime <= dayEndTime) {
+        markers.push({
+          time: markerTime,
+          position: getTimePosition(markerTime),
+        });
+      }
+    }
+    return markers;
+  }, [dayStartTime, dayEndTime, selectedDate]);
 
   return (
     <div className="space-y-4">
@@ -258,7 +296,6 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
               }}
               role="switch"
               aria-checked={showTasksWithoutDates}
-              aria-label="Show tasks without dates for today"
             >
               <span
                 className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
@@ -280,7 +317,6 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
           <button
             onClick={() => navigateDate(-1)}
             className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-            title="Previous day"
           >
             <svg
               className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
@@ -295,15 +331,14 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
           <div className="text-center">
             <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{formatDate(selectedDate)}</h3>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-              {schedule.startTime} - {schedule.endTime} • {scheduledSlots.length} tasks • {totalScheduledMinutes} min
-              scheduled
+              {schedule.startTime} - {schedule.endTime} • {scheduledTasks.length} scheduled • {unscheduledTasks.length}{" "}
+              can't fit
             </p>
           </div>
 
           <button
             onClick={() => navigateDate(1)}
             className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-            title="Next day"
           >
             <svg
               className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
@@ -323,62 +358,132 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Scheduled Tasks */}
-            <div>
-              <h4 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">
-                Scheduled ({scheduledSlots.filter((s) => !s.isBreak).length})
+            {/* Timeline View */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+                Timeline
               </h4>
-              <div className="space-y-2">
-                {scheduledSlots.map((slot, index) => {
-                  if (slot.isBreak) {
-                    return (
-                      <div
-                        key={`break-${index}`}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700"
-                      >
-                        <div className="flex-shrink-0 w-20 text-sm font-mono text-zinc-600 dark:text-zinc-400">
-                          {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
-                        </div>
-                        <div className="flex-1 flex items-center gap-2">
-                          <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">{slot.breakName}</span>
-                        </div>
-                      </div>
-                    );
-                  }
 
-                  const todo = slot.todo!;
-                  const duration = Math.floor((slot.endTime.getTime() - slot.startTime.getTime()) / 60000);
+              {/* Time markers */}
+              <div className="relative h-6 bg-zinc-50 dark:bg-zinc-800 rounded">
+                {hourMarkers.map((marker, i) => (
+                  <div
+                    key={i}
+                    className="absolute top-0 bottom-0 flex flex-col items-center"
+                    style={{ left: `${marker.position}%` }}
+                  >
+                    <div className="w-px h-2 bg-zinc-300 dark:bg-zinc-600" />
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{formatTime(marker.time)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Tasks timeline */}
+              <div className="space-y-3">
+                {scheduledTasks.map((task, index) => {
+                  const startPos = getTimePosition(task.startTime);
+                  const endPos = getTimePosition(task.endTime);
+                  const width = endPos - startPos;
+                  const targetPos = getTimePosition(task.targetDate);
 
                   return (
-                    <div
-                      key={todo.id}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-600 transition-colors"
-                    >
-                      <div className="flex-shrink-0 w-20 text-sm font-mono text-zinc-900 dark:text-zinc-100 font-medium">
-                        {formatTime(slot.startTime)}
-                      </div>
-                      <div className={`w-1 h-12 rounded-full ${getPriorityColor(todo.metadata.priority)}`} />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{todo.plainText}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-zinc-500 dark:text-zinc-400">{duration} min</span>
-                          {todo.metadata.priority && (
-                            <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                              • Priority: {todo.metadata.priority}
-                            </span>
-                          )}
+                    <div key={task.todo.id} className="relative">
+                      {/* Task row */}
+                      <div className="relative h-16 bg-zinc-50 dark:bg-zinc-800 rounded-lg overflow-visible">
+                        {/* Break blocks */}
+                        {breakBlocks.map((breakBlock, bi) => {
+                          const breakStart = getTimePosition(breakBlock.startTime);
+                          const breakEnd = getTimePosition(breakBlock.endTime);
+                          return (
+                            <div
+                              key={bi}
+                              className="absolute top-0 bottom-0 bg-zinc-300 dark:bg-zinc-700 opacity-50"
+                              style={{
+                                left: `${breakStart}%`,
+                                width: `${breakEnd - breakStart}%`,
+                              }}
+                            />
+                          );
+                        })}
+
+                        {/* Task bar */}
+                        <div
+                          className={`absolute top-2 bottom-2 ${getPriorityColor(
+                            task.todo.metadata.priority,
+                          )} shadow-md flex items-center justify-between px-3 overflow-hidden`}
+                          style={{
+                            left: `${Math.max(0, startPos)}%`,
+                            width: `${Math.min(width, 100 - Math.max(0, startPos))}%`,
+                            borderRadius:
+                              startPos < 0
+                                ? "0 0.375rem 0.375rem 0"
+                                : endPos > 100
+                                ? "0.375rem 0 0 0.375rem"
+                                : "0.375rem",
+                            clipPath:
+                              endPos > 100
+                                ? "polygon(0 0, calc(100% - 8px) 0, 100% 10%, 100% 30%, calc(100% - 8px) 50%, 100% 70%, 100% 90%, calc(100% - 8px) 100%, 0 100%)"
+                                : "none",
+                          }}
+                        >
+                          <span className="text-xs font-medium text-white truncate">{task.todo.plainText}</span>
+                          <span className="text-xs text-white/80 ml-2 whitespace-nowrap">
+                            {formatDuration(task.durationMinutes)}
+                          </span>
                         </div>
-                      </div>
-                      <div className="flex-shrink-0 text-sm font-mono text-zinc-600 dark:text-zinc-400">
-                        {formatTime(slot.endTime)}
+
+                        {/* Buffer indicator (green dotted line to the right) */}
+                        {task.hasBuffer && (
+                          <>
+                            <div
+                              className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-green-500"
+                              style={{
+                                left: `${endPos}%`,
+                                width: `${Math.min(targetPos - endPos, 100 - endPos)}%`,
+                              }}
+                            />
+                            <div
+                              className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-green-600 dark:text-green-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
+                              style={{
+                                left: `${(endPos + Math.min(targetPos, 100)) / 2}%`,
+                                transform: "translate(-50%, -50%)",
+                              }}
+                            >
+                              +{formatDuration(task.bufferMinutes)} buffer
+                            </div>
+                          </>
+                        )}
+
+                        {/* Overdue indicator (red dotted line to the left) */}
+                        {task.isOverdue && (
+                          <>
+                            <div
+                              className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-red-500"
+                              style={{
+                                left: `${Math.max(targetPos, 0)}%`,
+                                width: `${Math.min(endPos - targetPos, endPos)}%`,
+                              }}
+                            />
+                            <div
+                              className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-red-600 dark:text-red-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
+                              style={{
+                                left: `${(Math.max(targetPos, 0) + endPos) / 2}%`,
+                                transform: "translate(-50%, -50%)",
+                              }}
+                            >
+                              -{formatDuration(task.bufferMinutes)} overdue
+                            </div>
+                          </>
+                        )}
+
+                        {/* Target marker */}
+                        <div
+                          className={`absolute top-0 bottom-0 w-0.5 ${
+                            task.isOverdue ? "bg-red-500" : "bg-green-500"
+                          } z-10`}
+                          style={{ left: `${targetPos}%` }}
+                          title={task.isOverdue ? "Overdue point" : "Target time"}
+                        />
                       </div>
                     </div>
                   );
@@ -387,14 +492,13 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
             </div>
 
             {/* Unscheduled Tasks */}
-            {unscheduledSlots.length > 0 && (
+            {unscheduledTasks.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">
-                  Can't Fit in Schedule ({unscheduledSlots.length})
+                  Can't Fit in Schedule ({unscheduledTasks.length})
                 </h4>
                 <div className="space-y-2">
-                  {unscheduledSlots.map((slot) => {
-                    const todo = slot.todo!;
+                  {unscheduledTasks.map((todo) => {
                     const duration = parseDuration(todo.metadata.duration);
 
                     return (
@@ -419,7 +523,7 @@ export function GanttView({ todos, markerColors, workHours }: GanttViewProps) {
                         <div className="flex-1">
                           <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{todo.plainText}</p>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-zinc-500 dark:text-zinc-400">{duration} min</span>
+                            <span className="text-xs text-zinc-500 dark:text-zinc-400">{formatDuration(duration)}</span>
                             {todo.metadata.priority && (
                               <span className="text-xs text-zinc-500 dark:text-zinc-400">
                                 • Priority: {todo.metadata.priority}
