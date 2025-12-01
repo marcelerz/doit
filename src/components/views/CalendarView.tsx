@@ -55,12 +55,41 @@ export function CalendarView({
   // Get todos by date
   const todosByDate = useMemo(() => {
     const map = new Map<string, Todo[]>();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayKey = today.toISOString().split("T")[0];
 
+    // First, add todos without due dates to today
+    const todosWithoutDates = todos.filter((todo) => !todo.metadata.dueDate && todo.state !== "deleted");
+    if (todosWithoutDates.length > 0) {
+      map.set(todayKey, [...todosWithoutDates]);
+    }
+
+    // Then add todos with due dates
     todos
       .filter((todo) => todo.metadata.dueDate && todo.state !== "deleted")
       .forEach((todo) => {
         try {
-          const dueDate = new Date(todo.metadata.dueDate!);
+          let dueDate: Date;
+          const dueDateStr = todo.metadata.dueDate!;
+
+          // Try to parse various date formats
+          if (dueDateStr.includes("T") || dueDateStr.includes("Z")) {
+            // ISO format
+            dueDate = new Date(dueDateStr);
+          } else if (dueDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            // YYYY-MM-DD format - parse as local date
+            const [year, month, day] = dueDateStr.split("-").map(Number);
+            dueDate = new Date(year, month - 1, day);
+          } else {
+            // Try standard Date parsing
+            dueDate = new Date(dueDateStr);
+          }
+
+          if (isNaN(dueDate.getTime())) {
+            return; // Invalid date
+          }
+
           const dateKey = dueDate.toISOString().split("T")[0];
 
           if (!map.has(dateKey)) {
@@ -73,6 +102,11 @@ export function CalendarView({
       });
 
     return map;
+  }, [todos]);
+
+  // Count todos without due dates
+  const todosWithoutDates = useMemo(() => {
+    return todos.filter((todo) => !todo.metadata.dueDate && todo.state !== "deleted").length;
   }, [todos]);
 
   // Generate calendar days
@@ -164,6 +198,35 @@ export function CalendarView({
 
   return (
     <div className="space-y-4">
+      {/* Warning about todos without dates */}
+      {todosWithoutDates > 0 && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-start gap-2">
+            <svg
+              className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                {todosWithoutDates} {todosWithoutDates === 1 ? "task" : "tasks"} without due dates
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                Tasks without due dates are shown under today's date for convenience.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Calendar */}
       <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
         {/* Month navigation */}
@@ -212,7 +275,7 @@ export function CalendarView({
             <button
               key={i}
               onClick={() => day.todos.length > 0 && handleDateClick(day.date)}
-              className={`aspect-square p-2 rounded-lg border transition-colors relative ${
+              className={`h-20 p-1 rounded-lg border transition-colors relative ${
                 day.isCurrentMonth
                   ? "border-zinc-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-600"
                   : "border-transparent bg-zinc-50 dark:bg-zinc-800/50"
@@ -224,26 +287,32 @@ export function CalendarView({
                   : "bg-zinc-50 dark:bg-zinc-800/30"
               }`}
             >
-              <div
-                className={`text-sm font-medium ${
-                  day.isCurrentMonth ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"
-                }`}
-              >
-                {day.date.getDate()}
+              {/* Day number in top right */}
+              <div className="absolute top-1 right-1">
+                <span
+                  className={`text-sm font-medium ${
+                    day.isCurrentMonth ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"
+                  }`}
+                >
+                  {day.date.getDate()}
+                </span>
               </div>
 
-              {/* Todo dots */}
+              {/* Todo dots at bottom center */}
               {day.todos.length > 0 && (
                 <div className="absolute bottom-1 left-0 right-0 flex justify-center gap-0.5">
-                  {day.todos.slice(0, 3).map((todo, j) => (
+                  {day.todos.slice(0, 4).map((todo, j) => (
                     <div
                       key={j}
                       className={`w-1.5 h-1.5 rounded-full ${getStateColor(todo.state)}`}
                       title={todo.plainText}
                     />
                   ))}
-                  {day.todos.length > 3 && (
-                    <div className="text-[8px] text-zinc-500 dark:text-zinc-400 ml-0.5">+{day.todos.length - 3}</div>
+                  {day.todos.length > 4 && (
+                    <div
+                      className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600"
+                      title={`+${day.todos.length - 4} more`}
+                    />
                   )}
                 </div>
               )}
