@@ -2,7 +2,7 @@
 
 import { Todo } from "@/types/todo";
 import { MarkerColors } from "@/types/settings";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 interface GanttViewProps {
   todos: Todo[];
@@ -10,18 +10,22 @@ interface GanttViewProps {
 }
 
 export function GanttView({ todos, markerColors }: GanttViewProps) {
+  const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(true);
+
   // Filter todos that have due dates
   const todosWithDates = useMemo(() => {
     const result: Array<Todo & { parsedDate: Date }> = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // First, add todos without due dates with today's date (for display only)
-    todos
-      .filter((todo) => !todo.metadata.dueDate && todo.state !== "deleted")
-      .forEach((todo) => {
-        result.push({ ...todo, parsedDate: new Date(today) });
-      });
+    // First, add todos without due dates with today's date (for display only, if toggle is on)
+    if (showTasksWithoutDates) {
+      todos
+        .filter((todo) => !todo.metadata.dueDate && todo.state !== "deleted")
+        .forEach((todo) => {
+          result.push({ ...todo, parsedDate: new Date(today) });
+        });
+    }
 
     // Then add todos with due dates
     todos
@@ -55,7 +59,7 @@ export function GanttView({ todos, markerColors }: GanttViewProps) {
       });
 
     return result.sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
-  }, [todos]);
+  }, [todos, showTasksWithoutDates]);
 
   // Count todos without due dates
   const todosWithoutDates = useMemo(() => {
@@ -120,12 +124,12 @@ export function GanttView({ todos, markerColors }: GanttViewProps) {
 
   return (
     <div className="space-y-4">
-      {/* Warning about todos without dates */}
+      {/* Toggle for todos without dates */}
       {todosWithoutDates > 0 && (
         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-          <div className="flex items-start gap-2">
+          <div className="flex items-center gap-3">
             <svg
-              className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5"
+              className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -141,10 +145,30 @@ export function GanttView({ todos, markerColors }: GanttViewProps) {
               <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
                 {todosWithoutDates} {todosWithoutDates === 1 ? "task" : "tasks"} without due dates
               </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                Tasks without due dates are shown at today's position for convenience.
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+                {showTasksWithoutDates ? "Shown at today's position" : "Not shown in timeline"}
               </p>
             </div>
+            <button
+              onClick={() => setShowTasksWithoutDates(!showTasksWithoutDates)}
+              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
+              style={{
+                backgroundColor: showTasksWithoutDates ? "rgb(37, 99, 235)" : "rgb(209, 213, 219)",
+              }}
+              role="switch"
+              aria-checked={showTasksWithoutDates}
+              aria-label="Show tasks without dates for today"
+            >
+              <span
+                className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                style={{
+                  transform: showTasksWithoutDates ? "translateX(1.5rem)" : "translateX(0.25rem)",
+                }}
+              />
+            </button>
+            <span className="text-xs font-medium text-blue-900 dark:text-blue-100 whitespace-nowrap">
+              Show for today
+            </span>
           </div>
         </div>
       )}
