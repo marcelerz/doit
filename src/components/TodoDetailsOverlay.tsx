@@ -59,6 +59,30 @@ export function TodoDetailsOverlay({
   const [editPlainText, setEditPlainText] = useState("");
   const smartInputRef = useRef<SmartEditableInputHandle>(null);
 
+  // State for metadata editing
+  const [editingMetadata, setEditingMetadata] = useState<TodoMetadata>({
+    assignedPeople: [],
+    sourcePeople: [],
+    mentionedPeople: [],
+    projects: [],
+    priority: undefined,
+    dueDate: undefined,
+    duration: undefined,
+  });
+
+  // Initialize metadata when overlay opens
+  useEffect(() => {
+    setEditingMetadata({
+      assignedPeople: [...todo.metadata.assignedPeople],
+      sourcePeople: [...todo.metadata.sourcePeople],
+      mentionedPeople: [...todo.metadata.mentionedPeople],
+      projects: [...todo.metadata.projects],
+      priority: todo.metadata.priority,
+      dueDate: todo.metadata.dueDate,
+      duration: todo.metadata.duration,
+    });
+  }, [todo]);
+
   const markers = {
     assigned: "@",
     source: "$",
@@ -108,6 +132,30 @@ export function TodoDetailsOverlay({
     setEditPlainText("");
   };
 
+  const handleMetadataChange = (newMetadata: TodoMetadata) => {
+    const parts: string[] = [todo.plainText];
+
+    newMetadata.assignedPeople.forEach((p) => parts.push(`@${p}`));
+    newMetadata.sourcePeople.forEach((p) => parts.push(`$${p}`));
+    newMetadata.mentionedPeople.forEach((p) => parts.push(`^${p}`));
+    newMetadata.projects.forEach((p) => parts.push(`#${p}`));
+    if (newMetadata.priority) parts.push(`!!${newMetadata.priority}`);
+    if (newMetadata.dueDate) parts.push(`~${newMetadata.dueDate}`);
+    if (newMetadata.duration) parts.push(`*${newMetadata.duration}`);
+
+    const newText = parts.join(" ");
+    onEdit(todo.id, newText, todo.plainText, newMetadata);
+    setEditingMetadata(newMetadata);
+  };
+
+  const togglePersonInList = (list: string[], person: string) => {
+    return list.includes(person) ? list.filter((p) => p !== person) : [...list, person];
+  };
+
+  const toggleProjectInList = (projects: string[], project: string) => {
+    return projects.includes(project) ? projects.filter((p) => p !== project) : [...projects, project];
+  };
+
   // Helper functions for colors (from TodoItem)
   const getPersonColor = (name: string) => {
     const hash = name.split("").reduce((acc, char) => char.charCodeAt(0) + acc, 0);
@@ -116,13 +164,13 @@ export function TodoDetailsOverlay({
   };
 
   const getProjectColor = (name: string) => {
-    const projectColors = generalSettings.markerColors?.projects || {};
-    return projectColors[name] || markerColors.project;
+    // markerColors is passed as a separate prop
+    return markerColors.project;
   };
 
   const getPriorityColor = (priority: string) => {
-    const priorityColors = generalSettings.markerColors?.priorities || {};
-    return priorityColors[priority] || markerColors.priority;
+    // markerColors is passed as a separate prop
+    return markerColors.priority;
   };
 
   const getTextColor = (backgroundColor: string) => {
@@ -239,215 +287,338 @@ export function TodoDetailsOverlay({
 
           {/* Task Details */}
           {!isEditing && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              {/* Assigned People */}
-              <div>
-                <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">👤 Assigned</h4>
-                <div className="flex flex-wrap gap-1">
-                  {todo.metadata.assignedPeople.length > 0 ? (
-                    todo.metadata.assignedPeople.map((person, idx) => {
-                      const bgColor = getPersonColor(person);
-                      const textColor = getTextColor(bgColor);
-                      return (
-                        <span
-                          key={idx}
-                          style={{ backgroundColor: bgColor, color: textColor }}
-                          className="px-2 py-0.5 text-xs rounded"
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {/* Assigned People */}
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">👤 Assigned</h4>
+                  <details className="relative">
+                    <summary className="cursor-pointer list-none">
+                      <div className="flex flex-wrap gap-1 min-h-[24px] p-1 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
+                        {editingMetadata.assignedPeople.length > 0 ? (
+                          editingMetadata.assignedPeople.map((person, idx) => {
+                            const bgColor = getPersonColor(person);
+                            const textColor = getTextColor(bgColor);
+                            return (
+                              <span
+                                key={idx}
+                                style={{ backgroundColor: bgColor, color: textColor }}
+                                className="px-2 py-0.5 text-xs rounded"
+                              >
+                                @{person}
+                              </span>
+                            );
+                          })
+                        ) : (
+                          <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
+                        )}
+                      </div>
+                    </summary>
+                    <div className="absolute z-10 mt-1 w-full bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg max-h-48 overflow-y-auto">
+                      {availablePeople.map((person) => (
+                        <label
+                          key={person.name}
+                          className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700"
                         >
-                          @{person}
-                        </span>
-                      );
-                    })
-                  ) : (
-                    <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                  )}
+                          <input
+                            type="checkbox"
+                            checked={editingMetadata.assignedPeople.includes(person.name)}
+                            onChange={() => {
+                              const newMetadata = {
+                                ...editingMetadata,
+                                assignedPeople: togglePersonInList(editingMetadata.assignedPeople, person.name),
+                              };
+                              handleMetadataChange(newMetadata);
+                            }}
+                            className="w-3 h-3 rounded border-zinc-300 dark:border-zinc-600"
+                          />
+                          @{person.name}
+                        </label>
+                      ))}
+                    </div>
+                  </details>
                 </div>
-              </div>
 
-              {/* Projects */}
-              <div>
-                <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📁 Projects</h4>
-                <div className="flex flex-wrap gap-1">
-                  {todo.metadata.projects.length > 0 ? (
-                    todo.metadata.projects.map((project, idx) => {
-                      const bgColor = getProjectColor(project);
-                      const textColor = getTextColor(bgColor);
-                      return (
-                        <span
-                          key={idx}
-                          style={{ backgroundColor: bgColor, color: textColor }}
-                          className="px-2 py-0.5 text-xs rounded"
+                {/* Projects */}
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📁 Projects</h4>
+                  <details className="relative">
+                    <summary className="cursor-pointer list-none">
+                      <div className="flex flex-wrap gap-1 min-h-[24px] p-1 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
+                        {editingMetadata.projects.length > 0 ? (
+                          editingMetadata.projects.map((project, idx) => {
+                            const bgColor = getProjectColor(project);
+                            const textColor = getTextColor(bgColor);
+                            return (
+                              <span
+                                key={idx}
+                                style={{ backgroundColor: bgColor, color: textColor }}
+                                className="px-2 py-0.5 text-xs rounded"
+                              >
+                                #{project}
+                              </span>
+                            );
+                          })
+                        ) : (
+                          <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
+                        )}
+                      </div>
+                    </summary>
+                    <div className="absolute z-10 mt-1 w-full bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg max-h-48 overflow-y-auto">
+                      {availableProjects.map((project) => (
+                        <label
+                          key={project.name}
+                          className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700"
                         >
-                          #{project}
-                        </span>
-                      );
-                    })
-                  ) : (
-                    <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                  )}
+                          <input
+                            type="checkbox"
+                            checked={editingMetadata.projects.includes(project.name)}
+                            onChange={() => {
+                              const newMetadata = {
+                                ...editingMetadata,
+                                projects: toggleProjectInList(editingMetadata.projects, project.name),
+                              };
+                              handleMetadataChange(newMetadata);
+                            }}
+                            className="w-3 h-3 rounded border-zinc-300 dark:border-zinc-600"
+                          />
+                          #{project.name}
+                        </label>
+                      ))}
+                    </div>
+                  </details>
                 </div>
-              </div>
 
-              {/* Source People */}
-              <div>
-                <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📤 Source</h4>
-                <div className="flex flex-wrap gap-1">
-                  {todo.metadata.sourcePeople.length > 0 ? (
-                    todo.metadata.sourcePeople.map((person, idx) => {
-                      const bgColor = getPersonColor(person);
-                      const textColor = getTextColor(bgColor);
-                      return (
-                        <span
-                          key={idx}
-                          style={{ backgroundColor: bgColor, color: textColor }}
-                          className="px-2 py-0.5 text-xs rounded"
+                {/* Source People */}
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📤 Source</h4>
+                  <details className="relative">
+                    <summary className="cursor-pointer list-none">
+                      <div className="flex flex-wrap gap-1 min-h-[24px] p-1 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
+                        {editingMetadata.sourcePeople.length > 0 ? (
+                          editingMetadata.sourcePeople.map((person, idx) => {
+                            const bgColor = getPersonColor(person);
+                            const textColor = getTextColor(bgColor);
+                            return (
+                              <span
+                                key={idx}
+                                style={{ backgroundColor: bgColor, color: textColor }}
+                                className="px-2 py-0.5 text-xs rounded"
+                              >
+                                ${person}
+                              </span>
+                            );
+                          })
+                        ) : (
+                          <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
+                        )}
+                      </div>
+                    </summary>
+                    <div className="absolute z-10 mt-1 w-full bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg max-h-48 overflow-y-auto">
+                      {availablePeople.map((person) => (
+                        <label
+                          key={person.name}
+                          className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700"
                         >
-                          ${person}
-                        </span>
-                      );
-                    })
-                  ) : (
-                    <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                  )}
+                          <input
+                            type="checkbox"
+                            checked={editingMetadata.sourcePeople.includes(person.name)}
+                            onChange={() => {
+                              const newMetadata = {
+                                ...editingMetadata,
+                                sourcePeople: togglePersonInList(editingMetadata.sourcePeople, person.name),
+                              };
+                              handleMetadataChange(newMetadata);
+                            }}
+                            className="w-3 h-3 rounded border-zinc-300 dark:border-zinc-600"
+                          />
+                          ${person.name}
+                        </label>
+                      ))}
+                    </div>
+                  </details>
                 </div>
-              </div>
 
-              {/* Mentioned People */}
-              <div>
-                <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">💬 Mentioned</h4>
-                <div className="flex flex-wrap gap-1">
-                  {todo.metadata.mentionedPeople.length > 0 ? (
-                    todo.metadata.mentionedPeople.map((person, idx) => {
-                      const bgColor = getPersonColor(person);
-                      const textColor = getTextColor(bgColor);
-                      return (
-                        <span
-                          key={idx}
-                          style={{ backgroundColor: bgColor, color: textColor }}
-                          className="px-2 py-0.5 text-xs rounded"
+                {/* Mentioned People */}
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">💬 Mentioned</h4>
+                  <details className="relative">
+                    <summary className="cursor-pointer list-none">
+                      <div className="flex flex-wrap gap-1 min-h-[24px] p-1 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
+                        {editingMetadata.mentionedPeople.length > 0 ? (
+                          editingMetadata.mentionedPeople.map((person, idx) => {
+                            const bgColor = getPersonColor(person);
+                            const textColor = getTextColor(bgColor);
+                            return (
+                              <span
+                                key={idx}
+                                style={{ backgroundColor: bgColor, color: textColor }}
+                                className="px-2 py-0.5 text-xs rounded"
+                              >
+                                ^{person}
+                              </span>
+                            );
+                          })
+                        ) : (
+                          <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
+                        )}
+                      </div>
+                    </summary>
+                    <div className="absolute z-10 mt-1 w-full bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg max-h-48 overflow-y-auto">
+                      {availablePeople.map((person) => (
+                        <label
+                          key={person.name}
+                          className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700"
                         >
-                          ^{person}
-                        </span>
-                      );
-                    })
-                  ) : (
-                    <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                  )}
+                          <input
+                            type="checkbox"
+                            checked={editingMetadata.mentionedPeople.includes(person.name)}
+                            onChange={() => {
+                              const newMetadata = {
+                                ...editingMetadata,
+                                mentionedPeople: togglePersonInList(editingMetadata.mentionedPeople, person.name),
+                              };
+                              handleMetadataChange(newMetadata);
+                            }}
+                            className="w-3 h-3 rounded border-zinc-300 dark:border-zinc-600"
+                          />
+                          ^{person.name}
+                        </label>
+                      ))}
+                    </div>
+                  </details>
                 </div>
-              </div>
 
-              {/* Priority */}
-              <div>
-                <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">🔥 Priority</h4>
-                {todo.metadata.priority ? (
-                  (() => {
-                    const bgColor = getPriorityColor(todo.metadata.priority);
-                    const textColor = getTextColor(bgColor);
-                    return (
-                      <span
-                        style={{ backgroundColor: bgColor, color: textColor }}
-                        className="px-2 py-0.5 text-xs rounded"
-                      >
-                        !!{todo.metadata.priority}
-                      </span>
-                    );
-                  })()
-                ) : (
-                  <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                )}
-              </div>
-
-              {/* Due Date */}
-              <div>
-                <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📅 Due</h4>
-                {todo.metadata.dueDate ? (
-                  <span className="px-2 py-0.5 text-xs rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">
-                    ~{todo.metadata.dueDate}
-                  </span>
-                ) : (
-                  <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                )}
-              </div>
-
-              {/* Duration */}
-              <div>
-                <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">⏱️ Duration</h4>
-                {todo.metadata.duration ? (
-                  <span className="px-2 py-0.5 text-xs rounded bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">
-                    *{todo.metadata.duration}
-                  </span>
-                ) : (
-                  <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-end justify-end gap-2">
-                {/* Archive/Unarchive button */}
-                {todo.state === "archived" && onUnarchive ? (
-                  <button
-                    onClick={() => {
-                      onUnarchive(todo.id);
-                      onClose();
+                {/* Priority */}
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔥 Priority</h4>
+                  <select
+                    value={editingMetadata.priority || ""}
+                    onChange={(e) => {
+                      const newMetadata = {
+                        ...editingMetadata,
+                        priority: e.target.value || undefined,
+                      };
+                      handleMetadataChange(newMetadata);
                     }}
-                    className="p-2 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 rounded-md transition-colors"
-                    aria-label="Unarchive todo"
-                    title="Unarchive"
+                    className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-                      />
-                    </svg>
-                  </button>
-                ) : (
-                  (todo.state === "active" || todo.state === "completed") &&
-                  onArchive && (
+                    <option value="">None</option>
+                    {availablePriorities.map((priority) => (
+                      <option key={priority.name} value={priority.name}>
+                        !!{priority.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Due Date */}
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📅 Due</h4>
+                  <input
+                    type="date"
+                    value={editingMetadata.dueDate || ""}
+                    onChange={(e) => {
+                      const newMetadata = {
+                        ...editingMetadata,
+                        dueDate: e.target.value || undefined,
+                      };
+                      handleMetadataChange(newMetadata);
+                    }}
+                    className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+                  />
+                </div>
+
+                {/* Duration */}
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">⏱️ Duration</h4>
+                  <input
+                    type="text"
+                    value={editingMetadata.duration || ""}
+                    onChange={(e) => {
+                      const newMetadata = {
+                        ...editingMetadata,
+                        duration: e.target.value || undefined,
+                      };
+                      handleMetadataChange(newMetadata);
+                    }}
+                    onBlur={() => {
+                      // Save on blur
+                      handleMetadataChange(editingMetadata);
+                    }}
+                    placeholder="e.g., 2h, 30m, 1d"
+                    className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-end justify-end gap-2">
+                  {/* Archive/Unarchive button */}
+                  {todo.state === "archived" && onUnarchive ? (
                     <button
                       onClick={() => {
-                        onArchive(todo.id);
+                        onUnarchive(todo.id);
                         onClose();
                       }}
-                      className="p-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-md transition-colors"
-                      aria-label="Archive todo"
-                      title="Archive"
+                      className="p-2 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 rounded-md transition-colors"
+                      aria-label="Unarchive todo"
+                      title="Unarchive"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                          d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
                         />
                       </svg>
                     </button>
-                  )
-                )}
+                  ) : (
+                    (todo.state === "active" || todo.state === "completed") &&
+                    onArchive && (
+                      <button
+                        onClick={() => {
+                          onArchive(todo.id);
+                          onClose();
+                        }}
+                        className="p-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-md transition-colors"
+                        aria-label="Archive todo"
+                        title="Archive"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                          />
+                        </svg>
+                      </button>
+                    )
+                  )}
 
-                {/* Delete button */}
-                <button
-                  onClick={() => {
-                    onDelete(todo.id);
-                    onClose();
-                  }}
-                  className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
-                  aria-label="Delete todo"
-                  title="Delete"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
+                  {/* Delete button */}
+                  <button
+                    onClick={() => {
+                      onDelete(todo.id);
+                      onClose();
+                    }}
+                    className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
+                    aria-label="Delete todo"
+                    title="Delete"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* Comments */}
