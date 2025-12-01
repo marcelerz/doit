@@ -754,7 +754,7 @@ export function TodoList() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800 py-8 px-4">
       <div className="max-w-3xl mx-auto">
-        <header className="mb-8">
+        <header className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-100">DoIt</h1>
             <div className="flex items-center gap-2">
