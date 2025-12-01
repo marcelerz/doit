@@ -40,11 +40,13 @@ export function useTodos() {
       if (stored) {
         const loadedTodos = JSON.parse(stored);
         const migratedTodos = migrateTodos(loadedTodos, settings);
-        setTodos(migratedTodos);
+        // Filter out any deleted todos
+        const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
+        setTodos(cleanedTodos);
 
-        // If migration was needed, save the migrated data immediately
-        if (migrationNeeded) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedTodos));
+        // If migration was needed or we removed deleted todos, save the cleaned data
+        if (migrationNeeded || cleanedTodos.length !== migratedTodos.length) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanedTodos));
         }
       }
     } catch (error) {
@@ -58,7 +60,9 @@ export function useTodos() {
   useEffect(() => {
     if (isLoaded) {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+        // Filter out deleted todos before saving
+        const todosToSave = todos.filter((todo) => todo.state !== "deleted");
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(todosToSave));
       } catch (error) {
         console.error("Failed to save todos:", error);
       }
@@ -142,7 +146,7 @@ export function useTodos() {
     const todoToToggle = todos.find((t) => t.id === id);
     if (!todoToToggle) return;
 
-    const previousState = { ...todoToToggle };
+    const previousState = JSON.parse(JSON.stringify(todoToToggle)); // Deep copy
     const newState: "active" | "completed" = todoToToggle.state === "completed" ? "active" : "completed";
     const now = Date.now();
     const updatedTodo: Todo = {
@@ -178,7 +182,7 @@ export function useTodos() {
     const todoToDelete = todos.find((t) => t.id === id);
     if (!todoToDelete) return;
 
-    const previousState = { ...todoToDelete };
+    const previousState = JSON.parse(JSON.stringify(todoToDelete)); // Deep copy
     const now = Date.now();
     const deletedTodo: Todo = {
       ...todoToDelete,
@@ -215,7 +219,7 @@ export function useTodos() {
     const todoToArchive = todos.find((t) => t.id === id);
     if (!todoToArchive) return;
 
-    const previousState = { ...todoToArchive };
+    const previousState = JSON.parse(JSON.stringify(todoToArchive)); // Deep copy
     const now = Date.now();
     const updatedTodo: Todo = {
       ...todoToArchive,

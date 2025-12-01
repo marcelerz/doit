@@ -38,20 +38,23 @@ function shouldDelete(todo: Todo, autoDeleteEnabled: boolean, deleteDays: number
  * Migrate a todo to the current format
  */
 function migrateTodo(todo: any): Todo {
-  // Determine the state based on legacy fields
-  let state: TodoState = "active";
+  // If todo already has a state field (v4+), use it
+  let state: TodoState = todo.state || "active";
   let completedAt = todo.completedAt || null;
   let archivedAt = todo.archivedAt || null;
   let deletedAt = todo.deletedAt || null;
 
-  if (todo.archived === true) {
-    state = "archived";
-    // Set archivedAt if not present
-    if (!archivedAt && completedAt) {
-      archivedAt = completedAt;
+  // Only calculate state from legacy fields if state doesn't exist
+  if (!todo.state) {
+    if (todo.archived === true) {
+      state = "archived";
+      // Set archivedAt if not present
+      if (!archivedAt && completedAt) {
+        archivedAt = completedAt;
+      }
+    } else if (todo.completed === true) {
+      state = "completed";
     }
-  } else if (todo.completed === true) {
-    state = "completed";
   }
 
   return {
@@ -163,6 +166,11 @@ export function migrateTodos(loadedTodos: any[], settings: Settings): Todo[] {
   return loadedTodos
     .map(migrateTodo)
     .filter((todo) => {
+      // Remove todos that are marked as deleted
+      if (todo.state === "deleted") {
+        console.log(`Removing deleted todo from storage: ${todo.id}`);
+        return false;
+      }
       // Remove todos that should be auto-deleted
       if (shouldDelete(todo, autoDelete.enabled, autoDelete.deleteDays)) {
         console.log(
