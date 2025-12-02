@@ -1294,7 +1294,7 @@ export function TodoDetailsOverlay({
 
                 {/* Dependencies */}
                 <div>
-                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔗 Dependencies</h4>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">⛓️ Dependencies</h4>
                   {todos.length <= 1 ? (
                     <div className="text-xs text-zinc-500 dark:text-zinc-400 italic">No other tasks available</div>
                   ) : (
@@ -1904,7 +1904,7 @@ export function TodoDetailsOverlay({
                   if (foundLinks.length > 0) {
                     return (
                       <div>
-                        <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔗 Links</h4>
+                        <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🌐 Links</h4>
                         <div className="flex flex-wrap gap-2">
                           {foundLinks.map((link, idx) => (
                             <a
@@ -2011,7 +2011,7 @@ export function TodoDetailsOverlay({
           {/* Comments */}
           {!isEditing && onAddComment && onEditComment && onDeleteComment && (
             <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
-              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">💬 Comments</h4>
+              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">💭 Comments</h4>
               <Comments
                 comments={todo.comments}
                 onAddComment={(content) => onAddComment(todo.id, content)}
