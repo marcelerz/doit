@@ -20,6 +20,7 @@ interface TodoItemProps {
   availablePeople: Person[];
   availableProjects: Project[];
   availablePriorities: Priority[];
+  availableTodos?: Todo[]; // For dependency selection
   onAddPerson?: (name: string) => void;
   onAddProject?: (name: string) => void;
   onAddPriority?: (name: string) => void;
@@ -47,6 +48,7 @@ export function TodoItem({
   availablePeople,
   availableProjects,
   availablePriorities,
+  availableTodos = [],
   onAddPerson,
   onAddProject,
   onAddPriority,
@@ -72,6 +74,7 @@ export function TodoItem({
     dueDate: "~",
     duration: "*",
     recurring: "%",
+    dependency: ">",
   };
 
   // Helper functions to get entity colors
@@ -128,6 +131,7 @@ export function TodoItem({
       sourcePeople: [],
       mentionedPeople: [],
       projects: [],
+      dependencies: [],
     };
 
     // Parse tokens from the edited text
@@ -156,6 +160,9 @@ export function TodoItem({
           break;
         case "recurring":
           metadata.recurring = token.value;
+          break;
+        case "dependency":
+          metadata.dependencies.push(token.value);
           break;
       }
     });
@@ -208,6 +215,11 @@ export function TodoItem({
       if (!metadata.duration) {
         metadata.duration = todo.metadata.duration || autoAssign.duration;
       }
+
+      // Dependencies don't have auto-assign, preserve existing if not provided
+      if (metadata.dependencies.length === 0 && todo.metadata.dependencies.length > 0) {
+        metadata.dependencies = todo.metadata.dependencies;
+      }
     } else {
       // Auto-assign disabled: preserve existing metadata for fields not explicitly provided
       if (metadata.assignedPeople.length === 0 && todo.metadata.assignedPeople.length > 0) {
@@ -230,6 +242,9 @@ export function TodoItem({
       }
       if (!metadata.duration) {
         metadata.duration = todo.metadata.duration;
+      }
+      if (metadata.dependencies.length === 0 && todo.metadata.dependencies.length > 0) {
+        metadata.dependencies = todo.metadata.dependencies;
       }
     }
 
@@ -255,6 +270,7 @@ export function TodoItem({
             availablePeople={availablePeople}
             availableProjects={availableProjects}
             availablePriorities={availablePriorities}
+            availableTodos={availableTodos}
             dateTimeSettings={generalSettings.dateTime}
             onAddPerson={onAddPerson}
             onAddProject={onAddProject}

@@ -408,6 +408,7 @@ export function CalendarView({
                   availablePeople={availablePeople}
                   availableProjects={availableProjects}
                   availablePriorities={availablePriorities}
+                  availableTodos={todos}
                   onAddPerson={onAddPerson}
                   onAddProject={onAddProject}
                   onAddPriority={onAddPriority}

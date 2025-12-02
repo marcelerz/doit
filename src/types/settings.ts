@@ -52,6 +52,7 @@ export interface MarkerColors extends Record<string, string> {
   dueDate: string; // ~
   duration: string; // *
   recurring: string; // %
+  dependency: string; // >
 }
 
 export const defaultMarkerColors: MarkerColors = {
@@ -63,6 +64,7 @@ export const defaultMarkerColors: MarkerColors = {
   dueDate: "#fce4ec", // Pink
   duration: "#d4faff", // Cyan
   recurring: "#e1f5e1", // Light green
+  dependency: "#fff4e6", // Light orange
 };
 
 export interface DateTimeSettings {

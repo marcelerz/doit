@@ -7,6 +7,7 @@ export interface TodoMetadata {
   dueDate?: string; // ~ marker
   duration?: string; // * marker
   recurring?: string; // % marker
+  dependencies: string[]; // > marker - array of todo IDs
 }
 
 export interface Comment {

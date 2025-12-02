@@ -2,7 +2,7 @@ export function MarkerReference() {
   return (
     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
       <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">✨ Smart Input Markers</h3>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-blue-800 dark:text-blue-200">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-blue-800 dark:text-blue-200">
         <div>
           <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">@name</code> Assign
         </div>
@@ -26,6 +26,9 @@ export function MarkerReference() {
         </div>
         <div>
           <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">%pattern</code> Recurring
+        </div>
+        <div>
+          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">&gt;task</code> Dependency
         </div>
       </div>
     </div>

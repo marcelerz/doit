@@ -5,6 +5,7 @@ import { Todo, TodoMetadata } from "@/types/todo";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/utils/migrations";
 import { defaultSettings } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
+import { areDependenciesSatisfied, getDependencyBlockMessage } from "@/utils/dependencyValidator";
 
 const STORAGE_KEY = "doit-todos";
 const SETTINGS_KEY = "doit-settings";
@@ -23,6 +24,7 @@ export function useTodos() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [undoActions, setUndoActions] = useState<UndoAction[]>([]);
   const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
+  const [dependencyBlockNotification, setDependencyBlockNotification] = useState<string | null>(null);
 
   // Load todos from localStorage on mount
   useEffect(() => {
@@ -147,8 +149,21 @@ export function useTodos() {
     const todoToToggle = todos.find((t) => t.id === id);
     if (!todoToToggle) return;
 
-    const previousState = JSON.parse(JSON.stringify(todoToToggle)); // Deep copy
     const newState: "active" | "completed" = todoToToggle.state === "completed" ? "active" : "completed";
+
+    // Check dependencies before allowing completion
+    if (newState === "completed" && todoToToggle.metadata.dependencies.length > 0) {
+      const validation = areDependenciesSatisfied(todoToToggle.metadata.dependencies, todos);
+      if (!validation.satisfied) {
+        const message = getDependencyBlockMessage(validation.unsatisfiedTodos);
+        setDependencyBlockNotification(message);
+        // Clear notification after 5 seconds
+        setTimeout(() => setDependencyBlockNotification(null), 5000);
+        return; // Don't allow completion
+      }
+    }
+
+    const previousState = JSON.parse(JSON.stringify(todoToToggle)); // Deep copy
     const now = Date.now();
     const updatedTodo: Todo = {
       ...todoToToggle,
@@ -260,6 +275,18 @@ export function useTodos() {
   const archiveTodo = (id: string) => {
     const todoToArchive = todos.find((t) => t.id === id);
     if (!todoToArchive) return;
+
+    // Check dependencies before allowing archive (only for active/incomplete todos)
+    if (todoToArchive.state === "active" && todoToArchive.metadata.dependencies.length > 0) {
+      const validation = areDependenciesSatisfied(todoToArchive.metadata.dependencies, todos);
+      if (!validation.satisfied) {
+        const message = getDependencyBlockMessage(validation.unsatisfiedTodos);
+        setDependencyBlockNotification(message);
+        // Clear notification after 5 seconds
+        setTimeout(() => setDependencyBlockNotification(null), 5000);
+        return; // Don't allow archive
+      }
+    }
 
     const previousState = JSON.parse(JSON.stringify(todoToArchive)); // Deep copy
     const now = Date.now();
@@ -375,6 +402,7 @@ export function useTodos() {
     isLoaded,
     undoActions,
     fadingOutIds,
+    dependencyBlockNotification,
     undo,
     dismissUndo,
   };

@@ -2,6 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useState, useEffect } f
 import { Person, Project, Priority, DateTimeSettings } from "@/types/settings";
 import { getDueDateSuggestions, parseDate, formatDateTime } from "@/utils/dateParser";
 import { getRecurringSuggestions } from "@/utils/recurringParser";
+import { Todo } from "@/types/todo";
 
 export interface TokenMatch {
   type: string;
@@ -21,6 +22,7 @@ export interface SmartEditableInputProps {
   availablePeople?: Person[]; // List of valid people with alternatives
   availableProjects?: Project[]; // List of valid projects with alternatives
   availablePriorities?: Priority[]; // List of valid priorities with alternatives
+  availableTodos?: Todo[]; // List of todos for dependency selection
   onAddPerson?: (name: string) => void; // Callback to add a new person
   onAddProject?: (name: string) => void; // Callback to add a new project
   onAddPriority?: (name: string) => void; // Callback to add a new priority
@@ -45,6 +47,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       availablePeople = [],
       availableProjects = [],
       availablePriorities = [],
+      availableTodos = [],
       onAddPerson,
       onAddProject,
       onAddPriority,
@@ -56,6 +59,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
     const [autocomplete, setAutocomplete] = useState<{
       show: boolean;
       options: string[];
+      values?: string[]; // For dependency: actual IDs to insert (parallel to options)
       selected: number;
       type: string;
       marker: string;
@@ -65,6 +69,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
     }>({
       show: false,
       options: [],
+      values: undefined,
       selected: 0,
       type: "",
       marker: "",
@@ -192,11 +197,20 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
 
       // Build pattern for recurring marker (%)
       // Matches patterns like: %every 2 days, %every monday, %monthly on 15th, %workday
-      const recurringPattern = `%([^@#$^*~%\\n]+?)(?=\\s{2,}|\\s+[@#$^*~%!]{1,2}|$)`;
+      const recurringPattern = `%([^@#$^*~%>\\n]+?)(?=\\s{2,}|\\s+[@#$^*~%>!]{1,2}|$)`;
       patterns.push({
         type: "recurring",
         symbol: "%",
         regex: new RegExp(recurringPattern, "gi"),
+      });
+
+      // Build pattern for dependency marker (>)
+      // Matches todo IDs after > symbol
+      const dependencyPattern = `>([a-zA-Z0-9-]+)(?=\\s|$)`;
+      patterns.push({
+        type: "dependency",
+        symbol: ">",
+        regex: new RegExp(dependencyPattern, "gi"),
       });
 
       return patterns;
@@ -252,6 +266,15 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           p.name.toLowerCase().includes(lowerSearch) ||
           p.alternatives.some((alt) => alt.toLowerCase().includes(lowerSearch)),
       );
+    };
+
+    const filterTodosBySearch = (search: string): { id: string; text: string }[] => {
+      const lowerSearch = search.toLowerCase();
+      if (search === "") return availableTodos.slice(0, 10).map((t) => ({ id: t.id, text: t.plainText }));
+      return availableTodos
+        .filter((t) => t.plainText.toLowerCase().includes(lowerSearch))
+        .slice(0, 10)
+        .map((t) => ({ id: t.id, text: t.plainText }));
     };
 
     const getDurationSuggestions = (search: string): string[] => {
@@ -407,6 +430,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const durationMarker = "*";
       const dueDateMarker = "~";
       const recurringMarker = "%";
+      const dependencyMarker = ">";
       const allMarkers = [
         ...peopleMarkers,
         projectMarker,
@@ -414,6 +438,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         durationMarker,
         dueDateMarker,
         recurringMarker,
+        dependencyMarker,
       ];
 
       // Find the last marker before the caret
@@ -433,6 +458,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       let autocompleteMarker = "";
       let searchText = "";
       let options: string[] = [];
+      let autocompleteValues: string[] | undefined = undefined; // For dependency: store todo IDs
 
       if (lastMarkerPos >= 0) {
         const textAfterMarker = textBeforeCaret.substring(lastMarkerPos + lastMarker.length);
@@ -488,6 +514,14 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
             autocompleteType = "recurring";
             autocompleteMarker = lastMarker;
             options = getRecurringSuggestions().filter((s) => s.toLowerCase().includes(searchText.toLowerCase()));
+          } else if (lastMarker === dependencyMarker) {
+            shouldShowAutocomplete = true;
+            autocompleteType = "dependency";
+            autocompleteMarker = lastMarker;
+            const filteredTodos = filterTodosBySearch(searchText);
+            options = filteredTodos.map((t) => t.text);
+            // Store the actual IDs separately for insertion later
+            autocompleteValues = filteredTodos.map((t) => t.id);
           }
         }
       }
@@ -498,13 +532,14 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         const divRect = div.getBoundingClientRect();
 
         // Show "Add new" option if there are no matches and search text is not empty
-        // (but not for duration, duedate, or recurring, which are just format suggestions)
+        // (but not for duration, duedate, recurring, or dependency, which are just format suggestions or lookups)
         const showAddNew =
           options.length === 0 &&
           searchText.trim() !== "" &&
           autocompleteType !== "duration" &&
           autocompleteType !== "duedate" &&
-          autocompleteType !== "recurring";
+          autocompleteType !== "recurring" &&
+          autocompleteType !== "dependency";
         const canAddNew =
           (autocompleteType === "person" && onAddPerson) ||
           (autocompleteType === "project" && onAddProject) ||
@@ -513,6 +548,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         setAutocomplete({
           show: true,
           options,
+          values: autocompleteValues,
           selected: 0,
           type: autocompleteType,
           marker: autocompleteMarker,
@@ -622,10 +658,15 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
 
       if (lastMarkerPos === -1) return;
 
-      // For due date, parse the shorthand and convert to actual date
+      // For dependency, use the actual ID instead of the displayed text
       let finalValue = value;
-      if (autocomplete.type === "duedate" && dateTimeSettings) {
-        // Extract the shorthand value from the label if it's in "shorthand - description" format
+      if (autocomplete.type === "dependency" && autocomplete.values) {
+        const selectedIndex = autocomplete.options.indexOf(value);
+        if (selectedIndex >= 0 && selectedIndex < autocomplete.values.length) {
+          finalValue = autocomplete.values[selectedIndex];
+        }
+      } else if (autocomplete.type === "duedate" && dateTimeSettings) {
+        // For due date, parse the shorthand and convert to actual date
         const shorthand = value.includes(" - ") ? value.split(" - ")[0] : value;
         const parsed = parseDate(shorthand, dateTimeSettings);
         if (parsed) {

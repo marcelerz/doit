@@ -10,6 +10,7 @@ import { MarkerReference } from "./MarkerReference";
 
 interface TodoDetailsOverlayProps {
   todo: Todo;
+  todos?: Todo[]; // All todos for dependency selection
   isOpen: boolean;
   onClose: () => void;
   onToggle: (id: string) => void;
@@ -33,6 +34,7 @@ interface TodoDetailsOverlayProps {
 
 export function TodoDetailsOverlay({
   todo,
+  todos = [],
   isOpen,
   onClose,
   onToggle,
@@ -58,6 +60,8 @@ export function TodoDetailsOverlay({
   const [editFullText, setEditFullText] = useState("");
   const [editPlainText, setEditPlainText] = useState("");
   const smartInputRef = useRef<SmartEditableInputHandle>(null);
+  const [dependencySearch, setDependencySearch] = useState("");
+  const [showDependencyDropdown, setShowDependencyDropdown] = useState(false);
 
   // State for metadata editing
   const [editingMetadata, setEditingMetadata] = useState<TodoMetadata>({
@@ -65,6 +69,7 @@ export function TodoDetailsOverlay({
     sourcePeople: [],
     mentionedPeople: [],
     projects: [],
+    dependencies: [],
     priority: undefined,
     dueDate: undefined,
     duration: undefined,
@@ -78,6 +83,7 @@ export function TodoDetailsOverlay({
       sourcePeople: [...todo.metadata.sourcePeople],
       mentionedPeople: [...todo.metadata.mentionedPeople],
       projects: [...todo.metadata.projects],
+      dependencies: [...todo.metadata.dependencies],
       priority: todo.metadata.priority,
       dueDate: todo.metadata.dueDate,
       duration: todo.metadata.duration,
@@ -94,6 +100,7 @@ export function TodoDetailsOverlay({
     dueDate: "~",
     duration: "*",
     recurring: "%",
+    dependency: ">",
   };
 
   useEffect(() => {
@@ -119,6 +126,7 @@ export function TodoDetailsOverlay({
       sourcePeople: editTokens.filter((t) => t.type === "source").map((t) => t.value),
       mentionedPeople: editTokens.filter((t) => t.type === "mentioned").map((t) => t.value),
       projects: editTokens.filter((t) => t.type === "project").map((t) => t.value),
+      dependencies: editTokens.filter((t) => t.type === "dependency").map((t) => t.value),
       priority: editTokens.find((t) => t.type === "priority")?.value,
       dueDate: editTokens.find((t) => t.type === "dueDate")?.value,
       duration: editTokens.find((t) => t.type === "duration")?.value,
@@ -143,6 +151,7 @@ export function TodoDetailsOverlay({
     newMetadata.sourcePeople.forEach((p) => parts.push(`$${p}`));
     newMetadata.mentionedPeople.forEach((p) => parts.push(`^${p}`));
     newMetadata.projects.forEach((p) => parts.push(`#${p}`));
+    newMetadata.dependencies.forEach((d) => parts.push(`>${d}`));
     if (newMetadata.priority) parts.push(`!!${newMetadata.priority}`);
     if (newMetadata.dueDate) parts.push(`~${newMetadata.dueDate}`);
     if (newMetadata.duration) parts.push(`*${newMetadata.duration}`);
@@ -554,6 +563,104 @@ export function TodoDetailsOverlay({
                     placeholder="e.g., 2h, 30m, 1d"
                     className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
                   />
+                </div>
+
+                {/* Dependencies */}
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔗 Dependencies</h4>
+                  {todos.length <= 1 ? (
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400 italic">No other tasks available</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {editingMetadata.dependencies.map((depId) => {
+                        const depTodo = todos.find((t) => t.id === depId);
+                        if (!depTodo) return null;
+                        return (
+                          <button
+                            key={depId}
+                            onClick={() => {
+                              handleMetadataChange({
+                                ...editingMetadata,
+                                dependencies: editingMetadata.dependencies.filter((d) => d !== depId),
+                              });
+                            }}
+                            className="text-xs px-2 py-1 rounded border bg-orange-100 dark:bg-orange-900/30 border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors"
+                          >
+                            {depTodo.plainText.length > 30
+                              ? depTodo.plainText.substring(0, 30) + "..."
+                              : depTodo.plainText}{" "}
+                            ✕
+                          </button>
+                        );
+                      })}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowDependencyDropdown(!showDependencyDropdown)}
+                          className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
+                        >
+                          +
+                        </button>
+                        {showDependencyDropdown && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => {
+                                setShowDependencyDropdown(false);
+                                setDependencySearch("");
+                              }}
+                            />
+                            <div className="absolute z-20 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg">
+                              <input
+                                type="text"
+                                value={dependencySearch}
+                                onChange={(e) => setDependencySearch(e.target.value)}
+                                placeholder="Search tasks..."
+                                autoFocus
+                                className="w-full text-xs px-3 py-2 border-b border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                              />
+                              <div className="max-h-48 overflow-y-auto">
+                                {todos
+                                  .filter((t) => t.id !== todo.id && !editingMetadata.dependencies.includes(t.id))
+                                  .filter(
+                                    (t) =>
+                                      dependencySearch === "" ||
+                                      t.plainText.toLowerCase().includes(dependencySearch.toLowerCase()),
+                                  )
+                                  .slice(0, 10)
+                                  .map((t) => (
+                                    <button
+                                      key={t.id}
+                                      onClick={() => {
+                                        handleMetadataChange({
+                                          ...editingMetadata,
+                                          dependencies: [...editingMetadata.dependencies, t.id],
+                                        });
+                                        setDependencySearch("");
+                                        setShowDependencyDropdown(false);
+                                      }}
+                                      className="w-full text-left text-xs px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors border-b border-zinc-200 dark:border-zinc-700 last:border-b-0"
+                                    >
+                                      {t.plainText}
+                                    </button>
+                                  ))}
+                                {todos
+                                  .filter((t) => t.id !== todo.id && !editingMetadata.dependencies.includes(t.id))
+                                  .filter(
+                                    (t) =>
+                                      dependencySearch === "" ||
+                                      t.plainText.toLowerCase().includes(dependencySearch.toLowerCase()),
+                                  ).length === 0 && (
+                                  <div className="text-xs px-3 py-2 text-zinc-500 dark:text-zinc-400 italic">
+                                    {dependencySearch === "" ? "All tasks already added" : "No tasks found"}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Recurring */}

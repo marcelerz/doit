@@ -73,9 +73,10 @@ export function MarkedText({
     { regex: /\$[\w-_]+/g, type: "source" as const },
     { regex: /\^[\w-_]+/g, type: "mentioned" as const },
     { regex: /!![\w-_]+/g, type: "priority" as const },
-    { regex: /~([^@#$^*~%\n]+?)(?=\s{2,}|\s+[@#$^*~%!]{1,2}|$)/g, type: "dueDate" as const },
+    { regex: /~([^@#$^*~%>\n]+?)(?=\s{2,}|\s+[@#$^*~%!>]{1,2}|$)/g, type: "dueDate" as const },
     { regex: /\*[\w-_]+/g, type: "duration" as const },
-    { regex: /%([^@#$^*~%\n]+?)(?=\s{2,}|\s+[@#$^*~%!]{1,2}|$)/g, type: "recurring" as const },
+    { regex: /%([^@#$^*~%>\n]+?)(?=\s{2,}|\s+[@#$^*~%!>]{1,2}|$)/g, type: "recurring" as const },
+    { regex: />[\w-]+/g, type: "dependency" as const },
   ];
 
   // Find all matches across all patterns
@@ -103,6 +104,7 @@ export function MarkedText({
           dueDate: "~",
           duration: "*",
           recurring: "%",
+          dependency: ">",
         };
         const symbol = markerSymbols[type] || "";
 
@@ -205,6 +207,9 @@ export function MarkedText({
       } else if (match.type === "recurring") {
         // For recurring, use marker colors
         bgColor = markerColors?.recurring;
+      } else if (match.type === "dependency") {
+        // For dependency, use marker colors
+        bgColor = markerColors?.dependency;
       } else {
         // For duration, use marker colors
         bgColor = markerColors?.[match.type as keyof MarkerColors];

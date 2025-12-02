@@ -649,6 +649,7 @@ export function GanttView({
           return (
             <TodoDetailsOverlay
               todo={currentTodo}
+              todos={todos}
               isOpen={true}
               onClose={() => setDetailsOverlayTodo(null)}
               onToggle={onToggle}

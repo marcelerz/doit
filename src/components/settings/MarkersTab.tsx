@@ -44,6 +44,12 @@ const markerInfo = [
     label: "Recurring",
     description: "Color for recurring task patterns",
   },
+  {
+    key: "dependency" as keyof MarkerColors,
+    symbol: ">",
+    label: "Dependency",
+    description: "Color for task dependencies",
+  },
 ];
 
 export function MarkersTab({ markerColors, onUpdate }: MarkersTabProps) {

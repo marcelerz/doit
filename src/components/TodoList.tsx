@@ -40,6 +40,7 @@ export function TodoList() {
     isLoaded,
     undoActions,
     fadingOutIds,
+    dependencyBlockNotification,
     undo,
     dismissUndo,
   } = useTodos();
@@ -340,6 +341,7 @@ export function TodoList() {
       sourcePeople: [],
       mentionedPeople: [],
       projects: [],
+      dependencies: [],
     };
 
     currentTokens.forEach((token) => {
@@ -367,6 +369,9 @@ export function TodoList() {
           break;
         case "recurring":
           metadata.recurring = token.value;
+          break;
+        case "dependency":
+          metadata.dependencies.push(token.value);
           break;
       }
     });
@@ -416,6 +421,7 @@ export function TodoList() {
     dueDate: "~",
     duration: "*",
     recurring: "%",
+    dependency: ">",
   };
 
   // Extract unique values from all todos for filter options
@@ -1387,6 +1393,7 @@ export function TodoList() {
                                     availablePeople={settings.people}
                                     availableProjects={settings.projects}
                                     availablePriorities={settings.priorities}
+                                    availableTodos={todos}
                                     onAddPerson={handleAddPerson}
                                     onAddProject={handleAddProject}
                                     onAddPriority={handleAddPriority}
@@ -1443,6 +1450,7 @@ export function TodoList() {
                               availablePeople={settings.people}
                               availableProjects={settings.projects}
                               availablePriorities={settings.priorities}
+                              availableTodos={todos}
                               onAddPerson={handleAddPerson}
                               onAddProject={handleAddProject}
                               onAddPriority={handleAddPriority}
@@ -1496,6 +1504,7 @@ export function TodoList() {
                               availablePeople={settings.people}
                               availableProjects={settings.projects}
                               availablePriorities={settings.priorities}
+                              availableTodos={todos}
                               onAddPerson={handleAddPerson}
                               onAddProject={handleAddProject}
                               onAddPriority={handleAddPriority}
@@ -1555,6 +1564,7 @@ export function TodoList() {
                           availablePeople={settings.people}
                           availableProjects={settings.projects}
                           availablePriorities={settings.priorities}
+                          availableTodos={todos}
                           dateTimeSettings={settings.general.dateTime}
                           onAddPerson={handleAddPerson}
                           onAddProject={handleAddProject}
@@ -1680,6 +1690,28 @@ export function TodoList() {
               </div>
             )}
 
+            {/* Dependency Block Notification */}
+            {dependencyBlockNotification && (
+              <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
+                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 text-orange-900 dark:text-orange-100 rounded-lg shadow-lg px-4 py-3 flex items-start gap-3 max-w-md animate-slide-down">
+                  <svg
+                    className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  <p className="text-sm flex-1">{dependencyBlockNotification}</p>
+                </div>
+              </div>
+            )}
+
             {/* Undo Notifications */}
             {undoActions.length > 0 && (
               <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col-reverse gap-2">
@@ -1733,6 +1765,7 @@ export function TodoList() {
                 return (
                   <TodoDetailsOverlay
                     todo={currentTodo}
+                    todos={todos}
                     isOpen={true}
                     onClose={() => setDetailsOverlayTodo(null)}
                     onToggle={toggleTodo}
