@@ -9,7 +9,7 @@ export interface TodoMetadata {
   recurring?: string; // % marker
   dependencies: string[]; // > marker - array of todo IDs
   context?: string; // Rich text context
-  tags: string[]; // Free-form tags
+  tags: string[]; // & marker - free-form tags
 }
 
 export interface Comment {

@@ -30,6 +30,9 @@ export function MarkerReference() {
         <div>
           <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">&gt;task</code> Dependency
         </div>
+        <div>
+          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">&amp;tag</code> Tag
+        </div>
       </div>
     </div>
   );

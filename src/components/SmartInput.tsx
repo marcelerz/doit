@@ -185,6 +185,14 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         regex: new RegExp(dueDatePattern, "gi"),
       });
 
+      // Build pattern for tag marker (&) - freeform text
+      const tagPattern = `&([^\\s@#$^*~%>&]+?)(?=\\s|$)`;
+      patterns.push({
+        type: "tag",
+        symbol: "&",
+        regex: new RegExp(tagPattern, "gi"),
+      });
+
       // Build pattern for duration marker (*) with specific format support
       // Supports: 5sec/secs/seconds, 5min/mins/minute/minutes, 3hr/hrs/h/hour/hours,
       // 5d/day/days, 2w/wk/wks/week/weeks, 1m/month/months, 3y/yr/yrs/year/years

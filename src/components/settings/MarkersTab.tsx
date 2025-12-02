@@ -50,6 +50,12 @@ const markerInfo = [
     label: "Dependency",
     description: "Color for task dependencies",
   },
+  {
+    key: "tag" as keyof MarkerColors,
+    symbol: "&",
+    label: "Tag",
+    description: "Color for free-form tags",
+  },
 ];
 
 export function MarkersTab({ markerColors, onUpdate }: MarkersTabProps) {

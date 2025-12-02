@@ -165,6 +165,9 @@ export function TodoItem({
         case "dependency":
           metadata.dependencies.push(token.value);
           break;
+        case "tag":
+          metadata.tags.push(token.value);
+          break;
       }
     });
 

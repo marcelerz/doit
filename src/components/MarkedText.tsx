@@ -73,10 +73,11 @@ export function MarkedText({
     { regex: /\$[\w-_]+/g, type: "source" as const },
     { regex: /\^[\w-_]+/g, type: "mentioned" as const },
     { regex: /!![\w-_]+/g, type: "priority" as const },
-    { regex: /~([^@#$^*~%>\n]+?)(?=\s{2,}|\s+[@#$^*~%!>]{1,2}|$)/g, type: "dueDate" as const },
+    { regex: /~([^@#$^*~%>&\n]+?)(?=\s{2,}|\s+[@#$^*~%!>&]{1,2}|$)/g, type: "dueDate" as const },
     { regex: /\*[\w-_]+/g, type: "duration" as const },
-    { regex: /%([^@#$^*~%>\n]+?)(?=\s{2,}|\s+[@#$^*~%!>]{1,2}|$)/g, type: "recurring" as const },
+    { regex: /%([^@#$^*~%>&\n]+?)(?=\s{2,}|\s+[@#$^*~%!>&]{1,2}|$)/g, type: "recurring" as const },
     { regex: />[\w-]+/g, type: "dependency" as const },
+    { regex: /&[\w-_]+/g, type: "tag" as const },
   ];
 
   // Find all matches across all patterns
@@ -105,6 +106,7 @@ export function MarkedText({
           duration: "*",
           recurring: "%",
           dependency: ">",
+          tag: "&",
         };
         const symbol = markerSymbols[type] || "";
 

@@ -128,6 +128,7 @@ export function TodoDetailsOverlay({
     duration: "*",
     recurring: "%",
     dependency: ">",
+    tag: "&",
   };
 
   useEffect(() => {
@@ -158,7 +159,7 @@ export function TodoDetailsOverlay({
       dueDate: editTokens.find((t) => t.type === "dueDate")?.value,
       duration: editTokens.find((t) => t.type === "duration")?.value,
       recurring: editTokens.find((t) => t.type === "recurring")?.value,
-      tags: todo.metadata.tags || [],
+      tags: editTokens.filter((t) => t.type === "tag").map((t) => t.value),
     };
 
     onEdit(todo.id, editFullText, editPlainText, metadata);
