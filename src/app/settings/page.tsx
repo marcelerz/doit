@@ -3,8 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useSettings } from "@/hooks/useSettings";
-import { PeopleTab } from "@/components/settings/PeopleTab";
-import { ProjectsTab } from "@/components/settings/ProjectsTab";
 import { PrioritiesTab } from "@/components/settings/PrioritiesTab";
 import { LinksTab } from "@/components/settings/LinksTab";
 import { MarkersTab } from "@/components/settings/MarkersTab";
@@ -13,7 +11,7 @@ import { DateTimeTab } from "@/components/settings/DateTimeTab";
 import { WorkHoursTab } from "@/components/settings/WorkHoursTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 
-type Tab = "general" | "datetime" | "workhours" | "people" | "projects" | "priorities" | "links" | "markers" | "backup";
+type Tab = "general" | "datetime" | "workhours" | "priorities" | "links" | "markers" | "backup";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
@@ -102,8 +100,7 @@ export default function SettingsPage() {
             </Link>
           </div>
           <p className="text-zinc-600 dark:text-zinc-400">
-            Configure general settings, date/time, people, projects, priorities, link patterns, and marker colors for
-            your todo app
+            Configure general settings, date/time, priorities, link patterns, and marker colors for your todo app
           </p>
         </header>
 
@@ -146,26 +143,6 @@ export default function SettingsPage() {
                 }`}
               >
                 Work Hours
-              </button>
-              <button
-                onClick={() => setActiveTab("people")}
-                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "people"
-                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                }`}
-              >
-                People
-              </button>
-              <button
-                onClick={() => setActiveTab("projects")}
-                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "projects"
-                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                }`}
-              >
-                Projects
               </button>
               <button
                 onClick={() => setActiveTab("priorities")}
@@ -260,17 +237,6 @@ export default function SettingsPage() {
               <WorkHoursTab
                 workHours={settings.general.workHours}
                 onUpdate={(workHours) => updateGeneralSettings({ workHours })}
-              />
-            )}
-            {activeTab === "people" && (
-              <PeopleTab people={settings.people} onAdd={addPerson} onUpdate={updatePerson} onDelete={deletePerson} />
-            )}
-            {activeTab === "projects" && (
-              <ProjectsTab
-                projects={settings.projects}
-                onAdd={addProject}
-                onUpdate={updateProject}
-                onDelete={deleteProject}
               />
             )}
             {activeTab === "priorities" && (

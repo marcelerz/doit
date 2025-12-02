@@ -11,6 +11,10 @@ import { GanttView } from "./views/GanttView";
 import { CalendarView } from "./views/CalendarView";
 import { MarkerReference } from "./MarkerReference";
 import { TodoDetailsOverlay } from "./TodoDetailsOverlay";
+import { PersonDetailsOverlay } from "./PersonDetailsOverlay";
+import { ProjectDetailsOverlay } from "./ProjectDetailsOverlay";
+import { PersonItem } from "./PersonItem";
+import { ProjectItem } from "./ProjectItem";
 import { calculateUsageStats, sortByUsage, UsageStats } from "@/utils/usageStats";
 
 interface TodoFilters {
@@ -27,7 +31,7 @@ interface TodoFilters {
   dependencies: Set<string>;
 }
 
-type ViewTab = "list" | "gantt" | "calendar";
+type ViewTab = "list" | "gantt" | "calendar" | "people" | "projects";
 
 export function TodoList() {
   const {
@@ -48,7 +52,22 @@ export function TodoList() {
     undo,
     dismissUndo,
   } = useTodos();
-  const { settings, addPerson, addProject, addPriority } = useSettings();
+  const {
+    settings,
+    addPerson,
+    addProject,
+    addPriority,
+    updatePerson,
+    deletePerson,
+    updateProject,
+    deleteProject,
+    addPersonComment,
+    editPersonComment,
+    deletePersonComment,
+    addProjectComment,
+    editProjectComment,
+    deleteProjectComment,
+  } = useSettings();
   const [currentTokens, setCurrentTokens] = useState<TokenMatch[]>([]);
   const [currentFullText, setCurrentFullText] = useState("");
   const [currentPlainText, setCurrentPlainText] = useState("");
@@ -129,9 +148,13 @@ export function TodoList() {
   // Expanded todo detail state
   const [expandedTodoId, setExpandedTodoId] = useState<string | null>(null);
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<(typeof todos)[0] | null>(null);
+  const [detailsOverlayPerson, setDetailsOverlayPerson] = useState<(typeof settings.people)[0] | null>(null);
+  const [detailsOverlayProject, setDetailsOverlayProject] = useState<(typeof settings.projects)[0] | null>(null);
 
   // Add todo overlay state
   const [isAddOverlayOpen, setIsAddOverlayOpen] = useState(false);
+  const [isAddPersonOverlayOpen, setIsAddPersonOverlayOpen] = useState(false);
+  const [isAddProjectOverlayOpen, setIsAddProjectOverlayOpen] = useState(false);
 
   // View presets state
   const [isSavePresetOpen, setIsSavePresetOpen] = useState(false);
@@ -464,9 +487,6 @@ export function TodoList() {
     }
     if (metadata.sourcePeople.length === 0 && autoAssign.sourcePerson) {
       metadata.sourcePeople.push(autoAssign.sourcePerson);
-    }
-    if (metadata.mentionedPeople.length === 0 && autoAssign.mentionedPerson) {
-      metadata.mentionedPeople.push(autoAssign.mentionedPerson);
     }
     if (metadata.projects.length === 0 && autoAssign.project) {
       metadata.projects.push(autoAssign.project);
@@ -970,6 +990,46 @@ export function TodoList() {
                 />
               </svg>
               Calendar
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveView("people")}
+            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+              activeView === "people"
+                ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
+              People
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveView("projects")}
+            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+              activeView === "projects"
+                ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                />
+              </svg>
+              Projects
             </div>
           </button>
         </div>
@@ -1566,6 +1626,88 @@ export function TodoList() {
           />
         )}
 
+        {/* People View */}
+        {activeView === "people" && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">People</h2>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                  {sortedPeople.length} {sortedPeople.length === 1 ? "person" : "people"}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAddPersonOverlayOpen(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Person
+              </button>
+            </div>
+            {sortedPeople.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="text-6xl mb-4">👥</div>
+                <p className="text-xl text-zinc-600 dark:text-zinc-400">No people yet. Add one to get started!</p>
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {sortedPeople.map((person) => (
+                  <li key={person.id}>
+                    <PersonItem
+                      person={person}
+                      onClick={() => setDetailsOverlayPerson(person)}
+                      onDelete={deletePerson}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* Projects View */}
+        {activeView === "projects" && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Projects</h2>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                  {sortedProjects.length} {sortedProjects.length === 1 ? "project" : "projects"}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAddProjectOverlayOpen(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Project
+              </button>
+            </div>
+            {sortedProjects.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="text-6xl mb-4">📁</div>
+                <p className="text-xl text-zinc-600 dark:text-zinc-400">No projects yet. Add one to get started!</p>
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {sortedProjects.map((project) => (
+                  <li key={project.id}>
+                    <ProjectItem
+                      project={project}
+                      onClick={() => setDetailsOverlayProject(project)}
+                      onDelete={deleteProject}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
         {activeView === "list" && (
           <>
             {todos.length === 0 ? (
@@ -1921,6 +2063,238 @@ export function TodoList() {
               </div>
             )}
 
+            {/* Add Person Overlay */}
+            {isAddPersonOverlayOpen && (
+              <div
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                onClick={() => setIsAddPersonOverlayOpen(false)}
+              >
+                <div
+                  className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-md w-full"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Add Person</h2>
+                      <button
+                        onClick={() => setIsAddPersonOverlayOpen(false)}
+                        className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        const name = formData.get("name") as string;
+                        const alternatives = (formData.get("alternatives") as string)
+                          .split(",")
+                          .map((a) => a.trim())
+                          .filter((a) => a);
+                        const color = formData.get("color") as string;
+                        const imageUrl = formData.get("imageUrl") as string;
+
+                        if (name.trim()) {
+                          addPerson({
+                            name: name.trim(),
+                            alternatives,
+                            color,
+                            imageUrl: imageUrl.trim() || undefined,
+                          });
+                          setIsAddPersonOverlayOpen(false);
+                          e.currentTarget.reset();
+                        }
+                      }}
+                      className="space-y-4"
+                    >
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                          Name *
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          required
+                          placeholder="John Doe"
+                          className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                          Alternatives (comma-separated)
+                        </label>
+                        <input
+                          type="text"
+                          name="alternatives"
+                          placeholder="Johnny, JD, John D."
+                          className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Color</label>
+                        <input
+                          type="color"
+                          name="color"
+                          defaultValue="#3b82f6"
+                          className="w-full h-10 rounded-lg cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                          Image URL (optional)
+                        </label>
+                        <input
+                          type="text"
+                          name="imageUrl"
+                          placeholder="https://example.com/avatar.jpg"
+                          className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div className="flex gap-3 justify-end pt-4">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddPersonOverlayOpen(false)}
+                          className="px-6 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
+                        >
+                          Add Person
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Add Project Overlay */}
+            {isAddProjectOverlayOpen && (
+              <div
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                onClick={() => setIsAddProjectOverlayOpen(false)}
+              >
+                <div
+                  className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-md w-full"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Add Project</h2>
+                      <button
+                        onClick={() => setIsAddProjectOverlayOpen(false)}
+                        className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        const name = formData.get("name") as string;
+                        const alternatives = (formData.get("alternatives") as string)
+                          .split(",")
+                          .map((a) => a.trim())
+                          .filter((a) => a);
+                        const color = formData.get("color") as string;
+                        const imageUrl = formData.get("imageUrl") as string;
+
+                        if (name.trim()) {
+                          addProject({
+                            name: name.trim(),
+                            alternatives,
+                            color,
+                            imageUrl: imageUrl.trim() || undefined,
+                          });
+                          setIsAddProjectOverlayOpen(false);
+                          e.currentTarget.reset();
+                        }
+                      }}
+                      className="space-y-4"
+                    >
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                          Name *
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          required
+                          placeholder="Website Redesign"
+                          className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                          Alternatives (comma-separated)
+                        </label>
+                        <input
+                          type="text"
+                          name="alternatives"
+                          placeholder="Web Redesign, Site Refresh"
+                          className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Color</label>
+                        <input
+                          type="color"
+                          name="color"
+                          defaultValue="#8b5cf6"
+                          className="w-full h-10 rounded-lg cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                          Image URL (optional)
+                        </label>
+                        <input
+                          type="text"
+                          name="imageUrl"
+                          placeholder="https://example.com/project-logo.jpg"
+                          className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div className="flex gap-3 justify-end pt-4">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddProjectOverlayOpen(false)}
+                          className="px-6 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
+                        >
+                          Add Project
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Dependency Block Notification */}
             {dependencyBlockNotification && (
               <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
@@ -2020,6 +2394,32 @@ export function TodoList() {
                 );
               })()}
           </>
+        )}
+
+        {/* Person Details Overlay */}
+        {detailsOverlayPerson && (
+          <PersonDetailsOverlay
+            person={detailsOverlayPerson}
+            onClose={() => setDetailsOverlayPerson(null)}
+            onUpdate={updatePerson}
+            onDelete={deletePerson}
+            onAddComment={addPersonComment}
+            onEditComment={editPersonComment}
+            onDeleteComment={deletePersonComment}
+          />
+        )}
+
+        {/* Project Details Overlay */}
+        {detailsOverlayProject && (
+          <ProjectDetailsOverlay
+            project={detailsOverlayProject}
+            onClose={() => setDetailsOverlayProject(null)}
+            onUpdate={updateProject}
+            onDelete={deleteProject}
+            onAddComment={addProjectComment}
+            onEditComment={editProjectComment}
+            onDeleteComment={deleteProjectComment}
+          />
         )}
       </div>
     </div>
