@@ -1880,6 +1880,64 @@ export function TodoDetailsOverlay({
                   </div>
                 </div>
 
+                {/* Links */}
+                {(() => {
+                  // Extract all link patterns from the todo text
+                  const foundLinks: { prefix: string; id: string; url: string; description: string; color: string }[] =
+                    [];
+                  linkPatterns.forEach((linkPattern) => {
+                    const linkRegex = new RegExp(`${linkPattern.prefix}\\d{4,}`, "gi");
+                    const matches = todo.text.matchAll(linkRegex);
+                    for (const match of matches) {
+                      const id = match[0].slice(linkPattern.prefix.length);
+                      const url = linkPattern.urlTemplate.replace("{id}", id);
+                      foundLinks.push({
+                        prefix: linkPattern.prefix,
+                        id: match[0],
+                        url,
+                        description: linkPattern.description,
+                        color: linkPattern.color,
+                      });
+                    }
+                  });
+
+                  if (foundLinks.length > 0) {
+                    return (
+                      <div>
+                        <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔗 Links</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {foundLinks.map((link, idx) => (
+                            <a
+                              key={`${link.id}-${idx}`}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs px-2 py-1 rounded border hover:shadow-md transition-all inline-flex items-center gap-1"
+                              style={{
+                                backgroundColor: link.color || "#e0e0e0",
+                                borderColor: link.color || "#d0d0d0",
+                                color: "#333",
+                              }}
+                              title={`${link.description}: ${link.url}`}
+                            >
+                              <span className="font-bold">{link.id}</span>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                />
+                              </svg>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {/* Action Buttons */}
                 <div className="flex items-end justify-end gap-2">
                   {/* Archive/Unarchive button */}
