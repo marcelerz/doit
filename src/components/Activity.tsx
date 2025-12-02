@@ -82,7 +82,7 @@ export function Activity({ activities, comments }: ActivityProps) {
         return "📁";
       case "priority_changed":
       case "priority_removed":
-        return "⚠️";
+        return "🔥";
       case "duedate_changed":
       case "duedate_removed":
         return "📅";

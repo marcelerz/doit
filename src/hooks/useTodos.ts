@@ -423,7 +423,6 @@ export function useTodos() {
           return {
             ...todo,
             comments: [...todo.comments, newComment],
-            activity: [...todo.activity, createActivity("comment_added", "Comment added")],
           };
         }
         return todo;
@@ -442,7 +441,6 @@ export function useTodos() {
                 ? { ...comment, history: [...comment.history, { date: Date.now(), content }] }
                 : comment,
             ),
-            activity: [...todo.activity, createActivity("comment_edited", "Comment edited")],
           };
         }
         return todo;
@@ -457,7 +455,6 @@ export function useTodos() {
           return {
             ...todo,
             comments: todo.comments.filter((c) => c.commentId !== commentId),
-            activity: [...todo.activity, createActivity("comment_deleted", "Comment deleted")],
           };
         }
         return todo;
