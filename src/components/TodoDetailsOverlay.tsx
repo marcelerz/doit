@@ -6,8 +6,9 @@ import { MarkerColors, GeneralSettings, LinkPattern, Person, Project, Priority }
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/SmartInput";
 import { MarkedText } from "./MarkedText";
 import { Comments } from "./Comments";
-import { MarkerReference } from "./MarkerReference";
+import { Activity } from "./Activity";
 import RichTextEditor from "./RichTextEditor";
+import { MarkerReference } from "./MarkerReference";
 
 interface TodoDetailsOverlayProps {
   todo: Todo;
@@ -86,6 +87,7 @@ export function TodoDetailsOverlay({
   const [recurringSelectedIndex, setRecurringSelectedIndex] = useState(0);
   const [tagInput, setTagInput] = useState("");
   const [showTagInput, setShowTagInput] = useState(false);
+  const [newComment, setNewComment] = useState("");
 
   // State for metadata editing
   const [editingMetadata, setEditingMetadata] = useState<TodoMetadata>({
@@ -2008,16 +2010,40 @@ export function TodoDetailsOverlay({
             </>
           )}
 
-          {/* Comments */}
-          {!isEditing && onAddComment && onEditComment && onDeleteComment && (
+          {/* Activity (includes comments inline) */}
+          {!isEditing && (
             <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
-              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">💭 Comments</h4>
-              <Comments
-                comments={todo.comments}
-                onAddComment={(content) => onAddComment(todo.id, content)}
-                onEditComment={(commentId, content) => onEditComment(todo.id, commentId, content)}
-                onDeleteComment={(commentId) => onDeleteComment(todo.id, commentId)}
-              />
+              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">📋 Activity</h4>
+
+              {/* Add comment input */}
+              {onAddComment && (
+                <div className="mb-4 flex gap-2 items-start">
+                  <div className="flex-1">
+                    <RichTextEditor
+                      value={newComment}
+                      onChange={setNewComment}
+                      placeholder="Add a comment..."
+                      minHeight="60px"
+                      maxHeight="200px"
+                      alwaysEditable={true}
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (newComment.trim()) {
+                        onAddComment(todo.id, newComment);
+                        setNewComment("");
+                      }
+                    }}
+                    disabled={!newComment.trim()}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+              )}
+
+              <Activity activities={todo.activity} comments={todo.comments} />
             </div>
           )}
         </div>

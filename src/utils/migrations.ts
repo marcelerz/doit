@@ -78,6 +78,8 @@ function migrateTodo(todo: any): Todo {
     } as TodoMetadata,
     // Ensure comments array exists
     comments: todo.comments || [],
+    // Ensure activity array exists
+    activity: todo.activity || [],
     // Ensure timestamps exist
     createdAt: todo.createdAt || Date.now(),
     updatedAt: todo.updatedAt || todo.createdAt || Date.now(),

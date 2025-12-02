@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Todo, TodoMetadata } from "@/types/todo";
+import { Todo, TodoMetadata, ActivityEntry } from "@/types/todo";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/utils/migrations";
 import { defaultSettings } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
 import { areDependenciesSatisfied, getDependencyBlockMessage } from "@/utils/dependencyValidator";
+import { createActivity, generateMetadataActivities } from "@/utils/activityLogger";
 
 const STORAGE_KEY = "doit-todos";
 const SETTINGS_KEY = "doit-settings";
@@ -100,13 +101,43 @@ export function useTodos() {
       clearTimeout(action.timeoutId);
 
       if (action.type === "delete") {
-        // Restore the deleted todo with its previous state
+        // Restore the deleted todo with its previous state and add undelete activity
         if (action.previousState) {
-          setTodos((prev) => [action.previousState!, ...prev]);
+          const restoredTodo: Todo = {
+            ...action.previousState,
+            activity: [...action.previousState.activity, createActivity("undeleted", "Task undeleted")],
+          };
+          setTodos((prev) => [restoredTodo, ...prev]);
         }
       } else if (action.previousState) {
-        // Restore previous state for toggle/archive
-        setTodos((prev) => prev.map((todo) => (todo.id === action.todo.id ? action.previousState! : todo)));
+        // Restore previous state for toggle/archive with appropriate activity
+        setTodos((prev) =>
+          prev.map((todo) => {
+            if (todo.id === action.todo.id) {
+              let activityType: ActivityEntry["type"];
+              let description: string;
+
+              if (action.type === "complete") {
+                activityType = "uncompleted";
+                description = "Completion undone";
+              } else if (action.type === "uncomplete") {
+                activityType = "completed";
+                description = "Uncompletion undone";
+              } else if (action.type === "archive") {
+                activityType = "unarchived";
+                description = "Archive undone";
+              } else {
+                return action.previousState!;
+              }
+
+              return {
+                ...action.previousState!,
+                activity: [...action.previousState!.activity, createActivity(activityType, description)],
+              };
+            }
+            return todo;
+          }),
+        );
       }
 
       // Remove this action from the queue
@@ -141,6 +172,7 @@ export function useTodos() {
       updatedAt: now,
       metadata,
       comments: [],
+      activity: [createActivity("created", "Task created")],
     };
     setTodos((prev) => [newTodo, ...prev]);
   };
@@ -165,6 +197,13 @@ export function useTodos() {
 
     const previousState = JSON.parse(JSON.stringify(todoToToggle)); // Deep copy
     const now = Date.now();
+
+    // Track activity
+    const activity =
+      newState === "completed"
+        ? createActivity("completed", "Task completed")
+        : createActivity("uncompleted", "Task marked as active");
+
     const updatedTodo: Todo = {
       ...todoToToggle,
       state: newState,
@@ -172,6 +211,7 @@ export function useTodos() {
       archivedAt: undefined,
       deletedAt: undefined,
       updatedAt: now,
+      activity: [...todoToToggle.activity, activity],
     };
 
     setTodos((prev) => prev.map((todo) => (todo.id === id ? updatedTodo : todo)));
@@ -198,6 +238,7 @@ export function useTodos() {
             dueDate: nextDateString,
           },
           comments: [], // New instance starts with no comments
+          activity: [createActivity("created", "Task created from recurring pattern")],
         };
 
         // Reconstruct text with new due date
@@ -246,6 +287,7 @@ export function useTodos() {
       state: "deleted",
       deletedAt: now,
       updatedAt: now,
+      activity: [...todoToDelete.activity, createActivity("deleted", "Task deleted")],
     };
 
     // Update the todo to deleted state (keeps it in the list but hidden)
@@ -296,6 +338,7 @@ export function useTodos() {
       archivedAt: now,
       updatedAt: now,
       deletedAt: undefined,
+      activity: [...todoToArchive.activity, createActivity("archived", "Task archived")],
     };
 
     setTodos((prev) => prev.map((todo) => (todo.id === id ? updatedTodo : todo)));
@@ -331,6 +374,7 @@ export function useTodos() {
             archivedAt: undefined,
             deletedAt: undefined,
             updatedAt: Date.now(),
+            activity: [...todo.activity, createActivity("unarchived", "Task unarchived")],
           };
         }
         return todo;
@@ -340,7 +384,31 @@ export function useTodos() {
 
   const editTodo = (id: string, text: string, plainText: string, metadata: TodoMetadata) => {
     setTodos((prev) =>
-      prev.map((todo) => (todo.id === id ? { ...todo, text, plainText, metadata, updatedAt: Date.now() } : todo)),
+      prev.map((todo) => {
+        if (todo.id === id) {
+          // Track text edit and metadata changes
+          const activities: ActivityEntry[] = [];
+
+          // Check if text changed
+          if (todo.plainText !== plainText) {
+            activities.push(createActivity("edited", "Task text edited"));
+          }
+
+          // Check for metadata changes
+          const metadataActivities = generateMetadataActivities(todo.metadata, metadata);
+          activities.push(...metadataActivities);
+
+          return {
+            ...todo,
+            text,
+            plainText,
+            metadata,
+            updatedAt: Date.now(),
+            activity: [...todo.activity, ...activities],
+          };
+        }
+        return todo;
+      }),
     );
   };
 
@@ -352,7 +420,11 @@ export function useTodos() {
             commentId: Date.now(),
             history: [{ date: Date.now(), content }],
           };
-          return { ...todo, comments: [...todo.comments, newComment] };
+          return {
+            ...todo,
+            comments: [...todo.comments, newComment],
+            activity: [...todo.activity, createActivity("comment_added", "Comment added")],
+          };
         }
         return todo;
       }),
@@ -370,6 +442,7 @@ export function useTodos() {
                 ? { ...comment, history: [...comment.history, { date: Date.now(), content }] }
                 : comment,
             ),
+            activity: [...todo.activity, createActivity("comment_edited", "Comment edited")],
           };
         }
         return todo;
@@ -381,7 +454,11 @@ export function useTodos() {
     setTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
-          return { ...todo, comments: todo.comments.filter((c) => c.commentId !== commentId) };
+          return {
+            ...todo,
+            comments: todo.comments.filter((c) => c.commentId !== commentId),
+            activity: [...todo.activity, createActivity("comment_deleted", "Comment deleted")],
+          };
         }
         return todo;
       }),

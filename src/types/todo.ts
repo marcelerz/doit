@@ -22,6 +22,46 @@ export interface CommentHistoryEntry {
   content: string;
 }
 
+export interface ActivityEntry {
+  id: string;
+  timestamp: number;
+  type:
+    | "created"
+    | "completed"
+    | "uncompleted"
+    | "archived"
+    | "unarchived"
+    | "deleted"
+    | "undeleted"
+    | "edited"
+    | "comment_added"
+    | "comment_edited"
+    | "comment_deleted"
+    | "assigned_added"
+    | "assigned_removed"
+    | "source_added"
+    | "source_removed"
+    | "mentioned_added"
+    | "mentioned_removed"
+    | "project_added"
+    | "project_removed"
+    | "priority_changed"
+    | "priority_removed"
+    | "duedate_changed"
+    | "duedate_removed"
+    | "duration_changed"
+    | "duration_removed"
+    | "recurring_changed"
+    | "recurring_removed"
+    | "dependency_added"
+    | "dependency_removed"
+    | "tag_added"
+    | "tag_removed"
+    | "context_changed";
+  description: string;
+  metadata?: any; // Optional metadata for the activity
+}
+
 export type TodoState = "active" | "completed" | "archived" | "deleted";
 
 export interface Todo {
@@ -36,4 +76,5 @@ export interface Todo {
   deletedAt?: number; // Timestamp when task was deleted
   metadata: TodoMetadata;
   comments: Comment[];
+  activity: ActivityEntry[];
 }
