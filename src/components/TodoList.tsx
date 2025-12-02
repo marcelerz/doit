@@ -11,6 +11,7 @@ import { GanttView } from "./views/GanttView";
 import { CalendarView } from "./views/CalendarView";
 import { MarkerReference } from "./MarkerReference";
 import { TodoDetailsOverlay } from "./TodoDetailsOverlay";
+import { calculateUsageStats, sortByUsage, UsageStats } from "@/utils/usageStats";
 
 interface TodoFilters {
   searchText: string;
@@ -50,6 +51,46 @@ export function TodoList() {
   const [currentPlainText, setCurrentPlainText] = useState("");
   const smartInputRef = useRef<SmartEditableInputHandle>(null);
   const [activeView, setActiveView] = useState<ViewTab>("list");
+
+  // Calculate usage statistics from all todos
+  const usageStats = useMemo<UsageStats>(() => {
+    return calculateUsageStats(todos);
+  }, [todos]);
+
+  // Combine all person usage stats (assigned + source + mentioned) for unified sorting
+  const combinedPeopleUsage = useMemo(() => {
+    const combined = new Map<string, number>();
+
+    // Add assigned people stats
+    usageStats.assignedPeople.forEach((count, name) => {
+      combined.set(name, (combined.get(name) || 0) + count);
+    });
+
+    // Add source people stats
+    usageStats.sourcePeople.forEach((count, name) => {
+      combined.set(name, (combined.get(name) || 0) + count);
+    });
+
+    // Add mentioned people stats
+    usageStats.mentionedPeople.forEach((count, name) => {
+      combined.set(name, (combined.get(name) || 0) + count);
+    });
+
+    return combined;
+  }, [usageStats]);
+
+  // Sort people, projects, and priorities by usage frequency
+  const sortedPeople = useMemo(() => {
+    return sortByUsage(settings.people, combinedPeopleUsage);
+  }, [settings.people, combinedPeopleUsage]);
+
+  const sortedProjects = useMemo(() => {
+    return sortByUsage(settings.projects, usageStats.projects);
+  }, [settings.projects, usageStats.projects]);
+
+  const sortedPriorities = useMemo(() => {
+    return sortByUsage(settings.priorities, usageStats.priorities);
+  }, [settings.priorities, usageStats.priorities]);
 
   // Wrapper functions to convert name string to object format
   const handleAddPerson = (name: string) => {
@@ -1312,9 +1353,9 @@ export function TodoList() {
             markerColors={settings.markerColors}
             workHours={settings.general.workHours}
             onEditTodo={editTodo}
-            availablePeople={settings.people}
-            availableProjects={settings.projects}
-            availablePriorities={settings.priorities}
+            availablePeople={sortedPeople}
+            availableProjects={sortedProjects}
+            availablePriorities={sortedPriorities}
             onAddPerson={handleAddPerson}
             onAddProject={handleAddProject}
             onAddPriority={handleAddPriority}
@@ -1336,9 +1377,9 @@ export function TodoList() {
             markerColors={settings.markerColors}
             generalSettings={settings.general}
             linkPatterns={settings.linkPatterns}
-            availablePeople={settings.people}
-            availableProjects={settings.projects}
-            availablePriorities={settings.priorities}
+            availablePeople={sortedPeople}
+            availableProjects={sortedProjects}
+            availablePriorities={sortedPriorities}
             onToggle={toggleTodo}
             onDelete={deleteTodo}
             onArchive={archiveTodo}
@@ -1408,9 +1449,9 @@ export function TodoList() {
                                     markerColors={settings.markerColors}
                                     generalSettings={settings.general}
                                     linkPatterns={settings.linkPatterns}
-                                    availablePeople={settings.people}
-                                    availableProjects={settings.projects}
-                                    availablePriorities={settings.priorities}
+                                    availablePeople={sortedPeople}
+                                    availableProjects={sortedProjects}
+                                    availablePriorities={sortedPriorities}
                                     availableTodos={todos}
                                     onAddPerson={handleAddPerson}
                                     onAddProject={handleAddProject}
@@ -1465,9 +1506,9 @@ export function TodoList() {
                               markerColors={settings.markerColors}
                               generalSettings={settings.general}
                               linkPatterns={settings.linkPatterns}
-                              availablePeople={settings.people}
-                              availableProjects={settings.projects}
-                              availablePriorities={settings.priorities}
+                              availablePeople={sortedPeople}
+                              availableProjects={sortedProjects}
+                              availablePriorities={sortedPriorities}
                               availableTodos={todos}
                               onAddPerson={handleAddPerson}
                               onAddProject={handleAddProject}
@@ -1519,9 +1560,9 @@ export function TodoList() {
                               markerColors={settings.markerColors}
                               generalSettings={settings.general}
                               linkPatterns={settings.linkPatterns}
-                              availablePeople={settings.people}
-                              availableProjects={settings.projects}
-                              availablePriorities={settings.priorities}
+                              availablePeople={sortedPeople}
+                              availableProjects={sortedProjects}
+                              availablePriorities={sortedPriorities}
                               availableTodos={todos}
                               onAddPerson={handleAddPerson}
                               onAddProject={handleAddProject}
@@ -1579,9 +1620,9 @@ export function TodoList() {
                           ref={smartInputRef}
                           markers={markers}
                           markerColors={settings.markerColors}
-                          availablePeople={settings.people}
-                          availableProjects={settings.projects}
-                          availablePriorities={settings.priorities}
+                          availablePeople={sortedPeople}
+                          availableProjects={sortedProjects}
+                          availablePriorities={sortedPriorities}
                           availableTodos={todos}
                           dateTimeSettings={settings.general.dateTime}
                           onAddPerson={handleAddPerson}
@@ -1794,9 +1835,9 @@ export function TodoList() {
                     markerColors={settings.markerColors}
                     generalSettings={settings.general}
                     linkPatterns={settings.linkPatterns}
-                    availablePeople={settings.people}
-                    availableProjects={settings.projects}
-                    availablePriorities={settings.priorities}
+                    availablePeople={sortedPeople}
+                    availableProjects={sortedProjects}
+                    availablePriorities={sortedPriorities}
                     onAddPerson={handleAddPerson}
                     onAddProject={handleAddProject}
                     onAddPriority={handleAddPriority}
