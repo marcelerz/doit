@@ -4,6 +4,7 @@ export interface Person {
   alternatives: string[];
   imageUrl?: string;
   color: string;
+  context?: string; // Rich text context
   comments: Comment[];
   activity: ActivityEntry[];
   archived?: boolean;
@@ -15,6 +16,7 @@ export interface Project {
   alternatives: string[];
   imageUrl?: string;
   color: string;
+  context?: string; // Rich text context
   comments: Comment[];
   activity: ActivityEntry[];
   archived?: boolean;

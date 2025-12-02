@@ -32,6 +32,7 @@ export function PersonDetailsOverlay({
   const [editingAlternatives, setEditingAlternatives] = useState(person.alternatives.join(", "));
   const [editingColor, setEditingColor] = useState(person.color);
   const [editingImageUrl, setEditingImageUrl] = useState(person.imageUrl || "");
+  const [editingContext, setEditingContext] = useState(person.context || "");
   const [newComment, setNewComment] = useState("");
 
   // Sync local state when person changes (after updates)
@@ -40,6 +41,7 @@ export function PersonDetailsOverlay({
     setEditingAlternatives(person.alternatives.join(", "));
     setEditingColor(person.color);
     setEditingImageUrl(person.imageUrl || "");
+    setEditingContext(person.context || "");
   }, [person]);
 
   // Auto-save when fields change
@@ -49,7 +51,8 @@ export function PersonDetailsOverlay({
         editingName.trim() !== person.name ||
         editingAlternatives !== person.alternatives.join(", ") ||
         editingColor !== person.color ||
-        (editingImageUrl.trim() || undefined) !== person.imageUrl
+        (editingImageUrl.trim() || undefined) !== person.imageUrl ||
+        (editingContext.trim() || undefined) !== person.context
       ) {
         onUpdate(person.id, {
           name: editingName.trim(),
@@ -59,12 +62,13 @@ export function PersonDetailsOverlay({
             .filter((a) => a),
           color: editingColor,
           imageUrl: editingImageUrl.trim() || undefined,
+          context: editingContext.trim() || undefined,
         });
       }
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [editingName, editingAlternatives, editingColor, editingImageUrl, person, onUpdate]);
+  }, [editingName, editingAlternatives, editingColor, editingImageUrl, editingContext, person, onUpdate]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -224,6 +228,19 @@ export function PersonDetailsOverlay({
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Context */}
+            <div>
+              <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📝 Context</label>
+              <RichTextEditor
+                value={editingContext}
+                onChange={(html) => setEditingContext(html || "")}
+                placeholder="Add context..."
+                minHeight="100px"
+                maxHeight="300px"
+                noBorderInViewMode={true}
+              />
             </div>
 
             {/* Action Buttons */}
