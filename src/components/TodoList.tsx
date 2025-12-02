@@ -22,6 +22,9 @@ interface TodoFilters {
   priorities: Set<string>;
   dueDates: Set<string>;
   durations: Set<string>;
+  tags: Set<string>;
+  recurring: Set<string>;
+  dependencies: Set<string>;
 }
 
 type ViewTab = "list" | "gantt" | "calendar";
@@ -151,6 +154,9 @@ export function TodoList() {
       priorities: string[];
       dueDates: string[];
       durations: string[];
+      tags: string[];
+      recurring: string[];
+      dependencies: string[];
     };
     sortField: SortField;
     sortDirection: SortDirection;
@@ -195,6 +201,9 @@ export function TodoList() {
             priorities: new Set(parsed.filters?.priorities || []),
             dueDates: new Set(parsed.filters?.dueDates || []),
             durations: new Set(parsed.filters?.durations || []),
+            tags: new Set(parsed.filters?.tags || []),
+            recurring: new Set(parsed.filters?.recurring || []),
+            dependencies: new Set(parsed.filters?.dependencies || []),
           };
         }
       }
@@ -210,6 +219,9 @@ export function TodoList() {
       priorities: new Set(),
       dueDates: new Set(),
       durations: new Set(),
+      tags: new Set(),
+      recurring: new Set(),
+      dependencies: new Set(),
     };
   });
 
@@ -272,6 +284,9 @@ export function TodoList() {
         priorities: Array.from(filters.priorities),
         dueDates: Array.from(filters.dueDates),
         durations: Array.from(filters.durations),
+        tags: Array.from(filters.tags),
+        recurring: Array.from(filters.recurring),
+        dependencies: Array.from(filters.dependencies),
       },
       sortField,
       sortDirection,
@@ -320,6 +335,9 @@ export function TodoList() {
       priorities: new Set(preset.filters.priorities),
       dueDates: new Set(preset.filters.dueDates),
       durations: new Set(preset.filters.durations),
+      tags: new Set(preset.filters.tags || []),
+      recurring: new Set(preset.filters.recurring || []),
+      dependencies: new Set(preset.filters.dependencies || []),
     });
     setSortField(preset.sortField);
     setSortDirection(preset.sortDirection);
@@ -340,6 +358,9 @@ export function TodoList() {
         priorities: Array.from(filters.priorities),
         dueDates: Array.from(filters.dueDates),
         durations: Array.from(filters.durations),
+        tags: Array.from(filters.tags),
+        recurring: Array.from(filters.recurring),
+        dependencies: Array.from(filters.dependencies),
       },
       sortField,
       sortDirection,
@@ -492,6 +513,9 @@ export function TodoList() {
     const priorities = new Set<string>();
     const dueDates = new Set<string>();
     const durations = new Set<string>();
+    const tags = new Set<string>();
+    const recurring = new Set<string>();
+    const dependencies = new Set<string>();
 
     todos.forEach((todo) => {
       todo.metadata.assignedPeople.forEach((p) => assignedPeople.add(p));
@@ -501,6 +525,9 @@ export function TodoList() {
       if (todo.metadata.priority) priorities.add(todo.metadata.priority);
       if (todo.metadata.dueDate) dueDates.add(todo.metadata.dueDate);
       if (todo.metadata.duration) durations.add(todo.metadata.duration);
+      todo.metadata.tags.forEach((t) => tags.add(t));
+      if (todo.metadata.recurring) recurring.add(todo.metadata.recurring);
+      todo.metadata.dependencies.forEach((d) => dependencies.add(d));
     });
 
     return {
@@ -511,6 +538,9 @@ export function TodoList() {
       priorities: Array.from(priorities).sort(),
       dueDates: Array.from(dueDates).sort(),
       durations: Array.from(durations).sort(),
+      tags: Array.from(tags).sort(),
+      recurring: Array.from(recurring).sort(),
+      dependencies: Array.from(dependencies).sort(),
     };
   }, [todos]);
 
@@ -547,6 +577,9 @@ export function TodoList() {
       priorities: new Set(),
       dueDates: new Set(),
       durations: new Set(),
+      tags: new Set(),
+      recurring: new Set(),
+      dependencies: new Set(),
     });
   };
 
@@ -558,7 +591,10 @@ export function TodoList() {
     filters.projects.size > 0 ||
     filters.priorities.size > 0 ||
     filters.dueDates.size > 0 ||
-    filters.durations.size > 0;
+    filters.durations.size > 0 ||
+    filters.tags.size > 0 ||
+    filters.recurring.size > 0 ||
+    filters.dependencies.size > 0;
 
   // Apply filters to todos
   const applyFilters = (todoList: typeof todos) => {
@@ -610,6 +646,24 @@ export function TodoList() {
 
       if (filters.durations.size > 0) {
         if (!todo.metadata.duration || !filters.durations.has(todo.metadata.duration)) {
+          return false;
+        }
+      }
+
+      if (filters.tags.size > 0) {
+        if (!todo.metadata.tags.some((t) => filters.tags.has(t))) {
+          return false;
+        }
+      }
+
+      if (filters.recurring.size > 0) {
+        if (!todo.metadata.recurring || !filters.recurring.has(todo.metadata.recurring)) {
+          return false;
+        }
+      }
+
+      if (filters.dependencies.size > 0) {
+        if (!todo.metadata.dependencies.some((d) => filters.dependencies.has(d))) {
           return false;
         }
       }
@@ -1336,6 +1390,126 @@ export function TodoList() {
                           }`}
                         >
                           *{duration}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tags Filter */}
+                {filterOptions.tags.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                        Tags (&) - {filters.tags.size}
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSelectAll("tags")}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => handleClearAll("tags")}
+                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {filterOptions.tags.map((tag) => (
+                        <button
+                          key={tag}
+                          onClick={() => handleFilterClick("tags", tag)}
+                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                            filters.tags.has(tag)
+                              ? "bg-teal-600 text-white"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          &{tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recurring Filter */}
+                {filterOptions.recurring.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                        Recurring (%) - {filters.recurring.size}
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSelectAll("recurring")}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => handleClearAll("recurring")}
+                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {filterOptions.recurring.map((pattern) => (
+                        <button
+                          key={pattern}
+                          onClick={() => handleFilterClick("recurring", pattern)}
+                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                            filters.recurring.has(pattern)
+                              ? "bg-indigo-600 text-white"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          %{pattern}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Dependencies Filter */}
+                {filterOptions.dependencies.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                        Dependencies (&gt;) - {filters.dependencies.size}
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSelectAll("dependencies")}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => handleClearAll("dependencies")}
+                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {filterOptions.dependencies.map((dep) => (
+                        <button
+                          key={dep}
+                          onClick={() => handleFilterClick("dependencies", dep)}
+                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                            filters.dependencies.has(dep)
+                              ? "bg-orange-600 text-white"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          &gt;{dep}
                         </button>
                       ))}
                     </div>
