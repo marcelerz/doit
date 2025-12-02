@@ -33,7 +33,14 @@ export function ProjectItem({ project, onClick, onDelete }: ProjectItemProps) {
         {/* Content */}
         <div className="flex-1 min-w-0">
           {/* Name */}
-          <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">{project.name}</h3>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{project.name}</h3>
+            {project.archived && (
+              <span className="text-xs px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700">
+                Archived
+              </span>
+            )}
+          </div>
 
           {/* Alternatives */}
           {project.alternatives.length > 0 && (

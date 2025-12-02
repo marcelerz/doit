@@ -10,6 +10,8 @@ interface PersonDetailsOverlayProps {
   onClose: () => void;
   onUpdate: (id: string, updates: Partial<Person>) => void;
   onDelete: (id: string) => void;
+  onArchive?: (id: string) => void;
+  onUnarchive?: (id: string) => void;
   onAddComment: (personId: string, content: string) => void;
   onEditComment: (personId: string, commentId: number, content: string) => void;
   onDeleteComment: (personId: string, commentId: number) => void;
@@ -20,6 +22,8 @@ export function PersonDetailsOverlay({
   onClose,
   onUpdate,
   onDelete,
+  onArchive,
+  onUnarchive,
   onAddComment,
   onEditComment,
   onDeleteComment,
@@ -29,6 +33,14 @@ export function PersonDetailsOverlay({
   const [editingColor, setEditingColor] = useState(person.color);
   const [editingImageUrl, setEditingImageUrl] = useState(person.imageUrl || "");
   const [newComment, setNewComment] = useState("");
+
+  // Sync local state when person changes (after updates)
+  useEffect(() => {
+    setEditingName(person.name);
+    setEditingAlternatives(person.alternatives.join(", "));
+    setEditingColor(person.color);
+    setEditingImageUrl(person.imageUrl || "");
+  }, [person]);
 
   // Auto-save when fields change
   useEffect(() => {
@@ -212,6 +224,51 @@ export function PersonDetailsOverlay({
 
               {/* Action Buttons */}
               <div className="flex items-center justify-end gap-2 pt-4">
+                {/* Archive/Unarchive button */}
+                {person.archived && onUnarchive ? (
+                  <button
+                    onClick={() => {
+                      onUnarchive(person.id);
+                      onClose();
+                    }}
+                    className="p-2 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 rounded-md transition-colors"
+                    aria-label="Unarchive person"
+                    title="Unarchive"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                      />
+                    </svg>
+                  </button>
+                ) : (
+                  !person.archived &&
+                  onArchive && (
+                    <button
+                      onClick={() => {
+                        onArchive(person.id);
+                        onClose();
+                      }}
+                      className="p-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-md transition-colors"
+                      aria-label="Archive person"
+                      title="Archive"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                        />
+                      </svg>
+                    </button>
+                  )
+                )}
+
+                {/* Delete button */}
                 <button
                   onClick={handleDelete}
                   className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
@@ -255,7 +312,7 @@ export function PersonDetailsOverlay({
                 </button>
               </div>
 
-              <Activity activities={[]} comments={person.comments} />
+              <Activity activities={person.activity || []} comments={person.comments} />
             </div>
           </div>
         </div>

@@ -5,6 +5,8 @@ export interface Person {
   imageUrl?: string;
   color: string;
   comments: Comment[];
+  activity: ActivityEntry[];
+  archived?: boolean;
 }
 
 export interface Project {
@@ -14,6 +16,8 @@ export interface Project {
   imageUrl?: string;
   color: string;
   comments: Comment[];
+  activity: ActivityEntry[];
+  archived?: boolean;
 }
 
 export interface Priority {
@@ -23,6 +27,8 @@ export interface Priority {
   color: string;
   order: number; // Lower number = higher priority
   comments: Comment[];
+  activity: ActivityEntry[];
+  archived?: boolean;
 }
 
 export interface LinkPattern {
@@ -41,6 +47,22 @@ export interface Comment {
 export interface CommentHistoryEntry {
   date: number;
   content: string;
+}
+
+export interface ActivityEntry {
+  id: string;
+  timestamp: number;
+  type:
+    | "created"
+    | "edited"
+    | "archived"
+    | "unarchived"
+    | "deleted"
+    | "comment_added"
+    | "comment_edited"
+    | "comment_deleted";
+  description: string;
+  metadata?: any;
 }
 
 export interface MarkerColors extends Record<string, string> {
@@ -199,10 +221,26 @@ export const defaultSettings: Settings = {
   people: [],
   projects: [],
   priorities: [
-    { id: "1", name: "urgent", alternatives: ["asap", "critical"], color: "#ff0000", order: 1, comments: [] },
-    { id: "2", name: "high", alternatives: [], color: "#ff6b00", order: 2, comments: [] },
-    { id: "3", name: "medium", alternatives: ["normal", "med"], color: "#ffa500", order: 3, comments: [] },
-    { id: "4", name: "low", alternatives: [], color: "#ffff00", order: 4, comments: [] },
+    {
+      id: "1",
+      name: "urgent",
+      alternatives: ["asap", "critical"],
+      color: "#ff0000",
+      order: 1,
+      comments: [],
+      activity: [],
+    },
+    { id: "2", name: "high", alternatives: [], color: "#ff6b00", order: 2, comments: [], activity: [] },
+    {
+      id: "3",
+      name: "medium",
+      alternatives: ["normal", "med"],
+      color: "#ffa500",
+      order: 3,
+      comments: [],
+      activity: [],
+    },
+    { id: "4", name: "low", alternatives: [], color: "#ffff00", order: 4, comments: [], activity: [] },
   ],
   linkPatterns: [],
   markerColors: defaultMarkerColors,

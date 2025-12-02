@@ -195,8 +195,6 @@ export function TodoItem({
       if (metadata.mentionedPeople.length === 0) {
         if (todo.metadata.mentionedPeople.length > 0) {
           metadata.mentionedPeople = todo.metadata.mentionedPeople;
-        } else if (autoAssign.mentionedPerson) {
-          metadata.mentionedPeople.push(autoAssign.mentionedPerson);
         }
       }
 

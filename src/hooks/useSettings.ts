@@ -37,11 +37,20 @@ export function useSettings() {
     }
   }, [settings, isLoaded]);
 
-  const addPerson = (person: Omit<Person, "id" | "comments">) => {
+  const addPerson = (person: Omit<Person, "id" | "comments" | "activity">) => {
+    const now = Date.now();
     const newPerson: Person = {
       ...person,
-      id: Date.now().toString(),
+      id: now.toString(),
       comments: [],
+      activity: [
+        {
+          id: `${now}-created`,
+          timestamp: now,
+          type: "created",
+          description: `Person created`,
+        },
+      ],
     };
     setSettings((prev) => ({
       ...prev,
@@ -52,7 +61,103 @@ export function useSettings() {
   const updatePerson = (id: string, updates: Partial<Person>) => {
     setSettings((prev) => ({
       ...prev,
-      people: prev.people.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+      people: prev.people.map((p) => {
+        if (p.id === id) {
+          const updatedPerson = { ...p, ...updates };
+          // Add activity entry for edit with specific details
+          if (updates.name || updates.alternatives || updates.color || updates.imageUrl !== undefined) {
+            const now = Date.now();
+            const changes: string[] = [];
+            if (updates.name && updates.name !== p.name) {
+              changes.push(`name from "${p.name}" to "${updates.name}"`);
+            }
+            if (
+              updates.alternatives !== undefined &&
+              JSON.stringify(updates.alternatives) !== JSON.stringify(p.alternatives)
+            ) {
+              const oldAlts = p.alternatives.length > 0 ? p.alternatives.join(", ") : "none";
+              const newAlts = updates.alternatives.length > 0 ? updates.alternatives.join(", ") : "none";
+              changes.push(`alternatives from ${oldAlts} to ${newAlts}`);
+            }
+            if (updates.color && updates.color !== p.color) {
+              changes.push(`color from ${p.color} to ${updates.color}`);
+            }
+            if (updates.imageUrl !== p.imageUrl) {
+              if (updates.imageUrl && !p.imageUrl) {
+                changes.push("image added");
+              } else if (!updates.imageUrl && p.imageUrl) {
+                changes.push("image removed");
+              } else if (updates.imageUrl && p.imageUrl) {
+                changes.push("image updated");
+              }
+            }
+
+            if (changes.length > 0) {
+              updatedPerson.activity = [
+                ...(p.activity || []),
+                {
+                  id: `${now}-edited`,
+                  timestamp: now,
+                  type: "edited",
+                  description: `Updated ${changes.join("; ")}`,
+                },
+              ];
+            }
+          }
+          return updatedPerson;
+        }
+        return p;
+      }),
+    }));
+  };
+
+  const archivePerson = (id: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      people: prev.people.map((p) => {
+        if (p.id === id) {
+          const now = Date.now();
+          return {
+            ...p,
+            archived: true,
+            activity: [
+              ...(p.activity || []),
+              {
+                id: `${now}-archived`,
+                timestamp: now,
+                type: "archived",
+                description: `Person archived`,
+              },
+            ],
+          };
+        }
+        return p;
+      }),
+    }));
+  };
+
+  const unarchivePerson = (id: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      people: prev.people.map((p) => {
+        if (p.id === id) {
+          const now = Date.now();
+          return {
+            ...p,
+            archived: false,
+            activity: [
+              ...(p.activity || []),
+              {
+                id: `${now}-unarchived`,
+                timestamp: now,
+                type: "unarchived",
+                description: `Person unarchived`,
+              },
+            ],
+          };
+        }
+        return p;
+      }),
     }));
   };
 
@@ -63,11 +168,20 @@ export function useSettings() {
     }));
   };
 
-  const addProject = (project: Omit<Project, "id" | "comments">) => {
+  const addProject = (project: Omit<Project, "id" | "comments" | "activity">) => {
+    const now = Date.now();
     const newProject: Project = {
       ...project,
-      id: Date.now().toString(),
+      id: now.toString(),
       comments: [],
+      activity: [
+        {
+          id: `${now}-created`,
+          timestamp: now,
+          type: "created",
+          description: `Project created`,
+        },
+      ],
     };
     setSettings((prev) => ({
       ...prev,
@@ -78,7 +192,103 @@ export function useSettings() {
   const updateProject = (id: string, updates: Partial<Project>) => {
     setSettings((prev) => ({
       ...prev,
-      projects: prev.projects.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+      projects: prev.projects.map((p) => {
+        if (p.id === id) {
+          const updatedProject = { ...p, ...updates };
+          // Add activity entry for edit with specific details
+          if (updates.name || updates.alternatives || updates.color || updates.imageUrl !== undefined) {
+            const now = Date.now();
+            const changes: string[] = [];
+            if (updates.name && updates.name !== p.name) {
+              changes.push(`name from "${p.name}" to "${updates.name}"`);
+            }
+            if (
+              updates.alternatives !== undefined &&
+              JSON.stringify(updates.alternatives) !== JSON.stringify(p.alternatives)
+            ) {
+              const oldAlts = p.alternatives.length > 0 ? p.alternatives.join(", ") : "none";
+              const newAlts = updates.alternatives.length > 0 ? updates.alternatives.join(", ") : "none";
+              changes.push(`alternatives from ${oldAlts} to ${newAlts}`);
+            }
+            if (updates.color && updates.color !== p.color) {
+              changes.push(`color from ${p.color} to ${updates.color}`);
+            }
+            if (updates.imageUrl !== p.imageUrl) {
+              if (updates.imageUrl && !p.imageUrl) {
+                changes.push("image added");
+              } else if (!updates.imageUrl && p.imageUrl) {
+                changes.push("image removed");
+              } else if (updates.imageUrl && p.imageUrl) {
+                changes.push("image updated");
+              }
+            }
+
+            if (changes.length > 0) {
+              updatedProject.activity = [
+                ...(p.activity || []),
+                {
+                  id: `${now}-edited`,
+                  timestamp: now,
+                  type: "edited",
+                  description: `Updated ${changes.join("; ")}`,
+                },
+              ];
+            }
+          }
+          return updatedProject;
+        }
+        return p;
+      }),
+    }));
+  };
+
+  const archiveProject = (id: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      projects: prev.projects.map((p) => {
+        if (p.id === id) {
+          const now = Date.now();
+          return {
+            ...p,
+            archived: true,
+            activity: [
+              ...(p.activity || []),
+              {
+                id: `${now}-archived`,
+                timestamp: now,
+                type: "archived",
+                description: `Project archived`,
+              },
+            ],
+          };
+        }
+        return p;
+      }),
+    }));
+  };
+
+  const unarchiveProject = (id: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      projects: prev.projects.map((p) => {
+        if (p.id === id) {
+          const now = Date.now();
+          return {
+            ...p,
+            archived: false,
+            activity: [
+              ...(p.activity || []),
+              {
+                id: `${now}-unarchived`,
+                timestamp: now,
+                type: "unarchived",
+                description: `Project unarchived`,
+              },
+            ],
+          };
+        }
+        return p;
+      }),
     }));
   };
 
@@ -89,11 +299,20 @@ export function useSettings() {
     }));
   };
 
-  const addPriority = (priority: Omit<Priority, "id" | "comments">) => {
+  const addPriority = (priority: Omit<Priority, "id" | "comments" | "activity">) => {
+    const now = Date.now();
     const newPriority: Priority = {
       ...priority,
-      id: Date.now().toString(),
+      id: now.toString(),
       comments: [],
+      activity: [
+        {
+          id: `${now}-created`,
+          timestamp: now,
+          type: "created",
+          description: `Priority created`,
+        },
+      ],
     };
     setSettings((prev) => ({
       ...prev,
@@ -162,15 +381,28 @@ export function useSettings() {
 
   // Person comment management
   const addPersonComment = (personId: string, content: string) => {
+    const now = Date.now();
     setSettings((prev) => ({
       ...prev,
       people: prev.people.map((person) => {
         if (person.id === personId) {
           const newComment = {
-            commentId: Date.now(),
-            history: [{ date: Date.now(), content }],
+            commentId: now,
+            history: [{ date: now, content }],
           };
-          return { ...person, comments: [...person.comments, newComment] };
+          return {
+            ...person,
+            comments: [...person.comments, newComment],
+            activity: [
+              ...(person.activity || []),
+              {
+                id: `${now}-comment-added`,
+                timestamp: now,
+                type: "comment_added",
+                description: `Comment added`,
+              },
+            ],
+          };
         }
         return person;
       }),
@@ -178,6 +410,7 @@ export function useSettings() {
   };
 
   const editPersonComment = (personId: string, commentId: number, content: string) => {
+    const now = Date.now();
     setSettings((prev) => ({
       ...prev,
       people: prev.people.map((person) => {
@@ -186,9 +419,18 @@ export function useSettings() {
             ...person,
             comments: person.comments.map((comment) =>
               comment.commentId === commentId
-                ? { ...comment, history: [...comment.history, { date: Date.now(), content }] }
+                ? { ...comment, history: [...comment.history, { date: now, content }] }
                 : comment,
             ),
+            activity: [
+              ...(person.activity || []),
+              {
+                id: `${now}-comment-edited`,
+                timestamp: now,
+                type: "comment_edited",
+                description: `Comment edited`,
+              },
+            ],
           };
         }
         return person;
@@ -197,11 +439,24 @@ export function useSettings() {
   };
 
   const deletePersonComment = (personId: string, commentId: number) => {
+    const now = Date.now();
     setSettings((prev) => ({
       ...prev,
       people: prev.people.map((person) => {
         if (person.id === personId) {
-          return { ...person, comments: person.comments.filter((c) => c.commentId !== commentId) };
+          return {
+            ...person,
+            comments: person.comments.filter((c) => c.commentId !== commentId),
+            activity: [
+              ...(person.activity || []),
+              {
+                id: `${now}-comment-deleted`,
+                timestamp: now,
+                type: "comment_deleted",
+                description: `Comment deleted`,
+              },
+            ],
+          };
         }
         return person;
       }),
@@ -210,15 +465,28 @@ export function useSettings() {
 
   // Project comment management
   const addProjectComment = (projectId: string, content: string) => {
+    const now = Date.now();
     setSettings((prev) => ({
       ...prev,
       projects: prev.projects.map((project) => {
         if (project.id === projectId) {
           const newComment = {
-            commentId: Date.now(),
-            history: [{ date: Date.now(), content }],
+            commentId: now,
+            history: [{ date: now, content }],
           };
-          return { ...project, comments: [...project.comments, newComment] };
+          return {
+            ...project,
+            comments: [...project.comments, newComment],
+            activity: [
+              ...(project.activity || []),
+              {
+                id: `${now}-comment-added`,
+                timestamp: now,
+                type: "comment_added",
+                description: `Comment added`,
+              },
+            ],
+          };
         }
         return project;
       }),
@@ -226,6 +494,7 @@ export function useSettings() {
   };
 
   const editProjectComment = (projectId: string, commentId: number, content: string) => {
+    const now = Date.now();
     setSettings((prev) => ({
       ...prev,
       projects: prev.projects.map((project) => {
@@ -234,9 +503,18 @@ export function useSettings() {
             ...project,
             comments: project.comments.map((comment) =>
               comment.commentId === commentId
-                ? { ...comment, history: [...comment.history, { date: Date.now(), content }] }
+                ? { ...comment, history: [...comment.history, { date: now, content }] }
                 : comment,
             ),
+            activity: [
+              ...(project.activity || []),
+              {
+                id: `${now}-comment-edited`,
+                timestamp: now,
+                type: "comment_edited",
+                description: `Comment edited`,
+              },
+            ],
           };
         }
         return project;
@@ -245,11 +523,24 @@ export function useSettings() {
   };
 
   const deleteProjectComment = (projectId: string, commentId: number) => {
+    const now = Date.now();
     setSettings((prev) => ({
       ...prev,
       projects: prev.projects.map((project) => {
         if (project.id === projectId) {
-          return { ...project, comments: project.comments.filter((c) => c.commentId !== commentId) };
+          return {
+            ...project,
+            comments: project.comments.filter((c) => c.commentId !== commentId),
+            activity: [
+              ...(project.activity || []),
+              {
+                id: `${now}-comment-deleted`,
+                timestamp: now,
+                type: "comment_deleted",
+                description: `Comment deleted`,
+              },
+            ],
+          };
         }
         return project;
       }),
@@ -310,9 +601,13 @@ export function useSettings() {
     addPerson,
     updatePerson,
     deletePerson,
+    archivePerson,
+    unarchivePerson,
     addProject,
     updateProject,
     deleteProject,
+    archiveProject,
+    unarchiveProject,
     addPriority,
     updatePriority,
     deletePriority,

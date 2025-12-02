@@ -59,8 +59,12 @@ export function TodoList() {
     addPriority,
     updatePerson,
     deletePerson,
+    archivePerson,
+    unarchivePerson,
     updateProject,
     deleteProject,
+    archiveProject,
+    unarchiveProject,
     addPersonComment,
     editPersonComment,
     deletePersonComment,
@@ -101,18 +105,33 @@ export function TodoList() {
     return combined;
   }, [usageStats]);
 
-  // Sort people, projects, and priorities by usage frequency
+  // Sort people, projects, and priorities by usage frequency, filtering out archived items for selection
   const sortedPeople = useMemo(() => {
-    return sortByUsage(settings.people, combinedPeopleUsage);
+    return sortByUsage(
+      settings.people.filter((p) => !p.archived),
+      combinedPeopleUsage,
+    );
   }, [settings.people, combinedPeopleUsage]);
 
   const sortedProjects = useMemo(() => {
-    return sortByUsage(settings.projects, usageStats.projects);
+    return sortByUsage(
+      settings.projects.filter((p) => !p.archived),
+      usageStats.projects,
+    );
   }, [settings.projects, usageStats.projects]);
 
   const sortedPriorities = useMemo(() => {
     return sortByUsage(settings.priorities, usageStats.priorities);
   }, [settings.priorities, usageStats.priorities]);
+
+  // All people and projects (including archived) for display in their tabs
+  const allPeople = useMemo(() => {
+    return sortByUsage(settings.people, combinedPeopleUsage);
+  }, [settings.people, combinedPeopleUsage]);
+
+  const allProjects = useMemo(() => {
+    return sortByUsage(settings.projects, usageStats.projects);
+  }, [settings.projects, usageStats.projects]);
 
   // Wrapper functions to convert name string to object format
   const handleAddPerson = (name: string) => {
@@ -1633,7 +1652,7 @@ export function TodoList() {
               <div>
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">People</h2>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                  {sortedPeople.length} {sortedPeople.length === 1 ? "person" : "people"}
+                  {allPeople.length} {allPeople.length === 1 ? "person" : "people"}
                 </p>
               </div>
               <button
@@ -1646,14 +1665,14 @@ export function TodoList() {
                 Add Person
               </button>
             </div>
-            {sortedPeople.length === 0 ? (
+            {allPeople.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-6xl mb-4">👥</div>
                 <p className="text-xl text-zinc-600 dark:text-zinc-400">No people yet. Add one to get started!</p>
               </div>
             ) : (
               <ul className="space-y-2">
-                {sortedPeople.map((person) => (
+                {allPeople.map((person) => (
                   <li key={person.id}>
                     <PersonItem
                       person={person}
@@ -1674,7 +1693,7 @@ export function TodoList() {
               <div>
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Projects</h2>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                  {sortedProjects.length} {sortedProjects.length === 1 ? "project" : "projects"}
+                  {allProjects.length} {allProjects.length === 1 ? "project" : "projects"}
                 </p>
               </div>
               <button
@@ -1687,14 +1706,14 @@ export function TodoList() {
                 Add Project
               </button>
             </div>
-            {sortedProjects.length === 0 ? (
+            {allProjects.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-6xl mb-4">📁</div>
                 <p className="text-xl text-zinc-600 dark:text-zinc-400">No projects yet. Add one to get started!</p>
               </div>
             ) : (
               <ul className="space-y-2">
-                {sortedProjects.map((project) => (
+                {allProjects.map((project) => (
                   <li key={project.id}>
                     <ProjectItem
                       project={project}
@@ -2403,6 +2422,8 @@ export function TodoList() {
             onClose={() => setDetailsOverlayPerson(null)}
             onUpdate={updatePerson}
             onDelete={deletePerson}
+            onArchive={archivePerson}
+            onUnarchive={unarchivePerson}
             onAddComment={addPersonComment}
             onEditComment={editPersonComment}
             onDeleteComment={deletePersonComment}
@@ -2416,6 +2437,8 @@ export function TodoList() {
             onClose={() => setDetailsOverlayProject(null)}
             onUpdate={updateProject}
             onDelete={deleteProject}
+            onArchive={archiveProject}
+            onUnarchive={unarchiveProject}
             onAddComment={addProjectComment}
             onEditComment={editProjectComment}
             onDeleteComment={deleteProjectComment}

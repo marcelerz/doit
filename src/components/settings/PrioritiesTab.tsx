@@ -5,7 +5,7 @@ import { Priority } from "@/types/settings";
 
 interface PrioritiesTabProps {
   priorities: Priority[];
-  onAdd: (priority: Omit<Priority, "id">) => void;
+  onAdd: (priority: Omit<Priority, "id" | "comments" | "activity">) => void;
   onUpdate: (id: string, updates: Partial<Priority>) => void;
   onDelete: (id: string) => void;
 }
@@ -14,12 +14,11 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Priority>>({});
   const [isAdding, setIsAdding] = useState(false);
-  const [newPriority, setNewPriority] = useState<Omit<Priority, "id">>({
+  const [newPriority, setNewPriority] = useState<Omit<Priority, "id" | "comments" | "activity">>({
     name: "",
     alternatives: [],
     color: "#ffa500",
     order: priorities.length + 1,
-    comments: [],
   });
 
   const handleStartEdit = (priority: Priority) => {
@@ -48,7 +47,6 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
         alternatives: [],
         color: "#ffa500",
         order: priorities.length + 2,
-        comments: [],
       });
       setIsAdding(false);
     }
@@ -242,7 +240,6 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
                   alternatives: [],
                   color: "#ffa500",
                   order: priorities.length + 1,
-                  comments: [],
                 });
               }}
               className="flex-1 px-4 py-2 bg-zinc-300 hover:bg-zinc-400 dark:bg-zinc-600 dark:hover:bg-zinc-500 text-zinc-900 dark:text-zinc-100 rounded-md font-medium transition-colors"

@@ -5,7 +5,7 @@ import { Person } from "@/types/settings";
 
 interface PeopleTabProps {
   people: Person[];
-  onAdd: (person: Omit<Person, "id" | "comments">) => void;
+  onAdd: (person: Omit<Person, "id" | "comments" | "activity">) => void;
   onUpdate: (id: string, updates: Partial<Person>) => void;
   onDelete: (id: string) => void;
 }

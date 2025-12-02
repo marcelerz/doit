@@ -5,7 +5,7 @@ import { Project } from "@/types/settings";
 
 interface ProjectsTabProps {
   projects: Project[];
-  onAdd: (project: Omit<Project, "id" | "comments">) => void;
+  onAdd: (project: Omit<Project, "id" | "comments" | "activity">) => void;
   onUpdate: (id: string, updates: Partial<Project>) => void;
   onDelete: (id: string) => void;
 }
