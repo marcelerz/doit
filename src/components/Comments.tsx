@@ -133,7 +133,7 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
                 ) : (
                   <>
                     <div className="flex justify-between items-start gap-2 mb-2">
-                      <div 
+                      <div
                         className="text-sm text-zinc-700 dark:text-zinc-300 flex-1 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer"
                         dangerouslySetInnerHTML={{ __html: latestEntry.content }}
                       />
@@ -190,7 +190,7 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
                           .reverse()
                           .map((entry, idx) => (
                             <div key={idx} className="text-xs">
-                              <div 
+                              <div
                                 className="text-zinc-600 dark:text-zinc-400 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer"
                                 dangerouslySetInnerHTML={{ __html: entry.content }}
                               />

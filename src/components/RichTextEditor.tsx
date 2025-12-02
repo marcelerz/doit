@@ -156,11 +156,10 @@ export default function RichTextEditor({
               savedSelectionRef.current = range.cloneRange();
 
               const rect = range.getBoundingClientRect();
-              const editorRect = e.currentTarget.getBoundingClientRect();
 
               setToolbarPosition({
-                top: rect.top - editorRect.top - 40,
-                left: rect.left - editorRect.left + rect.width / 2 - 100,
+                top: rect.top - 40,
+                left: rect.left + rect.width / 2 - 100,
               });
               setShowFormattingToolbar(true);
               setShowLinkInput(false);
@@ -229,7 +228,7 @@ export default function RichTextEditor({
       {/* Formatting Toolbar */}
       {isEditing && showFormattingToolbar && !showLinkInput && (
         <div
-          className="rich-text-toolbar absolute z-50 flex gap-1 bg-zinc-800 dark:bg-zinc-700 rounded shadow-lg px-2 py-1"
+          className="rich-text-toolbar fixed z-[9999] flex gap-1 bg-zinc-800 dark:bg-zinc-700 rounded shadow-lg px-2 py-1"
           style={{
             top: `${toolbarPosition.top}px`,
             left: `${toolbarPosition.left}px`,
@@ -318,7 +317,7 @@ export default function RichTextEditor({
       {/* Link Input */}
       {isEditing && showFormattingToolbar && showLinkInput && (
         <div
-          className="rich-text-toolbar absolute z-50 flex gap-1 bg-zinc-800 dark:bg-zinc-700 rounded shadow-lg px-2 py-2"
+          className="rich-text-toolbar fixed z-[9999] flex gap-1 bg-zinc-800 dark:bg-zinc-700 rounded shadow-lg px-2 py-2"
           style={{
             top: `${toolbarPosition.top}px`,
             left: `${toolbarPosition.left}px`,
