@@ -17,9 +17,18 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
   const [editContent, setEditContent] = useState("");
   const [expandedCommentId, setExpandedCommentId] = useState<number | null>(null);
 
+  // Helper to check if HTML content is empty
+  const isHtmlEmpty = (html: string): boolean => {
+    if (!html) return true;
+    const temp = document.createElement("div");
+    temp.innerHTML = html;
+    const text = temp.textContent || "";
+    return text.trim().length === 0;
+  };
+
   const handleAddComment = () => {
-    if (newComment.trim()) {
-      onAddComment(newComment.trim());
+    if (!isHtmlEmpty(newComment)) {
+      onAddComment(newComment);
       setNewComment("");
     }
   };
@@ -32,8 +41,8 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
   };
 
   const handleSaveEdit = (commentId: number) => {
-    if (editContent.trim()) {
-      onEditComment(commentId, editContent.trim());
+    if (!isHtmlEmpty(editContent)) {
+      onEditComment(commentId, editContent);
       setEditingCommentId(null);
       setEditContent("");
     }
@@ -78,11 +87,12 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
             placeholder="Add a comment..."
             minHeight="60px"
             maxHeight="200px"
+            alwaysEditable={true}
           />
         </div>
         <button
           onClick={handleAddComment}
-          disabled={!newComment.trim()}
+          disabled={isHtmlEmpty(newComment)}
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
         >
           Add
@@ -113,11 +123,12 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
                       placeholder="Edit comment..."
                       minHeight="80px"
                       maxHeight="200px"
+                      alwaysEditable={true}
                     />
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleSaveEdit(comment.commentId)}
-                        disabled={!editContent.trim()}
+                        disabled={isHtmlEmpty(editContent)}
                         className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white text-sm rounded-md transition-colors"
                       >
                         Save

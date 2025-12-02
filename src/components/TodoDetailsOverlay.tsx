@@ -393,6 +393,7 @@ export function TodoDetailsOverlay({
               placeholder="Add context..."
               minHeight="100px"
               maxHeight="300px"
+              noBorderInViewMode={true}
             />
           </div>
 

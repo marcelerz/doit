@@ -8,6 +8,8 @@ interface RichTextEditorProps {
   maxHeight?: string;
   className?: string;
   showKeyboardShortcuts?: boolean;
+  alwaysEditable?: boolean; // When true, always stays in edit mode
+  noBorderInViewMode?: boolean; // When true, hides border in view mode
 }
 
 export default function RichTextEditor({
@@ -18,12 +20,14 @@ export default function RichTextEditor({
   maxHeight = "300px",
   className = "",
   showKeyboardShortcuts = false,
+  alwaysEditable = false,
+  noBorderInViewMode = false,
 }: RichTextEditorProps) {
   const [showFormattingToolbar, setShowFormattingToolbar] = useState(false);
   const [toolbarPosition, setToolbarPosition] = useState({ top: 0, left: 0 });
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(alwaysEditable);
   const editorRef = useRef<HTMLDivElement>(null);
   const displayRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef<string | undefined>(value);
@@ -106,8 +110,8 @@ export default function RichTextEditor({
             if (e.target instanceof HTMLAnchorElement) {
               e.preventDefault();
               window.open(e.target.href, "_blank");
-            } else {
-              // Otherwise, switch to edit mode
+            } else if (!alwaysEditable) {
+              // Otherwise, switch to edit mode (unless alwaysEditable)
               setIsEditing(true);
               setTimeout(() => {
                 if (editorRef.current) {
@@ -118,7 +122,11 @@ export default function RichTextEditor({
           }}
           dangerouslySetInnerHTML={{ __html: value || "" }}
           style={{ minHeight, maxHeight }}
-          className={`overflow-y-auto text-sm px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-zinc-400 dark:empty:before:text-zinc-500 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer ${className}`}
+          className={`overflow-y-auto text-sm px-3 py-2 rounded ${
+            noBorderInViewMode ? "border-0" : "border border-zinc-300 dark:border-zinc-600"
+          } bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 ${
+            noBorderInViewMode ? "cursor-pointer" : "cursor-text"
+          } empty:before:content-[attr(data-placeholder)] empty:before:text-zinc-400 dark:empty:before:text-zinc-500 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer ${className}`}
           data-placeholder={placeholder}
         />
       )}
@@ -129,7 +137,20 @@ export default function RichTextEditor({
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
+          onInput={(e) => {
+            // Call onChange immediately when content changes
+            if (editorRef.current) {
+              const html = editorRef.current.innerHTML;
+              lastValueRef.current = html || "";
+              onChange(html || "");
+            }
+          }}
           onBlur={(e) => {
+            // If alwaysEditable, don't exit edit mode
+            if (alwaysEditable) {
+              return;
+            }
+
             // Use setTimeout to allow clicking on toolbar/link input
             setTimeout(() => {
               // Check if focus moved to link input or toolbar
@@ -216,7 +237,9 @@ export default function RichTextEditor({
 
               setShowLinkInput(true);
             } else if (e.key === "Escape") {
-              e.currentTarget.blur();
+              if (!alwaysEditable) {
+                e.currentTarget.blur();
+              }
             }
           }}
           style={{ minHeight, maxHeight }}
