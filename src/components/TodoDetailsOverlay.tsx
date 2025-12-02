@@ -526,45 +526,6 @@ export function TodoDetailsOverlay({
                   </select>
                 </div>
 
-                {/* Due Date */}
-                <div>
-                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📅 Due</h4>
-                  <input
-                    type="date"
-                    value={editingMetadata.dueDate || ""}
-                    onChange={(e) => {
-                      const newMetadata = {
-                        ...editingMetadata,
-                        dueDate: e.target.value || undefined,
-                      };
-                      handleMetadataChange(newMetadata);
-                    }}
-                    className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-                  />
-                </div>
-
-                {/* Duration */}
-                <div>
-                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">⏱️ Duration</h4>
-                  <input
-                    type="text"
-                    value={editingMetadata.duration || ""}
-                    onChange={(e) => {
-                      const newMetadata = {
-                        ...editingMetadata,
-                        duration: e.target.value || undefined,
-                      };
-                      handleMetadataChange(newMetadata);
-                    }}
-                    onBlur={() => {
-                      // Save on blur
-                      handleMetadataChange(editingMetadata);
-                    }}
-                    placeholder="e.g., 2h, 30m, 1d"
-                    className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-                  />
-                </div>
-
                 {/* Dependencies */}
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔗 Dependencies</h4>
@@ -661,6 +622,45 @@ export function TodoDetailsOverlay({
                       </div>
                     </div>
                   )}
+                </div>
+
+                {/* Due Date */}
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📅 Due</h4>
+                  <input
+                    type="date"
+                    value={editingMetadata.dueDate || ""}
+                    onChange={(e) => {
+                      const newMetadata = {
+                        ...editingMetadata,
+                        dueDate: e.target.value || undefined,
+                      };
+                      handleMetadataChange(newMetadata);
+                    }}
+                    className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+                  />
+                </div>
+
+                {/* Duration */}
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">⏱️ Duration</h4>
+                  <input
+                    type="text"
+                    value={editingMetadata.duration || ""}
+                    onChange={(e) => {
+                      const newMetadata = {
+                        ...editingMetadata,
+                        duration: e.target.value || undefined,
+                      };
+                      handleMetadataChange(newMetadata);
+                    }}
+                    onBlur={() => {
+                      // Save on blur
+                      handleMetadataChange(editingMetadata);
+                    }}
+                    placeholder="e.g., 2h, 30m, 1d"
+                    className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+                  />
                 </div>
 
                 {/* Recurring */}
