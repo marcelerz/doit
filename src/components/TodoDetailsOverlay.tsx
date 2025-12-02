@@ -62,6 +62,18 @@ export function TodoDetailsOverlay({
   const smartInputRef = useRef<SmartEditableInputHandle>(null);
   const [dependencySearch, setDependencySearch] = useState("");
   const [showDependencyDropdown, setShowDependencyDropdown] = useState(false);
+  const [assignedSearch, setAssignedSearch] = useState("");
+  const [showAssignedDropdown, setShowAssignedDropdown] = useState(false);
+  const [assignedSelectedIndex, setAssignedSelectedIndex] = useState(0);
+  const [projectSearch, setProjectSearch] = useState("");
+  const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+  const [projectSelectedIndex, setProjectSelectedIndex] = useState(0);
+  const [sourceSearch, setSourceSearch] = useState("");
+  const [showSourceDropdown, setShowSourceDropdown] = useState(false);
+  const [sourceSelectedIndex, setSourceSelectedIndex] = useState(0);
+  const [mentionedSearch, setMentionedSearch] = useState("");
+  const [showMentionedDropdown, setShowMentionedDropdown] = useState(false);
+  const [mentionedSelectedIndex, setMentionedSelectedIndex] = useState(0);
 
   // State for metadata editing
   const [editingMetadata, setEditingMetadata] = useState<TodoMetadata>({
@@ -306,201 +318,670 @@ export function TodoDetailsOverlay({
                 {/* Assigned People */}
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">👤 Assigned</h4>
-                  <details className="relative">
-                    <summary className="cursor-pointer list-none">
-                      <div className="flex flex-wrap gap-1 min-h-[24px] p-1 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
-                        {editingMetadata.assignedPeople.length > 0 ? (
-                          editingMetadata.assignedPeople.map((person, idx) => {
-                            const bgColor = getPersonColor(person);
-                            const textColor = getTextColor(bgColor);
-                            return (
-                              <span
-                                key={idx}
-                                style={{ backgroundColor: bgColor, color: textColor }}
-                                className="px-2 py-0.5 text-xs rounded"
-                              >
-                                @{person}
-                              </span>
-                            );
-                          })
-                        ) : (
-                          <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                        )}
-                      </div>
-                    </summary>
-                    <div className="absolute z-10 mt-1 w-full bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg max-h-48 overflow-y-auto">
-                      {availablePeople.map((person) => (
-                        <label
-                          key={person.name}
-                          className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={editingMetadata.assignedPeople.includes(person.name)}
-                            onChange={() => {
-                              const newMetadata = {
-                                ...editingMetadata,
-                                assignedPeople: togglePersonInList(editingMetadata.assignedPeople, person.name),
-                              };
-                              handleMetadataChange(newMetadata);
+                  <div className="flex flex-wrap gap-1.5">
+                    {editingMetadata.assignedPeople.map((person) => (
+                      <button
+                        key={person}
+                        onClick={() => {
+                          handleMetadataChange({
+                            ...editingMetadata,
+                            assignedPeople: editingMetadata.assignedPeople.filter((p) => p !== person),
+                          });
+                        }}
+                        className="text-xs px-2 py-1 rounded border bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                      >
+                        @{person} ✕
+                      </button>
+                    ))}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowAssignedDropdown(!showAssignedDropdown)}
+                        className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
+                      >
+                        +
+                      </button>
+                      {showAssignedDropdown && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => {
+                              setShowAssignedDropdown(false);
+                              setAssignedSearch("");
+                              setAssignedSelectedIndex(0);
                             }}
-                            className="w-3 h-3 rounded border-zinc-300 dark:border-zinc-600"
                           />
-                          @{person.name}
-                        </label>
-                      ))}
+                          <div className="absolute z-20 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg">
+                            <input
+                              type="text"
+                              value={assignedSearch}
+                              onChange={(e) => {
+                                setAssignedSearch(e.target.value);
+                                setAssignedSelectedIndex(0);
+                              }}
+                              onKeyDown={(e) => {
+                                const filteredPeople = availablePeople
+                                  .filter((p) => !editingMetadata.assignedPeople.includes(p.name))
+                                  .filter(
+                                    (p) =>
+                                      assignedSearch === "" ||
+                                      p.name.toLowerCase().includes(assignedSearch.toLowerCase()),
+                                  )
+                                  .slice(0, 10);
+                                const hasAddOption = filteredPeople.length === 0 && assignedSearch.trim() !== "";
+                                const totalItems = filteredPeople.length + (hasAddOption ? 1 : 0);
+
+                                if (e.key === "ArrowDown") {
+                                  e.preventDefault();
+                                  setAssignedSelectedIndex((prev) => (prev + 1) % totalItems);
+                                } else if (e.key === "ArrowUp") {
+                                  e.preventDefault();
+                                  setAssignedSelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
+                                } else if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (filteredPeople.length > 0 && assignedSelectedIndex < filteredPeople.length) {
+                                    // Select existing person
+                                    const selected = filteredPeople[assignedSelectedIndex];
+                                    handleMetadataChange({
+                                      ...editingMetadata,
+                                      assignedPeople: [...editingMetadata.assignedPeople, selected.name],
+                                    });
+                                    setAssignedSearch("");
+                                    setShowAssignedDropdown(false);
+                                    setAssignedSelectedIndex(0);
+                                  } else if (hasAddOption) {
+                                    // Add new person
+                                    const newPerson = assignedSearch.trim();
+                                    if (newPerson && onAddPerson) {
+                                      onAddPerson(newPerson);
+                                    }
+                                    handleMetadataChange({
+                                      ...editingMetadata,
+                                      assignedPeople: [...editingMetadata.assignedPeople, newPerson],
+                                    });
+                                    setAssignedSearch("");
+                                    setShowAssignedDropdown(false);
+                                    setAssignedSelectedIndex(0);
+                                  }
+                                } else if (e.key === "Escape") {
+                                  setShowAssignedDropdown(false);
+                                  setAssignedSearch("");
+                                  setAssignedSelectedIndex(0);
+                                }
+                              }}
+                              placeholder="Search people..."
+                              autoFocus
+                              className="w-full text-xs px-3 py-2 border-b border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                            />
+                            <div className="max-h-48 overflow-y-auto">
+                              {availablePeople
+                                .filter((p) => !editingMetadata.assignedPeople.includes(p.name))
+                                .filter(
+                                  (p) =>
+                                    assignedSearch === "" ||
+                                    p.name.toLowerCase().includes(assignedSearch.toLowerCase()),
+                                )
+                                .slice(0, 10)
+                                .map((p, idx) => (
+                                  <button
+                                    key={p.name}
+                                    onClick={() => {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        assignedPeople: [...editingMetadata.assignedPeople, p.name],
+                                      });
+                                      setAssignedSearch("");
+                                      setShowAssignedDropdown(false);
+                                      setAssignedSelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors ${
+                                      idx === assignedSelectedIndex
+                                        ? "bg-blue-100 dark:bg-blue-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    @{p.name}
+                                  </button>
+                                ))}
+                              {availablePeople
+                                .filter((p) => !editingMetadata.assignedPeople.includes(p.name))
+                                .filter(
+                                  (p) =>
+                                    assignedSearch === "" ||
+                                    p.name.toLowerCase().includes(assignedSearch.toLowerCase()),
+                                ).length === 0 &&
+                                (assignedSearch === "" ? (
+                                  <div className="text-xs px-3 py-2 text-zinc-500 dark:text-zinc-400 italic">
+                                    All people already assigned
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      const newPerson = assignedSearch.trim();
+                                      if (newPerson && onAddPerson) {
+                                        onAddPerson(newPerson);
+                                      }
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        assignedPeople: [...editingMetadata.assignedPeople, newPerson],
+                                      });
+                                      setAssignedSearch("");
+                                      setShowAssignedDropdown(false);
+                                      setAssignedSelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors text-blue-600 dark:text-blue-400 font-medium ${
+                                      assignedSelectedIndex === 0
+                                        ? "bg-blue-100 dark:bg-blue-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    + Add "@{assignedSearch}"
+                                  </button>
+                                ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </details>
+                  </div>
                 </div>
 
                 {/* Projects */}
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📁 Projects</h4>
-                  <details className="relative">
-                    <summary className="cursor-pointer list-none">
-                      <div className="flex flex-wrap gap-1 min-h-[24px] p-1 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
-                        {editingMetadata.projects.length > 0 ? (
-                          editingMetadata.projects.map((project, idx) => {
-                            const bgColor = getProjectColor(project);
-                            const textColor = getTextColor(bgColor);
-                            return (
-                              <span
-                                key={idx}
-                                style={{ backgroundColor: bgColor, color: textColor }}
-                                className="px-2 py-0.5 text-xs rounded"
-                              >
-                                #{project}
-                              </span>
-                            );
-                          })
-                        ) : (
-                          <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                        )}
-                      </div>
-                    </summary>
-                    <div className="absolute z-10 mt-1 w-full bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg max-h-48 overflow-y-auto">
-                      {availableProjects.map((project) => (
-                        <label
-                          key={project.name}
-                          className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={editingMetadata.projects.includes(project.name)}
-                            onChange={() => {
-                              const newMetadata = {
-                                ...editingMetadata,
-                                projects: toggleProjectInList(editingMetadata.projects, project.name),
-                              };
-                              handleMetadataChange(newMetadata);
+                  <div className="flex flex-wrap gap-1.5">
+                    {editingMetadata.projects.map((project) => (
+                      <button
+                        key={project}
+                        onClick={() => {
+                          handleMetadataChange({
+                            ...editingMetadata,
+                            projects: editingMetadata.projects.filter((p) => p !== project),
+                          });
+                        }}
+                        className="text-xs px-2 py-1 rounded border bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                      >
+                        #{project} ✕
+                      </button>
+                    ))}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+                        className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
+                      >
+                        +
+                      </button>
+                      {showProjectDropdown && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => {
+                              setShowProjectDropdown(false);
+                              setProjectSearch("");
+                              setProjectSelectedIndex(0);
                             }}
-                            className="w-3 h-3 rounded border-zinc-300 dark:border-zinc-600"
                           />
-                          #{project.name}
-                        </label>
-                      ))}
+                          <div className="absolute z-20 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg">
+                            <input
+                              type="text"
+                              value={projectSearch}
+                              onChange={(e) => {
+                                setProjectSearch(e.target.value);
+                                setProjectSelectedIndex(0);
+                              }}
+                              onKeyDown={(e) => {
+                                const filteredProjects = availableProjects
+                                  .filter((p) => !editingMetadata.projects.includes(p.name))
+                                  .filter(
+                                    (p) =>
+                                      projectSearch === "" ||
+                                      p.name.toLowerCase().includes(projectSearch.toLowerCase()),
+                                  )
+                                  .slice(0, 10);
+                                const hasAddOption = filteredProjects.length === 0 && projectSearch.trim() !== "";
+                                const totalItems = filteredProjects.length + (hasAddOption ? 1 : 0);
+
+                                if (e.key === "ArrowDown") {
+                                  e.preventDefault();
+                                  setProjectSelectedIndex((prev) => (prev + 1) % totalItems);
+                                } else if (e.key === "ArrowUp") {
+                                  e.preventDefault();
+                                  setProjectSelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
+                                } else if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (filteredProjects.length > 0 && projectSelectedIndex < filteredProjects.length) {
+                                    const selected = filteredProjects[projectSelectedIndex];
+                                    handleMetadataChange({
+                                      ...editingMetadata,
+                                      projects: [...editingMetadata.projects, selected.name],
+                                    });
+                                    setProjectSearch("");
+                                    setShowProjectDropdown(false);
+                                    setProjectSelectedIndex(0);
+                                  } else if (hasAddOption) {
+                                    const newProject = projectSearch.trim();
+                                    if (newProject && onAddProject) {
+                                      onAddProject(newProject);
+                                    }
+                                    handleMetadataChange({
+                                      ...editingMetadata,
+                                      projects: [...editingMetadata.projects, newProject],
+                                    });
+                                    setProjectSearch("");
+                                    setShowProjectDropdown(false);
+                                    setProjectSelectedIndex(0);
+                                  }
+                                } else if (e.key === "Escape") {
+                                  setShowProjectDropdown(false);
+                                  setProjectSearch("");
+                                  setProjectSelectedIndex(0);
+                                }
+                              }}
+                              placeholder="Search projects..."
+                              autoFocus
+                              className="w-full text-xs px-3 py-2 border-b border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                            />
+                            <div className="max-h-48 overflow-y-auto">
+                              {availableProjects
+                                .filter((p) => !editingMetadata.projects.includes(p.name))
+                                .filter(
+                                  (p) =>
+                                    projectSearch === "" || p.name.toLowerCase().includes(projectSearch.toLowerCase()),
+                                )
+                                .slice(0, 10)
+                                .map((p, idx) => (
+                                  <button
+                                    key={p.name}
+                                    onClick={() => {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        projects: [...editingMetadata.projects, p.name],
+                                      });
+                                      setProjectSearch("");
+                                      setShowProjectDropdown(false);
+                                      setProjectSelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors ${
+                                      idx === projectSelectedIndex
+                                        ? "bg-purple-100 dark:bg-purple-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    #{p.name}
+                                  </button>
+                                ))}
+                              {availableProjects
+                                .filter((p) => !editingMetadata.projects.includes(p.name))
+                                .filter(
+                                  (p) =>
+                                    projectSearch === "" || p.name.toLowerCase().includes(projectSearch.toLowerCase()),
+                                ).length === 0 &&
+                                (projectSearch === "" ? (
+                                  <div className="text-xs px-3 py-2 text-zinc-500 dark:text-zinc-400 italic">
+                                    All projects already added
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      const newProject = projectSearch.trim();
+                                      if (newProject && onAddProject) {
+                                        onAddProject(newProject);
+                                      }
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        projects: [...editingMetadata.projects, newProject],
+                                      });
+                                      setProjectSearch("");
+                                      setShowProjectDropdown(false);
+                                      setProjectSelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors text-purple-600 dark:text-purple-400 font-medium ${
+                                      projectSelectedIndex === 0
+                                        ? "bg-purple-100 dark:bg-purple-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    + Add "#{projectSearch}"
+                                  </button>
+                                ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </details>
+                  </div>
                 </div>
 
                 {/* Source People */}
                 <div>
-                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📤 Source</h4>
-                  <details className="relative">
-                    <summary className="cursor-pointer list-none">
-                      <div className="flex flex-wrap gap-1 min-h-[24px] p-1 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
-                        {editingMetadata.sourcePeople.length > 0 ? (
-                          editingMetadata.sourcePeople.map((person, idx) => {
-                            const bgColor = getPersonColor(person);
-                            const textColor = getTextColor(bgColor);
-                            return (
-                              <span
-                                key={idx}
-                                style={{ backgroundColor: bgColor, color: textColor }}
-                                className="px-2 py-0.5 text-xs rounded"
-                              >
-                                ${person}
-                              </span>
-                            );
-                          })
-                        ) : (
-                          <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                        )}
-                      </div>
-                    </summary>
-                    <div className="absolute z-10 mt-1 w-full bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg max-h-48 overflow-y-auto">
-                      {availablePeople.map((person) => (
-                        <label
-                          key={person.name}
-                          className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={editingMetadata.sourcePeople.includes(person.name)}
-                            onChange={() => {
-                              const newMetadata = {
-                                ...editingMetadata,
-                                sourcePeople: togglePersonInList(editingMetadata.sourcePeople, person.name),
-                              };
-                              handleMetadataChange(newMetadata);
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">💼 Source</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {editingMetadata.sourcePeople.map((person) => (
+                      <button
+                        key={person}
+                        onClick={() => {
+                          handleMetadataChange({
+                            ...editingMetadata,
+                            sourcePeople: editingMetadata.sourcePeople.filter((p) => p !== person),
+                          });
+                        }}
+                        className="text-xs px-2 py-1 rounded border bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-800 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
+                      >
+                        ${person} ✕
+                      </button>
+                    ))}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowSourceDropdown(!showSourceDropdown)}
+                        className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
+                      >
+                        +
+                      </button>
+                      {showSourceDropdown && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => {
+                              setShowSourceDropdown(false);
+                              setSourceSearch("");
+                              setSourceSelectedIndex(0);
                             }}
-                            className="w-3 h-3 rounded border-zinc-300 dark:border-zinc-600"
                           />
-                          ${person.name}
-                        </label>
-                      ))}
+                          <div className="absolute z-20 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg">
+                            <input
+                              type="text"
+                              value={sourceSearch}
+                              onChange={(e) => {
+                                setSourceSearch(e.target.value);
+                                setSourceSelectedIndex(0);
+                              }}
+                              onKeyDown={(e) => {
+                                const filteredPeople = availablePeople
+                                  .filter((p) => !editingMetadata.sourcePeople.includes(p.name))
+                                  .filter(
+                                    (p) =>
+                                      sourceSearch === "" || p.name.toLowerCase().includes(sourceSearch.toLowerCase()),
+                                  )
+                                  .slice(0, 10);
+                                const hasAddOption = filteredPeople.length === 0 && sourceSearch.trim() !== "";
+                                const totalItems = filteredPeople.length + (hasAddOption ? 1 : 0);
+
+                                if (e.key === "ArrowDown") {
+                                  e.preventDefault();
+                                  setSourceSelectedIndex((prev) => (prev + 1) % totalItems);
+                                } else if (e.key === "ArrowUp") {
+                                  e.preventDefault();
+                                  setSourceSelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
+                                } else if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (filteredPeople.length > 0 && sourceSelectedIndex < filteredPeople.length) {
+                                    const selected = filteredPeople[sourceSelectedIndex];
+                                    handleMetadataChange({
+                                      ...editingMetadata,
+                                      sourcePeople: [...editingMetadata.sourcePeople, selected.name],
+                                    });
+                                    setSourceSearch("");
+                                    setShowSourceDropdown(false);
+                                    setSourceSelectedIndex(0);
+                                  } else if (hasAddOption) {
+                                    const newPerson = sourceSearch.trim();
+                                    if (newPerson && onAddPerson) {
+                                      onAddPerson(newPerson);
+                                    }
+                                    handleMetadataChange({
+                                      ...editingMetadata,
+                                      sourcePeople: [...editingMetadata.sourcePeople, newPerson],
+                                    });
+                                    setSourceSearch("");
+                                    setShowSourceDropdown(false);
+                                    setSourceSelectedIndex(0);
+                                  }
+                                } else if (e.key === "Escape") {
+                                  setShowSourceDropdown(false);
+                                  setSourceSearch("");
+                                  setSourceSelectedIndex(0);
+                                }
+                              }}
+                              placeholder="Search people..."
+                              autoFocus
+                              className="w-full text-xs px-3 py-2 border-b border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                            />
+                            <div className="max-h-48 overflow-y-auto">
+                              {availablePeople
+                                .filter((p) => !editingMetadata.sourcePeople.includes(p.name))
+                                .filter(
+                                  (p) =>
+                                    sourceSearch === "" || p.name.toLowerCase().includes(sourceSearch.toLowerCase()),
+                                )
+                                .slice(0, 10)
+                                .map((p, idx) => (
+                                  <button
+                                    key={p.name}
+                                    onClick={() => {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        sourcePeople: [...editingMetadata.sourcePeople, p.name],
+                                      });
+                                      setSourceSearch("");
+                                      setShowSourceDropdown(false);
+                                      setSourceSelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors ${
+                                      idx === sourceSelectedIndex
+                                        ? "bg-green-100 dark:bg-green-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    ${p.name}
+                                  </button>
+                                ))}
+                              {availablePeople
+                                .filter((p) => !editingMetadata.sourcePeople.includes(p.name))
+                                .filter(
+                                  (p) =>
+                                    sourceSearch === "" || p.name.toLowerCase().includes(sourceSearch.toLowerCase()),
+                                ).length === 0 &&
+                                (sourceSearch === "" ? (
+                                  <div className="text-xs px-3 py-2 text-zinc-500 dark:text-zinc-400 italic">
+                                    All people already added
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      const newPerson = sourceSearch.trim();
+                                      if (newPerson && onAddPerson) {
+                                        onAddPerson(newPerson);
+                                      }
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        sourcePeople: [...editingMetadata.sourcePeople, newPerson],
+                                      });
+                                      setSourceSearch("");
+                                      setShowSourceDropdown(false);
+                                      setSourceSelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors text-green-600 dark:text-green-400 font-medium ${
+                                      sourceSelectedIndex === 0
+                                        ? "bg-green-100 dark:bg-green-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    + Add "${sourceSearch}"
+                                  </button>
+                                ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </details>
+                  </div>
                 </div>
 
                 {/* Mentioned People */}
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">💬 Mentioned</h4>
-                  <details className="relative">
-                    <summary className="cursor-pointer list-none">
-                      <div className="flex flex-wrap gap-1 min-h-[24px] p-1 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
-                        {editingMetadata.mentionedPeople.length > 0 ? (
-                          editingMetadata.mentionedPeople.map((person, idx) => {
-                            const bgColor = getPersonColor(person);
-                            const textColor = getTextColor(bgColor);
-                            return (
-                              <span
-                                key={idx}
-                                style={{ backgroundColor: bgColor, color: textColor }}
-                                className="px-2 py-0.5 text-xs rounded"
-                              >
-                                ^{person}
-                              </span>
-                            );
-                          })
-                        ) : (
-                          <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                        )}
-                      </div>
-                    </summary>
-                    <div className="absolute z-10 mt-1 w-full bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg max-h-48 overflow-y-auto">
-                      {availablePeople.map((person) => (
-                        <label
-                          key={person.name}
-                          className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={editingMetadata.mentionedPeople.includes(person.name)}
-                            onChange={() => {
-                              const newMetadata = {
-                                ...editingMetadata,
-                                mentionedPeople: togglePersonInList(editingMetadata.mentionedPeople, person.name),
-                              };
-                              handleMetadataChange(newMetadata);
+                  <div className="flex flex-wrap gap-1.5">
+                    {editingMetadata.mentionedPeople.map((person) => (
+                      <button
+                        key={person}
+                        onClick={() => {
+                          handleMetadataChange({
+                            ...editingMetadata,
+                            mentionedPeople: editingMetadata.mentionedPeople.filter((p) => p !== person),
+                          });
+                        }}
+                        className="text-xs px-2 py-1 rounded border bg-pink-100 dark:bg-pink-900/30 border-pink-300 dark:border-pink-700 text-pink-800 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors"
+                      >
+                        ^{person} ✕
+                      </button>
+                    ))}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowMentionedDropdown(!showMentionedDropdown)}
+                        className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
+                      >
+                        +
+                      </button>
+                      {showMentionedDropdown && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => {
+                              setShowMentionedDropdown(false);
+                              setMentionedSearch("");
+                              setMentionedSelectedIndex(0);
                             }}
-                            className="w-3 h-3 rounded border-zinc-300 dark:border-zinc-600"
                           />
-                          ^{person.name}
-                        </label>
-                      ))}
+                          <div className="absolute z-20 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg">
+                            <input
+                              type="text"
+                              value={mentionedSearch}
+                              onChange={(e) => {
+                                setMentionedSearch(e.target.value);
+                                setMentionedSelectedIndex(0);
+                              }}
+                              onKeyDown={(e) => {
+                                const filteredPeople = availablePeople
+                                  .filter((p) => !editingMetadata.mentionedPeople.includes(p.name))
+                                  .filter(
+                                    (p) =>
+                                      mentionedSearch === "" ||
+                                      p.name.toLowerCase().includes(mentionedSearch.toLowerCase()),
+                                  )
+                                  .slice(0, 10);
+                                const hasAddOption = filteredPeople.length === 0 && mentionedSearch.trim() !== "";
+                                const totalItems = filteredPeople.length + (hasAddOption ? 1 : 0);
+
+                                if (e.key === "ArrowDown") {
+                                  e.preventDefault();
+                                  setMentionedSelectedIndex((prev) => (prev + 1) % totalItems);
+                                } else if (e.key === "ArrowUp") {
+                                  e.preventDefault();
+                                  setMentionedSelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
+                                } else if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (filteredPeople.length > 0 && mentionedSelectedIndex < filteredPeople.length) {
+                                    const selected = filteredPeople[mentionedSelectedIndex];
+                                    handleMetadataChange({
+                                      ...editingMetadata,
+                                      mentionedPeople: [...editingMetadata.mentionedPeople, selected.name],
+                                    });
+                                    setMentionedSearch("");
+                                    setShowMentionedDropdown(false);
+                                    setMentionedSelectedIndex(0);
+                                  } else if (hasAddOption) {
+                                    const newPerson = mentionedSearch.trim();
+                                    if (newPerson && onAddPerson) {
+                                      onAddPerson(newPerson);
+                                    }
+                                    handleMetadataChange({
+                                      ...editingMetadata,
+                                      mentionedPeople: [...editingMetadata.mentionedPeople, newPerson],
+                                    });
+                                    setMentionedSearch("");
+                                    setShowMentionedDropdown(false);
+                                    setMentionedSelectedIndex(0);
+                                  }
+                                } else if (e.key === "Escape") {
+                                  setShowMentionedDropdown(false);
+                                  setMentionedSearch("");
+                                  setMentionedSelectedIndex(0);
+                                }
+                              }}
+                              placeholder="Search people..."
+                              autoFocus
+                              className="w-full text-xs px-3 py-2 border-b border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                            />
+                            <div className="max-h-48 overflow-y-auto">
+                              {availablePeople
+                                .filter((p) => !editingMetadata.mentionedPeople.includes(p.name))
+                                .filter(
+                                  (p) =>
+                                    mentionedSearch === "" ||
+                                    p.name.toLowerCase().includes(mentionedSearch.toLowerCase()),
+                                )
+                                .slice(0, 10)
+                                .map((p, idx) => (
+                                  <button
+                                    key={p.name}
+                                    onClick={() => {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        mentionedPeople: [...editingMetadata.mentionedPeople, p.name],
+                                      });
+                                      setMentionedSearch("");
+                                      setShowMentionedDropdown(false);
+                                      setMentionedSelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors ${
+                                      idx === mentionedSelectedIndex
+                                        ? "bg-pink-100 dark:bg-pink-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    ^{p.name}
+                                  </button>
+                                ))}
+                              {availablePeople
+                                .filter((p) => !editingMetadata.mentionedPeople.includes(p.name))
+                                .filter(
+                                  (p) =>
+                                    mentionedSearch === "" ||
+                                    p.name.toLowerCase().includes(mentionedSearch.toLowerCase()),
+                                ).length === 0 &&
+                                (mentionedSearch === "" ? (
+                                  <div className="text-xs px-3 py-2 text-zinc-500 dark:text-zinc-400 italic">
+                                    All people already mentioned
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      const newPerson = mentionedSearch.trim();
+                                      if (newPerson && onAddPerson) {
+                                        onAddPerson(newPerson);
+                                      }
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        mentionedPeople: [...editingMetadata.mentionedPeople, newPerson],
+                                      });
+                                      setMentionedSearch("");
+                                      setShowMentionedDropdown(false);
+                                      setMentionedSelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors text-pink-600 dark:text-pink-400 font-medium ${
+                                      mentionedSelectedIndex === 0
+                                        ? "bg-pink-100 dark:bg-pink-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    + Add "^{mentionedSearch}"
+                                  </button>
+                                ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </details>
+                  </div>
                 </div>
 
                 {/* Priority */}
@@ -518,9 +999,9 @@ export function TodoDetailsOverlay({
                     className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
                   >
                     <option value="">None</option>
-                    {availablePriorities.map((priority) => (
-                      <option key={priority.name} value={priority.name}>
-                        !!{priority.name}
+                    {availablePriorities.map((p) => (
+                      <option key={p.name} value={p.name}>
+                        {p.name}
                       </option>
                     ))}
                   </select>
