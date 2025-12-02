@@ -241,7 +241,15 @@ export default function SettingsPage() {
           </div>
 
           <div className="p-6">
-            {activeTab === "general" && <GeneralTab general={settings.general} onUpdate={updateGeneralSettings} />}
+            {activeTab === "general" && (
+              <GeneralTab
+                general={settings.general}
+                people={settings.people}
+                projects={settings.projects}
+                priorities={settings.priorities}
+                onUpdate={updateGeneralSettings}
+              />
+            )}
             {activeTab === "datetime" && (
               <DateTimeTab
                 dateTime={settings.general.dateTime}

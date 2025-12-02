@@ -456,31 +456,29 @@ export function TodoList() {
       }
     });
 
-    // Apply auto-assignment defaults if enabled and field not provided
-    if (settings.general.autoAssign.enabled) {
-      const autoAssign = settings.general.autoAssign;
+    // Apply auto-assignment defaults if field not provided
+    const autoAssign = settings.general.autoAssign;
 
-      if (metadata.assignedPeople.length === 0 && autoAssign.assignedPerson) {
-        metadata.assignedPeople.push(autoAssign.assignedPerson);
-      }
-      if (metadata.sourcePeople.length === 0 && autoAssign.sourcePerson) {
-        metadata.sourcePeople.push(autoAssign.sourcePerson);
-      }
-      if (metadata.mentionedPeople.length === 0 && autoAssign.mentionedPerson) {
-        metadata.mentionedPeople.push(autoAssign.mentionedPerson);
-      }
-      if (metadata.projects.length === 0 && autoAssign.project) {
-        metadata.projects.push(autoAssign.project);
-      }
-      if (!metadata.priority && autoAssign.priority) {
-        metadata.priority = autoAssign.priority;
-      }
-      if (!metadata.dueDate && autoAssign.dueDate) {
-        metadata.dueDate = autoAssign.dueDate;
-      }
-      if (!metadata.duration && autoAssign.duration) {
-        metadata.duration = autoAssign.duration;
-      }
+    if (metadata.assignedPeople.length === 0 && autoAssign.assignedPerson) {
+      metadata.assignedPeople.push(autoAssign.assignedPerson);
+    }
+    if (metadata.sourcePeople.length === 0 && autoAssign.sourcePerson) {
+      metadata.sourcePeople.push(autoAssign.sourcePerson);
+    }
+    if (metadata.mentionedPeople.length === 0 && autoAssign.mentionedPerson) {
+      metadata.mentionedPeople.push(autoAssign.mentionedPerson);
+    }
+    if (metadata.projects.length === 0 && autoAssign.project) {
+      metadata.projects.push(autoAssign.project);
+    }
+    if (!metadata.priority && autoAssign.priority) {
+      metadata.priority = autoAssign.priority;
+    }
+    if (!metadata.dueDate && autoAssign.dueDate) {
+      metadata.dueDate = autoAssign.dueDate;
+    }
+    if (!metadata.duration && autoAssign.duration) {
+      metadata.duration = autoAssign.duration;
     }
 
     addTodo(currentFullText, currentPlainText, metadata);

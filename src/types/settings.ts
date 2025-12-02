@@ -158,24 +158,31 @@ export interface GeneralSettings {
     enabled: boolean;
     assignedPerson?: string; // Default person to assign (@)
     sourcePerson?: string; // Default source person ($)
-    mentionedPerson?: string; // Default mentioned person (^)
     project?: string; // Default project (#)
     priority?: string; // Default priority (!!)
     dueDate?: string; // Default due date (~)
     duration?: string; // Default duration (*)
+    recurring?: string; // Default recurring pattern (%)
   };
 }
 
 export const defaultGeneralSettings: GeneralSettings = {
   archiveDays: 7, // Archive completed tasks after 7 days by default
   autoDelete: {
-    enabled: false,
+    enabled: true,
     deleteDays: 90, // Delete after 90 days (3 months) by default
   },
   dateTime: defaultDateTimeSettings,
   workHours: defaultWorkHoursSettings,
   autoAssign: {
-    enabled: false,
+    enabled: true, // Always enabled by default
+    assignedPerson: undefined,
+    sourcePerson: undefined,
+    project: undefined,
+    priority: "medium", // Default to medium priority
+    dueDate: undefined,
+    duration: "30m", // Default to 30 minutes
+    recurring: undefined,
   },
 };
 
