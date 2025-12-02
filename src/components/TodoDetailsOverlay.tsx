@@ -1300,38 +1300,51 @@ export function TodoDetailsOverlay({
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📅 Due</h4>
                   <div className="flex gap-2">
-                    <input
-                      type="date"
-                      value={
-                        editingMetadata.dueDate
-                          ? editingMetadata.dueDate.includes("T")
-                            ? editingMetadata.dueDate.split("T")[0]
-                            : editingMetadata.dueDate
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const dateValue = e.target.value;
-                        let newDueDate: string | undefined;
-
-                        if (dateValue) {
-                          // If there's already a time component, preserve it
-                          if (editingMetadata.dueDate && editingMetadata.dueDate.includes("T")) {
-                            const timeComponent = editingMetadata.dueDate.split("T")[1];
-                            newDueDate = `${dateValue}T${timeComponent}`;
-                          } else {
-                            newDueDate = dateValue;
-                          }
-                        } else {
-                          newDueDate = undefined;
+                    <div className="flex-1 flex items-center gap-2">
+                      {editingMetadata.dueDate && (
+                        <span className="text-xs text-zinc-500 dark:text-zinc-500 whitespace-nowrap">
+                          {(() => {
+                            const dateStr = editingMetadata.dueDate.includes("T")
+                              ? editingMetadata.dueDate.split("T")[0]
+                              : editingMetadata.dueDate;
+                            const date = new Date(dateStr + "T00:00:00");
+                            return date.toLocaleDateString("en-US", { weekday: "short" });
+                          })()}
+                        </span>
+                      )}
+                      <input
+                        type="date"
+                        value={
+                          editingMetadata.dueDate
+                            ? editingMetadata.dueDate.includes("T")
+                              ? editingMetadata.dueDate.split("T")[0]
+                              : editingMetadata.dueDate
+                            : ""
                         }
+                        onChange={(e) => {
+                          const dateValue = e.target.value;
+                          let newDueDate: string | undefined;
 
-                        handleMetadataChange({
-                          ...editingMetadata,
-                          dueDate: newDueDate,
-                        });
-                      }}
-                      className="flex-1 text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-                    />
+                          if (dateValue) {
+                            // If there's already a time component, preserve it
+                            if (editingMetadata.dueDate && editingMetadata.dueDate.includes("T")) {
+                              const timeComponent = editingMetadata.dueDate.split("T")[1];
+                              newDueDate = `${dateValue}T${timeComponent}`;
+                            } else {
+                              newDueDate = dateValue;
+                            }
+                          } else {
+                            newDueDate = undefined;
+                          }
+
+                          handleMetadataChange({
+                            ...editingMetadata,
+                            dueDate: newDueDate,
+                          });
+                        }}
+                        className="flex-1 text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+                      />
+                    </div>
                     <input
                       type="time"
                       value={
