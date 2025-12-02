@@ -1237,18 +1237,70 @@ export function TodoDetailsOverlay({
                 {/* Due Date */}
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📅 Due</h4>
-                  <input
-                    type="date"
-                    value={editingMetadata.dueDate || ""}
-                    onChange={(e) => {
-                      const newMetadata = {
-                        ...editingMetadata,
-                        dueDate: e.target.value || undefined,
-                      };
-                      handleMetadataChange(newMetadata);
-                    }}
-                    className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={
+                        editingMetadata.dueDate
+                          ? editingMetadata.dueDate.includes("T")
+                            ? editingMetadata.dueDate.split("T")[0]
+                            : editingMetadata.dueDate
+                          : ""
+                      }
+                      onChange={(e) => {
+                        const dateValue = e.target.value;
+                        let newDueDate: string | undefined;
+
+                        if (dateValue) {
+                          // If there's already a time component, preserve it
+                          if (editingMetadata.dueDate && editingMetadata.dueDate.includes("T")) {
+                            const timeComponent = editingMetadata.dueDate.split("T")[1];
+                            newDueDate = `${dateValue}T${timeComponent}`;
+                          } else {
+                            newDueDate = dateValue;
+                          }
+                        } else {
+                          newDueDate = undefined;
+                        }
+
+                        handleMetadataChange({
+                          ...editingMetadata,
+                          dueDate: newDueDate,
+                        });
+                      }}
+                      className="flex-1 text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+                    />
+                    <input
+                      type="time"
+                      value={
+                        editingMetadata.dueDate && editingMetadata.dueDate.includes("T")
+                          ? editingMetadata.dueDate.split("T")[1]
+                          : ""
+                      }
+                      onChange={(e) => {
+                        const timeValue = e.target.value;
+                        let newDueDate: string | undefined;
+
+                        if (timeValue && editingMetadata.dueDate) {
+                          const dateComponent = editingMetadata.dueDate.includes("T")
+                            ? editingMetadata.dueDate.split("T")[0]
+                            : editingMetadata.dueDate;
+                          newDueDate = `${dateComponent}T${timeValue}`;
+                        } else if (!timeValue && editingMetadata.dueDate) {
+                          // Remove time component if cleared
+                          newDueDate = editingMetadata.dueDate.includes("T")
+                            ? editingMetadata.dueDate.split("T")[0]
+                            : editingMetadata.dueDate;
+                        }
+
+                        handleMetadataChange({
+                          ...editingMetadata,
+                          dueDate: newDueDate,
+                        });
+                      }}
+                      className="w-32 text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+                    />
+                  </div>
                 </div>
 
                 {/* Duration */}
