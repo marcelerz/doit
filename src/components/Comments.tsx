@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Comment, CommentHistoryEntry } from "@/types/settings";
+import RichTextEditor from "./RichTextEditor";
 
 interface CommentsProps {
   comments: Comment[];
@@ -69,23 +70,20 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
   return (
     <div className="space-y-3">
       {/* Add new comment */}
-      <div className="flex gap-2">
-        <textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Add a comment..."
-          className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-          rows={2}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-              handleAddComment();
-            }
-          }}
-        />
+      <div className="flex gap-2 items-start">
+        <div className="flex-1">
+          <RichTextEditor
+            value={newComment}
+            onChange={setNewComment}
+            placeholder="Add a comment..."
+            minHeight="60px"
+            maxHeight="200px"
+          />
+        </div>
         <button
           onClick={handleAddComment}
           disabled={!newComment.trim()}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors self-start"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
         >
           Add
         </button>
@@ -109,11 +107,12 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
               >
                 {isEditing ? (
                   <div className="space-y-2">
-                    <textarea
+                    <RichTextEditor
                       value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                      rows={3}
+                      onChange={setEditContent}
+                      placeholder="Edit comment..."
+                      minHeight="80px"
+                      maxHeight="200px"
                     />
                     <div className="flex gap-2">
                       <button
@@ -134,9 +133,10 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
                 ) : (
                   <>
                     <div className="flex justify-between items-start gap-2 mb-2">
-                      <p className="text-sm text-zinc-700 dark:text-zinc-300 flex-1 whitespace-pre-wrap">
-                        {latestEntry.content}
-                      </p>
+                      <div 
+                        className="text-sm text-zinc-700 dark:text-zinc-300 flex-1 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer"
+                        dangerouslySetInnerHTML={{ __html: latestEntry.content }}
+                      />
                       <div className="flex gap-1 flex-shrink-0">
                         <button
                           onClick={() => handleStartEdit(comment)}
@@ -190,7 +190,10 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
                           .reverse()
                           .map((entry, idx) => (
                             <div key={idx} className="text-xs">
-                              <p className="text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">{entry.content}</p>
+                              <div 
+                                className="text-zinc-600 dark:text-zinc-400 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer"
+                                dangerouslySetInnerHTML={{ __html: entry.content }}
+                              />
                               <span className="text-zinc-500 dark:text-zinc-500">{formatDate(entry.date)}</span>
                             </div>
                           ))}
