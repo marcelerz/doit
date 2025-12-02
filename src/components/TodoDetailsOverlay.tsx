@@ -77,6 +77,12 @@ export function TodoDetailsOverlay({
   const [prioritySearch, setPrioritySearch] = useState("");
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
   const [prioritySelectedIndex, setPrioritySelectedIndex] = useState(0);
+  const [durationSearch, setDurationSearch] = useState("");
+  const [showDurationDropdown, setShowDurationDropdown] = useState(false);
+  const [durationSelectedIndex, setDurationSelectedIndex] = useState(0);
+  const [recurringSearch, setRecurringSearch] = useState("");
+  const [showRecurringDropdown, setShowRecurringDropdown] = useState(false);
+  const [recurringSelectedIndex, setRecurringSelectedIndex] = useState(0);
 
   // State for metadata editing
   const [editingMetadata, setEditingMetadata] = useState<TodoMetadata>({
@@ -157,6 +163,62 @@ export function TodoDetailsOverlay({
     setEditTokens([]);
     setEditFullText("");
     setEditPlainText("");
+  };
+
+  // Duration suggestions based on user input
+  const getDurationSuggestions = (input: string): string[] => {
+    const allSuggestions = [
+      "15m",
+      "30m",
+      "45m",
+      "1h",
+      "1.5h",
+      "2h",
+      "3h",
+      "4h",
+      "6h",
+      "8h",
+      "1d",
+      "2d",
+      "3d",
+      "5d",
+      "1w",
+      "2w",
+      "1m",
+    ];
+
+    if (!input.trim()) return allSuggestions;
+
+    const lowerInput = input.toLowerCase();
+    return allSuggestions.filter((s) => s.toLowerCase().includes(lowerInput));
+  };
+
+  // Recurring suggestions based on user input
+  const getRecurringSuggestions = (input: string): string[] => {
+    const allSuggestions = [
+      "daily",
+      "every day",
+      "every weekday",
+      "weekly",
+      "every week",
+      "every monday",
+      "every tuesday",
+      "every wednesday",
+      "every thursday",
+      "every friday",
+      "every saturday",
+      "every sunday",
+      "every 2 weeks",
+      "monthly",
+      "every month",
+      "yearly",
+      "every year",
+    ];
+
+    if (!input.trim()) return allSuggestions;
+
+    const lowerInput = input.toLowerCase();
+    return allSuggestions.filter((s) => s.toLowerCase().includes(lowerInput));
   };
 
   const handleMetadataChange = (newMetadata: TodoMetadata) => {
@@ -1306,45 +1368,409 @@ export function TodoDetailsOverlay({
                 {/* Duration */}
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">⏱️ Duration</h4>
-                  <input
-                    type="text"
-                    value={editingMetadata.duration || ""}
-                    onChange={(e) => {
-                      const newMetadata = {
-                        ...editingMetadata,
-                        duration: e.target.value || undefined,
-                      };
-                      handleMetadataChange(newMetadata);
-                    }}
-                    onBlur={() => {
-                      // Save on blur
-                      handleMetadataChange(editingMetadata);
-                    }}
-                    placeholder="e.g., 2h, 30m, 1d"
-                    className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    {editingMetadata.duration ? (
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowDurationDropdown(!showDurationDropdown)}
+                          className="text-xs px-2 py-1 rounded border bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+                        >
+                          *{editingMetadata.duration}{" "}
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMetadataChange({
+                                ...editingMetadata,
+                                duration: undefined,
+                              });
+                            }}
+                            className="ml-1 hover:text-amber-900 dark:hover:text-amber-100"
+                          >
+                            ✕
+                          </span>
+                        </button>
+                        {showDurationDropdown && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => {
+                                setShowDurationDropdown(false);
+                                setDurationSearch("");
+                                setDurationSelectedIndex(0);
+                              }}
+                            />
+                            <div className="absolute z-20 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg">
+                              <input
+                                type="text"
+                                value={durationSearch}
+                                onChange={(e) => {
+                                  setDurationSearch(e.target.value);
+                                  setDurationSelectedIndex(0);
+                                }}
+                                onKeyDown={(e) => {
+                                  const suggestions = getDurationSuggestions(durationSearch);
+                                  const totalItems = suggestions.length;
+
+                                  if (e.key === "ArrowDown") {
+                                    e.preventDefault();
+                                    if (totalItems > 0) {
+                                      setDurationSelectedIndex((prev) => (prev + 1) % totalItems);
+                                    }
+                                  } else if (e.key === "ArrowUp") {
+                                    e.preventDefault();
+                                    if (totalItems > 0) {
+                                      setDurationSelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
+                                    }
+                                  } else if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    const valueToUse =
+                                      suggestions.length > 0
+                                        ? suggestions[durationSelectedIndex]
+                                        : durationSearch.trim();
+                                    if (valueToUse) {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        duration: valueToUse,
+                                      });
+                                      setDurationSearch("");
+                                      setShowDurationDropdown(false);
+                                      setDurationSelectedIndex(0);
+                                    }
+                                  } else if (e.key === "Escape") {
+                                    setShowDurationDropdown(false);
+                                    setDurationSearch("");
+                                    setDurationSelectedIndex(0);
+                                  }
+                                }}
+                                placeholder="e.g., 2h, 30m, 1d"
+                                autoFocus
+                                className="w-full text-xs px-3 py-2 border-b border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                              />
+                              <div className="max-h-48 overflow-y-auto">
+                                {getDurationSuggestions(durationSearch).map((suggestion, idx) => (
+                                  <button
+                                    key={suggestion}
+                                    onClick={() => {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        duration: suggestion,
+                                      });
+                                      setDurationSearch("");
+                                      setShowDurationDropdown(false);
+                                      setDurationSelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors ${
+                                      idx === durationSelectedIndex
+                                        ? "bg-amber-100 dark:bg-amber-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    *{suggestion}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowDurationDropdown(!showDurationDropdown)}
+                          className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
+                        >
+                          +
+                        </button>
+                        {showDurationDropdown && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => {
+                                setShowDurationDropdown(false);
+                                setDurationSearch("");
+                                setDurationSelectedIndex(0);
+                              }}
+                            />
+                            <div className="absolute z-20 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg">
+                              <input
+                                type="text"
+                                value={durationSearch}
+                                onChange={(e) => {
+                                  setDurationSearch(e.target.value);
+                                  setDurationSelectedIndex(0);
+                                }}
+                                onKeyDown={(e) => {
+                                  const suggestions = getDurationSuggestions(durationSearch);
+                                  const totalItems = suggestions.length;
+
+                                  if (e.key === "ArrowDown") {
+                                    e.preventDefault();
+                                    if (totalItems > 0) {
+                                      setDurationSelectedIndex((prev) => (prev + 1) % totalItems);
+                                    }
+                                  } else if (e.key === "ArrowUp") {
+                                    e.preventDefault();
+                                    if (totalItems > 0) {
+                                      setDurationSelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
+                                    }
+                                  } else if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    const valueToUse =
+                                      suggestions.length > 0
+                                        ? suggestions[durationSelectedIndex]
+                                        : durationSearch.trim();
+                                    if (valueToUse) {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        duration: valueToUse,
+                                      });
+                                      setDurationSearch("");
+                                      setShowDurationDropdown(false);
+                                      setDurationSelectedIndex(0);
+                                    }
+                                  } else if (e.key === "Escape") {
+                                    setShowDurationDropdown(false);
+                                    setDurationSearch("");
+                                    setDurationSelectedIndex(0);
+                                  }
+                                }}
+                                placeholder="e.g., 2h, 30m, 1d"
+                                autoFocus
+                                className="w-full text-xs px-3 py-2 border-b border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                              />
+                              <div className="max-h-48 overflow-y-auto">
+                                {getDurationSuggestions(durationSearch).map((suggestion, idx) => (
+                                  <button
+                                    key={suggestion}
+                                    onClick={() => {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        duration: suggestion,
+                                      });
+                                      setDurationSearch("");
+                                      setShowDurationDropdown(false);
+                                      setDurationSelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors ${
+                                      idx === durationSelectedIndex
+                                        ? "bg-amber-100 dark:bg-amber-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    *{suggestion}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Recurring */}
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔄 Recurring</h4>
-                  <input
-                    type="text"
-                    value={editingMetadata.recurring || ""}
-                    onChange={(e) => {
-                      const newMetadata = {
-                        ...editingMetadata,
-                        recurring: e.target.value || undefined,
-                      };
-                      handleMetadataChange(newMetadata);
-                    }}
-                    onBlur={() => {
-                      // Save on blur
-                      handleMetadataChange(editingMetadata);
-                    }}
-                    placeholder="e.g., every day, every monday"
-                    className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    {editingMetadata.recurring ? (
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowRecurringDropdown(!showRecurringDropdown)}
+                          className="text-xs px-2 py-1 rounded border bg-cyan-100 dark:bg-cyan-900/30 border-cyan-300 dark:border-cyan-700 text-cyan-800 dark:text-cyan-300 hover:bg-cyan-200 dark:hover:bg-cyan-900/50 transition-colors"
+                        >
+                          %{editingMetadata.recurring}{" "}
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMetadataChange({
+                                ...editingMetadata,
+                                recurring: undefined,
+                              });
+                            }}
+                            className="ml-1 hover:text-cyan-900 dark:hover:text-cyan-100"
+                          >
+                            ✕
+                          </span>
+                        </button>
+                        {showRecurringDropdown && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => {
+                                setShowRecurringDropdown(false);
+                                setRecurringSearch("");
+                                setRecurringSelectedIndex(0);
+                              }}
+                            />
+                            <div className="absolute z-20 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg">
+                              <input
+                                type="text"
+                                value={recurringSearch}
+                                onChange={(e) => {
+                                  setRecurringSearch(e.target.value);
+                                  setRecurringSelectedIndex(0);
+                                }}
+                                onKeyDown={(e) => {
+                                  const suggestions = getRecurringSuggestions(recurringSearch);
+                                  const totalItems = suggestions.length;
+
+                                  if (e.key === "ArrowDown") {
+                                    e.preventDefault();
+                                    if (totalItems > 0) {
+                                      setRecurringSelectedIndex((prev) => (prev + 1) % totalItems);
+                                    }
+                                  } else if (e.key === "ArrowUp") {
+                                    e.preventDefault();
+                                    if (totalItems > 0) {
+                                      setRecurringSelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
+                                    }
+                                  } else if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    const valueToUse =
+                                      suggestions.length > 0
+                                        ? suggestions[recurringSelectedIndex]
+                                        : recurringSearch.trim();
+                                    if (valueToUse) {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        recurring: valueToUse,
+                                      });
+                                      setRecurringSearch("");
+                                      setShowRecurringDropdown(false);
+                                      setRecurringSelectedIndex(0);
+                                    }
+                                  } else if (e.key === "Escape") {
+                                    setShowRecurringDropdown(false);
+                                    setRecurringSearch("");
+                                    setRecurringSelectedIndex(0);
+                                  }
+                                }}
+                                placeholder="e.g., every day, every monday"
+                                autoFocus
+                                className="w-full text-xs px-3 py-2 border-b border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                              />
+                              <div className="max-h-48 overflow-y-auto">
+                                {getRecurringSuggestions(recurringSearch).map((suggestion, idx) => (
+                                  <button
+                                    key={suggestion}
+                                    onClick={() => {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        recurring: suggestion,
+                                      });
+                                      setRecurringSearch("");
+                                      setShowRecurringDropdown(false);
+                                      setRecurringSelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors ${
+                                      idx === recurringSelectedIndex
+                                        ? "bg-cyan-100 dark:bg-cyan-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    %{suggestion}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowRecurringDropdown(!showRecurringDropdown)}
+                          className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
+                        >
+                          +
+                        </button>
+                        {showRecurringDropdown && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => {
+                                setShowRecurringDropdown(false);
+                                setRecurringSearch("");
+                                setRecurringSelectedIndex(0);
+                              }}
+                            />
+                            <div className="absolute z-20 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg">
+                              <input
+                                type="text"
+                                value={recurringSearch}
+                                onChange={(e) => {
+                                  setRecurringSearch(e.target.value);
+                                  setRecurringSelectedIndex(0);
+                                }}
+                                onKeyDown={(e) => {
+                                  const suggestions = getRecurringSuggestions(recurringSearch);
+                                  const totalItems = suggestions.length;
+
+                                  if (e.key === "ArrowDown") {
+                                    e.preventDefault();
+                                    if (totalItems > 0) {
+                                      setRecurringSelectedIndex((prev) => (prev + 1) % totalItems);
+                                    }
+                                  } else if (e.key === "ArrowUp") {
+                                    e.preventDefault();
+                                    if (totalItems > 0) {
+                                      setRecurringSelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
+                                    }
+                                  } else if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    const valueToUse =
+                                      suggestions.length > 0
+                                        ? suggestions[recurringSelectedIndex]
+                                        : recurringSearch.trim();
+                                    if (valueToUse) {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        recurring: valueToUse,
+                                      });
+                                      setRecurringSearch("");
+                                      setShowRecurringDropdown(false);
+                                      setRecurringSelectedIndex(0);
+                                    }
+                                  } else if (e.key === "Escape") {
+                                    setShowRecurringDropdown(false);
+                                    setRecurringSearch("");
+                                    setRecurringSelectedIndex(0);
+                                  }
+                                }}
+                                placeholder="e.g., every day, every monday"
+                                autoFocus
+                                className="w-full text-xs px-3 py-2 border-b border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                              />
+                              <div className="max-h-48 overflow-y-auto">
+                                {getRecurringSuggestions(recurringSearch).map((suggestion, idx) => (
+                                  <button
+                                    key={suggestion}
+                                    onClick={() => {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        recurring: suggestion,
+                                      });
+                                      setRecurringSearch("");
+                                      setShowRecurringDropdown(false);
+                                      setRecurringSelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors ${
+                                      idx === recurringSelectedIndex
+                                        ? "bg-cyan-100 dark:bg-cyan-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    %{suggestion}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Action Buttons */}
