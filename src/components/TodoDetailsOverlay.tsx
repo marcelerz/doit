@@ -1076,73 +1076,6 @@ export function TodoDetailsOverlay({
                   </div>
                 </div>
 
-                {/* Tags */}
-                <div>
-                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🏷️ Tags</h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {editingMetadata.tags.map((tag) => (
-                      <button
-                        key={tag}
-                        onClick={() => {
-                          handleMetadataChange({
-                            ...editingMetadata,
-                            tags: editingMetadata.tags.filter((t) => t !== tag),
-                          });
-                        }}
-                        className="text-xs px-2 py-1 rounded border bg-teal-100 dark:bg-teal-900/30 border-teal-300 dark:border-teal-700 text-teal-800 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-900/50 transition-colors"
-                      >
-                        {tag} ✕
-                      </button>
-                    ))}
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowTagInput(!showTagInput)}
-                        className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
-                      >
-                        +
-                      </button>
-                      {showTagInput && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-10"
-                            onClick={() => {
-                              setShowTagInput(false);
-                              setTagInput("");
-                            }}
-                          />
-                          <div className="absolute z-20 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg">
-                            <input
-                              type="text"
-                              value={tagInput}
-                              onChange={(e) => setTagInput(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  const newTag = tagInput.trim();
-                                  if (newTag && !editingMetadata.tags.includes(newTag)) {
-                                    handleMetadataChange({
-                                      ...editingMetadata,
-                                      tags: [...editingMetadata.tags, newTag],
-                                    });
-                                    setTagInput("");
-                                    setShowTagInput(false);
-                                  }
-                                } else if (e.key === "Escape") {
-                                  setShowTagInput(false);
-                                  setTagInput("");
-                                }
-                              }}
-                              placeholder="Enter tag name..."
-                              autoFocus
-                              className="w-full text-xs px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none rounded"
-                            />
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
                 {/* Priority */}
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔥 Priority</h4>
@@ -1285,6 +1218,73 @@ export function TodoDetailsOverlay({
                                   </button>
                                 ))}
                             </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🏷️ Tags</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {editingMetadata.tags.map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => {
+                          handleMetadataChange({
+                            ...editingMetadata,
+                            tags: editingMetadata.tags.filter((t) => t !== tag),
+                          });
+                        }}
+                        className="text-xs px-2 py-1 rounded border bg-teal-100 dark:bg-teal-900/30 border-teal-300 dark:border-teal-700 text-teal-800 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-900/50 transition-colors"
+                      >
+                        {tag} ✕
+                      </button>
+                    ))}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowTagInput(!showTagInput)}
+                        className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
+                      >
+                        +
+                      </button>
+                      {showTagInput && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => {
+                              setShowTagInput(false);
+                              setTagInput("");
+                            }}
+                          />
+                          <div className="absolute z-20 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg">
+                            <input
+                              type="text"
+                              value={tagInput}
+                              onChange={(e) => setTagInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  const newTag = tagInput.trim();
+                                  if (newTag && !editingMetadata.tags.includes(newTag)) {
+                                    handleMetadataChange({
+                                      ...editingMetadata,
+                                      tags: [...editingMetadata.tags, newTag],
+                                    });
+                                    setTagInput("");
+                                    setShowTagInput(false);
+                                  }
+                                } else if (e.key === "Escape") {
+                                  setShowTagInput(false);
+                                  setTagInput("");
+                                }
+                              }}
+                              placeholder="Enter tag name..."
+                              autoFocus
+                              className="w-full text-xs px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none rounded"
+                            />
                           </div>
                         </>
                       )}
