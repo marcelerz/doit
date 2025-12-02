@@ -356,6 +356,7 @@ export function TodoList() {
       mentionedPeople: [],
       projects: [],
       dependencies: [],
+      tags: [],
     };
 
     currentTokens.forEach((token) => {

@@ -74,6 +74,7 @@ function migrateTodo(todo: any): Todo {
       duration: todo.metadata?.duration || todo.metadata?.durations?.[0],
       recurring: todo.metadata?.recurring,
       context: todo.metadata?.context,
+      tags: todo.metadata?.tags || [],
     } as TodoMetadata,
     // Ensure comments array exists
     comments: todo.comments || [],

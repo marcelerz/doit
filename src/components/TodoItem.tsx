@@ -132,6 +132,7 @@ export function TodoItem({
       mentionedPeople: [],
       projects: [],
       dependencies: [],
+      tags: [],
     };
 
     // Parse tokens from the edited text
