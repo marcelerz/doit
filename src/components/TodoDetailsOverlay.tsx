@@ -83,6 +83,8 @@ export function TodoDetailsOverlay({
   const [recurringSearch, setRecurringSearch] = useState("");
   const [showRecurringDropdown, setShowRecurringDropdown] = useState(false);
   const [recurringSelectedIndex, setRecurringSelectedIndex] = useState(0);
+  const [showFormattingToolbar, setShowFormattingToolbar] = useState(false);
+  const [toolbarPosition, setToolbarPosition] = useState({ top: 0, left: 0 });
 
   // State for metadata editing
   const [editingMetadata, setEditingMetadata] = useState<TodoMetadata>({
@@ -109,6 +111,7 @@ export function TodoDetailsOverlay({
       dueDate: todo.metadata.dueDate,
       duration: todo.metadata.duration,
       recurring: todo.metadata.recurring,
+      context: todo.metadata.context,
     });
   }, [todo]);
 
@@ -375,6 +378,107 @@ export function TodoDetailsOverlay({
               </div>
             </div>
           )}
+
+          {/* Context */}
+          <div className="mb-4 relative">
+            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📝 Context</h4>
+            <div
+              ref={(el) => {
+                if (el && !el.textContent && editingMetadata.context) {
+                  el.innerHTML = editingMetadata.context;
+                }
+              }}
+              contentEditable
+              suppressContentEditableWarning
+              onBlur={(e) => {
+                const html = e.currentTarget.innerHTML;
+                const newMetadata = {
+                  ...editingMetadata,
+                  context: html || undefined,
+                };
+                handleMetadataChange(newMetadata);
+              }}
+              onMouseUp={(e) => {
+                const selection = window.getSelection();
+                if (selection && selection.toString().length > 0) {
+                  const range = selection.getRangeAt(0);
+                  const rect = range.getBoundingClientRect();
+                  const editorRect = e.currentTarget.getBoundingClientRect();
+
+                  setToolbarPosition({
+                    top: rect.top - editorRect.top - 40,
+                    left: rect.left - editorRect.left + rect.width / 2 - 75,
+                  });
+                  setShowFormattingToolbar(true);
+                } else {
+                  setShowFormattingToolbar(false);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "b" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  document.execCommand("bold");
+                } else if (e.key === "i" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  document.execCommand("italic");
+                } else if (e.key === "u" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  document.execCommand("underline");
+                }
+              }}
+              className="min-h-[100px] max-h-[300px] overflow-y-auto text-sm px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 empty:before:content-[attr(data-placeholder)] empty:before:text-zinc-400 dark:empty:before:text-zinc-500"
+              data-placeholder="Add context..."
+            />
+
+            {/* Formatting Toolbar */}
+            {showFormattingToolbar && (
+              <div
+                className="absolute z-50 flex gap-1 bg-zinc-800 dark:bg-zinc-700 rounded shadow-lg px-2 py-1"
+                style={{
+                  top: `${toolbarPosition.top}px`,
+                  left: `${toolbarPosition.left}px`,
+                }}
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                <button
+                  onClick={() => {
+                    document.execCommand("bold");
+                    setShowFormattingToolbar(false);
+                  }}
+                  className="px-3 py-1 text-xs font-bold text-white hover:bg-zinc-600 dark:hover:bg-zinc-600 rounded transition-colors"
+                  title="Bold (⌘B)"
+                >
+                  B
+                </button>
+                <button
+                  onClick={() => {
+                    document.execCommand("italic");
+                    setShowFormattingToolbar(false);
+                  }}
+                  className="px-3 py-1 text-xs italic text-white hover:bg-zinc-600 dark:hover:bg-zinc-600 rounded transition-colors"
+                  title="Italic (⌘I)"
+                >
+                  I
+                </button>
+                <button
+                  onClick={() => {
+                    document.execCommand("underline");
+                    setShowFormattingToolbar(false);
+                  }}
+                  className="px-3 py-1 text-xs underline text-white hover:bg-zinc-600 dark:hover:bg-zinc-600 rounded transition-colors"
+                  title="Underline (⌘U)"
+                >
+                  U
+                </button>
+              </div>
+            )}
+
+            <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              <kbd className="px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded">⌘B</kbd> Bold,{" "}
+              <kbd className="px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded">⌘I</kbd> Italic,{" "}
+              <kbd className="px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded">⌘U</kbd> Underline
+            </div>
+          </div>
 
           {/* Task Details */}
           {!isEditing && (

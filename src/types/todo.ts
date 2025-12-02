@@ -8,6 +8,7 @@ export interface TodoMetadata {
   duration?: string; // * marker
   recurring?: string; // % marker
   dependencies: string[]; // > marker - array of todo IDs
+  context?: string; // Rich text context
 }
 
 export interface Comment {
