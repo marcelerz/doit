@@ -261,7 +261,7 @@ export function TodoItem({
 
   if (isEditing) {
     return (
-      <li className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-4">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-4">
         <form onSubmit={handleSubmit} className="flex flex-col gap-2">
           <SmartEditableInput
             ref={smartInputRef}
@@ -298,12 +298,12 @@ export function TodoItem({
             </button>
           </div>
         </form>
-      </li>
+      </div>
     );
   }
 
   return (
-    <li className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 group hover:shadow-md transition-all">
+    <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 group hover:shadow-md transition-all">
       <div className="flex items-start gap-3">
         <input
           type="checkbox"
@@ -762,6 +762,6 @@ export function TodoItem({
           </button>
         </div>
       </div>
-    </li>
+    </div>
   );
 }

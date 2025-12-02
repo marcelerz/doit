@@ -119,9 +119,11 @@ export function TodoList() {
   // Load saved view presets
   const [viewPresets, setViewPresets] = useState<ViewPreset[]>(() => {
     try {
-      const saved = localStorage.getItem("doit-view-presets");
-      if (saved) {
-        return JSON.parse(saved);
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("doit-view-presets");
+        if (saved) {
+          return JSON.parse(saved);
+        }
       }
     } catch (e) {
       console.error("Failed to load view presets from localStorage:", e);
@@ -131,25 +133,29 @@ export function TodoList() {
 
   // Save view presets to localStorage
   useEffect(() => {
-    localStorage.setItem("doit-view-presets", JSON.stringify(viewPresets));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("doit-view-presets", JSON.stringify(viewPresets));
+    }
   }, [viewPresets]);
 
   // Load all view options from a single localStorage key
   const [filters, setFilters] = useState<TodoFilters>(() => {
     try {
-      const saved = localStorage.getItem("doit-view-options");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-          searchText: parsed.filters?.searchText || "",
-          assignedPeople: new Set(parsed.filters?.assignedPeople || []),
-          sourcePeople: new Set(parsed.filters?.sourcePeople || []),
-          mentionedPeople: new Set(parsed.filters?.mentionedPeople || []),
-          projects: new Set(parsed.filters?.projects || []),
-          priorities: new Set(parsed.filters?.priorities || []),
-          dueDates: new Set(parsed.filters?.dueDates || []),
-          durations: new Set(parsed.filters?.durations || []),
-        };
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("doit-view-options");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return {
+            searchText: parsed.filters?.searchText || "",
+            assignedPeople: new Set(parsed.filters?.assignedPeople || []),
+            sourcePeople: new Set(parsed.filters?.sourcePeople || []),
+            mentionedPeople: new Set(parsed.filters?.mentionedPeople || []),
+            projects: new Set(parsed.filters?.projects || []),
+            priorities: new Set(parsed.filters?.priorities || []),
+            dueDates: new Set(parsed.filters?.dueDates || []),
+            durations: new Set(parsed.filters?.durations || []),
+          };
+        }
       }
     } catch (e) {
       console.error("Failed to load view options from localStorage:", e);
@@ -170,10 +176,12 @@ export function TodoList() {
 
   const [sortField, setSortField] = useState<SortField>(() => {
     try {
-      const saved = localStorage.getItem("doit-view-options");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return (parsed.sortField as SortField) || "created";
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("doit-view-options");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return (parsed.sortField as SortField) || "created";
+        }
       }
     } catch (e) {
       console.error("Failed to load view options from localStorage:", e);
@@ -183,10 +191,12 @@ export function TodoList() {
 
   const [sortDirection, setSortDirection] = useState<SortDirection>(() => {
     try {
-      const saved = localStorage.getItem("doit-view-options");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return (parsed.sortDirection as SortDirection) || "desc";
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("doit-view-options");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return (parsed.sortDirection as SortDirection) || "desc";
+        }
       }
     } catch (e) {
       console.error("Failed to load view options from localStorage:", e);
@@ -196,10 +206,12 @@ export function TodoList() {
 
   const [groupBy, setGroupBy] = useState<GroupBy>(() => {
     try {
-      const saved = localStorage.getItem("doit-view-options");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return (parsed.groupBy as GroupBy) || "none";
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("doit-view-options");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return (parsed.groupBy as GroupBy) || "none";
+        }
       }
     } catch (e) {
       console.error("Failed to load view options from localStorage:", e);
@@ -224,7 +236,9 @@ export function TodoList() {
       sortDirection,
       groupBy,
     };
-    localStorage.setItem("doit-view-options", JSON.stringify(viewOptions));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("doit-view-options", JSON.stringify(viewOptions));
+    }
 
     // Check if current view matches any preset
     const matchingPreset = viewPresets.find((preset) => {
