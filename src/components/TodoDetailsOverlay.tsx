@@ -74,6 +74,9 @@ export function TodoDetailsOverlay({
   const [mentionedSearch, setMentionedSearch] = useState("");
   const [showMentionedDropdown, setShowMentionedDropdown] = useState(false);
   const [mentionedSelectedIndex, setMentionedSelectedIndex] = useState(0);
+  const [prioritySearch, setPrioritySearch] = useState("");
+  const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
+  const [prioritySelectedIndex, setPrioritySelectedIndex] = useState(0);
 
   // State for metadata editing
   const [editingMetadata, setEditingMetadata] = useState<TodoMetadata>({
@@ -987,24 +990,150 @@ export function TodoDetailsOverlay({
                 {/* Priority */}
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔥 Priority</h4>
-                  <select
-                    value={editingMetadata.priority || ""}
-                    onChange={(e) => {
-                      const newMetadata = {
-                        ...editingMetadata,
-                        priority: e.target.value || undefined,
-                      };
-                      handleMetadataChange(newMetadata);
-                    }}
-                    className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-                  >
-                    <option value="">None</option>
-                    {availablePriorities.map((p) => (
-                      <option key={p.name} value={p.name}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex flex-wrap gap-1.5">
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
+                        className="text-xs px-2 py-1 rounded border bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                      >
+                        !!{editingMetadata.priority || generalSettings.autoAssign.priority || "None"}
+                      </button>
+                      {showPriorityDropdown && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => {
+                              setShowPriorityDropdown(false);
+                              setPrioritySearch("");
+                              setPrioritySelectedIndex(0);
+                            }}
+                          />
+                          <div className="absolute z-20 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg">
+                            <input
+                              type="text"
+                              value={prioritySearch}
+                              onChange={(e) => {
+                                setPrioritySearch(e.target.value);
+                                setPrioritySelectedIndex(0);
+                              }}
+                              onKeyDown={(e) => {
+                                const filteredPriorities = availablePriorities.filter(
+                                  (p) =>
+                                    prioritySearch === "" ||
+                                    p.name.toLowerCase().includes(prioritySearch.toLowerCase()),
+                                );
+                                const hasAddOption = filteredPriorities.length === 0 && prioritySearch.trim() !== "";
+                                const totalItems = filteredPriorities.length + (hasAddOption ? 1 : 0);
+
+                                if (e.key === "ArrowDown") {
+                                  e.preventDefault();
+                                  setPrioritySelectedIndex((prev) => (prev + 1) % totalItems);
+                                } else if (e.key === "ArrowUp") {
+                                  e.preventDefault();
+                                  setPrioritySelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
+                                } else if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (
+                                    filteredPriorities.length > 0 &&
+                                    prioritySelectedIndex < filteredPriorities.length
+                                  ) {
+                                    const selected = filteredPriorities[prioritySelectedIndex];
+                                    handleMetadataChange({
+                                      ...editingMetadata,
+                                      priority: selected.name,
+                                    });
+                                    setPrioritySearch("");
+                                    setShowPriorityDropdown(false);
+                                    setPrioritySelectedIndex(0);
+                                  } else if (hasAddOption) {
+                                    const newPriority = prioritySearch.trim();
+                                    if (newPriority && onAddPriority) {
+                                      onAddPriority(newPriority);
+                                    }
+                                    handleMetadataChange({
+                                      ...editingMetadata,
+                                      priority: newPriority,
+                                    });
+                                    setPrioritySearch("");
+                                    setShowPriorityDropdown(false);
+                                    setPrioritySelectedIndex(0);
+                                  }
+                                } else if (e.key === "Escape") {
+                                  setShowPriorityDropdown(false);
+                                  setPrioritySearch("");
+                                  setPrioritySelectedIndex(0);
+                                }
+                              }}
+                              placeholder="Search priorities..."
+                              autoFocus
+                              className="w-full text-xs px-3 py-2 border-b border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                            />
+                            <div className="max-h-48 overflow-y-auto">
+                              {availablePriorities
+                                .filter(
+                                  (p) =>
+                                    prioritySearch === "" ||
+                                    p.name.toLowerCase().includes(prioritySearch.toLowerCase()),
+                                )
+                                .map((p, idx) => (
+                                  <button
+                                    key={p.name}
+                                    onClick={() => {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        priority: p.name,
+                                      });
+                                      setPrioritySearch("");
+                                      setShowPriorityDropdown(false);
+                                      setPrioritySelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors ${
+                                      idx === prioritySelectedIndex
+                                        ? "bg-red-100 dark:bg-red-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    !!{p.name}
+                                  </button>
+                                ))}
+                              {availablePriorities.filter(
+                                (p) =>
+                                  prioritySearch === "" || p.name.toLowerCase().includes(prioritySearch.toLowerCase()),
+                              ).length === 0 &&
+                                (prioritySearch === "" ? (
+                                  <div className="text-xs px-3 py-2 text-zinc-500 dark:text-zinc-400 italic">
+                                    No priorities available
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      const newPriority = prioritySearch.trim();
+                                      if (newPriority && onAddPriority) {
+                                        onAddPriority(newPriority);
+                                      }
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        priority: newPriority,
+                                      });
+                                      setPrioritySearch("");
+                                      setShowPriorityDropdown(false);
+                                      setPrioritySelectedIndex(0);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 transition-colors text-red-600 dark:text-red-400 font-medium ${
+                                      prioritySelectedIndex === 0
+                                        ? "bg-red-100 dark:bg-red-900/50"
+                                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    }`}
+                                  >
+                                    + Add "!!{prioritySearch}"
+                                  </button>
+                                ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Dependencies */}
