@@ -365,6 +365,9 @@ export function TodoList() {
         case "duration":
           metadata.duration = token.value;
           break;
+        case "recurring":
+          metadata.recurring = token.value;
+          break;
       }
     });
 
@@ -412,6 +415,7 @@ export function TodoList() {
     priority: "!!",
     dueDate: "~",
     duration: "*",
+    recurring: "%",
   };
 
   // Extract unique values from all todos for filter options

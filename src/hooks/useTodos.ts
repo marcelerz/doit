@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Todo, TodoMetadata } from "@/types/todo";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/utils/migrations";
 import { defaultSettings } from "@/types/settings";
+import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
 
 const STORAGE_KEY = "doit-todos";
 const SETTINGS_KEY = "doit-settings";
@@ -159,6 +160,47 @@ export function useTodos() {
     };
 
     setTodos((prev) => prev.map((todo) => (todo.id === id ? updatedTodo : todo)));
+
+    // If completing a recurring task, create a new instance
+    if (newState === "completed" && todoToToggle.metadata.recurring) {
+      const recurringPattern = parseRecurringPattern(todoToToggle.metadata.recurring);
+      if (recurringPattern) {
+        const nextDate = calculateNextOccurrence(recurringPattern, new Date());
+        const nextDateString = nextDate.toISOString().split("T")[0]; // YYYY-MM-DD format
+
+        // Create new todo with updated due date
+        const newRecurringTodo: Todo = {
+          ...todoToToggle,
+          id: `todo-${now}-recurring`,
+          state: "active",
+          createdAt: now,
+          updatedAt: now,
+          completedAt: undefined,
+          archivedAt: undefined,
+          deletedAt: undefined,
+          metadata: {
+            ...todoToToggle.metadata,
+            dueDate: nextDateString,
+          },
+          comments: [], // New instance starts with no comments
+        };
+
+        // Reconstruct text with new due date
+        const parts: string[] = [todoToToggle.plainText];
+        newRecurringTodo.metadata.assignedPeople.forEach((p) => parts.push(`@${p}`));
+        newRecurringTodo.metadata.sourcePeople.forEach((p) => parts.push(`$${p}`));
+        newRecurringTodo.metadata.mentionedPeople.forEach((p) => parts.push(`^${p}`));
+        newRecurringTodo.metadata.projects.forEach((p) => parts.push(`#${p}`));
+        if (newRecurringTodo.metadata.priority) parts.push(`!!${newRecurringTodo.metadata.priority}`);
+        if (newRecurringTodo.metadata.dueDate) parts.push(`~${newRecurringTodo.metadata.dueDate}`);
+        if (newRecurringTodo.metadata.duration) parts.push(`*${newRecurringTodo.metadata.duration}`);
+        if (newRecurringTodo.metadata.recurring) parts.push(`%${newRecurringTodo.metadata.recurring}`);
+        newRecurringTodo.text = parts.join(" ");
+
+        // Add the new recurring todo to the list
+        setTodos((prev) => [newRecurringTodo, ...prev]);
+      }
+    }
 
     // Create undo action
     const actionId = `${now}-toggle-${id}`;

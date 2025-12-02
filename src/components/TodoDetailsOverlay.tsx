@@ -68,6 +68,7 @@ export function TodoDetailsOverlay({
     priority: undefined,
     dueDate: undefined,
     duration: undefined,
+    recurring: undefined,
   });
 
   // Initialize metadata when overlay opens
@@ -80,6 +81,7 @@ export function TodoDetailsOverlay({
       priority: todo.metadata.priority,
       dueDate: todo.metadata.dueDate,
       duration: todo.metadata.duration,
+      recurring: todo.metadata.recurring,
     });
   }, [todo]);
 
@@ -91,6 +93,7 @@ export function TodoDetailsOverlay({
     priority: "!!",
     dueDate: "~",
     duration: "*",
+    recurring: "%",
   };
 
   useEffect(() => {
@@ -119,6 +122,7 @@ export function TodoDetailsOverlay({
       priority: editTokens.find((t) => t.type === "priority")?.value,
       dueDate: editTokens.find((t) => t.type === "dueDate")?.value,
       duration: editTokens.find((t) => t.type === "duration")?.value,
+      recurring: editTokens.find((t) => t.type === "recurring")?.value,
     };
 
     onEdit(todo.id, editFullText, editPlainText, metadata);
@@ -142,6 +146,7 @@ export function TodoDetailsOverlay({
     if (newMetadata.priority) parts.push(`!!${newMetadata.priority}`);
     if (newMetadata.dueDate) parts.push(`~${newMetadata.dueDate}`);
     if (newMetadata.duration) parts.push(`*${newMetadata.duration}`);
+    if (newMetadata.recurring) parts.push(`%${newMetadata.recurring}`);
 
     const newText = parts.join(" ");
     onEdit(todo.id, newText, todo.plainText, newMetadata);
@@ -547,6 +552,28 @@ export function TodoDetailsOverlay({
                       handleMetadataChange(editingMetadata);
                     }}
                     placeholder="e.g., 2h, 30m, 1d"
+                    className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+                  />
+                </div>
+
+                {/* Recurring */}
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔄 Recurring</h4>
+                  <input
+                    type="text"
+                    value={editingMetadata.recurring || ""}
+                    onChange={(e) => {
+                      const newMetadata = {
+                        ...editingMetadata,
+                        recurring: e.target.value || undefined,
+                      };
+                      handleMetadataChange(newMetadata);
+                    }}
+                    onBlur={() => {
+                      // Save on blur
+                      handleMetadataChange(editingMetadata);
+                    }}
+                    placeholder="e.g., every day, every monday"
                     className="w-full text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
                   />
                 </div>

@@ -51,6 +51,7 @@ export interface MarkerColors extends Record<string, string> {
   priority: string; // !!
   dueDate: string; // ~
   duration: string; // *
+  recurring: string; // %
 }
 
 export const defaultMarkerColors: MarkerColors = {
@@ -61,6 +62,7 @@ export const defaultMarkerColors: MarkerColors = {
   priority: "#ffd4d4", // Red
   dueDate: "#fce4ec", // Pink
   duration: "#d4faff", // Cyan
+  recurring: "#e1f5e1", // Light green
 };
 
 export interface DateTimeSettings {

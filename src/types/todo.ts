@@ -6,6 +6,7 @@ export interface TodoMetadata {
   priority?: string; // !! marker
   dueDate?: string; // ~ marker
   duration?: string; // * marker
+  recurring?: string; // % marker
 }
 
 export interface Comment {

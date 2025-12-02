@@ -38,6 +38,12 @@ const markerInfo = [
     label: "Duration",
     description: "Color for task durations",
   },
+  {
+    key: "recurring" as keyof MarkerColors,
+    symbol: "%",
+    label: "Recurring",
+    description: "Color for recurring task patterns",
+  },
 ];
 
 export function MarkersTab({ markerColors, onUpdate }: MarkersTabProps) {

@@ -73,8 +73,9 @@ export function MarkedText({
     { regex: /\$[\w-_]+/g, type: "source" as const },
     { regex: /\^[\w-_]+/g, type: "mentioned" as const },
     { regex: /!![\w-_]+/g, type: "priority" as const },
-    { regex: /~([^@#$^*~\n]+?)(?=\s{2,}|\s+[@#$^*~!]{1,2}|$)/g, type: "dueDate" as const },
+    { regex: /~([^@#$^*~%\n]+?)(?=\s{2,}|\s+[@#$^*~%!]{1,2}|$)/g, type: "dueDate" as const },
     { regex: /\*[\w-_]+/g, type: "duration" as const },
+    { regex: /%([^@#$^*~%\n]+?)(?=\s{2,}|\s+[@#$^*~%!]{1,2}|$)/g, type: "recurring" as const },
   ];
 
   // Find all matches across all patterns
@@ -101,13 +102,15 @@ export function MarkedText({
           priority: "!!",
           dueDate: "~",
           duration: "*",
+          recurring: "%",
         };
         const symbol = markerSymbols[type] || "";
 
-        // For dueDate with capturing group, match[0] is the full match including ~
+        // For dueDate and recurring with capturing group, match[0] is the full match including ~ or %
         // For other patterns, match[0] is also the full match
         const fullText = match[0];
-        const name = type === "dueDate" && match[1] ? match[1] : fullText.slice(symbol.length);
+        const name =
+          (type === "dueDate" || type === "recurring") && match[1] ? match[1] : fullText.slice(symbol.length);
 
         allMatches.push({
           start: match.index,
@@ -199,6 +202,9 @@ export function MarkedText({
             displayText = `~${parsed.formatted}`;
           }
         }
+      } else if (match.type === "recurring") {
+        // For recurring, use marker colors
+        bgColor = markerColors?.recurring;
       } else {
         // For duration, use marker colors
         bgColor = markerColors?.[match.type as keyof MarkerColors];

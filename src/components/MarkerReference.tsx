@@ -24,6 +24,9 @@ export function MarkerReference() {
         <div>
           <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">*2h</code> Duration
         </div>
+        <div>
+          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">%pattern</code> Recurring
+        </div>
       </div>
     </div>
   );

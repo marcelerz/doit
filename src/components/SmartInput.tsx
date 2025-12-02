@@ -1,6 +1,7 @@
 import React, { useRef, forwardRef, useImperativeHandle, useState, useEffect } from "react";
 import { Person, Project, Priority, DateTimeSettings } from "@/types/settings";
 import { getDueDateSuggestions, parseDate, formatDateTime } from "@/utils/dateParser";
+import { getRecurringSuggestions } from "@/utils/recurringParser";
 
 export interface TokenMatch {
   type: string;
@@ -172,7 +173,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       // Pattern matches everything after ~ until we hit a known marker or end of input
       // Allows letters (for month names, day names), digits, punctuation (commas, colons, slashes, dots)
       // and am/pm indicators. Stops at other markers or double spaces.
-      const dueDatePattern = `~([^@#$^*~\\n]+?)(?=\\s{2,}|\\s+[@#$^*~!]{1,2}|$)`;
+      const dueDatePattern = `~([^@#$^*~%\\n]+?)(?=\\s{2,}|\\s+[@#$^*~%!]{1,2}|$)`;
       patterns.push({
         type: "dueDate",
         symbol: "~",
@@ -187,6 +188,15 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         type: "duration",
         symbol: "*",
         regex: new RegExp(durationPattern, "gi"),
+      });
+
+      // Build pattern for recurring marker (%)
+      // Matches patterns like: %every 2 days, %every monday, %monthly on 15th, %workday
+      const recurringPattern = `%([^@#$^*~%\\n]+?)(?=\\s{2,}|\\s+[@#$^*~%!]{1,2}|$)`;
+      patterns.push({
+        type: "recurring",
+        symbol: "%",
+        regex: new RegExp(recurringPattern, "gi"),
       });
 
       return patterns;
@@ -280,9 +290,10 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         let match: RegExpExecArray | null;
         while ((match = regex.exec(text))) {
           const raw = match[0];
-          // For dueDate, match[1] contains the captured value without ~
+          // For dueDate and recurring, match[1] contains the captured value without ~ or %
           // For other types, extract by removing the symbol prefix
-          let value = type === "dueDate" && match[1] ? match[1].trim() : raw.slice(symbol.length);
+          let value =
+            (type === "dueDate" || type === "recurring") && match[1] ? match[1].trim() : raw.slice(symbol.length);
 
           // For people markers, resolve alternatives to canonical name
           if (["assigned", "source", "mentioned"].includes(type)) {
@@ -395,7 +406,15 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const priorityMarker = "!!";
       const durationMarker = "*";
       const dueDateMarker = "~";
-      const allMarkers = [...peopleMarkers, projectMarker, priorityMarker, durationMarker, dueDateMarker];
+      const recurringMarker = "%";
+      const allMarkers = [
+        ...peopleMarkers,
+        projectMarker,
+        priorityMarker,
+        durationMarker,
+        dueDateMarker,
+        recurringMarker,
+      ];
 
       // Find the last marker before the caret
       let lastMarkerPos = -1;
@@ -464,6 +483,11 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
             autocompleteType = "duedate";
             autocompleteMarker = lastMarker;
             options = getDueDateSuggestions(searchText, dateTimeSettings);
+          } else if (lastMarker === recurringMarker) {
+            shouldShowAutocomplete = true;
+            autocompleteType = "recurring";
+            autocompleteMarker = lastMarker;
+            options = getRecurringSuggestions().filter((s) => s.toLowerCase().includes(searchText.toLowerCase()));
           }
         }
       }
@@ -474,12 +498,13 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         const divRect = div.getBoundingClientRect();
 
         // Show "Add new" option if there are no matches and search text is not empty
-        // (but not for duration or duedate, which are just format suggestions)
+        // (but not for duration, duedate, or recurring, which are just format suggestions)
         const showAddNew =
           options.length === 0 &&
           searchText.trim() !== "" &&
           autocompleteType !== "duration" &&
-          autocompleteType !== "duedate";
+          autocompleteType !== "duedate" &&
+          autocompleteType !== "recurring";
         const canAddNew =
           (autocompleteType === "person" && onAddPerson) ||
           (autocompleteType === "project" && onAddProject) ||

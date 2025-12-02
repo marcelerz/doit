@@ -71,6 +71,7 @@ export function TodoItem({
     priority: "!!",
     dueDate: "~",
     duration: "*",
+    recurring: "%",
   };
 
   // Helper functions to get entity colors
@@ -152,6 +153,9 @@ export function TodoItem({
           break;
         case "duration":
           metadata.duration = token.value;
+          break;
+        case "recurring":
+          metadata.recurring = token.value;
           break;
       }
     });
