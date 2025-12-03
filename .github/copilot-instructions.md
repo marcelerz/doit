@@ -24,6 +24,8 @@
 - [x] Create reusable abstractions (Badge, Modal, SearchableDropdown, colors, suggestions, keyboard nav)
 - [x] Refactor TodoDetailsOverlay.tsx with new components (1996 → 1098 lines, 898 lines saved)
 - [x] Add tag usage tracking with SearchableDropdown showing most-used tags first
+- [x] Make color optional for people/projects/priorities with fallback to marker colors
+- [x] Add "Use Default" button to reset custom colors
 
 ## Project Details
 

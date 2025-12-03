@@ -25,7 +25,7 @@ export function ProjectItem({ project, onClick, onDelete }: ProjectItemProps) {
         {/* Avatar */}
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-          style={{ backgroundColor: project.color }}
+          style={{ backgroundColor: project.color || "#e2ccff" }}
         >
           {project.name.charAt(0).toUpperCase()}
         </div>

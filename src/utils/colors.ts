@@ -3,12 +3,10 @@
  */
 
 /**
- * Generate a consistent color for a person based on their name
+ * Get person color, using custom color if provided or defaulting to marker color
  */
-export function getPersonColor(name: string): string {
-  const hash = name.split("").reduce((acc, char) => char.charCodeAt(0) + acc, 0);
-  const hue = hash % 360;
-  return `hsl(${hue}, 70%, 85%)`;
+export function getPersonColor(color?: string): string {
+  return color || "#cce5ff"; // Default to "assigned" marker color
 }
 
 /**

@@ -577,7 +577,15 @@ export function GanttView({
                       {/* Hover tooltip - positioned outside task bar */}
                       {hoveredTaskId === task.todo.id && (
                         <div className="absolute left-4 top-full mt-2 z-50 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-3 min-w-[300px] max-w-[500px] pointer-events-none">
-                          <MarkedText text={task.todo.text} markerColors={markerColors} />
+                          <MarkedText
+                            text={task.todo.text}
+                            markerColors={markerColors}
+                            availablePeople={availablePeople}
+                            availableProjects={availableProjects}
+                            availablePriorities={availablePriorities}
+                            dateTimeSettings={settings.dateTime}
+                            workHoursSettings={settings.workHours}
+                          />
                         </div>
                       )}
                     </div>

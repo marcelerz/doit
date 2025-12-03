@@ -383,10 +383,40 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         span.contentEditable = "false";
         span.dataset.token = token.type;
 
-        // Use marker-specific color from markerColors prop, or fall back to defaultColors
-        if (!colorMap[token.type]) {
-          colorMap[token.type] = markerColors[token.type] || defaultColors[colorIdx % defaultColors.length];
-          colorIdx++;
+        // Determine background color - try to get entity-specific color first
+        let bgColor = colorMap[token.type];
+
+        // For assigned, source, or mentioned people, look up person's custom color
+        if ((token.type === "assigned" || token.type === "source" || token.type === "mentioned") && availablePeople) {
+          const person = availablePeople.find((p) => p.name === token.value || p.alternatives.includes(token.value));
+          if (person?.color) {
+            bgColor = person.color;
+          }
+        }
+        // For projects, look up project's custom color
+        else if (token.type === "project" && availableProjects) {
+          const project = availableProjects.find((p) => p.name === token.value || p.alternatives.includes(token.value));
+          if (project?.color) {
+            bgColor = project.color;
+          }
+        }
+        // For priorities, look up priority's custom color
+        else if (token.type === "priority" && availablePriorities) {
+          const priority = availablePriorities.find(
+            (p) => p.name === token.value || p.alternatives.includes(token.value),
+          );
+          if (priority?.color) {
+            bgColor = priority.color;
+          }
+        }
+
+        // Fall back to marker color or default if no entity-specific color found
+        if (!bgColor) {
+          if (!colorMap[token.type]) {
+            colorMap[token.type] = markerColors[token.type] || defaultColors[colorIdx % defaultColors.length];
+            colorIdx++;
+          }
+          bgColor = colorMap[token.type];
         }
 
         Object.assign(span.style, {
@@ -395,7 +425,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           margin: "0 2px",
           borderRadius: "4px",
           fontWeight: "bold",
-          backgroundColor: colorMap[token.type],
+          backgroundColor: bgColor,
           color: "#333",
         });
 

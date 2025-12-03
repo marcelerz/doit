@@ -3,7 +3,7 @@ export interface Person {
   name: string;
   alternatives: string[];
   imageUrl?: string;
-  color: string;
+  color?: string; // Optional - defaults to marker color if not set
   context?: string; // Rich text context
   comments: Comment[];
   activity: ActivityEntry[];
@@ -15,7 +15,7 @@ export interface Project {
   name: string;
   alternatives: string[];
   imageUrl?: string;
-  color: string;
+  color?: string; // Optional - defaults to marker color if not set
   context?: string; // Rich text context
   comments: Comment[];
   activity: ActivityEntry[];
@@ -26,7 +26,7 @@ export interface Priority {
   id: string;
   name: string;
   alternatives: string[];
-  color: string;
+  color?: string; // Optional - defaults to marker color if not set
   order: number; // Lower number = higher priority
   comments: Comment[];
   activity: ActivityEntry[];

@@ -30,7 +30,7 @@ export function ProjectDetailsOverlay({
 }: ProjectDetailsOverlayProps) {
   const [editingName, setEditingName] = useState(project.name);
   const [editingAlternatives, setEditingAlternatives] = useState(project.alternatives.join(", "));
-  const [editingColor, setEditingColor] = useState(project.color);
+  const [editingColor, setEditingColor] = useState(project.color || "");
   const [editingImageUrl, setEditingImageUrl] = useState(project.imageUrl || "");
   const [editingContext, setEditingContext] = useState(project.context || "");
   const [newComment, setNewComment] = useState("");
@@ -39,7 +39,7 @@ export function ProjectDetailsOverlay({
   useEffect(() => {
     setEditingName(project.name);
     setEditingAlternatives(project.alternatives.join(", "));
-    setEditingColor(project.color);
+    setEditingColor(project.color || "");
     setEditingImageUrl(project.imageUrl || "");
     setEditingContext(project.context || "");
   }, [project]);
@@ -50,7 +50,7 @@ export function ProjectDetailsOverlay({
       if (
         editingName.trim() !== project.name ||
         editingAlternatives !== project.alternatives.join(", ") ||
-        editingColor !== project.color ||
+        editingColor !== (project.color || "") ||
         (editingImageUrl.trim() || undefined) !== project.imageUrl ||
         (editingContext.trim() || undefined) !== project.context
       ) {
@@ -60,7 +60,7 @@ export function ProjectDetailsOverlay({
             .split(",")
             .map((a) => a.trim())
             .filter((a) => a),
-          color: editingColor,
+          color: editingColor || undefined,
           imageUrl: editingImageUrl.trim() || undefined,
           context: editingContext.trim() || undefined,
         });
@@ -107,7 +107,7 @@ export function ProjectDetailsOverlay({
             <div className="flex items-center gap-4">
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-md"
-                style={{ backgroundColor: editingColor }}
+                style={{ backgroundColor: editingColor || "#e2ccff" }}
               >
                 {editingName.charAt(0).toUpperCase()}
               </div>
@@ -178,11 +178,13 @@ export function ProjectDetailsOverlay({
 
               {/* Color Field */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Color</label>
+                <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
+                  Color (optional - defaults to #e2ccff)
+                </label>
                 <div className="flex gap-2 items-center">
                   <input
                     type="color"
-                    value={editingColor}
+                    value={editingColor || "#e2ccff"}
                     onChange={(e) => setEditingColor(e.target.value)}
                     className="w-20 h-10 rounded-lg cursor-pointer border border-zinc-300 dark:border-zinc-700"
                   />
@@ -191,8 +193,17 @@ export function ProjectDetailsOverlay({
                     value={editingColor}
                     onChange={(e) => setEditingColor(e.target.value)}
                     className="flex-1 px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="#9333ea"
+                    placeholder="#e2ccff (default)"
                   />
+                  {editingColor && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingColor("")}
+                      className="px-3 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
+                    >
+                      Use Default
+                    </button>
+                  )}
                 </div>
               </div>
 

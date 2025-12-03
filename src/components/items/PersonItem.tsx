@@ -25,7 +25,7 @@ export function PersonItem({ person, onClick, onDelete }: PersonItemProps) {
         {/* Avatar */}
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-          style={{ backgroundColor: person.color }}
+          style={{ backgroundColor: person.color || "#cce5ff" }}
         >
           {person.name.charAt(0).toUpperCase()}
         </div>

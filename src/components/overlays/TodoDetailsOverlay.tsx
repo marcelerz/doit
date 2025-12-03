@@ -258,21 +258,20 @@ export function TodoDetailsOverlay({
     return projects.includes(project) ? projects.filter((p) => p !== project) : [...projects, project];
   };
 
-  // Helper functions for colors (from TodoItem)
+  // Helper functions for colors
   const getPersonColor = (name: string) => {
-    const hash = name.split("").reduce((acc, char) => char.charCodeAt(0) + acc, 0);
-    const hue = hash % 360;
-    return `hsl(${hue}, 70%, 85%)`;
+    const person = availablePeople.find((p) => p.name === name || p.alternatives.includes(name));
+    return person?.color || markerColors.assigned;
   };
 
   const getProjectColor = (name: string) => {
-    // markerColors is passed as a separate prop
-    return markerColors.project;
+    const project = availableProjects.find((p) => p.name === name || p.alternatives.includes(name));
+    return project?.color || markerColors.project;
   };
 
   const getPriorityColor = (priority: string) => {
-    // markerColors is passed as a separate prop
-    return markerColors.priority;
+    const priorityObj = availablePriorities.find((p) => p.name === priority || p.alternatives.includes(priority));
+    return priorityObj?.color || markerColors.priority;
   };
 
   const getTextColor = (backgroundColor: string) => {
@@ -349,6 +348,9 @@ export function TodoDetailsOverlay({
                       text={todo.text}
                       markerColors={markerColors}
                       linkPatterns={linkPatterns}
+                      availablePeople={availablePeople}
+                      availableProjects={availableProjects}
+                      availablePriorities={availablePriorities}
                       dateTimeSettings={settings.dateTime}
                       workHoursSettings={settings.workHours}
                     />
@@ -421,20 +423,30 @@ export function TodoDetailsOverlay({
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">👤 Assigned</h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {editingMetadata.assignedPeople.map((person) => (
-                      <Badge
-                        key={person}
-                        variant="blue"
-                        onRemove={() => {
-                          handleMetadataChange({
-                            ...editingMetadata,
-                            assignedPeople: editingMetadata.assignedPeople.filter((p) => p !== person),
-                          });
-                        }}
-                      >
-                        @{person}
-                      </Badge>
-                    ))}
+                    {editingMetadata.assignedPeople.map((person) => {
+                      const bgColor = getPersonColor(person);
+                      const textColor = getTextColor(bgColor);
+                      return (
+                        <span
+                          key={person}
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium"
+                          style={{ backgroundColor: bgColor, color: textColor }}
+                        >
+                          @{person}
+                          <button
+                            onClick={() => {
+                              handleMetadataChange({
+                                ...editingMetadata,
+                                assignedPeople: editingMetadata.assignedPeople.filter((p) => p !== person),
+                              });
+                            }}
+                            className="ml-1 hover:opacity-70"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
                     <div className="relative">
                       <button
                         onClick={() => setShowAssignedDropdown(!showAssignedDropdown)}
@@ -479,20 +491,30 @@ export function TodoDetailsOverlay({
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📁 Projects</h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {editingMetadata.projects.map((project) => (
-                      <Badge
-                        key={project}
-                        variant="purple"
-                        onRemove={() => {
-                          handleMetadataChange({
-                            ...editingMetadata,
-                            projects: editingMetadata.projects.filter((p) => p !== project),
-                          });
-                        }}
-                      >
-                        #{project}
-                      </Badge>
-                    ))}
+                    {editingMetadata.projects.map((project) => {
+                      const bgColor = getProjectColor(project);
+                      const textColor = getTextColor(bgColor);
+                      return (
+                        <span
+                          key={project}
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium"
+                          style={{ backgroundColor: bgColor, color: textColor }}
+                        >
+                          #{project}
+                          <button
+                            onClick={() => {
+                              handleMetadataChange({
+                                ...editingMetadata,
+                                projects: editingMetadata.projects.filter((p) => p !== project),
+                              });
+                            }}
+                            className="ml-1 hover:opacity-70"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
                     {showProjectDropdown && (
                       <SearchableDropdown
                         items={availableProjects.map((p) => ({ id: p.name, label: `#${p.name}` }))}
@@ -535,20 +557,30 @@ export function TodoDetailsOverlay({
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">💼 Source</h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {editingMetadata.sourcePeople.map((person) => (
-                      <Badge
-                        key={person}
-                        variant="green"
-                        onRemove={() => {
-                          handleMetadataChange({
-                            ...editingMetadata,
-                            sourcePeople: editingMetadata.sourcePeople.filter((p) => p !== person),
-                          });
-                        }}
-                      >
-                        ${person}
-                      </Badge>
-                    ))}
+                    {editingMetadata.sourcePeople.map((person) => {
+                      const bgColor = getPersonColor(person);
+                      const textColor = getTextColor(bgColor);
+                      return (
+                        <span
+                          key={person}
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium"
+                          style={{ backgroundColor: bgColor, color: textColor }}
+                        >
+                          ${person}
+                          <button
+                            onClick={() => {
+                              handleMetadataChange({
+                                ...editingMetadata,
+                                sourcePeople: editingMetadata.sourcePeople.filter((p) => p !== person),
+                              });
+                            }}
+                            className="ml-1 hover:opacity-70"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
                     {showSourceDropdown && (
                       <SearchableDropdown
                         items={availablePeople.map((p) => ({ id: p.name, label: `$${p.name}` }))}
@@ -591,20 +623,30 @@ export function TodoDetailsOverlay({
                 <div>
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">💬 Mentioned</h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {editingMetadata.mentionedPeople.map((person) => (
-                      <Badge
-                        key={person}
-                        variant="pink"
-                        onRemove={() => {
-                          handleMetadataChange({
-                            ...editingMetadata,
-                            mentionedPeople: editingMetadata.mentionedPeople.filter((p) => p !== person),
-                          });
-                        }}
-                      >
-                        ^{person}
-                      </Badge>
-                    ))}
+                    {editingMetadata.mentionedPeople.map((person) => {
+                      const bgColor = getPersonColor(person);
+                      const textColor = getTextColor(bgColor);
+                      return (
+                        <span
+                          key={person}
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium"
+                          style={{ backgroundColor: bgColor, color: textColor }}
+                        >
+                          ^{person}
+                          <button
+                            onClick={() => {
+                              handleMetadataChange({
+                                ...editingMetadata,
+                                mentionedPeople: editingMetadata.mentionedPeople.filter((p) => p !== person),
+                              });
+                            }}
+                            className="ml-1 hover:opacity-70"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
                     {showMentionedDropdown && (
                       <SearchableDropdown
                         items={availablePeople.map((p) => ({ id: p.name, label: `^${p.name}` }))}
@@ -678,12 +720,34 @@ export function TodoDetailsOverlay({
                         emptyMessage="No priorities available"
                       />
                     )}
-                    <button
-                      onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
-                      className="text-xs px-2 py-1 rounded border bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
-                    >
-                      !!{editingMetadata.priority || settings.autoAssign.priority || "None"}
-                    </button>
+                    {editingMetadata.priority ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium cursor-pointer"
+                        style={{
+                          backgroundColor: getPriorityColor(editingMetadata.priority),
+                          color: getTextColor(getPriorityColor(editingMetadata.priority)),
+                        }}
+                        onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
+                      >
+                        !!{editingMetadata.priority}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMetadataChange({ ...editingMetadata, priority: "" });
+                          }}
+                          className="ml-1 hover:opacity-70"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
+                        className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
+                      >
+                        !!{settings.autoAssign.priority || "None"}
+                      </button>
+                    )}
                   </div>
                 </div>
 

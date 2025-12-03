@@ -17,7 +17,7 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
   const [newPriority, setNewPriority] = useState<Omit<Priority, "id" | "comments" | "activity">>({
     name: "",
     alternatives: [],
-    color: "#ffa500",
+    color: "",
     order: priorities.length + 1,
   });
 
@@ -41,11 +41,14 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
 
   const handleAdd = () => {
     if (newPriority.name.trim()) {
-      onAdd(newPriority);
+      onAdd({
+        ...newPriority,
+        color: newPriority.color || undefined, // Only set if provided
+      });
       setNewPriority({
         name: "",
         alternatives: [],
-        color: "#ffa500",
+        color: "",
         order: priorities.length + 2,
       });
       setIsAdding(false);
@@ -118,13 +121,26 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Color</label>
-                    <input
-                      type="color"
-                      value={editForm.color || "#ffa500"}
-                      onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
-                      className="w-full h-10 rounded-md border border-zinc-300 dark:border-zinc-600 cursor-pointer"
-                    />
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                      Color (optional)
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="color"
+                        value={editForm.color || "#ffd4d4"}
+                        onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
+                        className="w-full h-10 rounded-md border border-zinc-300 dark:border-zinc-600 cursor-pointer"
+                      />
+                      {editForm.color && (
+                        <button
+                          type="button"
+                          onClick={() => setEditForm({ ...editForm, color: "" })}
+                          className="px-3 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
+                        >
+                          Use Default
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Order</label>
@@ -157,7 +173,7 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
                 <div className="flex items-center gap-3 flex-1">
                   <div
                     className="w-6 h-6 rounded-full border-2 border-zinc-300 dark:border-zinc-600"
-                    style={{ backgroundColor: priority.color }}
+                    style={{ backgroundColor: priority.color || "#ffd4d4" }}
                   />
                   <div>
                     <div className="font-medium text-zinc-900 dark:text-zinc-100">
@@ -217,13 +233,26 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Color</label>
-              <input
-                type="color"
-                value={newPriority.color}
-                onChange={(e) => setNewPriority({ ...newPriority, color: e.target.value })}
-                className="w-full h-10 rounded-md border border-zinc-300 dark:border-zinc-600 cursor-pointer"
-              />
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                Color (optional - defaults to #ffd4d4)
+              </label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="color"
+                  value={newPriority.color || "#ffd4d4"}
+                  onChange={(e) => setNewPriority({ ...newPriority, color: e.target.value })}
+                  className="w-full h-10 rounded-md border border-zinc-300 dark:border-zinc-600 cursor-pointer"
+                />
+                {newPriority.color && (
+                  <button
+                    type="button"
+                    onClick={() => setNewPriority({ ...newPriority, color: "" })}
+                    className="px-3 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
+                  >
+                    Default
+                  </button>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Order</label>
@@ -249,7 +278,7 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
                 setNewPriority({
                   name: "",
                   alternatives: [],
-                  color: "#ffa500",
+                  color: "",
                   order: priorities.length + 1,
                 });
               }}

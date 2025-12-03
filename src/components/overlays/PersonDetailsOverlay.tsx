@@ -30,7 +30,7 @@ export function PersonDetailsOverlay({
 }: PersonDetailsOverlayProps) {
   const [editingName, setEditingName] = useState(person.name);
   const [editingAlternatives, setEditingAlternatives] = useState(person.alternatives.join(", "));
-  const [editingColor, setEditingColor] = useState(person.color);
+  const [editingColor, setEditingColor] = useState(person.color || "");
   const [editingImageUrl, setEditingImageUrl] = useState(person.imageUrl || "");
   const [editingContext, setEditingContext] = useState(person.context || "");
   const [newComment, setNewComment] = useState("");
@@ -39,7 +39,7 @@ export function PersonDetailsOverlay({
   useEffect(() => {
     setEditingName(person.name);
     setEditingAlternatives(person.alternatives.join(", "));
-    setEditingColor(person.color);
+    setEditingColor(person.color || "");
     setEditingImageUrl(person.imageUrl || "");
     setEditingContext(person.context || "");
   }, [person]);
@@ -50,7 +50,7 @@ export function PersonDetailsOverlay({
       if (
         editingName.trim() !== person.name ||
         editingAlternatives !== person.alternatives.join(", ") ||
-        editingColor !== person.color ||
+        editingColor !== (person.color || "") ||
         (editingImageUrl.trim() || undefined) !== person.imageUrl ||
         (editingContext.trim() || undefined) !== person.context
       ) {
@@ -60,7 +60,7 @@ export function PersonDetailsOverlay({
             .split(",")
             .map((a) => a.trim())
             .filter((a) => a),
-          color: editingColor,
+          color: editingColor || undefined,
           imageUrl: editingImageUrl.trim() || undefined,
           context: editingContext.trim() || undefined,
         });
@@ -107,7 +107,7 @@ export function PersonDetailsOverlay({
             <div className="flex items-center gap-4">
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-md"
-                style={{ backgroundColor: editingColor }}
+                style={{ backgroundColor: editingColor || "#cce5ff" }}
               >
                 {editingName.charAt(0).toUpperCase()}
               </div>
@@ -184,11 +184,13 @@ export function PersonDetailsOverlay({
 
               {/* Color Field */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Color</label>
+                <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
+                  Color (optional - defaults to #cce5ff)
+                </label>
                 <div className="flex gap-2 items-center">
                   <input
                     type="color"
-                    value={editingColor}
+                    value={editingColor || "#cce5ff"}
                     onChange={(e) => setEditingColor(e.target.value)}
                     className="w-20 h-10 rounded-lg cursor-pointer border border-zinc-300 dark:border-zinc-700"
                   />
@@ -197,8 +199,17 @@ export function PersonDetailsOverlay({
                     value={editingColor}
                     onChange={(e) => setEditingColor(e.target.value)}
                     className="flex-1 px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="#3b82f6"
+                    placeholder="#cce5ff (default)"
                   />
+                  {editingColor && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingColor("")}
+                      className="px-3 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
+                    >
+                      Use Default
+                    </button>
+                  )}
                 </div>
               </div>
 

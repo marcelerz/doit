@@ -17,7 +17,7 @@ export function ProjectsTab({ projects, onAdd, onUpdate, onDelete }: ProjectsTab
     name: "",
     alternatives: "",
     imageUrl: "",
-    color: "#e2ccff",
+    color: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -31,7 +31,7 @@ export function ProjectsTab({ projects, onAdd, onUpdate, onDelete }: ProjectsTab
         .map((a) => a.trim())
         .filter((a) => a),
       imageUrl: formData.imageUrl.trim() || undefined,
-      color: formData.color,
+      color: formData.color || undefined, // Only set if provided
     };
 
     if (editingId) {
@@ -41,7 +41,7 @@ export function ProjectsTab({ projects, onAdd, onUpdate, onDelete }: ProjectsTab
       onAdd(projectData);
     }
 
-    setFormData({ name: "", alternatives: "", imageUrl: "", color: "#e2ccff" });
+    setFormData({ name: "", alternatives: "", imageUrl: "", color: "" });
     setIsAdding(false);
   };
 
@@ -51,7 +51,7 @@ export function ProjectsTab({ projects, onAdd, onUpdate, onDelete }: ProjectsTab
       name: project.name,
       alternatives: project.alternatives.join(", "),
       imageUrl: project.imageUrl || "",
-      color: project.color,
+      color: project.color || "",
     });
     setIsAdding(true);
   };
@@ -59,7 +59,7 @@ export function ProjectsTab({ projects, onAdd, onUpdate, onDelete }: ProjectsTab
   const handleCancel = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ name: "", alternatives: "", imageUrl: "", color: "#e2ccff" });
+    setFormData({ name: "", alternatives: "", imageUrl: "", color: "" });
   };
 
   return (
@@ -122,11 +122,13 @@ export function ProjectsTab({ projects, onAdd, onUpdate, onDelete }: ProjectsTab
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Color *</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              Color (optional - defaults to marker color)
+            </label>
             <div className="flex gap-2 items-center">
               <input
                 type="color"
-                value={formData.color}
+                value={formData.color || "#e2ccff"}
                 onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                 className="h-10 w-20 rounded cursor-pointer"
               />
@@ -135,10 +137,18 @@ export function ProjectsTab({ projects, onAdd, onUpdate, onDelete }: ProjectsTab
                 value={formData.color}
                 onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                 className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                placeholder="#e2ccff"
-                pattern="^#[0-9A-Fa-f]{6}$"
-                required
+                placeholder="#e2ccff (default)"
+                pattern="^#[0-9A-Fa-f]{6}$|^$"
               />
+              {formData.color && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, color: "" })}
+                  className="px-3 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
+                >
+                  Use Default
+                </button>
+              )}
             </div>
           </div>
 
@@ -173,7 +183,7 @@ export function ProjectsTab({ projects, onAdd, onUpdate, onDelete }: ProjectsTab
             >
               <div
                 className="w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg"
-                style={{ backgroundColor: project.color, color: "#333" }}
+                style={{ backgroundColor: project.color || "#e2ccff", color: "#333" }}
               >
                 {project.name.charAt(0).toUpperCase()}
               </div>
