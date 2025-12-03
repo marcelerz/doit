@@ -962,10 +962,10 @@ export function TodoDetailsOverlay({
                     }
                   });
 
-                  if (foundLinks.length > 0) {
-                    return (
-                      <div>
-                        <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🌐 Links</h4>
+                  return (
+                    <div>
+                      <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🌐 Links</h4>
+                      {foundLinks.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                           {foundLinks.map((link, idx) => (
                             <a
@@ -993,10 +993,11 @@ export function TodoDetailsOverlay({
                             </a>
                           ))}
                         </div>
-                      </div>
-                    );
-                  }
-                  return null;
+                      ) : (
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400 italic">No links found</div>
+                      )}
+                    </div>
+                  );
                 })()}
 
                 {/* Action Buttons */}
