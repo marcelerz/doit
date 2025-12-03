@@ -6,6 +6,7 @@ import { MarkerColors, Settings, LinkPattern, Person, Project, Priority } from "
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Comments } from "@/components/shared/Comments";
+import { formatDateForDisplay } from "@/utils/dateParser";
 
 interface TodoItemProps {
   todo: Todo;
@@ -508,8 +509,9 @@ export function TodoItem({
                         onMarkerClick?.("dueDates", todo.metadata.dueDate!);
                       }}
                       className="px-2 py-0.5 text-xs rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors"
+                      title={todo.metadata.dueDate}
                     >
-                      ~{todo.metadata.dueDate}
+                      ~{formatDateForDisplay(todo.metadata.dueDate)}
                     </button>
                   ) : (
                     <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>

@@ -13,7 +13,7 @@ import { Badge } from "@/components/shared/Badge";
 import { SearchableDropdown } from "@/components/shared/SearchableDropdown";
 import { getDurationSuggestions, filterRecurringSuggestions } from "@/utils/suggestions";
 import { Comments } from "@/components/shared/Comments";
-import { parseDate, normalizeDateValue } from "@/utils/dateParser";
+import { parseDate, normalizeDateValue, toLocalISOString, formatDateForDisplay } from "@/utils/dateParser";
 import { calculateUsageStats, sortStringsByUsage } from "@/utils/usageStats";
 
 // Helper function to convert a date value (which might be shorthand like "today") to yyyy-MM-dd format
@@ -29,13 +29,20 @@ function convertToDateInputFormat(dateValue: string | undefined, settings: Setti
   const parsed = parseDate(dateValue, settings.dateTime, settings.workHours);
   if (parsed) {
     const date = new Date(parsed.timestamp);
-    return date.toISOString().split("T")[0];
+    // Use local date methods to avoid UTC conversion
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
 
   // Fallback: try to parse as a regular date
   const fallbackDate = new Date(dateValue);
   if (!isNaN(fallbackDate.getTime())) {
-    return fallbackDate.toISOString().split("T")[0];
+    const year = fallbackDate.getFullYear();
+    const month = (fallbackDate.getMonth() + 1).toString().padStart(2, "0");
+    const day = fallbackDate.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
 
   return "";
@@ -805,7 +812,8 @@ export function TodoDetailsOverlay({
                             const dateStr = editingMetadata.dueDate.includes("T")
                               ? editingMetadata.dueDate.split("T")[0]
                               : editingMetadata.dueDate;
-                            const date = new Date(dateStr + "T00:00:00");
+                            const [year, month, day] = dateStr.split("-").map(Number);
+                            const date = new Date(year, month - 1, day);
                             if (isNaN(date.getTime())) return "";
                             return date.toLocaleDateString("en-US", { weekday: "short" });
                           })()}

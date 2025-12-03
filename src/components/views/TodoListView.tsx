@@ -812,8 +812,20 @@ export function TodoList() {
 
         if (todo.metadata.dueDate) {
           try {
-            // Parse the due date string (YYYY-MM-DD format)
-            const dueDate = new Date(todo.metadata.dueDate + "T00:00:00");
+            // Parse the due date string - handle both YYYY-MM-DD and YYYY-MM-DDTHH:mm formats
+            let dueDate: Date;
+            const dueDateStr = todo.metadata.dueDate;
+
+            if (dueDateStr.includes("T")) {
+              // Has time component - extract date part and parse locally
+              const [year, month, day] = dueDateStr.split("T")[0].split("-").map(Number);
+              dueDate = new Date(year, month - 1, day);
+            } else {
+              // Date only format
+              const [year, month, day] = dueDateStr.split("-").map(Number);
+              dueDate = new Date(year, month - 1, day);
+            }
+
             dueDate.setHours(0, 0, 0, 0);
             const dueDateMs = dueDate.getTime();
 

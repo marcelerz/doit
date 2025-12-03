@@ -477,3 +477,43 @@ export const normalizeDateValue = (
 
   return undefined;
 };
+
+// Format a date string (ISO format) for display in local time
+// Returns a friendly format like "Dec 2, 2025 5:00 PM" or just "Dec 2, 2025" if no time
+export const formatDateForDisplay = (dateValue: string | undefined): string => {
+  if (!dateValue) return "";
+
+  // Parse the ISO date string (yyyy-MM-dd or yyyy-MM-ddTHH:mm)
+  let date: Date;
+  if (dateValue.includes("T")) {
+    // Has time component: yyyy-MM-ddTHH:mm
+    const [datePart, timePart] = dateValue.split("T");
+    const [year, month, day] = datePart.split("-").map(Number);
+    const [hours, minutes] = timePart.split(":").map(Number);
+    date = new Date(year, month - 1, day, hours, minutes);
+  } else {
+    // Date only: yyyy-MM-dd
+    const [year, month, day] = dateValue.split("-").map(Number);
+    date = new Date(year, month - 1, day);
+  }
+
+  if (isNaN(date.getTime())) return dateValue; // Return original if parsing failed
+
+  // Format with time if it was included
+  if (dateValue.includes("T")) {
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } else {
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+};

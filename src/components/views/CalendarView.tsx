@@ -62,7 +62,11 @@ export function CalendarView({
     const map = new Map<string, Todo[]>();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayKey = today.toISOString().split("T")[0];
+    // Use local date for today key
+    const year = today.getFullYear();
+    const month = (today.getMonth() + 1).toString().padStart(2, "0");
+    const day = today.getDate().toString().padStart(2, "0");
+    const todayKey = `${year}-${month}-${day}`;
 
     // First, add todos without due dates to today (if toggle is on)
     if (showTasksWithoutDates) {
@@ -82,8 +86,14 @@ export function CalendarView({
 
           // Try to parse various date formats
           if (dueDateStr.includes("T") || dueDateStr.includes("Z")) {
-            // ISO format
-            dueDate = new Date(dueDateStr);
+            // ISO format with time - parse and extract date part
+            const datePartMatch = dueDateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (datePartMatch) {
+              const [, year, month, day] = datePartMatch;
+              dueDate = new Date(Number(year), Number(month) - 1, Number(day));
+            } else {
+              dueDate = new Date(dueDateStr);
+            }
           } else if (dueDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
             // YYYY-MM-DD format - parse as local date
             const [year, month, day] = dueDateStr.split("-").map(Number);
@@ -97,7 +107,11 @@ export function CalendarView({
             return; // Invalid date
           }
 
-          const dateKey = dueDate.toISOString().split("T")[0];
+          // Create date key using local date components
+          const dateYear = dueDate.getFullYear();
+          const dateMonth = (dueDate.getMonth() + 1).toString().padStart(2, "0");
+          const dateDay = dueDate.getDate().toString().padStart(2, "0");
+          const dateKey = `${dateYear}-${dateMonth}-${dateDay}`;
 
           if (!map.has(dateKey)) {
             map.set(dateKey, []);
@@ -130,7 +144,11 @@ export function CalendarView({
     const current = new Date(startDate);
 
     for (let i = 0; i < 42; i++) {
-      const dateKey = current.toISOString().split("T")[0];
+      // Use local date components for date key
+      const keyYear = current.getFullYear();
+      const keyMonth = (current.getMonth() + 1).toString().padStart(2, "0");
+      const keyDay = current.getDate().toString().padStart(2, "0");
+      const dateKey = `${keyYear}-${keyMonth}-${keyDay}`;
       const todosForDay = todosByDate.get(dateKey) || [];
       const isCurrentMonth = current.getMonth() === month;
 
@@ -163,7 +181,11 @@ export function CalendarView({
   // Get todos for selected date
   const selectedDateTodos = useMemo(() => {
     if (!selectedDate) return [];
-    const dateKey = selectedDate.toISOString().split("T")[0];
+    // Use local date components for date key
+    const year = selectedDate.getFullYear();
+    const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
+    const day = selectedDate.getDate().toString().padStart(2, "0");
+    const dateKey = `${year}-${month}-${day}`;
     const dayTodos = todosByDate.get(dateKey) || [];
 
     // Sort todos
