@@ -123,52 +123,74 @@ export function GanttView({
     return date;
   };
 
-  // Get all active todos (not completed, archived, or deleted), sorted by mode
+  // Get all todos (active, completed, archived - not deleted), sorted by mode
   const allActiveTodos = useMemo(() => {
     let filtered = todos.filter((todo) => {
-      return todo.state === "active";
+      return todo.state !== "deleted";
     });
 
     if (schedulingMode === "asap") {
-      // Sort by priority order first, then by due date as secondary sort
+      // Sort by state first (active before completed/archived), then priority, then due date
       filtered.sort((a, b) => {
-        // Find priority objects
-        const aPriorityObj = availablePriorities.find(
-          (p) => p.name === a.metadata.priority || p.alternatives.includes(a.metadata.priority || ""),
-        );
-        const bPriorityObj = availablePriorities.find(
-          (p) => p.name === b.metadata.priority || p.alternatives.includes(b.metadata.priority || ""),
-        );
+        // Active tasks come first
+        if (a.state === "active" && b.state !== "active") return -1;
+        if (a.state !== "active" && b.state === "active") return 1;
 
-        const aOrder = aPriorityObj?.order ?? 999;
-        const bOrder = bPriorityObj?.order ?? 999;
+        // For active tasks, sort by priority then due date
+        if (a.state === "active" && b.state === "active") {
+          const aPriorityObj = availablePriorities.find(
+            (p) => p.name === a.metadata.priority || p.alternatives.includes(a.metadata.priority || ""),
+          );
+          const bPriorityObj = availablePriorities.find(
+            (p) => p.name === b.metadata.priority || p.alternatives.includes(b.metadata.priority || ""),
+          );
 
-        // Primary sort: priority order (lower order first)
-        if (aOrder !== bOrder) {
-          return aOrder - bOrder;
+          const aOrder = aPriorityObj?.order ?? 999;
+          const bOrder = bPriorityObj?.order ?? 999;
+
+          if (aOrder !== bOrder) {
+            return aOrder - bOrder;
+          }
+
+          // Secondary sort: due date (earliest first)
+          if (!a.metadata.dueDate && !b.metadata.dueDate) return 0;
+          if (!a.metadata.dueDate) return 1;
+          if (!b.metadata.dueDate) return -1;
+
+          const aDate = new Date(a.metadata.dueDate);
+          const bDate = new Date(b.metadata.dueDate);
+
+          return aDate.getTime() - bDate.getTime();
         }
 
-        // Secondary sort: due date (earliest first)
-        if (!a.metadata.dueDate && !b.metadata.dueDate) return 0;
-        if (!a.metadata.dueDate) return 1; // No due date goes last
-        if (!b.metadata.dueDate) return -1;
-
-        const aDate = new Date(a.metadata.dueDate);
-        const bDate = new Date(b.metadata.dueDate);
-
-        return aDate.getTime() - bDate.getTime(); // Earliest first
+        // For completed/archived, sort by completion/archive date
+        const aDate = a.completedAt || a.archivedAt || 0;
+        const bDate = b.completedAt || b.archivedAt || 0;
+        return aDate - bDate;
       });
     } else {
-      // Sort by due date (earliest first)
+      // Sort by state first, then due date
       filtered.sort((a, b) => {
-        if (!a.metadata.dueDate && !b.metadata.dueDate) return 0;
-        if (!a.metadata.dueDate) return 1; // No due date goes last
-        if (!b.metadata.dueDate) return -1;
+        // Active tasks come first
+        if (a.state === "active" && b.state !== "active") return -1;
+        if (a.state !== "active" && b.state === "active") return 1;
 
-        const aDate = new Date(a.metadata.dueDate);
-        const bDate = new Date(b.metadata.dueDate);
+        // For active tasks, sort by due date
+        if (a.state === "active" && b.state === "active") {
+          if (!a.metadata.dueDate && !b.metadata.dueDate) return 0;
+          if (!a.metadata.dueDate) return 1;
+          if (!b.metadata.dueDate) return -1;
 
-        return aDate.getTime() - bDate.getTime(); // Earliest first
+          const aDate = new Date(a.metadata.dueDate);
+          const bDate = new Date(b.metadata.dueDate);
+
+          return aDate.getTime() - bDate.getTime();
+        }
+
+        // For completed/archived, sort by completion/archive date
+        const aDate = a.completedAt || a.archivedAt || 0;
+        const bDate = b.completedAt || b.archivedAt || 0;
+        return aDate - bDate;
       });
     }
 
@@ -182,10 +204,44 @@ export function GanttView({
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let currentDay = new Date(today);
-    let remainingTodos = [...allActiveTodos];
+    // First, schedule all completed/archived tasks at their exact completion time
+    const activeTodosOnly = allActiveTodos.filter((todo) => {
+      if (todo.state === "completed" && todo.completedAt) {
+        const completionDate = new Date(todo.completedAt);
 
-    // Schedule tasks across days starting from today (sorted by priority or due date)
+        // Assign to the day based on LOCAL date (not UTC date)
+        const localYear = completionDate.getFullYear();
+        const localMonth = String(completionDate.getMonth() + 1).padStart(2, "0");
+        const localDay = String(completionDate.getDate()).padStart(2, "0");
+        const completedDateKey = `${localYear}-${localMonth}-${localDay}`;
+
+        map.set(todo.id, completedDateKey);
+        return false; // Remove from active scheduling
+      }
+
+      if (todo.state === "archived") {
+        // Archived tasks use completedAt if available, otherwise skip scheduling
+        if (todo.completedAt) {
+          const completionDate = new Date(todo.completedAt);
+
+          // Assign to the day based on LOCAL date (not UTC date)
+          const localYear = completionDate.getFullYear();
+          const localMonth = String(completionDate.getMonth() + 1).padStart(2, "0");
+          const localDay = String(completionDate.getDate()).padStart(2, "0");
+          const archivedDateKey = `${localYear}-${localMonth}-${localDay}`;
+
+          map.set(todo.id, archivedDateKey);
+        }
+        return false; // Remove from active scheduling
+      }
+
+      return true; // Keep active tasks for ASAP scheduling
+    });
+
+    let currentDay = new Date(today);
+    let remainingTodos = [...activeTodosOnly];
+
+    // Schedule active tasks across days starting from today (sorted by priority or due date)
     while (remainingTodos.length > 0) {
       const daySchedule = getScheduleForDate(currentDay);
       const dayStart = parseTime(daySchedule.startTime, currentDay);
@@ -205,6 +261,7 @@ export function GanttView({
       const scheduledToday: string[] = [];
 
       for (const todo of remainingTodos) {
+        // For active tasks, schedule ASAP
         // Ensure we're not in the past (for today)
         if (isCurrentDay && currentTime < now) {
           currentTime = new Date(now);
@@ -293,6 +350,53 @@ export function GanttView({
     }
 
     for (const todo of todosForDate) {
+      // For completed/archived tasks, schedule based on their actual completion time
+      if ((todo.state === "completed" || todo.state === "archived") && todo.completedAt) {
+        const completionDate = new Date(todo.completedAt);
+        const durationMinutes = parseDuration(todo.metadata.duration);
+
+        // Calculate when task would have started (completion time - duration)
+        const taskEndTime = completionDate;
+        const taskStartTime = new Date(completionDate.getTime() - durationMinutes * 60 * 1000);
+
+        // Calculate target date from the actual due date
+        let targetDate: Date;
+        if (todo.metadata.dueDate) {
+          const dueDateStr = todo.metadata.dueDate;
+          if (dueDateStr.includes("T") || dueDateStr.includes("Z")) {
+            targetDate = new Date(dueDateStr);
+          } else if (dueDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = dueDateStr.split("-").map(Number);
+            targetDate = new Date(year, month - 1, day);
+            targetDate.setHours(23, 59, 59, 999);
+          } else {
+            targetDate = new Date(dueDateStr);
+          }
+        } else {
+          targetDate = completionDate;
+        }
+
+        // Calculate buffer/overdue based on completion time vs due date
+        const timeDiff = targetDate.getTime() - taskEndTime.getTime();
+        const hasBuffer = timeDiff > 0;
+        const isOverdue = timeDiff < 0;
+        const bufferMinutes = Math.abs(Math.floor(timeDiff / 60000));
+
+        tasks.push({
+          todo,
+          startTime: taskStartTime,
+          endTime: taskEndTime,
+          durationMinutes,
+          targetDate,
+          hasBuffer,
+          bufferMinutes,
+          isOverdue,
+        });
+
+        continue;
+      }
+
+      // For active tasks, use ASAP scheduling
       // If today, ensure currentTime is not in the past
       if (isToday && currentTime < now) {
         currentTime = new Date(now);
@@ -397,6 +501,15 @@ export function GanttView({
     return (minutes / totalDayMinutes) * 100;
   };
 
+  // Get time position for full 24-hour day (for completed tasks outside work hours)
+  const getFullDayTimePosition = (time: Date): number => {
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const totalMinutes = 24 * 60;
+    const minutes = (time.getTime() - dayStart.getTime()) / 60000;
+    return (minutes / totalMinutes) * 100;
+  };
+
   const getPriorityColor = (priority?: string) => {
     if (!priority) return "bg-zinc-400";
     const p = priority.toLowerCase();
@@ -408,6 +521,10 @@ export function GanttView({
   };
 
   const getProjectColor = (todo: Todo): string => {
+    // Use gray for completed, light yellow for archived
+    if (todo.state === "completed") return "#9ca3af"; // gray-400
+    if (todo.state === "archived") return "#fef08a"; // yellow-200
+
     // If todo has a project, look up the project entity and use its custom color
     if (todo.metadata.projects && todo.metadata.projects.length > 0) {
       const projectName = todo.metadata.projects[0];
@@ -510,6 +627,34 @@ export function GanttView({
       }
 
       for (const todo of tasksForDay) {
+        // For completed/archived tasks, schedule based on their actual completion time
+        if ((todo.state === "completed" || todo.state === "archived") && todo.completedAt) {
+          const completionDate = new Date(todo.completedAt);
+          const durationMinutes = parseDuration(todo.metadata.duration);
+
+          // Calculate when task would have started (completion time - duration)
+          const taskStartTime = new Date(completionDate.getTime() - durationMinutes * 60 * 1000);
+
+          // Use full 24-hour day for positioning completed tasks
+          const fullDayStart = new Date(date);
+          fullDayStart.setHours(0, 0, 0, 0);
+          const fullDayMinutes = 24 * 60;
+
+          const startMinutes = (taskStartTime.getTime() - fullDayStart.getTime()) / 60000;
+          const startPercent = (startMinutes / fullDayMinutes) * 100;
+          const widthPercent = (durationMinutes / fullDayMinutes) * 100;
+
+          scheduled.push({
+            todo,
+            startPercent,
+            widthPercent,
+            color: getProjectColor(todo),
+          });
+
+          continue;
+        }
+
+        // For active tasks, use ASAP scheduling
         // Ensure not in the past
         if (isCurrentDay && currentTime < now) {
           currentTime = new Date(now);
@@ -833,14 +978,18 @@ export function GanttView({
               {/* Tasks timeline */}
               <div className="relative space-y-0 mx-4" style={{ overflow: "visible" }}>
                 {scheduledTasks.map((task, index) => {
-                  const startPos = getTimePosition(task.startTime);
-                  const endPos = getTimePosition(task.endTime);
+                  // Use full day positioning for completed/archived tasks
+                  const isCompletedTask = task.todo.state === "completed" || task.todo.state === "archived";
+                  const startPos = isCompletedTask
+                    ? getFullDayTimePosition(task.startTime)
+                    : getTimePosition(task.startTime);
+                  const endPos = isCompletedTask ? getFullDayTimePosition(task.endTime) : getTimePosition(task.endTime);
                   const width = endPos - startPos;
                   const targetPos = getTimePosition(task.targetDate);
 
                   // Check if there's a context switch buffer after this task
                   const nextTask = index < scheduledTasks.length - 1 ? scheduledTasks[index + 1] : null;
-                  const hasContextSwitch = nextTask && workHours.contextSwitchingTime > 0;
+                  const hasContextSwitch = nextTask && workHours.contextSwitchingTime > 0 && !isCompletedTask;
                   const contextSwitchStartPos = endPos;
                   const contextSwitchEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
                   const contextSwitchWidth = contextSwitchEndPos - contextSwitchStartPos;
