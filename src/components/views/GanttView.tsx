@@ -214,9 +214,24 @@ export function GanttView({
       // Don't schedule if it would go past end of day
       if (taskEnd > dayEndTime) break;
 
-      // Calculate target date (end of selected day by default, or now if today)
-      const isToday = selectedDate.toDateString() === new Date().toDateString();
-      const targetDate = isToday && now > dayStartTime && now < dayEndTime ? now : dayEndTime;
+      // Calculate target date from the actual due date
+      let targetDate: Date;
+      if (todo.metadata.dueDate) {
+        const dueDateStr = todo.metadata.dueDate;
+        if (dueDateStr.includes("T") || dueDateStr.includes("Z")) {
+          targetDate = new Date(dueDateStr);
+        } else if (dueDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const [year, month, day] = dueDateStr.split("-").map(Number);
+          targetDate = new Date(year, month - 1, day);
+          targetDate.setHours(23, 59, 59, 999); // End of day if no time specified
+        } else {
+          targetDate = new Date(dueDateStr);
+        }
+      } else {
+        // No due date - use end of selected day or now if today
+        const isToday = selectedDate.toDateString() === new Date().toDateString();
+        targetDate = isToday && now > dayStartTime && now < dayEndTime ? now : dayEndTime;
+      }
 
       // Calculate buffer/overdue
       const timeDiff = targetDate.getTime() - taskEnd.getTime();
@@ -422,7 +437,12 @@ export function GanttView({
               className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               title="Previous week"
             >
-              <svg className="w-4 h-4 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-4 h-4 text-zinc-600 dark:text-zinc-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
@@ -442,7 +462,12 @@ export function GanttView({
               className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               title="Next week"
             >
-              <svg className="w-4 h-4 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-4 h-4 text-zinc-600 dark:text-zinc-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -622,21 +647,23 @@ export function GanttView({
               </h4>
 
               {/* Time markers */}
-              <div className="relative h-6 bg-zinc-50 dark:bg-zinc-800 rounded">
+              <div className="relative h-6 bg-zinc-50 dark:bg-zinc-800 rounded mx-4" style={{ overflow: "visible" }}>
                 {hourMarkers.map((marker, i) => (
                   <div
                     key={i}
-                    className="absolute top-0 bottom-0 flex flex-col items-center"
+                    className="absolute top-0 bottom-0 flex flex-col items-center -translate-x-1/2"
                     style={{ left: `${marker.position}%` }}
                   >
                     <div className="w-px h-2 bg-zinc-300 dark:bg-zinc-600" />
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{formatTime(marker.time)}</span>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 whitespace-nowrap">
+                      {formatTime(marker.time)}
+                    </span>
                   </div>
                 ))}
               </div>
 
               {/* Tasks timeline */}
-              <div className="relative space-y-0">
+              <div className="relative space-y-0 mx-4" style={{ overflow: "visible" }}>
                 {scheduledTasks.map((task, index) => {
                   const startPos = getTimePosition(task.startTime);
                   const endPos = getTimePosition(task.endTime);
