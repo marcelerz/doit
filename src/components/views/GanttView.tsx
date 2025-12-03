@@ -73,6 +73,7 @@ export function GanttView({
   });
   const [weekOffset, setWeekOffset] = useState(0); // 0 = current week, 1 = next week, -1 = previous week
   const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(true);
+  const [schedulingMode, setSchedulingMode] = useState<"asap" | "dueDate">("asap");
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<Todo | null>(null);
 
@@ -122,32 +123,59 @@ export function GanttView({
     return date;
   };
 
-  // Get all active todos (not completed, archived, or deleted), sorted by priority
+  // Get all active todos (not completed, archived, or deleted), sorted by mode
   const allActiveTodos = useMemo(() => {
     let filtered = todos.filter((todo) => {
       return todo.state === "active";
     });
 
-    // Sort by priority order (lower order = higher priority = scheduled first)
-    filtered.sort((a, b) => {
-      // Find priority objects
-      const aPriorityObj = availablePriorities.find(
-        (p) => p.name === a.metadata.priority || p.alternatives.includes(a.metadata.priority || ""),
-      );
-      const bPriorityObj = availablePriorities.find(
-        (p) => p.name === b.metadata.priority || p.alternatives.includes(b.metadata.priority || ""),
-      );
+    if (schedulingMode === "asap") {
+      // Sort by priority order first, then by due date as secondary sort
+      filtered.sort((a, b) => {
+        // Find priority objects
+        const aPriorityObj = availablePriorities.find(
+          (p) => p.name === a.metadata.priority || p.alternatives.includes(a.metadata.priority || ""),
+        );
+        const bPriorityObj = availablePriorities.find(
+          (p) => p.name === b.metadata.priority || p.alternatives.includes(b.metadata.priority || ""),
+        );
 
-      const aOrder = aPriorityObj?.order ?? 999;
-      const bOrder = bPriorityObj?.order ?? 999;
+        const aOrder = aPriorityObj?.order ?? 999;
+        const bOrder = bPriorityObj?.order ?? 999;
 
-      return aOrder - bOrder; // Lower order first
-    });
+        // Primary sort: priority order (lower order first)
+        if (aOrder !== bOrder) {
+          return aOrder - bOrder;
+        }
+
+        // Secondary sort: due date (earliest first)
+        if (!a.metadata.dueDate && !b.metadata.dueDate) return 0;
+        if (!a.metadata.dueDate) return 1; // No due date goes last
+        if (!b.metadata.dueDate) return -1;
+
+        const aDate = new Date(a.metadata.dueDate);
+        const bDate = new Date(b.metadata.dueDate);
+
+        return aDate.getTime() - bDate.getTime(); // Earliest first
+      });
+    } else {
+      // Sort by due date (earliest first)
+      filtered.sort((a, b) => {
+        if (!a.metadata.dueDate && !b.metadata.dueDate) return 0;
+        if (!a.metadata.dueDate) return 1; // No due date goes last
+        if (!b.metadata.dueDate) return -1;
+
+        const aDate = new Date(a.metadata.dueDate);
+        const bDate = new Date(b.metadata.dueDate);
+
+        return aDate.getTime() - bDate.getTime(); // Earliest first
+      });
+    }
 
     return filtered;
-  }, [todos, availablePriorities]);
+  }, [todos, availablePriorities, schedulingMode]);
 
-  // Determine which day each task should be scheduled on (ASAP scheduling)
+  // Determine which day each task should be scheduled on (ASAP scheduling with different sort orders)
   const taskSchedulingMap = useMemo(() => {
     const map = new Map<string, string>(); // todoId -> dateKey
     const now = new Date();
@@ -157,7 +185,7 @@ export function GanttView({
     let currentDay = new Date(today);
     let remainingTodos = [...allActiveTodos];
 
-    // Schedule tasks across days starting from today
+    // Schedule tasks across days starting from today (sorted by priority or due date)
     while (remainingTodos.length > 0) {
       const daySchedule = getScheduleForDate(currentDay);
       const dayStart = parseTime(daySchedule.startTime, currentDay);
@@ -225,10 +253,9 @@ export function GanttView({
       if (currentDay.getTime() - today.getTime() > 30 * 24 * 60 * 60 * 1000) break;
     }
 
+    
     return map;
-  }, [allActiveTodos, workHours]);
-
-  // Get todos for selected date based on scheduling map
+  }, [allActiveTodos, workHours]);  // Get todos for selected date based on scheduling map
   const todosForDate = useMemo(() => {
     const dateKey = selectedDate.toISOString().split("T")[0];
     return allActiveTodos.filter((todo) => taskSchedulingMap.get(todo.id) === dateKey);
@@ -439,7 +466,7 @@ export function GanttView({
   const weekTasks = useMemo(() => {
     return currentWeekDates.map((date) => {
       const dateStr = date.toISOString().split("T")[0];
-      const tasksForDay = allActiveTodos.filter(todo => taskSchedulingMap.get(todo.id) === dateStr);
+      const tasksForDay = allActiveTodos.filter((todo) => taskSchedulingMap.get(todo.id) === dateStr);
       return { date, tasks: tasksForDay };
     });
   }, [currentWeekDates, allActiveTodos, taskSchedulingMap]);
@@ -458,7 +485,7 @@ export function GanttView({
       }));
 
       // Get tasks scheduled for this day from the map
-      const tasksForDay = allActiveTodos.filter(todo => taskSchedulingMap.get(todo.id) === dateStr);
+      const tasksForDay = allActiveTodos.filter((todo) => taskSchedulingMap.get(todo.id) === dateStr);
 
       const now = new Date();
       const isCurrentDay = date.toDateString() === now.toDateString();
@@ -472,7 +499,7 @@ export function GanttView({
         widthPercent: number;
         color: string;
       }> = [];
-      
+
       let currentTime = new Date(dayStart);
       if (isCurrentDay && now > dayStart && now < dayEnd) {
         currentTime = new Date(now);
@@ -483,7 +510,7 @@ export function GanttView({
         if (isCurrentDay && currentTime < now) {
           currentTime = new Date(now);
         }
-        
+
         // Skip breaks
         let inBreak = true;
         while (inBreak && currentTime < dayEnd) {
@@ -499,7 +526,7 @@ export function GanttView({
             }
           }
         }
-        
+
         if (currentTime >= dayEnd) break;
 
         const durationMinutes = parseDuration(todo.metadata.duration);
@@ -533,6 +560,35 @@ export function GanttView({
 
   return (
     <div className="space-y-4">
+      {/* Scheduling Mode Toggle */}
+      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Scheduling Mode:</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSchedulingMode("asap")}
+              className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
+                schedulingMode === "asap"
+                  ? "bg-blue-600 text-white"
+                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+              }`}
+            >
+              ASAP (Priority-based)
+            </button>
+            <button
+              onClick={() => setSchedulingMode("dueDate")}
+              className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
+                schedulingMode === "dueDate"
+                  ? "bg-blue-600 text-white"
+                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+              }`}
+            >
+              Due Date
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Mini Week Overview */}
       <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
         <div className="flex items-center justify-between mb-3">
