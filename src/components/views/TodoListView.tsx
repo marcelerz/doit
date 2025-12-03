@@ -635,6 +635,27 @@ export function TodoList() {
     });
   };
 
+  // Helper function to get button color class for filter sections
+  const getFilterButtonColor = (type: keyof Omit<TodoFilters, "searchText">, value: string, isSelected: boolean) => {
+    const colorMap = {
+      assignedPeople: "bg-blue-600",
+      projects: "bg-purple-600",
+      sourcePeople: "bg-green-600",
+      mentionedPeople: "bg-yellow-600",
+      priorities: "bg-red-600",
+      dueDates: "bg-pink-600",
+      durations: "bg-cyan-600",
+      tags: "bg-teal-600",
+      recurring: "bg-indigo-600",
+      dependencies: "bg-orange-600",
+    };
+
+    if (isSelected) {
+      return `${colorMap[type]} text-white px-2 py-0.5 text-xs rounded transition-colors`;
+    }
+    return "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 px-2 py-0.5 text-xs rounded transition-colors";
+  };
+
   const hasActiveFilters =
     filters.searchText ||
     filters.assignedPeople.size > 0 ||
@@ -1221,404 +1242,134 @@ export function TodoList() {
             {showFilters && (
               <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 space-y-2">
                 {/* Assigned People Filter */}
-                {filterOptions.assignedPeople.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                        Assigned (@) - {filters.assignedPeople.size}
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSelectAll("assignedPeople")}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Select All
-                        </button>
-                        <button
-                          onClick={() => handleClearAll("assignedPeople")}
-                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {filterOptions.assignedPeople.map((person) => (
-                        <button
-                          key={person}
-                          onClick={() => handleFilterClick("assignedPeople", person)}
-                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                            filters.assignedPeople.has(person)
-                              ? "bg-blue-600 text-white"
-                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          @{person}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <FilterSection
+                  label="Assigned (@)"
+                  activeCount={filters.assignedPeople.size}
+                  options={filterOptions.assignedPeople}
+                  selectedValues={filters.assignedPeople}
+                  onToggle={(value) => handleFilterClick("assignedPeople", value)}
+                  onSelectAll={() => handleSelectAll("assignedPeople")}
+                  onClear={() => handleClearAll("assignedPeople")}
+                  getButtonColor={(value, isSelected) => getFilterButtonColor("assignedPeople", value, isSelected)}
+                  formatLabel={(value) => `@${value}`}
+                />
 
                 {/* Projects Filter */}
-                {filterOptions.projects.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                        Projects (#) - {filters.projects.size}
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSelectAll("projects")}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Select All
-                        </button>
-                        <button
-                          onClick={() => handleClearAll("projects")}
-                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {filterOptions.projects.map((project) => (
-                        <button
-                          key={project}
-                          onClick={() => handleFilterClick("projects", project)}
-                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                            filters.projects.has(project)
-                              ? "bg-purple-600 text-white"
-                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          #{project}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <FilterSection
+                  label="Projects (#)"
+                  activeCount={filters.projects.size}
+                  options={filterOptions.projects}
+                  selectedValues={filters.projects}
+                  onToggle={(value) => handleFilterClick("projects", value)}
+                  onSelectAll={() => handleSelectAll("projects")}
+                  onClear={() => handleClearAll("projects")}
+                  getButtonColor={(value, isSelected) => getFilterButtonColor("projects", value, isSelected)}
+                  formatLabel={(value) => `#${value}`}
+                />
 
                 {/* Source People Filter */}
-                {filterOptions.sourcePeople.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                        Source ($) - {filters.sourcePeople.size}
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSelectAll("sourcePeople")}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Select All
-                        </button>
-                        <button
-                          onClick={() => handleClearAll("sourcePeople")}
-                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {filterOptions.sourcePeople.map((person) => (
-                        <button
-                          key={person}
-                          onClick={() => handleFilterClick("sourcePeople", person)}
-                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                            filters.sourcePeople.has(person)
-                              ? "bg-green-600 text-white"
-                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          ${person}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <FilterSection
+                  label="Source ($)"
+                  activeCount={filters.sourcePeople.size}
+                  options={filterOptions.sourcePeople}
+                  selectedValues={filters.sourcePeople}
+                  onToggle={(value) => handleFilterClick("sourcePeople", value)}
+                  onSelectAll={() => handleSelectAll("sourcePeople")}
+                  onClear={() => handleClearAll("sourcePeople")}
+                  getButtonColor={(value, isSelected) => getFilterButtonColor("sourcePeople", value, isSelected)}
+                  formatLabel={(value) => `$${value}`}
+                />
 
                 {/* Mentioned People Filter */}
-                {filterOptions.mentionedPeople.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                        Mentioned (^) - {filters.mentionedPeople.size}
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSelectAll("mentionedPeople")}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Select All
-                        </button>
-                        <button
-                          onClick={() => handleClearAll("mentionedPeople")}
-                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {filterOptions.mentionedPeople.map((person) => (
-                        <button
-                          key={person}
-                          onClick={() => handleFilterClick("mentionedPeople", person)}
-                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                            filters.mentionedPeople.has(person)
-                              ? "bg-yellow-600 text-white"
-                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          ^{person}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <FilterSection
+                  label="Mentioned (^)"
+                  activeCount={filters.mentionedPeople.size}
+                  options={filterOptions.mentionedPeople}
+                  selectedValues={filters.mentionedPeople}
+                  onToggle={(value) => handleFilterClick("mentionedPeople", value)}
+                  onSelectAll={() => handleSelectAll("mentionedPeople")}
+                  onClear={() => handleClearAll("mentionedPeople")}
+                  getButtonColor={(value, isSelected) => getFilterButtonColor("mentionedPeople", value, isSelected)}
+                  formatLabel={(value) => `^${value}`}
+                />
 
                 {/* Priority Filter */}
-                {filterOptions.priorities.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                        Priority (!!) - {filters.priorities.size}
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSelectAll("priorities")}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Select All
-                        </button>
-                        <button
-                          onClick={() => handleClearAll("priorities")}
-                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {filterOptions.priorities.map((priority) => (
-                        <button
-                          key={priority}
-                          onClick={() => handleFilterClick("priorities", priority)}
-                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                            filters.priorities.has(priority)
-                              ? "bg-red-600 text-white"
-                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          !!{priority}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <FilterSection
+                  label="Priority (!!)"
+                  activeCount={filters.priorities.size}
+                  options={filterOptions.priorities}
+                  selectedValues={filters.priorities}
+                  onToggle={(value) => handleFilterClick("priorities", value)}
+                  onSelectAll={() => handleSelectAll("priorities")}
+                  onClear={() => handleClearAll("priorities")}
+                  getButtonColor={(value, isSelected) => getFilterButtonColor("priorities", value, isSelected)}
+                  formatLabel={(value) => `!!${value}`}
+                />
 
                 {/* Due Date Filter */}
-                {filterOptions.dueDates.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                        Due Date (~) - {filters.dueDates.size}
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSelectAll("dueDates")}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Select All
-                        </button>
-                        <button
-                          onClick={() => handleClearAll("dueDates")}
-                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {filterOptions.dueDates.map((date) => (
-                        <button
-                          key={date}
-                          onClick={() => handleFilterClick("dueDates", date)}
-                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                            filters.dueDates.has(date)
-                              ? "bg-pink-600 text-white"
-                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          ~{date}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <FilterSection
+                  label="Due Date (~)"
+                  activeCount={filters.dueDates.size}
+                  options={filterOptions.dueDates}
+                  selectedValues={filters.dueDates}
+                  onToggle={(value) => handleFilterClick("dueDates", value)}
+                  onSelectAll={() => handleSelectAll("dueDates")}
+                  onClear={() => handleClearAll("dueDates")}
+                  getButtonColor={(value, isSelected) => getFilterButtonColor("dueDates", value, isSelected)}
+                  formatLabel={(value) => `~${value}`}
+                />
 
                 {/* Duration Filter */}
-                {filterOptions.durations.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                        Duration (*) - {filters.durations.size}
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSelectAll("durations")}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Select All
-                        </button>
-                        <button
-                          onClick={() => handleClearAll("durations")}
-                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {filterOptions.durations.map((duration) => (
-                        <button
-                          key={duration}
-                          onClick={() => handleFilterClick("durations", duration)}
-                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                            filters.durations.has(duration)
-                              ? "bg-cyan-600 text-white"
-                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          *{duration}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <FilterSection
+                  label="Duration (*)"
+                  activeCount={filters.durations.size}
+                  options={filterOptions.durations}
+                  selectedValues={filters.durations}
+                  onToggle={(value) => handleFilterClick("durations", value)}
+                  onSelectAll={() => handleSelectAll("durations")}
+                  onClear={() => handleClearAll("durations")}
+                  getButtonColor={(value, isSelected) => getFilterButtonColor("durations", value, isSelected)}
+                  formatLabel={(value) => `*${value}`}
+                />
 
                 {/* Tags Filter */}
-                {filterOptions.tags.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                        Tags (&) - {filters.tags.size}
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSelectAll("tags")}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Select All
-                        </button>
-                        <button
-                          onClick={() => handleClearAll("tags")}
-                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {filterOptions.tags.map((tag) => (
-                        <button
-                          key={tag}
-                          onClick={() => handleFilterClick("tags", tag)}
-                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                            filters.tags.has(tag)
-                              ? "bg-teal-600 text-white"
-                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          &{tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <FilterSection
+                  label="Tags (&)"
+                  activeCount={filters.tags.size}
+                  options={filterOptions.tags}
+                  selectedValues={filters.tags}
+                  onToggle={(value) => handleFilterClick("tags", value)}
+                  onSelectAll={() => handleSelectAll("tags")}
+                  onClear={() => handleClearAll("tags")}
+                  getButtonColor={(value, isSelected) => getFilterButtonColor("tags", value, isSelected)}
+                  formatLabel={(value) => `&${value}`}
+                />
 
                 {/* Recurring Filter */}
-                {filterOptions.recurring.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                        Recurring (%) - {filters.recurring.size}
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSelectAll("recurring")}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Select All
-                        </button>
-                        <button
-                          onClick={() => handleClearAll("recurring")}
-                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {filterOptions.recurring.map((pattern) => (
-                        <button
-                          key={pattern}
-                          onClick={() => handleFilterClick("recurring", pattern)}
-                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                            filters.recurring.has(pattern)
-                              ? "bg-indigo-600 text-white"
-                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          %{pattern}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <FilterSection
+                  label="Recurring (%)"
+                  activeCount={filters.recurring.size}
+                  options={filterOptions.recurring}
+                  selectedValues={filters.recurring}
+                  onToggle={(value) => handleFilterClick("recurring", value)}
+                  onSelectAll={() => handleSelectAll("recurring")}
+                  onClear={() => handleClearAll("recurring")}
+                  getButtonColor={(value, isSelected) => getFilterButtonColor("recurring", value, isSelected)}
+                  formatLabel={(value) => `%${value}`}
+                />
 
                 {/* Dependencies Filter */}
-                {filterOptions.dependencies.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                        Dependencies (&gt;) - {filters.dependencies.size}
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSelectAll("dependencies")}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Select All
-                        </button>
-                        <button
-                          onClick={() => handleClearAll("dependencies")}
-                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {filterOptions.dependencies.map((dep) => (
-                        <button
-                          key={dep}
-                          onClick={() => handleFilterClick("dependencies", dep)}
-                          className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                            filters.dependencies.has(dep)
-                              ? "bg-orange-600 text-white"
-                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          &gt;{dep}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <FilterSection
+                  label="Dependencies (>)"
+                  activeCount={filters.dependencies.size}
+                  options={filterOptions.dependencies}
+                  selectedValues={filters.dependencies}
+                  onToggle={(value) => handleFilterClick("dependencies", value)}
+                  onSelectAll={() => handleSelectAll("dependencies")}
+                  onClear={() => handleClearAll("dependencies")}
+                  getButtonColor={(value, isSelected) => getFilterButtonColor("dependencies", value, isSelected)}
+                  formatLabel={(value) => `>${value}`}
+                />
               </div>
             )}
           </div>

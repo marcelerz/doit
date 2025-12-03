@@ -35,6 +35,7 @@
 - [x] Create EmptyState, MetadataSection, and FilterSection components for maximum reusability
 - [x] Refactor TodoDetailsOverlay to use MetadataSection for 6 metadata types (people, projects, tags, dependencies)
 - [x] Refactor TodoListView to use EmptyState for people and projects views
+- [x] Refactor TodoListView to use FilterSection for all 10 filter types (assigned, projects, source, mentioned, priorities, dueDates, durations, tags, recurring, dependencies)
 
 ## Project Details
 
