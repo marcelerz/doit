@@ -71,6 +71,7 @@ export function GanttView({
     today.setHours(0, 0, 0, 0);
     return today;
   });
+  const [weekOffset, setWeekOffset] = useState(0); // 0 = current week, 1 = next week, -1 = previous week
   const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(true);
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<Todo | null>(null);
@@ -319,13 +320,13 @@ export function GanttView({
     return markers;
   }, [dayStartTime, dayEndTime, selectedDate]);
 
-  // Get current week's dates (Monday to Sunday)
+  // Get week's dates based on selected date (Monday to Sunday)
   const currentWeekDates = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dayOfWeek = today.getDay();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+    const baseDate = new Date(selectedDate);
+    baseDate.setHours(0, 0, 0, 0);
+    const dayOfWeek = baseDate.getDay();
+    const monday = new Date(baseDate);
+    monday.setDate(baseDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
 
     const dates = [];
     for (let i = 0; i < 7; i++) {
@@ -334,7 +335,7 @@ export function GanttView({
       dates.push(date);
     }
     return dates;
-  }, []);
+  }, [selectedDate]);
 
   // Get tasks for the entire week (including completed)
   const weekTasks = useMemo(() => {
@@ -401,11 +402,52 @@ export function GanttView({
     });
   }, [currentWeekDates, todos, workHours]);
 
+  const navigateWeek = (direction: number) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(selectedDate.getDate() + direction * 7);
+    setSelectedDate(newDate);
+  };
+
   return (
     <div className="space-y-4">
       {/* Mini Week Overview */}
       <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
-        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">Current Week</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+            Week of {currentWeekDates[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </h3>
+          <div className="flex gap-1">
+            <button
+              onClick={() => navigateWeek(-1)}
+              className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              title="Previous week"
+            >
+              <svg className="w-4 h-4 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                setSelectedDate(today);
+              }}
+              className="px-2 py-1 text-xs font-medium rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors"
+              title="Go to today"
+            >
+              Today
+            </button>
+            <button
+              onClick={() => navigateWeek(1)}
+              className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              title="Next week"
+            >
+              <svg className="w-4 h-4 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
         <div className="grid grid-cols-7 gap-2">
           {weekTasks.map(({ date, tasks }, index) => {
             const isToday = date.toDateString() === new Date().toDateString();
@@ -465,7 +507,9 @@ export function GanttView({
                   <div
                     className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
                     style={{
-                      left: `${((new Date().getTime() - dayStart.getTime()) / (dayEnd.getTime() - dayStart.getTime())) * 100}%`,
+                      left: `${
+                        ((new Date().getTime() - dayStart.getTime()) / (dayEnd.getTime() - dayStart.getTime())) * 100
+                      }%`,
                     }}
                     title="Current time"
                   />
