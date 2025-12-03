@@ -128,16 +128,24 @@ export function GanttView({
       return todo.state === "active";
     });
 
-    // Sort by priority (higher priority first)
-    const priorityOrder: Record<string, number> = { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4 };
+    // Sort by priority order (lower order = higher priority = scheduled first)
     filtered.sort((a, b) => {
-      const aPriority = priorityOrder[a.metadata.priority?.toLowerCase() || ""] ?? 999;
-      const bPriority = priorityOrder[b.metadata.priority?.toLowerCase() || ""] ?? 999;
-      return aPriority - bPriority;
+      // Find priority objects
+      const aPriorityObj = availablePriorities.find(
+        (p) => p.name === a.metadata.priority || p.alternatives.includes(a.metadata.priority || "")
+      );
+      const bPriorityObj = availablePriorities.find(
+        (p) => p.name === b.metadata.priority || p.alternatives.includes(b.metadata.priority || "")
+      );
+      
+      const aOrder = aPriorityObj?.order ?? 999;
+      const bOrder = bPriorityObj?.order ?? 999;
+      
+      return aOrder - bOrder; // Lower order first
     });
 
     return filtered;
-  }, [todos]);
+  }, [todos, availablePriorities]);
 
   // Determine which day each task should be scheduled on (ASAP scheduling)
   const taskSchedulingMap = useMemo(() => {
@@ -145,10 +153,10 @@ export function GanttView({
     const now = new Date();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     let currentDay = new Date(today);
     let remainingTodos = [...allActiveTodos];
-    
+
     // Schedule tasks across days starting from today
     while (remainingTodos.length > 0) {
       const daySchedule = getScheduleForDate(currentDay);
@@ -159,21 +167,21 @@ export function GanttView({
         endTime: parseTime(b.endTime, currentDay),
       }));
       const isCurrentDay = currentDay.toDateString() === today.toDateString();
-      
+
       // Start from current time if today, otherwise start of work day
       let currentTime = new Date(dayStart);
       if (isCurrentDay && now > dayStart && now < dayEnd) {
         currentTime = new Date(now);
       }
-      
+
       const scheduledToday: string[] = [];
-      
+
       for (const todo of remainingTodos) {
         // Ensure we're not in the past (for today)
         if (isCurrentDay && currentTime < now) {
           currentTime = new Date(now);
         }
-        
+
         // Skip breaks
         let inBreak = true;
         while (inBreak && currentTime < dayEnd) {
@@ -189,12 +197,12 @@ export function GanttView({
             }
           }
         }
-        
+
         if (currentTime >= dayEnd) break; // No more time today
-        
+
         const durationMinutes = parseDuration(todo.metadata.duration);
         const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
-        
+
         if (taskEnd <= dayEnd) {
           // Task fits on this day - schedule it
           const dateKey = currentDay.toISOString().split("T")[0];
@@ -206,24 +214,24 @@ export function GanttView({
           break;
         }
       }
-      
+
       // Remove scheduled tasks from remaining
-      remainingTodos = remainingTodos.filter(t => !scheduledToday.includes(t.id));
-      
+      remainingTodos = remainingTodos.filter((t) => !scheduledToday.includes(t.id));
+
       // Move to next day
       currentDay.setDate(currentDay.getDate() + 1);
-      
+
       // Safety: don't schedule more than 30 days out
       if (currentDay.getTime() - today.getTime() > 30 * 24 * 60 * 60 * 1000) break;
     }
-    
+
     return map;
   }, [allActiveTodos, workHours]);
 
   // Get todos for selected date based on scheduling map
   const todosForDate = useMemo(() => {
     const dateKey = selectedDate.toISOString().split("T")[0];
-    return allActiveTodos.filter(todo => taskSchedulingMap.get(todo.id) === dateKey);
+    return allActiveTodos.filter((todo) => taskSchedulingMap.get(todo.id) === dateKey);
   }, [allActiveTodos, taskSchedulingMap, selectedDate]);
 
   // Count todos without due dates
@@ -251,7 +259,7 @@ export function GanttView({
     const tasks: ScheduledTask[] = [];
     const now = new Date();
     const isToday = selectedDate.toDateString() === now.toDateString();
-    
+
     // Start from current time if today and we're past the start time, otherwise start of day
     let currentTime = new Date(dayStartTime);
     if (isToday && now > dayStartTime && now < dayEndTime) {
