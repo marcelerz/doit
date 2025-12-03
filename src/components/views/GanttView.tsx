@@ -285,7 +285,7 @@ export function GanttView({
 
         if (currentTime >= dayEnd) break; // No more time today
 
-        const durationMinutes = parseDuration(todo.metadata.duration);
+        const durationMinutes = parseDuration(todo.metadata.duration) * workHours.durationMultiplier;
         const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
 
         if (taskEnd <= dayEnd) {
@@ -451,7 +451,7 @@ export function GanttView({
 
       if (currentTime >= dayEndTime) break;
 
-      const durationMinutes = parseDuration(todo.metadata.duration);
+      const durationMinutes = parseDuration(todo.metadata.duration) * workHours.durationMultiplier;
       const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
 
       // Don't schedule if it would go past end of day
@@ -519,8 +519,9 @@ export function GanttView({
   };
 
   const formatDuration = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
+    const roundedMinutes = Math.round(minutes);
+    const hours = Math.floor(roundedMinutes / 60);
+    const mins = roundedMinutes % 60;
     if (hours > 0 && mins > 0) return `${hours}h ${mins}m`;
     if (hours > 0) return `${hours}h`;
     return `${mins}m`;
@@ -700,7 +701,7 @@ export function GanttView({
 
         if (currentTime >= dayEnd) break;
 
-        const durationMinutes = parseDuration(todo.metadata.duration);
+        const durationMinutes = parseDuration(todo.metadata.duration) * workHours.durationMultiplier;
         const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
 
         if (taskEnd > dayEnd) break;

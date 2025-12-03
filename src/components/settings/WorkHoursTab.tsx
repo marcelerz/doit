@@ -239,6 +239,24 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
             />
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Used when task has no duration specified</p>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+              Duration Multiplier
+            </label>
+            <input
+              type="number"
+              min="0.5"
+              max="5"
+              step="0.1"
+              value={workHours.durationMultiplier}
+              onChange={(e) => onUpdate({ ...workHours, durationMultiplier: parseFloat(e.target.value) || 1.0 })}
+              className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              Multiplier for scheduling (e.g., 2.0 if tasks typically take twice as long due to meetings)
+            </p>
+          </div>
         </div>
       </div>
 

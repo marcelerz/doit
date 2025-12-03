@@ -133,6 +133,7 @@ export interface WorkHoursSettings {
   contextSwitchingTime: number; // Minutes between tasks for context switching
   defaultTaskDuration: number; // Default duration in minutes when not specified
   defaultGanttColor: string; // Default color for Gantt tasks without project (hex)
+  durationMultiplier: number; // Multiplier for task durations during scheduling (e.g., 2.0 if tasks usually take twice as long)
 }
 
 export const defaultWorkHoursSettings: WorkHoursSettings = {
@@ -156,6 +157,7 @@ export const defaultWorkHoursSettings: WorkHoursSettings = {
   contextSwitchingTime: 15, // 15 minutes between tasks
   defaultTaskDuration: 30, // 30 minutes default
   defaultGanttColor: "#6366f1", // Indigo-500
+  durationMultiplier: 1.0, // 1.0 = no adjustment
 };
 
 export const defaultDateTimeSettings: DateTimeSettings = {
