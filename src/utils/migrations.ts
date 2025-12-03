@@ -152,6 +152,9 @@ export function migrateSettings(loadedSettings: any): Settings {
   const autoAssign = loadedSettings.autoAssign || loadedSettings.general?.autoAssign || {};
   const general = loadedSettings.general || {};
 
+  // Migrate ganttSettings to gantt (v6 migration)
+  const gantt = loadedSettings.gantt || loadedSettings.ganttSettings || {};
+
   // Remove startOfDay/endOfDay from dateTime if present (v5 migration)
   const { startOfDay, endOfDay, ...cleanedDateTime } = dateTime;
 
@@ -178,6 +181,10 @@ export function migrateSettings(loadedSettings: any): Settings {
     workHours: {
       ...defaultSettings.workHours,
       ...workHours,
+    },
+    gantt: {
+      ...defaultSettings.gantt,
+      ...gantt,
     },
     autoAssign: {
       ...defaultSettings.autoAssign,

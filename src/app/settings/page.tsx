@@ -11,6 +11,7 @@ import { MarkersTab } from "@/components/settings/MarkersTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
 import { DateTimeTab } from "@/components/settings/DateTimeTab";
 import { WorkHoursTab } from "@/components/settings/WorkHoursTab";
+import { GanttTab } from "@/components/settings/GanttTab";
 import { AutoAssignTab } from "@/components/settings/AutoAssignTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 import { StorageTab } from "@/components/settings/StorageTab";
@@ -19,6 +20,7 @@ type Tab =
   | "general"
   | "datetime"
   | "workhours"
+  | "gantt"
   | "autoassign"
   | "priorities"
   | "links"
@@ -85,6 +87,7 @@ export default function SettingsPage() {
     updateGeneralSettings,
     updateDateTimeSettings,
     updateWorkHoursSettings,
+    updateGantt,
     updateAutoAssignSettings,
   } = useSettings();
 
@@ -159,6 +162,16 @@ export default function SettingsPage() {
                 }`}
               >
                 Work Hours
+              </button>
+              <button
+                onClick={() => setActiveTab("gantt")}
+                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
+                  activeTab === "gantt"
+                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
+                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                }`}
+              >
+                Gantt
               </button>
               <button
                 onClick={() => setActiveTab("autoassign")}
@@ -259,6 +272,7 @@ export default function SettingsPage() {
             {activeTab === "workhours" && (
               <WorkHoursTab workHours={settings.workHours} onUpdate={updateWorkHoursSettings} />
             )}
+            {activeTab === "gantt" && <GanttTab gantt={settings.gantt} onUpdate={updateGantt} />}
             {activeTab === "autoassign" && (
               <AutoAssignTab
                 autoAssign={settings.autoAssign}

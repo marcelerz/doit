@@ -124,6 +124,16 @@ export function useSettings() {
     }));
   };
 
+  const updateGantt = (gantt: Partial<Settings["gantt"]>) => {
+    setSettings((prev) => ({
+      ...prev,
+      gantt: {
+        ...prev.gantt,
+        ...gantt,
+      },
+    }));
+  };
+
   const updateAutoAssignSettings = (autoAssign: Partial<Settings["autoAssign"]>) => {
     setSettings((prev) => ({
       ...prev,
@@ -194,6 +204,7 @@ export function useSettings() {
     updateGeneralSettings,
     updateDateTimeSettings,
     updateWorkHoursSettings,
+    updateGantt,
     updateAutoAssignSettings,
     addPriorityComment,
     editPriorityComment,

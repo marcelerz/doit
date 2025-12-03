@@ -79,10 +79,10 @@ export function GanttView({
 
   // Parse duration string to minutes
   const parseDuration = (duration: string | undefined): number => {
-    if (!duration) return workHours.defaultTaskDuration;
+    if (!duration) return settings.gantt.defaultTaskDuration;
 
     const match = duration.match(/(\d+)([mhd])?/i);
-    if (!match) return workHours.defaultTaskDuration;
+    if (!match) return settings.gantt.defaultTaskDuration;
 
     const value = parseInt(match[1]);
     const unit = match[2]?.toLowerCase() || "m";
@@ -285,7 +285,7 @@ export function GanttView({
 
         if (currentTime >= dayEnd) break; // No more time today
 
-        const durationMinutes = parseDuration(todo.metadata.duration) * workHours.durationMultiplier;
+        const durationMinutes = parseDuration(todo.metadata.duration) * settings.gantt.durationMultiplier;
         const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
 
         if (taskEnd <= dayEnd) {
@@ -293,7 +293,7 @@ export function GanttView({
           const dateKey = currentDay.toISOString().split("T")[0];
           map.set(todo.id, dateKey);
           scheduledToday.push(todo.id);
-          currentTime = new Date(taskEnd.getTime() + workHours.contextSwitchingTime * 60000);
+          currentTime = new Date(taskEnd.getTime() + settings.gantt.contextSwitchingTime * 60000);
         } else {
           // Task doesn't fit - stop scheduling for this day, will try next day
           break;
@@ -451,7 +451,7 @@ export function GanttView({
 
       if (currentTime >= dayEndTime) break;
 
-      const durationMinutes = parseDuration(todo.metadata.duration) * workHours.durationMultiplier;
+      const durationMinutes = parseDuration(todo.metadata.duration) * settings.gantt.durationMultiplier;
       const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
 
       // Don't schedule if it would go past end of day
@@ -494,7 +494,7 @@ export function GanttView({
       });
 
       // Add context switching time
-      currentTime = new Date(taskEnd.getTime() + workHours.contextSwitchingTime * 60000);
+      currentTime = new Date(taskEnd.getTime() + settings.gantt.contextSwitchingTime * 60000);
     }
 
     return tasks;
@@ -701,7 +701,7 @@ export function GanttView({
 
         if (currentTime >= dayEnd) break;
 
-        const durationMinutes = parseDuration(todo.metadata.duration) * workHours.durationMultiplier;
+        const durationMinutes = parseDuration(todo.metadata.duration) * settings.gantt.durationMultiplier;
         const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
 
         if (taskEnd > dayEnd) break;
@@ -717,7 +717,7 @@ export function GanttView({
           color: getProjectColor(todo),
         });
 
-        currentTime = new Date(taskEnd.getTime() + workHours.contextSwitchingTime * 60000);
+        currentTime = new Date(taskEnd.getTime() + settings.gantt.contextSwitchingTime * 60000);
       }
 
       return { date, scheduled, dayStart, dayEnd, totalMinutes };
@@ -1036,7 +1036,7 @@ export function GanttView({
 
                   // Check if there's a context switch buffer after this task
                   const nextTask = index < scheduledTasks.length - 1 ? scheduledTasks[index + 1] : null;
-                  const hasContextSwitch = nextTask && workHours.contextSwitchingTime > 0 && !isCompletedTask;
+                  const hasContextSwitch = nextTask && settings.gantt.contextSwitchingTime > 0 && !isCompletedTask;
                   const contextSwitchStartPos = endPos;
                   const contextSwitchEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
                   const contextSwitchWidth = contextSwitchEndPos - contextSwitchStartPos;

@@ -130,10 +130,6 @@ export interface WorkHoursSettings {
     saturday?: DaySchedule;
     sunday?: DaySchedule;
   };
-  contextSwitchingTime: number; // Minutes between tasks for context switching
-  defaultTaskDuration: number; // Default duration in minutes when not specified
-  defaultGanttColor: string; // Default color for Gantt tasks without project (hex)
-  durationMultiplier: number; // Multiplier for task durations during scheduling (e.g., 2.0 if tasks usually take twice as long)
 }
 
 export const defaultWorkHoursSettings: WorkHoursSettings = {
@@ -154,9 +150,18 @@ export const defaultWorkHoursSettings: WorkHoursSettings = {
     breaks: [],
   },
   customSchedules: {},
+};
+
+// Gantt Tab Settings
+export interface Gantt {
+  contextSwitchingTime: number; // Minutes between tasks for context switching
+  defaultTaskDuration: number; // Default duration in minutes when not specified
+  durationMultiplier: number; // Multiplier for task durations during scheduling
+}
+
+export const defaultGantt: Gantt = {
   contextSwitchingTime: 15, // 15 minutes between tasks
   defaultTaskDuration: 30, // 30 minutes default
-  defaultGanttColor: "#6366f1", // Indigo-500
   durationMultiplier: 1.0, // 1.0 = no adjustment
 };
 
@@ -222,6 +227,8 @@ export interface Settings {
   dateTime: DateTimeSettings;
   // Work Hours Tab
   workHours: WorkHoursSettings;
+  // Gantt Tab
+  gantt: Gantt;
   // Auto-Assign Tab
   autoAssign: AutoAssignSettings;
 }
@@ -254,5 +261,6 @@ export const defaultSettings: Settings = {
   general: defaultGeneralSettings,
   dateTime: defaultDateTimeSettings,
   workHours: defaultWorkHoursSettings,
+  gantt: defaultGantt,
   autoAssign: defaultAutoAssignSettings,
 };
