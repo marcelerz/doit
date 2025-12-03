@@ -20,6 +20,9 @@
 - [x] Update Date/Time settings to derive BOD/EOD from Work Hours
 - [x] Restructure settings localStorage to organize by tabs
 - [x] Create storage abstraction layer and separate people/projects from settings
+- [x] Reorganize components into logical folders (views, items, overlays, shared, input, settings)
+- [x] Create reusable abstractions (Badge, Modal, SearchableDropdown, colors, suggestions, keyboard nav)
+- [x] Refactor TodoDetailsOverlay.tsx with new components (1996 → 1098 lines, 898 lines saved)
 
 ## Project Details
 
@@ -102,15 +105,32 @@ Components are organized by purpose:
 - **items/** - List item components (TodoItem, PersonItem, ProjectItem)
 - **overlays/** - Modal/detail views (TodoDetailsOverlay, PersonDetailsOverlay, ProjectDetailsOverlay)
 - **input/** - Input components (SmartInput, RichTextEditor)
-- **shared/** - Reusable components (Activity, Comments, MarkedText, MarkerReference, Notification)
+- **shared/** - Reusable components (Activity, Comments, MarkedText, MarkerReference, Notification, Badge, Modal, SearchableDropdown)
 - **settings/** - Settings tab components
 
-## Hooks
+## Reusable Abstractions
 
-- `useTodos.ts` - Todo state management with localStorage
-- `usePeople.ts` - People management with separate storage
-- `useProjects.ts` - Projects management with separate storage
-- `useSettings.ts` - Application settings management
+### Components
+
+- **Badge** - Reusable badge with optional remove button (7 color variants)
+- **Modal** - Modal/overlay wrapper with backdrop
+- **SearchableDropdown** - Dropdown with search, keyboard nav, and add functionality
+
+### Hooks
+
+- **useKeyboardNavigation** - Arrow up/down/enter/escape handling for lists
+- **useTodos** - Todo state management with localStorage
+- **usePeople** - People management with separate storage
+- **useProjects** - Projects management with separate storage
+- **useSettings** - Application settings management
+
+### Utilities
+
+- **colors.ts** - Color generation and manipulation (getPersonColor, getProjectColor, getTextColor)
+- **suggestions.ts** - Duration and recurring pattern suggestions
+- **storage.ts** - Storage abstraction layer
+- **dateParser.ts** - Date parsing and suggestions
+- **recurringParser.ts** - Recurring pattern parsing
 
 ## Types
 
