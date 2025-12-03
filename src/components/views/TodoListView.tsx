@@ -19,6 +19,8 @@ import { PersonItem } from "@/components/items/PersonItem";
 import { ProjectItem } from "@/components/items/ProjectItem";
 import { calculateUsageStats, sortByUsage, UsageStats } from "@/utils/usageStats";
 import { normalizeDateValue } from "@/utils/dateParser";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { FilterSection } from "@/components/shared/FilterSection";
 
 interface TodoFilters {
   searchText: string;
@@ -1691,10 +1693,7 @@ export function TodoList() {
               </button>
             </div>
             {allPeople.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="text-6xl mb-4">👥</div>
-                <p className="text-xl text-zinc-600 dark:text-zinc-400">No people yet. Add one to get started!</p>
-              </div>
+              <EmptyState emoji="👥" title="No People" message="No people yet. Add one to get started!" />
             ) : (
               <ul className="space-y-2">
                 {allPeople.map((person) => (
@@ -1734,10 +1733,7 @@ export function TodoList() {
               </button>
             </div>
             {allProjects.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="text-6xl mb-4">📁</div>
-                <p className="text-xl text-zinc-600 dark:text-zinc-400">No projects yet. Add one to get started!</p>
-              </div>
+              <EmptyState emoji="📁" title="No Projects" message="No projects yet. Add one to get started!" />
             ) : (
               <ul className="space-y-2">
                 {allProjects.map((project) => (

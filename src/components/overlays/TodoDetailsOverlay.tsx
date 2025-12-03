@@ -12,6 +12,7 @@ import { Modal } from "@/components/shared/Modal";
 import { Badge } from "@/components/shared/Badge";
 import { SearchableDropdown } from "@/components/shared/SearchableDropdown";
 import { ActionButtons } from "@/components/shared/ActionButtons";
+import { MetadataSection } from "@/components/shared/MetadataSection";
 import { getDurationSuggestions, filterRecurringSuggestions } from "@/utils/suggestions";
 import { Comments } from "@/components/shared/Comments";
 import {
@@ -461,290 +462,141 @@ export function TodoDetailsOverlay({
           {/* Task Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Assigned People */}
-            <div>
-              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">👤 Assigned</h4>
-              <div className="flex flex-wrap gap-1.5">
-                {editingMetadata.assignedPeople.map((person) => {
-                  const bgColor = getPersonColor(person);
-                  const textColor = getTextColor(bgColor);
-                  return (
-                    <span
-                      key={person}
-                      className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium"
-                      style={{ backgroundColor: bgColor, color: textColor }}
-                    >
-                      @{person}
-                      <button
-                        onClick={() => {
-                          handleMetadataChange({
-                            ...editingMetadata,
-                            assignedPeople: editingMetadata.assignedPeople.filter((p) => p !== person),
-                          });
-                        }}
-                        className="ml-1 hover:opacity-70"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  );
-                })}
-                <div className="relative">
-                  <button
-                    onClick={() => dropdown.toggleDropdown("assigned")}
-                    className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
-                  >
-                    +
-                  </button>
-                  {dropdown.isOpen("assigned") && (
-                    <SearchableDropdown
-                      items={availablePeople.map((p) => ({
-                        id: p.name,
-                        label: p.name,
-                        prefix: "@",
-                        alternatives: p.alternatives,
-                      }))}
-                      onSelect={(item) => {
-                        handleMetadataChange({
-                          ...editingMetadata,
-                          assignedPeople: [...editingMetadata.assignedPeople, item.label],
-                        });
-                        dropdown.closeDropdown();
-                      }}
-                      onAdd={
-                        onAddPerson
-                          ? (name) => {
-                              onAddPerson(name);
-                              handleMetadataChange({
-                                ...editingMetadata,
-                                assignedPeople: [...editingMetadata.assignedPeople, name],
-                              });
-                              dropdown.closeDropdown();
-                            }
-                          : undefined
-                      }
-                      onClose={() => dropdown.closeDropdown()}
-                      placeholder="Search people..."
-                      highlightColor="blue"
-                      excludeIds={editingMetadata.assignedPeople}
-                      emptyMessage="All people already assigned"
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
+            <MetadataSection
+              title="Assigned"
+              icon="👤"
+              values={editingMetadata.assignedPeople}
+              onRemove={(person) => {
+                handleMetadataChange({
+                  ...editingMetadata,
+                  assignedPeople: editingMetadata.assignedPeople.filter((p) => p !== person),
+                });
+              }}
+              onAdd={(name) => {
+                if (onAddPerson && !availablePeople.find((p) => p.name === name)) {
+                  onAddPerson(name);
+                }
+                handleMetadataChange({
+                  ...editingMetadata,
+                  assignedPeople: [...editingMetadata.assignedPeople, name],
+                });
+              }}
+              availableItems={availablePeople.map((p) => ({
+                id: p.name,
+                label: p.name,
+                prefix: "@",
+                alternatives: p.alternatives,
+              }))}
+              dropdownId="assigned"
+              placeholder="Search people..."
+              highlightColor="blue"
+              emptyMessage="All people already assigned"
+              getColor={getPersonColor}
+              getTextColor={getTextColor}
+              prefix="@"
+            />
 
             {/* Projects */}
-            <div>
-              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📁 Projects</h4>
-              <div className="flex flex-wrap gap-1.5">
-                {editingMetadata.projects.map((project) => {
-                  const bgColor = getProjectColor(project);
-                  const textColor = getTextColor(bgColor);
-                  return (
-                    <span
-                      key={project}
-                      className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium"
-                      style={{ backgroundColor: bgColor, color: textColor }}
-                    >
-                      #{project}
-                      <button
-                        onClick={() => {
-                          handleMetadataChange({
-                            ...editingMetadata,
-                            projects: editingMetadata.projects.filter((p) => p !== project),
-                          });
-                        }}
-                        className="ml-1 hover:opacity-70"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  );
-                })}
-                {dropdown.isOpen("project") && (
-                  <SearchableDropdown
-                    items={availableProjects.map((p) => ({
-                      id: p.name,
-                      label: `#${p.name}`,
-                      alternatives: p.alternatives,
-                    }))}
-                    onSelect={(item) => {
-                      handleMetadataChange({
-                        ...editingMetadata,
-                        projects: [...editingMetadata.projects, typeof item === "string" ? item : item.id],
-                      });
-                      dropdown.closeDropdown();
-                    }}
-                    onAdd={
-                      onAddProject
-                        ? (name) => {
-                            onAddProject(name);
-                            handleMetadataChange({
-                              ...editingMetadata,
-                              projects: [...editingMetadata.projects, name],
-                            });
-                            dropdown.closeDropdown();
-                          }
-                        : undefined
-                    }
-                    onClose={() => dropdown.closeDropdown()}
-                    placeholder="Search projects..."
-                    highlightColor="purple"
-                    excludeIds={editingMetadata.projects}
-                    emptyMessage="All projects already added"
-                  />
-                )}
-                <button
-                  onClick={() => dropdown.toggleDropdown("project")}
-                  className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
-                >
-                  +
-                </button>
-              </div>
-            </div>
+            <MetadataSection
+              title="Projects"
+              icon="📁"
+              values={editingMetadata.projects}
+              onRemove={(project) => {
+                handleMetadataChange({
+                  ...editingMetadata,
+                  projects: editingMetadata.projects.filter((p) => p !== project),
+                });
+              }}
+              onAdd={(name) => {
+                if (onAddProject && !availableProjects.find((p) => p.name === name)) {
+                  onAddProject(name);
+                }
+                handleMetadataChange({
+                  ...editingMetadata,
+                  projects: [...editingMetadata.projects, name],
+                });
+              }}
+              availableItems={availableProjects.map((p) => ({
+                id: p.name,
+                label: `#${p.name}`,
+                alternatives: p.alternatives,
+              }))}
+              dropdownId="project"
+              placeholder="Search projects..."
+              highlightColor="purple"
+              emptyMessage="All projects already added"
+              getColor={getProjectColor}
+              getTextColor={getTextColor}
+              prefix="#"
+            />
 
             {/* Source People */}
-            <div>
-              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">💼 Source</h4>
-              <div className="flex flex-wrap gap-1.5">
-                {editingMetadata.sourcePeople.map((person) => {
-                  const bgColor = getPersonColor(person);
-                  const textColor = getTextColor(bgColor);
-                  return (
-                    <span
-                      key={person}
-                      className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium"
-                      style={{ backgroundColor: bgColor, color: textColor }}
-                    >
-                      ${person}
-                      <button
-                        onClick={() => {
-                          handleMetadataChange({
-                            ...editingMetadata,
-                            sourcePeople: editingMetadata.sourcePeople.filter((p) => p !== person),
-                          });
-                        }}
-                        className="ml-1 hover:opacity-70"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  );
-                })}
-                {dropdown.isOpen("source") && (
-                  <SearchableDropdown
-                    items={availablePeople.map((p) => ({
-                      id: p.name,
-                      label: `$${p.name}`,
-                      alternatives: p.alternatives,
-                    }))}
-                    onSelect={(item) => {
-                      handleMetadataChange({
-                        ...editingMetadata,
-                        sourcePeople: [...editingMetadata.sourcePeople, typeof item === "string" ? item : item.id],
-                      });
-                      dropdown.closeDropdown();
-                    }}
-                    onAdd={
-                      onAddPerson
-                        ? (name) => {
-                            onAddPerson(name);
-                            handleMetadataChange({
-                              ...editingMetadata,
-                              sourcePeople: [...editingMetadata.sourcePeople, name],
-                            });
-                            dropdown.closeDropdown();
-                          }
-                        : undefined
-                    }
-                    onClose={() => dropdown.closeDropdown()}
-                    placeholder="Search people..."
-                    highlightColor="green"
-                    excludeIds={editingMetadata.sourcePeople}
-                    emptyMessage="All people already added"
-                  />
-                )}
-                <button
-                  onClick={() => dropdown.toggleDropdown("source")}
-                  className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
-                >
-                  +
-                </button>
-              </div>
-            </div>
+            <MetadataSection
+              title="Source"
+              icon="💼"
+              values={editingMetadata.sourcePeople}
+              onRemove={(person) => {
+                handleMetadataChange({
+                  ...editingMetadata,
+                  sourcePeople: editingMetadata.sourcePeople.filter((p) => p !== person),
+                });
+              }}
+              onAdd={(name) => {
+                if (onAddPerson && !availablePeople.find((p) => p.name === name)) {
+                  onAddPerson(name);
+                }
+                handleMetadataChange({
+                  ...editingMetadata,
+                  sourcePeople: [...editingMetadata.sourcePeople, name],
+                });
+              }}
+              availableItems={availablePeople.map((p) => ({
+                id: p.name,
+                label: `$${p.name}`,
+                alternatives: p.alternatives,
+              }))}
+              dropdownId="source"
+              placeholder="Search people..."
+              highlightColor="green"
+              emptyMessage="All people already added"
+              getColor={getPersonColor}
+              getTextColor={getTextColor}
+              prefix="$"
+            />
 
             {/* Mentioned People */}
-            <div>
-              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">💬 Mentioned</h4>
-              <div className="flex flex-wrap gap-1.5">
-                {editingMetadata.mentionedPeople.map((person) => {
-                  const bgColor = getPersonColor(person);
-                  const textColor = getTextColor(bgColor);
-                  return (
-                    <span
-                      key={person}
-                      className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium"
-                      style={{ backgroundColor: bgColor, color: textColor }}
-                    >
-                      ^{person}
-                      <button
-                        onClick={() => {
-                          handleMetadataChange({
-                            ...editingMetadata,
-                            mentionedPeople: editingMetadata.mentionedPeople.filter((p) => p !== person),
-                          });
-                        }}
-                        className="ml-1 hover:opacity-70"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  );
-                })}
-                {dropdown.isOpen("mentioned") && (
-                  <SearchableDropdown
-                    items={availablePeople.map((p) => ({
-                      id: p.name,
-                      label: `^${p.name}`,
-                      alternatives: p.alternatives,
-                    }))}
-                    onSelect={(item) => {
-                      handleMetadataChange({
-                        ...editingMetadata,
-                        mentionedPeople: [
-                          ...editingMetadata.mentionedPeople,
-                          typeof item === "string" ? item : item.id,
-                        ],
-                      });
-                      dropdown.closeDropdown();
-                    }}
-                    onAdd={
-                      onAddPerson
-                        ? (name) => {
-                            onAddPerson(name);
-                            handleMetadataChange({
-                              ...editingMetadata,
-                              mentionedPeople: [...editingMetadata.mentionedPeople, name],
-                            });
-                            dropdown.closeDropdown();
-                          }
-                        : undefined
-                    }
-                    onClose={() => dropdown.closeDropdown()}
-                    placeholder="Search people..."
-                    highlightColor="pink"
-                    excludeIds={editingMetadata.mentionedPeople}
-                    emptyMessage="All people already mentioned"
-                  />
-                )}
-                <button
-                  onClick={() => dropdown.toggleDropdown("mentioned")}
-                  className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
-                >
-                  +
-                </button>
-              </div>
-            </div>
+            <MetadataSection
+              title="Mentioned"
+              icon="💬"
+              values={editingMetadata.mentionedPeople}
+              onRemove={(person) => {
+                handleMetadataChange({
+                  ...editingMetadata,
+                  mentionedPeople: editingMetadata.mentionedPeople.filter((p) => p !== person),
+                });
+              }}
+              onAdd={(name) => {
+                if (onAddPerson && !availablePeople.find((p) => p.name === name)) {
+                  onAddPerson(name);
+                }
+                handleMetadataChange({
+                  ...editingMetadata,
+                  mentionedPeople: [...editingMetadata.mentionedPeople, name],
+                });
+              }}
+              availableItems={availablePeople.map((p) => ({
+                id: p.name,
+                label: `^${p.name}`,
+                alternatives: p.alternatives,
+              }))}
+              dropdownId="mentioned"
+              placeholder="Search people..."
+              highlightColor="pink"
+              emptyMessage="All people already mentioned"
+              getColor={getPersonColor}
+              getTextColor={getTextColor}
+              prefix="^"
+            />
 
             {/* Priority */}
             <div>
@@ -814,114 +666,73 @@ export function TodoDetailsOverlay({
             </div>
 
             {/* Tags */}
-            <div>
-              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🏷️ Tags</h4>
-              <div className="flex flex-wrap gap-1.5">
-                {editingMetadata.tags.map((tag) => (
+            <MetadataSection
+              title="Tags"
+              icon="🏷️"
+              values={editingMetadata.tags}
+              onRemove={(tag) => {
+                handleMetadataChange({
+                  ...editingMetadata,
+                  tags: editingMetadata.tags.filter((t) => t !== tag),
+                });
+              }}
+              onAdd={(name) => {
+                const newTag = name.trim();
+                if (newTag && !editingMetadata.tags.includes(newTag)) {
+                  handleMetadataChange({
+                    ...editingMetadata,
+                    tags: [...editingMetadata.tags, newTag],
+                  });
+                }
+              }}
+              availableItems={sortedTags.map((tag) => ({ id: tag, label: tag, prefix: "#" }))}
+              dropdownId="tag"
+              placeholder="Search or add tag..."
+              highlightColor="teal"
+              emptyMessage="No existing tags. Type to create new."
+            />
+
+            {/* Dependencies */}
+            <MetadataSection
+              title="Dependencies"
+              icon="⛓️"
+              values={editingMetadata.dependencies}
+              onRemove={(depId) => {
+                handleMetadataChange({
+                  ...editingMetadata,
+                  dependencies: editingMetadata.dependencies.filter((d) => d !== depId),
+                });
+              }}
+              onAdd={(id) => {
+                handleMetadataChange({
+                  ...editingMetadata,
+                  dependencies: [...editingMetadata.dependencies, id],
+                });
+              }}
+              availableItems={todos.filter((t) => t.id !== todo.id).map((t) => ({ id: t.id, label: t.plainText }))}
+              dropdownId="dependency"
+              placeholder="Search tasks..."
+              highlightColor="amber"
+              emptyMessage="All tasks already added"
+              noItemsMessage="No other tasks available"
+              renderCustomValue={(depId) => {
+                const depTodo = todos.find((t) => t.id === depId);
+                if (!depTodo) return null;
+                return (
                   <Badge
-                    key={tag}
-                    variant="teal"
+                    variant="amber"
                     onRemove={() => {
                       handleMetadataChange({
                         ...editingMetadata,
-                        tags: editingMetadata.tags.filter((t) => t !== tag),
+                        dependencies: editingMetadata.dependencies.filter((d) => d !== depId),
                       });
                     }}
                   >
-                    {tag}
+                    {depTodo.plainText.length > 30 ? depTodo.plainText.substring(0, 30) + "..." : depTodo.plainText}
                   </Badge>
-                ))}
-                <div className="relative">
-                  <button
-                    onClick={() => dropdown.toggleDropdown("tag")}
-                    className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
-                  >
-                    +
-                  </button>
-                  {dropdown.isOpen("tag") && (
-                    <SearchableDropdown
-                      items={sortedTags.map((tag) => ({ id: tag, label: tag, prefix: "#" }))}
-                      onSelect={(item) => {
-                        if (!editingMetadata.tags.includes(item.label)) {
-                          handleMetadataChange({
-                            ...editingMetadata,
-                            tags: [...editingMetadata.tags, item.label],
-                          });
-                        }
-                        dropdown.closeDropdown();
-                      }}
-                      onAdd={(name) => {
-                        const newTag = name.trim();
-                        if (newTag && !editingMetadata.tags.includes(newTag)) {
-                          handleMetadataChange({
-                            ...editingMetadata,
-                            tags: [...editingMetadata.tags, newTag],
-                          });
-                          dropdown.closeDropdown();
-                        }
-                      }}
-                      onClose={() => dropdown.closeDropdown()}
-                      placeholder="Search or add tag..."
-                      highlightColor="teal"
-                      excludeIds={editingMetadata.tags}
-                      emptyMessage="No existing tags. Type to create new."
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Dependencies */}
-            <div>
-              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">⛓️ Dependencies</h4>
-              {todos.length <= 1 ? (
-                <div className="text-xs text-zinc-500 dark:text-zinc-400 italic">No other tasks available</div>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {editingMetadata.dependencies.map((depId) => {
-                    const depTodo = todos.find((t) => t.id === depId);
-                    if (!depTodo) return null;
-                    return (
-                      <Badge
-                        key={depId}
-                        variant="amber"
-                        onRemove={() => {
-                          handleMetadataChange({
-                            ...editingMetadata,
-                            dependencies: editingMetadata.dependencies.filter((d) => d !== depId),
-                          });
-                        }}
-                      >
-                        {depTodo.plainText.length > 30 ? depTodo.plainText.substring(0, 30) + "..." : depTodo.plainText}
-                      </Badge>
-                    );
-                  })}
-                  {dropdown.isOpen("dependency") && (
-                    <SearchableDropdown
-                      items={todos.filter((t) => t.id !== todo.id).map((t) => ({ id: t.id, label: t.plainText }))}
-                      onSelect={(item) => {
-                        handleMetadataChange({
-                          ...editingMetadata,
-                          dependencies: [...editingMetadata.dependencies, typeof item === "string" ? item : item.id],
-                        });
-                        dropdown.closeDropdown();
-                      }}
-                      onClose={() => dropdown.closeDropdown()}
-                      placeholder="Search tasks..."
-                      highlightColor="amber"
-                      excludeIds={editingMetadata.dependencies}
-                      emptyMessage="All tasks already added"
-                    />
-                  )}
-                  <button
-                    onClick={() => dropdown.toggleDropdown("dependency")}
-                    className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
-                  >
-                    +
-                  </button>
-                </div>
-              )}
-            </div>
+                );
+              }}
+            />
 
             {/* Due Date */}
             <div>
