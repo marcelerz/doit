@@ -68,15 +68,26 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
   const sortedPriorities = [...priorities].sort((a, b) => a.order - b.order);
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">Priorities</h2>
-        <p className="text-zinc-600 dark:text-zinc-400">
-          Manage priority levels for your tasks. Lower order numbers appear first.
-        </p>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Priorities</h2>
+        {!isAdding && (
+          <button
+            onClick={() => setIsAdding(true)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          >
+            Add Priority
+          </button>
+        )}
       </div>
 
-      <div className="space-y-4 mb-6">
+      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        Manage priority levels for your tasks. Use{" "}
+        <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">!!</span> marker to assign
+        priorities. Lower order numbers appear first.
+      </p>
+
+      <div className="space-y-4">
         {sortedPriorities.map((priority) => (
           <div
             key={priority.id}
@@ -180,7 +191,7 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
         ))}
       </div>
 
-      {isAdding ? (
+      {isAdding && (
         <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 space-y-3">
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Name</label>
@@ -248,13 +259,6 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
             </button>
           </div>
         </div>
-      ) : (
-        <button
-          onClick={() => setIsAdding(true)}
-          className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-        >
-          + Add Priority
-        </button>
       )}
     </div>
   );
