@@ -1146,13 +1146,15 @@ export function GanttView({
                         )}
 
                         {/* Target marker */}
-                        <div
-                          className={`absolute top-0 bottom-0 w-0.5 ${
-                            task.isOverdue ? "bg-red-500" : "bg-green-500"
-                          } z-10`}
-                          style={{ left: `${targetPos}%` }}
-                          title={task.isOverdue ? "Overdue point" : "Target time"}
-                        />
+                        {targetPos >= 0 && targetPos <= 100 && (
+                          <div
+                            className={`absolute top-0 bottom-0 w-0.5 ${
+                              task.isOverdue ? "bg-red-500" : "bg-green-500"
+                            } z-10`}
+                            style={{ left: `${targetPos}%` }}
+                            title={task.isOverdue ? "Overdue point" : "Target time"}
+                          />
+                        )}
                       </div>
 
                       {/* Context switching buffer - line with arrows */}
