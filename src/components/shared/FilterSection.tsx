@@ -9,6 +9,7 @@ interface FilterSectionProps {
   onSelectAll: () => void;
   onClear: () => void;
   getButtonColor: (value: string, isSelected: boolean) => string;
+  getButtonStyle?: (value: string, isSelected: boolean) => React.CSSProperties | undefined;
   formatLabel?: (value: string) => string;
 }
 
@@ -21,6 +22,7 @@ export function FilterSection({
   onSelectAll,
   onClear,
   getButtonColor,
+  getButtonStyle,
   formatLabel = (v) => v,
 }: FilterSectionProps) {
   if (options.length === 0) return null;
@@ -41,15 +43,19 @@ export function FilterSection({
         </div>
       </div>
       <div className="flex flex-wrap gap-1">
-        {options.map((value) => (
-          <button
-            key={value}
-            onClick={() => onToggle(value)}
-            className={getButtonColor(value, selectedValues.has(value))}
-          >
-            {formatLabel(value)}
-          </button>
-        ))}
+        {options.map((value) => {
+          const isSelected = selectedValues.has(value);
+          return (
+            <button
+              key={value}
+              onClick={() => onToggle(value)}
+              className={getButtonColor(value, isSelected)}
+              style={getButtonStyle ? getButtonStyle(value, isSelected) : undefined}
+            >
+              {formatLabel(value)}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

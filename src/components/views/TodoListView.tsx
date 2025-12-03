@@ -636,24 +636,50 @@ export function TodoList() {
   };
 
   // Helper function to get button color class for filter sections
+  // Uses actual marker colors from settings
   const getFilterButtonColor = (type: keyof Omit<TodoFilters, "searchText">, value: string, isSelected: boolean) => {
-    const colorMap = {
-      assignedPeople: "bg-blue-600",
-      projects: "bg-purple-600",
-      sourcePeople: "bg-green-600",
-      mentionedPeople: "bg-yellow-600",
-      priorities: "bg-red-600",
-      dueDates: "bg-pink-600",
-      durations: "bg-cyan-600",
-      tags: "bg-teal-600",
-      recurring: "bg-indigo-600",
-      dependencies: "bg-orange-600",
-    };
-
     if (isSelected) {
-      return `${colorMap[type]} text-white px-2 py-0.5 text-xs rounded transition-colors`;
+      return "px-2 py-0.5 text-xs rounded transition-colors";
     }
     return "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 px-2 py-0.5 text-xs rounded transition-colors";
+  };
+
+  // Helper function to get button inline styles for filter sections
+  const getFilterButtonStyle = (
+    type: keyof Omit<TodoFilters, "searchText">,
+    value: string,
+    isSelected: boolean,
+  ): React.CSSProperties | undefined => {
+    if (!isSelected) return undefined;
+
+    const markerColorMap: Record<string, keyof typeof settings.markerColors> = {
+      assignedPeople: "assigned",
+      projects: "project",
+      sourcePeople: "source",
+      mentionedPeople: "mentioned",
+      priorities: "priority",
+      dueDates: "dueDate",
+      durations: "duration",
+      tags: "tag",
+      recurring: "recurring",
+      dependencies: "dependency",
+    };
+
+    const markerKey = markerColorMap[type];
+    const bgColor = settings.markerColors[markerKey];
+
+    // Calculate text color based on background luminance
+    const hex = bgColor.replace("#", "");
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    const textColor = luminance > 0.5 ? "#000000" : "#FFFFFF";
+
+    return {
+      backgroundColor: bgColor,
+      color: textColor,
+    };
   };
 
   const hasActiveFilters =
@@ -1251,6 +1277,7 @@ export function TodoList() {
                   onSelectAll={() => handleSelectAll("assignedPeople")}
                   onClear={() => handleClearAll("assignedPeople")}
                   getButtonColor={(value, isSelected) => getFilterButtonColor("assignedPeople", value, isSelected)}
+                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("assignedPeople", value, isSelected)}
                   formatLabel={(value) => `@${value}`}
                 />
 
@@ -1264,6 +1291,7 @@ export function TodoList() {
                   onSelectAll={() => handleSelectAll("projects")}
                   onClear={() => handleClearAll("projects")}
                   getButtonColor={(value, isSelected) => getFilterButtonColor("projects", value, isSelected)}
+                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("projects", value, isSelected)}
                   formatLabel={(value) => `#${value}`}
                 />
 
@@ -1277,6 +1305,7 @@ export function TodoList() {
                   onSelectAll={() => handleSelectAll("sourcePeople")}
                   onClear={() => handleClearAll("sourcePeople")}
                   getButtonColor={(value, isSelected) => getFilterButtonColor("sourcePeople", value, isSelected)}
+                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("sourcePeople", value, isSelected)}
                   formatLabel={(value) => `$${value}`}
                 />
 
@@ -1290,6 +1319,7 @@ export function TodoList() {
                   onSelectAll={() => handleSelectAll("mentionedPeople")}
                   onClear={() => handleClearAll("mentionedPeople")}
                   getButtonColor={(value, isSelected) => getFilterButtonColor("mentionedPeople", value, isSelected)}
+                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("mentionedPeople", value, isSelected)}
                   formatLabel={(value) => `^${value}`}
                 />
 
@@ -1303,6 +1333,7 @@ export function TodoList() {
                   onSelectAll={() => handleSelectAll("priorities")}
                   onClear={() => handleClearAll("priorities")}
                   getButtonColor={(value, isSelected) => getFilterButtonColor("priorities", value, isSelected)}
+                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("priorities", value, isSelected)}
                   formatLabel={(value) => `!!${value}`}
                 />
 
@@ -1316,6 +1347,7 @@ export function TodoList() {
                   onSelectAll={() => handleSelectAll("dueDates")}
                   onClear={() => handleClearAll("dueDates")}
                   getButtonColor={(value, isSelected) => getFilterButtonColor("dueDates", value, isSelected)}
+                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("dueDates", value, isSelected)}
                   formatLabel={(value) => `~${value}`}
                 />
 
@@ -1329,6 +1361,7 @@ export function TodoList() {
                   onSelectAll={() => handleSelectAll("durations")}
                   onClear={() => handleClearAll("durations")}
                   getButtonColor={(value, isSelected) => getFilterButtonColor("durations", value, isSelected)}
+                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("durations", value, isSelected)}
                   formatLabel={(value) => `*${value}`}
                 />
 
@@ -1342,6 +1375,7 @@ export function TodoList() {
                   onSelectAll={() => handleSelectAll("tags")}
                   onClear={() => handleClearAll("tags")}
                   getButtonColor={(value, isSelected) => getFilterButtonColor("tags", value, isSelected)}
+                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("tags", value, isSelected)}
                   formatLabel={(value) => `&${value}`}
                 />
 
@@ -1355,6 +1389,7 @@ export function TodoList() {
                   onSelectAll={() => handleSelectAll("recurring")}
                   onClear={() => handleClearAll("recurring")}
                   getButtonColor={(value, isSelected) => getFilterButtonColor("recurring", value, isSelected)}
+                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("recurring", value, isSelected)}
                   formatLabel={(value) => `%${value}`}
                 />
 
@@ -1368,6 +1403,7 @@ export function TodoList() {
                   onSelectAll={() => handleSelectAll("dependencies")}
                   onClear={() => handleClearAll("dependencies")}
                   getButtonColor={(value, isSelected) => getFilterButtonColor("dependencies", value, isSelected)}
+                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("dependencies", value, isSelected)}
                   formatLabel={(value) => `>${value}`}
                 />
               </div>
