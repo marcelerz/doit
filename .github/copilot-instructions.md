@@ -23,6 +23,7 @@
 - [x] Reorganize components into logical folders (views, items, overlays, shared, input, settings)
 - [x] Create reusable abstractions (Badge, Modal, SearchableDropdown, colors, suggestions, keyboard nav)
 - [x] Refactor TodoDetailsOverlay.tsx with new components (1996 → 1098 lines, 898 lines saved)
+- [x] Add tag usage tracking with SearchableDropdown showing most-used tags first
 
 ## Project Details
 

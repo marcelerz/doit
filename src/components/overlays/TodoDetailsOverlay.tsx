@@ -14,6 +14,7 @@ import { SearchableDropdown } from "@/components/shared/SearchableDropdown";
 import { getDurationSuggestions, filterRecurringSuggestions } from "@/utils/suggestions";
 import { Comments } from "@/components/shared/Comments";
 import { parseDate, normalizeDateValue } from "@/utils/dateParser";
+import { calculateUsageStats, sortStringsByUsage } from "@/utils/usageStats";
 
 // Helper function to convert a date value (which might be shorthand like "today") to yyyy-MM-dd format
 function convertToDateInputFormat(dateValue: string | undefined, settings: Settings): string {
@@ -129,6 +130,10 @@ export function TodoDetailsOverlay({
   const [showTagInput, setShowTagInput] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [newComment, setNewComment] = useState("");
+
+  // Calculate usage stats for suggestions
+  const usageStats = todos ? calculateUsageStats(todos) : null;
+  const sortedTags = usageStats ? sortStringsByUsage(Array.from(usageStats.tags.keys()), usageStats.tags) : [];
 
   // State for metadata editing
   const [editingMetadata, setEditingMetadata] = useState<TodoMetadata>({
@@ -679,18 +684,18 @@ export function TodoDetailsOverlay({
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🏷️ Tags</h4>
                   <div className="flex flex-wrap gap-1.5">
                     {editingMetadata.tags.map((tag) => (
-                      <button
+                      <Badge
                         key={tag}
-                        onClick={() => {
+                        variant="teal"
+                        onRemove={() => {
                           handleMetadataChange({
                             ...editingMetadata,
                             tags: editingMetadata.tags.filter((t) => t !== tag),
                           });
                         }}
-                        className="text-xs px-2 py-1 rounded border bg-teal-100 dark:bg-teal-900/30 border-teal-300 dark:border-teal-700 text-teal-800 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-900/50 transition-colors"
                       >
-                        {tag} ✕
-                      </button>
+                        {tag}
+                      </Badge>
                     ))}
                     <div className="relative">
                       <button
@@ -700,42 +705,33 @@ export function TodoDetailsOverlay({
                         +
                       </button>
                       {showTagInput && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-10"
-                            onClick={() => {
+                        <SearchableDropdown
+                          items={sortedTags.map((tag) => ({ id: tag, label: tag, prefix: "#" }))}
+                          onSelect={(item) => {
+                            if (!editingMetadata.tags.includes(item.label)) {
+                              handleMetadataChange({
+                                ...editingMetadata,
+                                tags: [...editingMetadata.tags, item.label],
+                              });
+                            }
+                            setShowTagInput(false);
+                          }}
+                          onAdd={(name) => {
+                            const newTag = name.trim();
+                            if (newTag && !editingMetadata.tags.includes(newTag)) {
+                              handleMetadataChange({
+                                ...editingMetadata,
+                                tags: [...editingMetadata.tags, newTag],
+                              });
                               setShowTagInput(false);
-                              setTagInput("");
-                            }}
-                          />
-                          <div className="absolute z-20 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg">
-                            <input
-                              type="text"
-                              value={tagInput}
-                              onChange={(e) => setTagInput(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  const newTag = tagInput.trim();
-                                  if (newTag && !editingMetadata.tags.includes(newTag)) {
-                                    handleMetadataChange({
-                                      ...editingMetadata,
-                                      tags: [...editingMetadata.tags, newTag],
-                                    });
-                                    setTagInput("");
-                                    setShowTagInput(false);
-                                  }
-                                } else if (e.key === "Escape") {
-                                  setShowTagInput(false);
-                                  setTagInput("");
-                                }
-                              }}
-                              placeholder="Enter tag name..."
-                              autoFocus
-                              className="w-full text-xs px-3 py-2 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none rounded"
-                            />
-                          </div>
-                        </>
+                            }
+                          }}
+                          onClose={() => setShowTagInput(false)}
+                          placeholder="Search or add tag..."
+                          highlightColor="teal"
+                          excludeIds={editingMetadata.tags}
+                          emptyMessage="No existing tags. Type to create new."
+                        />
                       )}
                     </div>
                   </div>
