@@ -137,6 +137,7 @@ export function TodoDetailsOverlay({
   const [showTagInput, setShowTagInput] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [newComment, setNewComment] = useState("");
+  const [showDelayedDropdown, setShowDelayedDropdown] = useState(false);
 
   // Calculate usage stats for suggestions
   const usageStats = todos ? calculateUsageStats(todos) : null;
@@ -872,6 +873,78 @@ export function TodoDetailsOverlay({
                       }}
                       className="w-32 text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
                     />
+
+                    {/* Delayed button */}
+                    {todo.state === "active" && (
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowDelayedDropdown(!showDelayedDropdown)}
+                          className="p-1.5 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-400 rounded-md transition-colors"
+                          aria-label="Delay todo"
+                          title="Quick delay"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                        </button>
+                        {showDelayedDropdown && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setShowDelayedDropdown(false)} />
+                            <div className="absolute right-0 z-20 mt-1 w-48 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg py-1 max-h-64 overflow-y-auto">
+                              {[
+                                { label: "Today", value: "today" },
+                                { label: "Tomorrow", value: "tomorrow" },
+                                { label: "Next Week", value: "next week" },
+                                { label: "Next Month", value: "next month" },
+                                { label: "Next Monday", value: "next monday" },
+                                { label: "Next Tuesday", value: "next tuesday" },
+                                { label: "Next Wednesday", value: "next wednesday" },
+                                { label: "Next Thursday", value: "next thursday" },
+                                { label: "Next Friday", value: "next friday" },
+                                { label: "Next Saturday", value: "next saturday" },
+                                { label: "Next Sunday", value: "next sunday" },
+                                { label: "In 2 Days", value: "in 2 days" },
+                                { label: "In 3 Days", value: "in 3 days" },
+                                { label: "In 5 Days", value: "in 5 days" },
+                                { label: "In 1 Week", value: "in 1 week" },
+                                { label: "In 2 Weeks", value: "in 2 weeks" },
+                                { label: "In 3 Weeks", value: "in 3 weeks" },
+                                { label: "In 1 Month", value: "in 1 month" },
+                                { label: "In 2 Months", value: "in 2 months" },
+                                { label: "In 3 Months", value: "in 3 months" },
+                                { label: "In 6 Months", value: "in 6 months" },
+                              ].map((option) => (
+                                <button
+                                  key={option.value}
+                                  onClick={() => {
+                                    const normalizedDate = normalizeDateValue(
+                                      option.value,
+                                      settings.dateTime,
+                                      settings.workHours,
+                                    );
+                                    if (normalizedDate) {
+                                      handleMetadataChange({
+                                        ...editingMetadata,
+                                        dueDate: normalizedDate,
+                                      });
+                                    }
+                                    setShowDelayedDropdown(false);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-zinc-900 dark:text-zinc-100 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                                >
+                                  {option.label}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
