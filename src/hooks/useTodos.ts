@@ -279,10 +279,13 @@ export function useTodos() {
     // Create undo action
     const actionId = `${now}-delete-${id}`;
     const timeoutId = setTimeout(() => {
-      const currentAction = undoActions.find((a) => a.id === actionId);
-      if (currentAction) {
-        executePendingAction(currentAction);
-      }
+      setUndoActions((prev) => {
+        const action = prev.find((a) => a.id === actionId);
+        if (action) {
+          executePendingAction(action);
+        }
+        return prev;
+      });
     }, 10000);
 
     const action: UndoAction = {
