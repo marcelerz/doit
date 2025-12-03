@@ -950,17 +950,35 @@ export function GanttView({
                         />
                       </div>
 
-                      {/* Context switching buffer - spans between this task and next */}
+                      {/* Context switching buffer - line with arrows */}
                       {hasContextSwitch && contextSwitchWidth > 0 && (
                         <div
-                          className="absolute left-0 right-0 bg-blue-400 dark:bg-blue-600 opacity-40 border-l-2 border-r-2 border-blue-500 dark:border-blue-400 border-dashed z-5"
+                          className="absolute flex items-center justify-center z-5"
                           style={{
                             top: "100%",
                             left: `${contextSwitchStartPos}%`,
                             width: `${contextSwitchWidth}%`,
-                            height: "10px",
+                            height: "8px",
                           }}
-                        />
+                        >
+                          <div className="flex items-center w-full">
+                            <svg
+                              className="w-2 h-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
+                              fill="currentColor"
+                              viewBox="0 0 8 8"
+                            >
+                              <path d="M4 0 L0 4 L4 8 Z" />
+                            </svg>
+                            <div className="flex-1 h-px bg-blue-500 dark:bg-blue-400" />
+                            <svg
+                              className="w-2 h-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
+                              fill="currentColor"
+                              viewBox="0 0 8 8"
+                            >
+                              <path d="M4 0 L8 4 L4 8 Z" />
+                            </svg>
+                          </div>
+                        </div>
                       )}
 
                       {/* Hover tooltip - positioned outside task bar */}
