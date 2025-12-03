@@ -543,3 +543,67 @@ export const formatDateForDisplay = (dateValue: string | undefined): string => {
     });
   }
 };
+
+// Convert a date value (which might be shorthand like "today") to yyyy-MM-dd format
+export const convertToDateInputFormat = (
+  dateValue: string | undefined,
+  dateTimeSettings: DateTimeSettings,
+  workHours: WorkHoursSettings,
+): string => {
+  if (!dateValue) return "";
+
+  // If it's already in ISO format (yyyy-MM-dd or yyyy-MM-ddTHH:mm), extract the date part
+  if (dateValue.match(/^\d{4}-\d{2}-\d{2}/)) {
+    return dateValue.split("T")[0];
+  }
+
+  // Try to parse shorthand values like "today", "tomorrow", etc.
+  const parsed = parseDate(dateValue, dateTimeSettings, workHours);
+  if (parsed) {
+    const date = new Date(parsed.timestamp);
+    // Use local date methods to avoid UTC conversion
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  // Fallback: try to parse as a regular date
+  const fallbackDate = new Date(dateValue);
+  if (!isNaN(fallbackDate.getTime())) {
+    const year = fallbackDate.getFullYear();
+    const month = (fallbackDate.getMonth() + 1).toString().padStart(2, "0");
+    const day = fallbackDate.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  return "";
+};
+
+// Convert a date value (which might be shorthand) to HH:mm format
+export const convertToTimeInputFormat = (
+  dateValue: string | undefined,
+  dateTimeSettings: DateTimeSettings,
+  workHours: WorkHoursSettings,
+): string => {
+  if (!dateValue) return "";
+
+  // If it's in ISO format with time (yyyy-MM-ddTHH:mm), extract the time part
+  if (dateValue.includes("T")) {
+    const timePart = dateValue.split("T")[1];
+    if (timePart) {
+      return timePart.substring(0, 5); // Get HH:mm
+    }
+  }
+
+  // Try to parse shorthand values like "today", "tomorrow", etc.
+  const parsed = parseDate(dateValue, dateTimeSettings, workHours);
+  if (parsed) {
+    const date = new Date(parsed.timestamp);
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    return `${hours}:${minutes}`;
+  }
+
+  return "";
+};

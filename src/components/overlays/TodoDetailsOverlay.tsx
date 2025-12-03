@@ -11,66 +11,19 @@ import { MarkerReference } from "@/components/shared/MarkerReference";
 import { Modal } from "@/components/shared/Modal";
 import { Badge } from "@/components/shared/Badge";
 import { SearchableDropdown } from "@/components/shared/SearchableDropdown";
+import { ActionButtons } from "@/components/shared/ActionButtons";
 import { getDurationSuggestions, filterRecurringSuggestions } from "@/utils/suggestions";
 import { Comments } from "@/components/shared/Comments";
-import { parseDate, normalizeDateValue, toLocalISOString, formatDateForDisplay } from "@/utils/dateParser";
+import {
+  parseDate,
+  normalizeDateValue,
+  toLocalISOString,
+  formatDateForDisplay,
+  convertToDateInputFormat,
+  convertToTimeInputFormat,
+} from "@/utils/dateParser";
 import { calculateUsageStats, sortStringsByUsage } from "@/utils/usageStats";
-
-// Helper function to convert a date value (which might be shorthand like "today") to yyyy-MM-dd format
-function convertToDateInputFormat(dateValue: string | undefined, settings: Settings): string {
-  if (!dateValue) return "";
-
-  // If it's already in ISO format (yyyy-MM-dd or yyyy-MM-ddTHH:mm), extract the date part
-  if (dateValue.match(/^\d{4}-\d{2}-\d{2}/)) {
-    return dateValue.split("T")[0];
-  }
-
-  // Try to parse shorthand values like "today", "tomorrow", etc.
-  const parsed = parseDate(dateValue, settings.dateTime, settings.workHours);
-  if (parsed) {
-    const date = new Date(parsed.timestamp);
-    // Use local date methods to avoid UTC conversion
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const day = date.getDate().toString().padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
-
-  // Fallback: try to parse as a regular date
-  const fallbackDate = new Date(dateValue);
-  if (!isNaN(fallbackDate.getTime())) {
-    const year = fallbackDate.getFullYear();
-    const month = (fallbackDate.getMonth() + 1).toString().padStart(2, "0");
-    const day = fallbackDate.getDate().toString().padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
-
-  return "";
-}
-
-// Helper function to convert a date value (which might be shorthand) to HH:mm format
-function convertToTimeInputFormat(dateValue: string | undefined, settings: Settings): string {
-  if (!dateValue) return "";
-
-  // If it's in ISO format with time (yyyy-MM-ddTHH:mm), extract the time part
-  if (dateValue.includes("T")) {
-    const timePart = dateValue.split("T")[1];
-    if (timePart) {
-      return timePart.substring(0, 5); // Get HH:mm
-    }
-  }
-
-  // Try to parse shorthand values like "today", "tomorrow", etc.
-  const parsed = parseDate(dateValue, settings.dateTime, settings.workHours);
-  if (parsed) {
-    const date = new Date(parsed.timestamp);
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    return `${hours}:${minutes}`;
-  }
-
-  return "";
-}
+import { useDropdownManager } from "@/hooks/useDropdownManager";
 
 interface TodoDetailsOverlayProps {
   todo: Todo;
@@ -125,20 +78,9 @@ export function TodoDetailsOverlay({
   const [editPlainText, setEditPlainText] = useState("");
   const smartInputRef = useRef<SmartEditableInputHandle>(null);
 
-  // Dropdown state
-  const [showAssignedDropdown, setShowAssignedDropdown] = useState(false);
-  const [showProjectDropdown, setShowProjectDropdown] = useState(false);
-  const [showSourceDropdown, setShowSourceDropdown] = useState(false);
-  const [showMentionedDropdown, setShowMentionedDropdown] = useState(false);
-  const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
-  const [showDurationDropdown, setShowDurationDropdown] = useState(false);
-  const [showRecurringDropdown, setShowRecurringDropdown] = useState(false);
-  const [showDependencyDropdown, setShowDependencyDropdown] = useState(false);
-  const [showTagInput, setShowTagInput] = useState(false);
-  const [tagInput, setTagInput] = useState("");
+  // Dropdown state management
+  const dropdown = useDropdownManager();
   const [newComment, setNewComment] = useState("");
-  const [showDelayedDropdown, setShowDelayedDropdown] = useState(false);
-  const [showMarkerReference, setShowMarkerReference] = useState(false);
 
   // Calculate usage stats for suggestions
   const usageStats = todos ? calculateUsageStats(todos) : null;
@@ -339,7 +281,7 @@ export function TodoDetailsOverlay({
                       </button>
                       <div className="relative ml-auto">
                         <button
-                          onClick={() => setShowMarkerReference(!showMarkerReference)}
+                          onClick={() => dropdown.toggleDropdown("marker-reference")}
                           className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
                           title="Show marker reference"
                         >
@@ -352,16 +294,16 @@ export function TodoDetailsOverlay({
                             />
                           </svg>
                         </button>
-                        {showMarkerReference && (
+                        {dropdown.isOpen("marker-reference") && (
                           <>
-                            <div className="fixed inset-0 z-30" onClick={() => setShowMarkerReference(false)} />
+                            <div className="fixed inset-0 z-30" onClick={() => dropdown.closeDropdown()} />
                             <div className="absolute right-0 top-full mt-2 z-40 w-80 p-3 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700">
                               <div className="flex items-start justify-between mb-2">
                                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                                   ✨ Smart Input Markers
                                 </h3>
                                 <button
-                                  onClick={() => setShowMarkerReference(false)}
+                                  onClick={() => dropdown.closeDropdown()}
                                   className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -548,12 +490,12 @@ export function TodoDetailsOverlay({
                 })}
                 <div className="relative">
                   <button
-                    onClick={() => setShowAssignedDropdown(!showAssignedDropdown)}
+                    onClick={() => dropdown.toggleDropdown("assigned")}
                     className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                   >
                     +
                   </button>
-                  {showAssignedDropdown && (
+                  {dropdown.isOpen("assigned") && (
                     <SearchableDropdown
                       items={availablePeople.map((p) => ({
                         id: p.name,
@@ -566,7 +508,7 @@ export function TodoDetailsOverlay({
                           ...editingMetadata,
                           assignedPeople: [...editingMetadata.assignedPeople, item.label],
                         });
-                        setShowAssignedDropdown(false);
+                        dropdown.closeDropdown();
                       }}
                       onAdd={
                         onAddPerson
@@ -576,11 +518,11 @@ export function TodoDetailsOverlay({
                                 ...editingMetadata,
                                 assignedPeople: [...editingMetadata.assignedPeople, name],
                               });
-                              setShowAssignedDropdown(false);
+                              dropdown.closeDropdown();
                             }
                           : undefined
                       }
-                      onClose={() => setShowAssignedDropdown(false)}
+                      onClose={() => dropdown.closeDropdown()}
                       placeholder="Search people..."
                       highlightColor="blue"
                       excludeIds={editingMetadata.assignedPeople}
@@ -619,7 +561,7 @@ export function TodoDetailsOverlay({
                     </span>
                   );
                 })}
-                {showProjectDropdown && (
+                {dropdown.isOpen("project") && (
                   <SearchableDropdown
                     items={availableProjects.map((p) => ({
                       id: p.name,
@@ -631,7 +573,7 @@ export function TodoDetailsOverlay({
                         ...editingMetadata,
                         projects: [...editingMetadata.projects, typeof item === "string" ? item : item.id],
                       });
-                      setShowProjectDropdown(false);
+                      dropdown.closeDropdown();
                     }}
                     onAdd={
                       onAddProject
@@ -641,11 +583,11 @@ export function TodoDetailsOverlay({
                               ...editingMetadata,
                               projects: [...editingMetadata.projects, name],
                             });
-                            setShowProjectDropdown(false);
+                            dropdown.closeDropdown();
                           }
                         : undefined
                     }
-                    onClose={() => setShowProjectDropdown(false)}
+                    onClose={() => dropdown.closeDropdown()}
                     placeholder="Search projects..."
                     highlightColor="purple"
                     excludeIds={editingMetadata.projects}
@@ -653,7 +595,7 @@ export function TodoDetailsOverlay({
                   />
                 )}
                 <button
-                  onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+                  onClick={() => dropdown.toggleDropdown("project")}
                   className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                 >
                   +
@@ -689,7 +631,7 @@ export function TodoDetailsOverlay({
                     </span>
                   );
                 })}
-                {showSourceDropdown && (
+                {dropdown.isOpen("source") && (
                   <SearchableDropdown
                     items={availablePeople.map((p) => ({
                       id: p.name,
@@ -701,7 +643,7 @@ export function TodoDetailsOverlay({
                         ...editingMetadata,
                         sourcePeople: [...editingMetadata.sourcePeople, typeof item === "string" ? item : item.id],
                       });
-                      setShowSourceDropdown(false);
+                      dropdown.closeDropdown();
                     }}
                     onAdd={
                       onAddPerson
@@ -711,11 +653,11 @@ export function TodoDetailsOverlay({
                               ...editingMetadata,
                               sourcePeople: [...editingMetadata.sourcePeople, name],
                             });
-                            setShowSourceDropdown(false);
+                            dropdown.closeDropdown();
                           }
                         : undefined
                     }
-                    onClose={() => setShowSourceDropdown(false)}
+                    onClose={() => dropdown.closeDropdown()}
                     placeholder="Search people..."
                     highlightColor="green"
                     excludeIds={editingMetadata.sourcePeople}
@@ -723,7 +665,7 @@ export function TodoDetailsOverlay({
                   />
                 )}
                 <button
-                  onClick={() => setShowSourceDropdown(!showSourceDropdown)}
+                  onClick={() => dropdown.toggleDropdown("source")}
                   className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                 >
                   +
@@ -759,7 +701,7 @@ export function TodoDetailsOverlay({
                     </span>
                   );
                 })}
-                {showMentionedDropdown && (
+                {dropdown.isOpen("mentioned") && (
                   <SearchableDropdown
                     items={availablePeople.map((p) => ({
                       id: p.name,
@@ -774,7 +716,7 @@ export function TodoDetailsOverlay({
                           typeof item === "string" ? item : item.id,
                         ],
                       });
-                      setShowMentionedDropdown(false);
+                      dropdown.closeDropdown();
                     }}
                     onAdd={
                       onAddPerson
@@ -784,11 +726,11 @@ export function TodoDetailsOverlay({
                               ...editingMetadata,
                               mentionedPeople: [...editingMetadata.mentionedPeople, name],
                             });
-                            setShowMentionedDropdown(false);
+                            dropdown.closeDropdown();
                           }
                         : undefined
                     }
-                    onClose={() => setShowMentionedDropdown(false)}
+                    onClose={() => dropdown.closeDropdown()}
                     placeholder="Search people..."
                     highlightColor="pink"
                     excludeIds={editingMetadata.mentionedPeople}
@@ -796,7 +738,7 @@ export function TodoDetailsOverlay({
                   />
                 )}
                 <button
-                  onClick={() => setShowMentionedDropdown(!showMentionedDropdown)}
+                  onClick={() => dropdown.toggleDropdown("mentioned")}
                   className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                 >
                   +
@@ -808,7 +750,7 @@ export function TodoDetailsOverlay({
             <div>
               <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔥 Priority</h4>
               <div className="flex flex-wrap gap-1.5">
-                {showPriorityDropdown && (
+                {dropdown.isOpen("priority") && (
                   <SearchableDropdown
                     items={availablePriorities.map((p) => ({
                       id: p.name,
@@ -820,7 +762,7 @@ export function TodoDetailsOverlay({
                         ...editingMetadata,
                         priority: typeof item === "string" ? item : item.id,
                       });
-                      setShowPriorityDropdown(false);
+                      dropdown.closeDropdown();
                     }}
                     onAdd={
                       onAddPriority
@@ -830,11 +772,11 @@ export function TodoDetailsOverlay({
                               ...editingMetadata,
                               priority: name,
                             });
-                            setShowPriorityDropdown(false);
+                            dropdown.closeDropdown();
                           }
                         : undefined
                     }
-                    onClose={() => setShowPriorityDropdown(false)}
+                    onClose={() => dropdown.closeDropdown()}
                     placeholder="Search priorities..."
                     highlightColor="red"
                     emptyMessage="No priorities available"
@@ -847,7 +789,7 @@ export function TodoDetailsOverlay({
                       backgroundColor: getPriorityColor(editingMetadata.priority),
                       color: getTextColor(getPriorityColor(editingMetadata.priority)),
                     }}
-                    onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
+                    onClick={() => dropdown.toggleDropdown("priority")}
                   >
                     !!{editingMetadata.priority}
                     <button
@@ -862,7 +804,7 @@ export function TodoDetailsOverlay({
                   </span>
                 ) : (
                   <button
-                    onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
+                    onClick={() => dropdown.toggleDropdown("priority")}
                     className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                   >
                     !!{settings.autoAssign.priority || "None"}
@@ -891,12 +833,12 @@ export function TodoDetailsOverlay({
                 ))}
                 <div className="relative">
                   <button
-                    onClick={() => setShowTagInput(!showTagInput)}
+                    onClick={() => dropdown.toggleDropdown("tag")}
                     className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                   >
                     +
                   </button>
-                  {showTagInput && (
+                  {dropdown.isOpen("tag") && (
                     <SearchableDropdown
                       items={sortedTags.map((tag) => ({ id: tag, label: tag, prefix: "#" }))}
                       onSelect={(item) => {
@@ -906,7 +848,7 @@ export function TodoDetailsOverlay({
                             tags: [...editingMetadata.tags, item.label],
                           });
                         }
-                        setShowTagInput(false);
+                        dropdown.closeDropdown();
                       }}
                       onAdd={(name) => {
                         const newTag = name.trim();
@@ -915,10 +857,10 @@ export function TodoDetailsOverlay({
                             ...editingMetadata,
                             tags: [...editingMetadata.tags, newTag],
                           });
-                          setShowTagInput(false);
+                          dropdown.closeDropdown();
                         }
                       }}
-                      onClose={() => setShowTagInput(false)}
+                      onClose={() => dropdown.closeDropdown()}
                       placeholder="Search or add tag..."
                       highlightColor="teal"
                       excludeIds={editingMetadata.tags}
@@ -954,7 +896,7 @@ export function TodoDetailsOverlay({
                       </Badge>
                     );
                   })}
-                  {showDependencyDropdown && (
+                  {dropdown.isOpen("dependency") && (
                     <SearchableDropdown
                       items={todos.filter((t) => t.id !== todo.id).map((t) => ({ id: t.id, label: t.plainText }))}
                       onSelect={(item) => {
@@ -962,9 +904,9 @@ export function TodoDetailsOverlay({
                           ...editingMetadata,
                           dependencies: [...editingMetadata.dependencies, typeof item === "string" ? item : item.id],
                         });
-                        setShowDependencyDropdown(false);
+                        dropdown.closeDropdown();
                       }}
-                      onClose={() => setShowDependencyDropdown(false)}
+                      onClose={() => dropdown.closeDropdown()}
                       placeholder="Search tasks..."
                       highlightColor="amber"
                       excludeIds={editingMetadata.dependencies}
@@ -972,7 +914,7 @@ export function TodoDetailsOverlay({
                     />
                   )}
                   <button
-                    onClick={() => setShowDependencyDropdown(!showDependencyDropdown)}
+                    onClick={() => dropdown.toggleDropdown("dependency")}
                     className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                   >
                     +
@@ -1001,7 +943,7 @@ export function TodoDetailsOverlay({
                   )}
                   <input
                     type="date"
-                    value={convertToDateInputFormat(editingMetadata.dueDate, settings)}
+                    value={convertToDateInputFormat(editingMetadata.dueDate, settings.dateTime, settings.workHours)}
                     onChange={(e) => {
                       const dateValue = e.target.value;
                       let newDueDate: string | undefined;
@@ -1028,7 +970,7 @@ export function TodoDetailsOverlay({
                 </div>
                 <input
                   type="time"
-                  value={convertToTimeInputFormat(editingMetadata.dueDate, settings)}
+                  value={convertToTimeInputFormat(editingMetadata.dueDate, settings.dateTime, settings.workHours)}
                   onChange={(e) => {
                     const timeValue = e.target.value;
                     let newDueDate: string | undefined;
@@ -1057,7 +999,7 @@ export function TodoDetailsOverlay({
                 {todo.state === "active" && (
                   <div className="relative">
                     <button
-                      onClick={() => setShowDelayedDropdown(!showDelayedDropdown)}
+                      onClick={() => dropdown.toggleDropdown("delayed")}
                       className="p-1.5 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-400 rounded-md transition-colors"
                       aria-label="Delay todo"
                       title="Quick delay"
@@ -1071,9 +1013,9 @@ export function TodoDetailsOverlay({
                         />
                       </svg>
                     </button>
-                    {showDelayedDropdown && (
+                    {dropdown.isOpen("delayed") && (
                       <>
-                        <div className="fixed inset-0 z-10" onClick={() => setShowDelayedDropdown(false)} />
+                        <div className="fixed inset-0 z-10" onClick={() => dropdown.closeDropdown()} />
                         <div className="absolute right-0 z-20 mt-1 w-48 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg py-1 max-h-64 overflow-y-auto">
                           {[
                             { label: "Today", value: "today" },
@@ -1112,7 +1054,7 @@ export function TodoDetailsOverlay({
                                     dueDate: normalizedDate,
                                   });
                                 }
-                                setShowDelayedDropdown(false);
+                                dropdown.closeDropdown();
                               }}
                               className="w-full text-left px-4 py-2 text-sm text-zinc-900 dark:text-zinc-100 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
                             >
@@ -1131,7 +1073,7 @@ export function TodoDetailsOverlay({
             <div>
               <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">⏱️ Duration</h4>
               <div className="flex flex-wrap gap-1.5">
-                {showDurationDropdown && (
+                {dropdown.isOpen("duration") && (
                   <SearchableDropdown
                     items={getDurationSuggestions("").map((d) => ({ id: d, label: `*${d}` }))}
                     onSelect={(item) => {
@@ -1139,16 +1081,16 @@ export function TodoDetailsOverlay({
                         ...editingMetadata,
                         duration: typeof item === "string" ? item : item.id,
                       });
-                      setShowDurationDropdown(false);
+                      dropdown.closeDropdown();
                     }}
                     onAdd={(value) => {
                       handleMetadataChange({
                         ...editingMetadata,
                         duration: value,
                       });
-                      setShowDurationDropdown(false);
+                      dropdown.closeDropdown();
                     }}
-                    onClose={() => setShowDurationDropdown(false)}
+                    onClose={() => dropdown.closeDropdown()}
                     placeholder="e.g., 2h, 30m, 1d"
                     highlightColor="amber"
                     emptyMessage=""
@@ -1156,7 +1098,7 @@ export function TodoDetailsOverlay({
                 )}
                 {editingMetadata.duration ? (
                   <button
-                    onClick={() => setShowDurationDropdown(!showDurationDropdown)}
+                    onClick={() => dropdown.toggleDropdown("duration")}
                     className="text-xs px-2 py-1 rounded border bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors inline-flex items-center gap-1.5"
                   >
                     *{editingMetadata.duration}
@@ -1175,7 +1117,7 @@ export function TodoDetailsOverlay({
                   </button>
                 ) : (
                   <button
-                    onClick={() => setShowDurationDropdown(!showDurationDropdown)}
+                    onClick={() => dropdown.toggleDropdown("duration")}
                     className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                   >
                     +
@@ -1188,7 +1130,7 @@ export function TodoDetailsOverlay({
             <div>
               <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔄 Recurring</h4>
               <div className="flex flex-wrap gap-1.5">
-                {showRecurringDropdown && (
+                {dropdown.isOpen("recurring") && (
                   <SearchableDropdown
                     items={filterRecurringSuggestions("").map((r) => ({ id: r, label: `%${r}` }))}
                     onSelect={(item) => {
@@ -1196,16 +1138,16 @@ export function TodoDetailsOverlay({
                         ...editingMetadata,
                         recurring: typeof item === "string" ? item : item.id,
                       });
-                      setShowRecurringDropdown(false);
+                      dropdown.closeDropdown();
                     }}
                     onAdd={(value) => {
                       handleMetadataChange({
                         ...editingMetadata,
                         recurring: value,
                       });
-                      setShowRecurringDropdown(false);
+                      dropdown.closeDropdown();
                     }}
-                    onClose={() => setShowRecurringDropdown(false)}
+                    onClose={() => dropdown.closeDropdown()}
                     placeholder="e.g., every day, every monday"
                     highlightColor="teal"
                     emptyMessage=""
@@ -1213,7 +1155,7 @@ export function TodoDetailsOverlay({
                 )}
                 {editingMetadata.recurring ? (
                   <button
-                    onClick={() => setShowRecurringDropdown(!showRecurringDropdown)}
+                    onClick={() => dropdown.toggleDropdown("recurring")}
                     className="text-xs px-2 py-1 rounded border bg-teal-100 dark:bg-teal-900/30 border-teal-300 dark:border-teal-700 text-teal-800 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-900/50 transition-colors inline-flex items-center gap-1.5"
                   >
                     %{editingMetadata.recurring}
@@ -1232,7 +1174,7 @@ export function TodoDetailsOverlay({
                   </button>
                 ) : (
                   <button
-                    onClick={() => setShowRecurringDropdown(!showRecurringDropdown)}
+                    onClick={() => dropdown.toggleDropdown("recurring")}
                     className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                   >
                     +
@@ -1300,71 +1242,34 @@ export function TodoDetailsOverlay({
             })()}
 
             {/* Action Buttons */}
-            <div className="flex items-end justify-end gap-2">
-              {/* Archive/Unarchive button */}
-              {todo.state === "archived" && onUnarchive ? (
-                <button
-                  onClick={() => {
-                    onUnarchive(todo.id);
-                    onClose();
-                  }}
-                  className="p-2 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 rounded-md transition-colors"
-                  aria-label="Unarchive todo"
-                  title="Unarchive"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-                    />
-                  </svg>
-                </button>
-              ) : (
-                (todo.state === "active" || todo.state === "completed") &&
-                onArchive && (
-                  <button
-                    onClick={() => {
-                      onArchive(todo.id);
+            <ActionButtons
+              isArchived={todo.state === "archived"}
+              onArchive={
+                todo.state === "active" || todo.state === "completed"
+                  ? () => {
+                      if (onArchive) {
+                        onArchive(todo.id);
+                        onClose();
+                      }
+                    }
+                  : undefined
+              }
+              onUnarchive={
+                onUnarchive
+                  ? () => {
+                      onUnarchive(todo.id);
                       onClose();
-                    }}
-                    className="p-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-md transition-colors"
-                    aria-label="Archive todo"
-                    title="Archive"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                      />
-                    </svg>
-                  </button>
-                )
-              )}
-
-              {/* Delete button */}
-              <button
-                onClick={() => {
-                  onDelete(todo.id);
-                  onClose();
-                }}
-                className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
-                aria-label="Delete todo"
-                title="Delete"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-              </button>
-            </div>
+                    }
+                  : undefined
+              }
+              onDelete={() => {
+                onDelete(todo.id);
+                onClose();
+              }}
+              archiveLabel="Archive todo"
+              unarchiveLabel="Unarchive todo"
+              deleteLabel="Delete todo"
+            />
           </div>
 
           {/* Activity (includes comments inline) */}

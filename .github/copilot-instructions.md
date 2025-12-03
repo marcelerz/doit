@@ -27,6 +27,11 @@
 - [x] Make color optional for people/projects/priorities with fallback to marker colors
 - [x] Add "Use Default" button to reset custom colors
 - [x] Remove imageUrl field from people and projects (v5 migration)
+- [x] Refactor for reusability: ColorPicker, AlternativesInput, ActionButtons, CollapsibleSection components
+- [x] Add useDropdownManager and useFilters hooks for centralized state management
+- [x] Move date conversion utilities to dateParser.ts (convertToDateInputFormat, convertToTimeInputFormat)
+- [x] Refactor PersonDetailsOverlay, ProjectDetailsOverlay, PrioritiesTab to use new components
+- [x] Refactor TodoDetailsOverlay to use useDropdownManager and ActionButtons
 
 ## Project Details
 
@@ -119,6 +124,10 @@ Components are organized by purpose:
 - **Badge** - Reusable badge with optional remove button (7 color variants)
 - **Modal** - Modal/overlay wrapper with backdrop
 - **SearchableDropdown** - Dropdown with search, keyboard nav, and add functionality
+- **ColorPicker** - Color picker with text input and "Use Default" button
+- **AlternativesInput** - Comma-separated input with preview badges
+- **ActionButtons** - Archive/unarchive + delete button group
+- **CollapsibleSection** - Collapsible section with header and count
 
 ### Hooks
 
@@ -127,13 +136,15 @@ Components are organized by purpose:
 - **usePeople** - People management with separate storage
 - **useProjects** - Projects management with separate storage
 - **useSettings** - Application settings management
+- **useDropdownManager** - Centralized dropdown state management
+- **useFilters** - Filter state management with localStorage persistence
 
 ### Utilities
 
 - **colors.ts** - Color generation and manipulation (getPersonColor, getProjectColor, getTextColor)
 - **suggestions.ts** - Duration and recurring pattern suggestions
 - **storage.ts** - Storage abstraction layer
-- **dateParser.ts** - Date parsing and suggestions
+- **dateParser.ts** - Date parsing, suggestions, and conversion utilities (convertToDateInputFormat, convertToTimeInputFormat)
 - **recurringParser.ts** - Recurring pattern parsing
 
 ## Types

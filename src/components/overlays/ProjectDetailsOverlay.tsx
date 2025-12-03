@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { Project } from "@/types/settings";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
+import { ColorPicker } from "@/components/shared/ColorPicker";
+import { AlternativesInput } from "@/components/shared/AlternativesInput";
+import { ActionButtons } from "@/components/shared/ActionButtons";
 
 interface ProjectDetailsOverlayProps {
   project: Project;
@@ -29,16 +32,16 @@ export function ProjectDetailsOverlay({
   onDeleteComment,
 }: ProjectDetailsOverlayProps) {
   const [editingName, setEditingName] = useState(project.name);
-  const [editingAlternatives, setEditingAlternatives] = useState(project.alternatives.join(", "));
-  const [editingColor, setEditingColor] = useState(project.color || "");
+  const [editingAlternatives, setEditingAlternatives] = useState(project.alternatives);
+  const [editingColor, setEditingColor] = useState(project.color);
   const [editingContext, setEditingContext] = useState(project.context || "");
   const [newComment, setNewComment] = useState("");
 
   // Sync local state when project changes (after updates)
   useEffect(() => {
     setEditingName(project.name);
-    setEditingAlternatives(project.alternatives.join(", "));
-    setEditingColor(project.color || "");
+    setEditingAlternatives(project.alternatives);
+    setEditingColor(project.color);
     setEditingContext(project.context || "");
   }, [project]);
 
@@ -47,17 +50,14 @@ export function ProjectDetailsOverlay({
     const handler = setTimeout(() => {
       if (
         editingName.trim() !== project.name ||
-        editingAlternatives !== project.alternatives.join(", ") ||
-        editingColor !== (project.color || "") ||
+        JSON.stringify(editingAlternatives) !== JSON.stringify(project.alternatives) ||
+        editingColor !== project.color ||
         (editingContext.trim() || undefined) !== project.context
       ) {
         onUpdate(project.id, {
           name: editingName.trim(),
-          alternatives: editingAlternatives
-            .split(",")
-            .map((a) => a.trim())
-            .filter((a) => a),
-          color: editingColor || undefined,
+          alternatives: editingAlternatives,
+          color: editingColor,
           context: editingContext.trim() || undefined,
         });
       }
@@ -143,65 +143,14 @@ export function ProjectDetailsOverlay({
               </div>
 
               {/* Alternatives Field */}
-              <div>
-                <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
-                  Alternatives
-                </label>
-                <input
-                  type="text"
-                  value={editingAlternatives}
-                  onChange={(e) => setEditingAlternatives(e.target.value)}
-                  placeholder="e.g., Web Redesign, Site Refresh"
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-                {editingAlternatives && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {editingAlternatives
-                      .split(",")
-                      .map((a) => a.trim())
-                      .filter((a) => a)
-                      .map((alt, idx) => (
-                        <span
-                          key={idx}
-                          className="text-xs px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
-                        >
-                          aka: {alt}
-                        </span>
-                      ))}
-                  </div>
-                )}
-              </div>
+              <AlternativesInput
+                value={editingAlternatives}
+                onChange={setEditingAlternatives}
+                placeholder="e.g., Web Redesign, Site Refresh"
+              />
 
               {/* Color Field */}
-              <div>
-                <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
-                  Color (optional - defaults to #e2ccff)
-                </label>
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="color"
-                    value={editingColor || "#e2ccff"}
-                    onChange={(e) => setEditingColor(e.target.value)}
-                    className="w-20 h-10 rounded-lg cursor-pointer border border-zinc-300 dark:border-zinc-700"
-                  />
-                  <input
-                    type="text"
-                    value={editingColor}
-                    onChange={(e) => setEditingColor(e.target.value)}
-                    className="flex-1 px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="#e2ccff (default)"
-                  />
-                  {editingColor && (
-                    <button
-                      type="button"
-                      onClick={() => setEditingColor("")}
-                      className="px-3 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
-                    >
-                      Use Default
-                    </button>
-                  )}
-                </div>
-              </div>
+              <ColorPicker value={editingColor} onChange={setEditingColor} defaultColor="#e2ccff" />
             </div>
 
             {/* Context */}
@@ -218,67 +167,30 @@ export function ProjectDetailsOverlay({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-2 pt-4">
-              {/* Archive/Unarchive button */}
-              {project.archived && onUnarchive ? (
-                <button
-                  onClick={() => {
-                    onUnarchive(project.id);
-                    onClose();
-                  }}
-                  className="p-2 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 rounded-md transition-colors"
-                  aria-label="Unarchive project"
-                  title="Unarchive"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-                    />
-                  </svg>
-                </button>
-              ) : (
-                !project.archived &&
-                onArchive && (
-                  <button
-                    onClick={() => {
-                      onArchive(project.id);
-                      onClose();
-                    }}
-                    className="p-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-md transition-colors"
-                    aria-label="Archive project"
-                    title="Archive"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                      />
-                    </svg>
-                  </button>
-                )
-              )}
-
-              {/* Delete button */}
-              <button
-                onClick={handleDelete}
-                className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
-                aria-label="Delete project"
-                title="Delete"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-              </button>
+            <div className="pt-4">
+              <ActionButtons
+                isArchived={project.archived || false}
+                onArchive={
+                  onArchive
+                    ? () => {
+                        onArchive(project.id);
+                        onClose();
+                      }
+                    : undefined
+                }
+                onUnarchive={
+                  onUnarchive
+                    ? () => {
+                        onUnarchive(project.id);
+                        onClose();
+                      }
+                    : undefined
+                }
+                onDelete={handleDelete}
+                archiveLabel="Archive project"
+                unarchiveLabel="Unarchive project"
+                deleteLabel="Delete project"
+              />
             </div>
           </div>
 
