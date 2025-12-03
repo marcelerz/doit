@@ -9,9 +9,10 @@ import { MarkersTab } from "@/components/settings/MarkersTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
 import { DateTimeTab } from "@/components/settings/DateTimeTab";
 import { WorkHoursTab } from "@/components/settings/WorkHoursTab";
+import { AutoAssignTab } from "@/components/settings/AutoAssignTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 
-type Tab = "general" | "datetime" | "workhours" | "priorities" | "links" | "markers" | "backup";
+type Tab = "general" | "datetime" | "workhours" | "autoassign" | "priorities" | "links" | "markers" | "backup";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
@@ -145,6 +146,16 @@ export default function SettingsPage() {
                 Work Hours
               </button>
               <button
+                onClick={() => setActiveTab("autoassign")}
+                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
+                  activeTab === "autoassign"
+                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
+                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                }`}
+              >
+                Auto-Assign
+              </button>
+              <button
                 onClick={() => setActiveTab("priorities")}
                 className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
                   activeTab === "priorities"
@@ -218,15 +229,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="p-6">
-            {activeTab === "general" && (
-              <GeneralTab
-                general={settings.general}
-                people={settings.people}
-                projects={settings.projects}
-                priorities={settings.priorities}
-                onUpdate={updateGeneralSettings}
-              />
-            )}
+            {activeTab === "general" && <GeneralTab general={settings.general} onUpdate={updateGeneralSettings} />}
             {activeTab === "datetime" && (
               <DateTimeTab
                 dateTime={settings.general.dateTime}
@@ -237,6 +240,15 @@ export default function SettingsPage() {
               <WorkHoursTab
                 workHours={settings.general.workHours}
                 onUpdate={(workHours) => updateGeneralSettings({ workHours })}
+              />
+            )}
+            {activeTab === "autoassign" && (
+              <AutoAssignTab
+                general={settings.general}
+                people={settings.people}
+                projects={settings.projects}
+                priorities={settings.priorities}
+                onUpdate={updateGeneralSettings}
               />
             )}
             {activeTab === "priorities" && (

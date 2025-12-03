@@ -204,7 +204,7 @@ export const defaultGeneralSettings: GeneralSettings = {
     sourcePerson: undefined,
     project: undefined,
     priority: "medium", // Default to medium priority
-    dueDate: undefined,
+    dueDate: "today",
     duration: "30m", // Default to 30 minutes
     recurring: undefined,
   },
