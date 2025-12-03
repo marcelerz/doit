@@ -314,6 +314,7 @@ export function TodoItem({
           type="checkbox"
           checked={todo.state === "completed" || todo.state === "archived"}
           onChange={() => onToggle(todo.id)}
+          onClick={(e) => e.stopPropagation()}
           className="w-5 h-5 mt-0.5 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer flex-shrink-0"
         />
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onToggleExpand}>
