@@ -319,8 +319,92 @@ export function GanttView({
     return markers;
   }, [dayStartTime, dayEndTime, selectedDate]);
 
+  // Get current week's dates (Monday to Sunday)
+  const currentWeekDates = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dayOfWeek = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      dates.push(date);
+    }
+    return dates;
+  }, []);
+
+  // Get tasks for the entire week (including completed)
+  const weekTasks = useMemo(() => {
+    return currentWeekDates.map((date) => {
+      const dateStr = date.toISOString().split("T")[0];
+      const tasksForDay = todos.filter((todo) => {
+        if (!todo.metadata.dueDate) return false;
+        const dueDate = new Date(todo.metadata.dueDate);
+        const dueDateStr = dueDate.toISOString().split("T")[0];
+        return dueDateStr === dateStr;
+      });
+      return { date, tasks: tasksForDay };
+    });
+  }, [currentWeekDates, todos]);
+
   return (
     <div className="space-y-4">
+      {/* Mini Week Overview */}
+      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
+        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">Current Week</h3>
+        <div className="grid grid-cols-7 gap-2">
+          {weekTasks.map(({ date, tasks }, index) => {
+            const isToday = date.toDateString() === new Date().toDateString();
+            const isSelected = date.toDateString() === selectedDate.toDateString();
+            const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+            const dayNum = date.getDate();
+
+            return (
+              <button
+                key={index}
+                onClick={() => setSelectedDate(date)}
+                className={`p-2 rounded-lg border transition-all ${
+                  isSelected
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    : isToday
+                    ? "border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/10"
+                    : "border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                }`}
+              >
+                <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{dayName}</div>
+                <div
+                  className={`text-lg font-semibold ${
+                    isSelected ? "text-blue-600 dark:text-blue-400" : "text-zinc-900 dark:text-zinc-100"
+                  }`}
+                >
+                  {dayNum}
+                </div>
+                <div className="mt-1 space-y-0.5">
+                  {tasks.slice(0, 3).map((task, i) => {
+                    const isCompleted = task.state === "completed" || task.state === "archived";
+                    return (
+                      <div
+                        key={i}
+                        className={`h-1 rounded-full ${
+                          isCompleted ? "bg-green-400 dark:bg-green-600" : "bg-blue-400 dark:bg-blue-600"
+                        }`}
+                        title={task.plainText}
+                      />
+                    );
+                  })}
+                  {tasks.length > 3 && (
+                    <div className="text-[10px] text-zinc-500 dark:text-zinc-400 text-center">+{tasks.length - 3}</div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Toggle for todos without dates */}
       {todosWithoutDates > 0 && (
         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
