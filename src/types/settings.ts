@@ -2,7 +2,6 @@ export interface Person {
   id: string;
   name: string;
   alternatives: string[];
-  imageUrl?: string;
   color?: string; // Optional - defaults to marker color if not set
   context?: string; // Rich text context
   comments: Comment[];
@@ -14,7 +13,6 @@ export interface Project {
   id: string;
   name: string;
   alternatives: string[];
-  imageUrl?: string;
   color?: string; // Optional - defaults to marker color if not set
   context?: string; // Rich text context
   comments: Comment[];

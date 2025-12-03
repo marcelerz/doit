@@ -50,7 +50,6 @@ export function useProjects() {
             updates.name !== undefined ||
             updates.alternatives !== undefined ||
             updates.color !== undefined ||
-            updates.imageUrl !== undefined ||
             updates.context !== undefined
           ) {
             const now = Date.now();
@@ -68,15 +67,6 @@ export function useProjects() {
             }
             if (updates.color !== undefined && updates.color !== p.color) {
               changes.push(`color from ${p.color} to ${updates.color}`);
-            }
-            if (updates.imageUrl !== p.imageUrl) {
-              if (updates.imageUrl && !p.imageUrl) {
-                changes.push("image added");
-              } else if (!updates.imageUrl && p.imageUrl) {
-                changes.push("image removed");
-              } else if (updates.imageUrl && p.imageUrl) {
-                changes.push("image updated");
-              }
             }
             if (updates.context !== p.context) {
               if (updates.context && !p.context) {

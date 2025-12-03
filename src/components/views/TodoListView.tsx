@@ -2284,14 +2284,12 @@ export function TodoList() {
                       .map((a) => a.trim())
                       .filter((a) => a);
                     const color = formData.get("color") as string;
-                    const imageUrl = formData.get("imageUrl") as string;
 
                     if (name.trim()) {
                       addPerson({
                         name: name.trim(),
                         alternatives,
                         color,
-                        imageUrl: imageUrl.trim() || undefined,
                       });
                       setIsAddPersonOverlayOpen(false);
                       e.currentTarget.reset();
@@ -2329,18 +2327,6 @@ export function TodoList() {
                       name="color"
                       defaultValue="#3b82f6"
                       className="w-full h-10 rounded-lg cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                      Image URL (optional)
-                    </label>
-                    <input
-                      type="text"
-                      name="imageUrl"
-                      placeholder="https://example.com/avatar.jpg"
-                      className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
@@ -2398,14 +2384,12 @@ export function TodoList() {
                       .map((a) => a.trim())
                       .filter((a) => a);
                     const color = formData.get("color") as string;
-                    const imageUrl = formData.get("imageUrl") as string;
 
                     if (name.trim()) {
                       addProject({
                         name: name.trim(),
                         alternatives,
                         color,
-                        imageUrl: imageUrl.trim() || undefined,
                       });
                       setIsAddProjectOverlayOpen(false);
                       e.currentTarget.reset();
@@ -2443,18 +2427,6 @@ export function TodoList() {
                       name="color"
                       defaultValue="#8b5cf6"
                       className="w-full h-10 rounded-lg cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                      Image URL (optional)
-                    </label>
-                    <input
-                      type="text"
-                      name="imageUrl"
-                      placeholder="https://example.com/project-logo.jpg"
-                      className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 

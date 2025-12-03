@@ -31,7 +31,6 @@ export function ProjectDetailsOverlay({
   const [editingName, setEditingName] = useState(project.name);
   const [editingAlternatives, setEditingAlternatives] = useState(project.alternatives.join(", "));
   const [editingColor, setEditingColor] = useState(project.color || "");
-  const [editingImageUrl, setEditingImageUrl] = useState(project.imageUrl || "");
   const [editingContext, setEditingContext] = useState(project.context || "");
   const [newComment, setNewComment] = useState("");
 
@@ -40,7 +39,6 @@ export function ProjectDetailsOverlay({
     setEditingName(project.name);
     setEditingAlternatives(project.alternatives.join(", "));
     setEditingColor(project.color || "");
-    setEditingImageUrl(project.imageUrl || "");
     setEditingContext(project.context || "");
   }, [project]);
 
@@ -51,7 +49,6 @@ export function ProjectDetailsOverlay({
         editingName.trim() !== project.name ||
         editingAlternatives !== project.alternatives.join(", ") ||
         editingColor !== (project.color || "") ||
-        (editingImageUrl.trim() || undefined) !== project.imageUrl ||
         (editingContext.trim() || undefined) !== project.context
       ) {
         onUpdate(project.id, {
@@ -61,14 +58,13 @@ export function ProjectDetailsOverlay({
             .map((a) => a.trim())
             .filter((a) => a),
           color: editingColor || undefined,
-          imageUrl: editingImageUrl.trim() || undefined,
           context: editingContext.trim() || undefined,
         });
       }
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [editingName, editingAlternatives, editingColor, editingImageUrl, editingContext, project, onUpdate]);
+  }, [editingName, editingAlternatives, editingColor, editingContext, project, onUpdate]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -205,33 +201,6 @@ export function ProjectDetailsOverlay({
                     </button>
                   )}
                 </div>
-              </div>
-
-              {/* Image URL Field */}
-              <div>
-                <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
-                  Image URL (optional)
-                </label>
-                <input
-                  type="text"
-                  value={editingImageUrl}
-                  onChange={(e) => setEditingImageUrl(e.target.value)}
-                  placeholder="https://example.com/project-logo.jpg"
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-                {editingImageUrl && (
-                  <div className="mt-2 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    <span>Image attached</span>
-                  </div>
-                )}
               </div>
             </div>
 

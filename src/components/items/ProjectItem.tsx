@@ -52,12 +52,11 @@ export function ProjectItem({ project, onClick, onDelete, onArchive, onUnarchive
           )}
 
           {/* Metadata */}
-          <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-            {project.comments && project.comments.length > 0 && (
+          {project.comments && project.comments.length > 0 && (
+            <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 mt-2">
               <span className="flex items-center gap-1">💬 {project.comments.length}</span>
-            )}
-            {project.imageUrl && <span className="flex items-center gap-1">🖼️ Has image</span>}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Actions */}

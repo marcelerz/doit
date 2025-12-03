@@ -26,6 +26,7 @@
 - [x] Add tag usage tracking with SearchableDropdown showing most-used tags first
 - [x] Make color optional for people/projects/priorities with fallback to marker colors
 - [x] Add "Use Default" button to reset custom colors
+- [x] Remove imageUrl field from people and projects (v5 migration)
 
 ## Project Details
 
@@ -33,7 +34,7 @@
 - **Features**: Todo app with localStorage persistence, state-based architecture, multiple views
 - **Design**: Full-page, mobile-responsive
 - **Status**: Complete and running
-- **Migration Version**: 5 (removed BOD/EOD from dateTime settings)
+- **Migration Version**: 5 (removed imageUrl field from people and projects)
 
 ## Architecture
 

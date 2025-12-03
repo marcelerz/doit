@@ -16,7 +16,6 @@ export function PeopleTab({ people, onAdd, onUpdate, onDelete }: PeopleTabProps)
   const [formData, setFormData] = useState({
     name: "",
     alternatives: "",
-    imageUrl: "",
     color: "",
   });
 
@@ -30,7 +29,6 @@ export function PeopleTab({ people, onAdd, onUpdate, onDelete }: PeopleTabProps)
         .split(",")
         .map((a) => a.trim())
         .filter((a) => a),
-      imageUrl: formData.imageUrl.trim() || undefined,
       color: formData.color || undefined, // Only set if provided
     };
 
@@ -41,7 +39,7 @@ export function PeopleTab({ people, onAdd, onUpdate, onDelete }: PeopleTabProps)
       onAdd(personData);
     }
 
-    setFormData({ name: "", alternatives: "", imageUrl: "", color: "" });
+    setFormData({ name: "", alternatives: "", color: "" });
     setIsAdding(false);
   };
 
@@ -50,7 +48,6 @@ export function PeopleTab({ people, onAdd, onUpdate, onDelete }: PeopleTabProps)
     setFormData({
       name: person.name,
       alternatives: person.alternatives.join(", "),
-      imageUrl: person.imageUrl || "",
       color: person.color || "",
     });
     setIsAdding(true);
@@ -59,7 +56,7 @@ export function PeopleTab({ people, onAdd, onUpdate, onDelete }: PeopleTabProps)
   const handleCancel = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ name: "", alternatives: "", imageUrl: "", color: "" });
+    setFormData({ name: "", alternatives: "", color: "" });
   };
 
   return (
@@ -109,17 +106,6 @@ export function PeopleTab({ people, onAdd, onUpdate, onDelete }: PeopleTabProps)
               onChange={(e) => setFormData({ ...formData, alternatives: e.target.value })}
               className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="John, JD"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Image URL</label>
-            <input
-              type="url"
-              value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="https://example.com/avatar.jpg"
             />
           </div>
 

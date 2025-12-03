@@ -52,12 +52,11 @@ export function PersonItem({ person, onClick, onDelete, onArchive, onUnarchive }
           )}
 
           {/* Metadata */}
-          <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-            {person.comments && person.comments.length > 0 && (
+          {person.comments && person.comments.length > 0 && (
+            <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 mt-2">
               <span className="flex items-center gap-1">💬 {person.comments.length}</span>
-            )}
-            {person.imageUrl && <span className="flex items-center gap-1">🖼️ Has image</span>}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Actions */}

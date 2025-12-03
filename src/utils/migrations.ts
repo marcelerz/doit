@@ -8,7 +8,7 @@ import { Settings, defaultSettings, Person, Project, Priority } from "@/types/se
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
 import { STORAGE_KEYS, saveToStorage } from "./storage";
 
-const CURRENT_VERSION = 4; // Increment when adding new migrations
+const CURRENT_VERSION = 5; // Increment when adding new migrations
 
 /**
  * Check if a todo should be archived based on settings
@@ -99,8 +99,9 @@ function migrateTodo(todo: any): Todo {
  * Migrate a person to the current format
  */
 function migratePerson(person: any): Person {
+  const { imageUrl, ...personWithoutImageUrl } = person;
   return {
-    ...person,
+    ...personWithoutImageUrl,
     alternatives: person.alternatives || [],
     comments: person.comments || [],
   };
@@ -110,8 +111,9 @@ function migratePerson(person: any): Person {
  * Migrate a project to the current format
  */
 function migrateProject(project: any): Project {
+  const { imageUrl, ...projectWithoutImageUrl } = project;
   return {
-    ...project,
+    ...projectWithoutImageUrl,
     alternatives: project.alternatives || [],
     comments: project.comments || [],
   };
