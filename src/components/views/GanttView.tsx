@@ -350,6 +350,57 @@ export function GanttView({
     });
   }, [currentWeekDates, todos]);
 
+  // Get scheduled tasks for each day of the week for mini Gantt
+  const weekScheduledTasks = useMemo(() => {
+    return currentWeekDates.map((date) => {
+      const dateStr = date.toISOString().split("T")[0];
+      const daySchedule = getScheduleForDate(date);
+      const dayStart = parseTime(daySchedule.startTime, date);
+      const dayEnd = parseTime(daySchedule.endTime, date);
+      const totalMinutes = (dayEnd.getTime() - dayStart.getTime()) / 60000;
+
+      const tasksForDay = todos.filter((todo) => {
+        if (!todo.metadata.dueDate) return false;
+        const dueDate = new Date(todo.metadata.dueDate);
+        const dueDateStr = dueDate.toISOString().split("T")[0];
+        return dueDateStr === dateStr;
+      });
+
+      // Schedule tasks for this day
+      const scheduled: Array<{
+        todo: Todo;
+        startPercent: number;
+        widthPercent: number;
+        color: string;
+      }> = [];
+      let currentTime = new Date(dayStart);
+
+      for (const todo of tasksForDay) {
+        if (currentTime >= dayEnd) break;
+
+        const durationMinutes = parseDuration(todo.metadata.duration);
+        const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
+
+        if (taskEnd > dayEnd) break;
+
+        const startMinutes = (currentTime.getTime() - dayStart.getTime()) / 60000;
+        const startPercent = (startMinutes / totalMinutes) * 100;
+        const widthPercent = (durationMinutes / totalMinutes) * 100;
+
+        scheduled.push({
+          todo,
+          startPercent,
+          widthPercent,
+          color: getProjectColor(todo),
+        });
+
+        currentTime = new Date(taskEnd.getTime() + workHours.contextSwitchingTime * 60000);
+      }
+
+      return { date, scheduled, dayStart, dayEnd, totalMinutes };
+    });
+  }, [currentWeekDates, todos, workHours]);
+
   return (
     <div className="space-y-4">
       {/* Mini Week Overview */}
@@ -382,24 +433,44 @@ export function GanttView({
                 >
                   {dayNum}
                 </div>
-                <div className="mt-1 space-y-0.5">
-                  {tasks.slice(0, 3).map((task, i) => {
-                    const isCompleted = task.state === "completed" || task.state === "archived";
-                    return (
-                      <div
-                        key={i}
-                        className={`h-1 rounded-full ${
-                          isCompleted ? "bg-green-400 dark:bg-green-600" : "bg-blue-400 dark:bg-blue-600"
-                        }`}
-                        title={task.plainText}
-                      />
-                    );
-                  })}
-                  {tasks.length > 3 && (
-                    <div className="text-[10px] text-zinc-500 dark:text-zinc-400 text-center">+{tasks.length - 3}</div>
-                  )}
-                </div>
               </button>
+            );
+          })}
+        </div>
+
+        {/* Mini Gantt Timeline */}
+        <div className="mt-3 grid grid-cols-7 gap-2">
+          {weekScheduledTasks.map(({ date, scheduled, dayStart, dayEnd }, index) => {
+            const isToday = date.toDateString() === new Date().toDateString();
+
+            return (
+              <div key={index} className="relative h-2 bg-zinc-100 dark:bg-zinc-800 rounded-sm overflow-hidden">
+                {scheduled.map((task, i) => {
+                  const isCompleted = task.todo.state === "completed" || task.todo.state === "archived";
+                  return (
+                    <div
+                      key={i}
+                      className="absolute top-0 bottom-0"
+                      style={{
+                        left: `${task.startPercent}%`,
+                        width: `${task.widthPercent}%`,
+                        backgroundColor: task.color,
+                        opacity: isCompleted ? 0.5 : 1,
+                      }}
+                      title={task.todo.plainText}
+                    />
+                  );
+                })}
+                {isToday && (
+                  <div
+                    className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
+                    style={{
+                      left: `${((new Date().getTime() - dayStart.getTime()) / (dayEnd.getTime() - dayStart.getTime())) * 100}%`,
+                    }}
+                    title="Current time"
+                  />
+                )}
+              </div>
             );
           })}
         </div>
