@@ -408,21 +408,26 @@ export function GanttView({
   };
 
   const getProjectColor = (todo: Todo): string => {
-    // If todo has a project, use marker color for that project
+    // If todo has a project, look up the project entity and use its custom color
     if (todo.metadata.projects && todo.metadata.projects.length > 0) {
       const projectName = todo.metadata.projects[0];
-      const projectColor = markerColors[projectName];
-      if (projectColor) {
-        return projectColor;
+      const project = availableProjects.find((p) => p.name === projectName || p.alternatives.includes(projectName));
+      if (project?.color) {
+        return project.color;
       }
     }
-    // Fall back to default Gantt color from settings
-    return workHours.defaultGanttColor;
+    // Fall back to project marker color
+    return markerColors.project;
   };
 
-  const getProjectColorClass = (color: string): string => {
-    // Convert hex color to inline style since it's dynamic
-    return "";
+  const getTextColor = (backgroundColor: string): string => {
+    if (!backgroundColor) return "#FFFFFF";
+    const hex = backgroundColor.replace("#", "");
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? "#000000" : "#FFFFFF";
   };
 
   // Generate hour markers
@@ -841,6 +846,7 @@ export function GanttView({
                   const contextSwitchWidth = contextSwitchEndPos - contextSwitchStartPos;
 
                   const taskColor = getProjectColor(task.todo);
+                  const textColor = getTextColor(taskColor);
 
                   return (
                     <div
@@ -873,6 +879,7 @@ export function GanttView({
                             left: `${Math.max(0, startPos)}%`,
                             width: `${Math.min(width, 100 - Math.max(0, startPos))}%`,
                             backgroundColor: taskColor,
+                            color: textColor,
                             borderRadius:
                               startPos < 0
                                 ? "0 0.375rem 0.375rem 0"
@@ -890,8 +897,8 @@ export function GanttView({
                             setDetailsOverlayTodo(task.todo);
                           }}
                         >
-                          <span className="text-xs font-medium text-white truncate">{task.todo.plainText}</span>
-                          <span className="text-xs text-white/80 ml-2 whitespace-nowrap">
+                          <span className="text-xs font-medium truncate">{task.todo.plainText}</span>
+                          <span className="text-xs opacity-80 ml-2 whitespace-nowrap">
                             {formatDuration(task.durationMinutes)}
                           </span>
                         </div>
