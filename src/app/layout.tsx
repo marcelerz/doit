@@ -30,7 +30,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}>
+        <main className="flex-1">{children}</main>
+        <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 py-4">
+          <div className="container mx-auto px-4 text-center text-sm text-zinc-600 dark:text-zinc-400">
+            <p>Created by Marcel Erz © {new Date().getFullYear()}</p>
+          </div>
+        </footer>
+      </body>
     </html>
   );
 }
