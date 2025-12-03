@@ -436,3 +436,44 @@ export const getDueDateSuggestions = (search: string, dateTimeSettings: DateTime
     .filter((s) => s.value.includes(lowerSearch) || s.label.toLowerCase().includes(lowerSearch))
     .map((s) => s.label);
 };
+
+// Convert a date to ISO format string (yyyy-MM-ddTHH:mm) using local time
+export const toLocalISOString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+// Normalize a date value that might be shorthand (like "today") to ISO format
+// Special handling: "today" without a time defaults to EOD
+export const normalizeDateValue = (
+  dateValue: string | undefined,
+  dateTimeSettings: DateTimeSettings,
+  workHours: WorkHoursSettings,
+): string | undefined => {
+  if (!dateValue) return undefined;
+
+  // If it's already in ISO format, return as-is
+  if (dateValue.match(/^\d{4}-\d{2}-\d{2}/)) {
+    return dateValue;
+  }
+
+  // Special case: "today" without a time should default to EOD
+  if (dateValue.toLowerCase().trim() === "today") {
+    const eodParsed = parseDate("eod", dateTimeSettings, workHours);
+    if (eodParsed) {
+      return toLocalISOString(new Date(eodParsed.timestamp));
+    }
+  }
+
+  // Parse other shorthand values
+  const parsed = parseDate(dateValue, dateTimeSettings, workHours);
+  if (parsed) {
+    return toLocalISOString(new Date(parsed.timestamp));
+  }
+
+  return undefined;
+};

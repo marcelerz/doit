@@ -13,6 +13,56 @@ import { Badge } from "@/components/shared/Badge";
 import { SearchableDropdown } from "@/components/shared/SearchableDropdown";
 import { getDurationSuggestions, filterRecurringSuggestions } from "@/utils/suggestions";
 import { Comments } from "@/components/shared/Comments";
+import { parseDate, normalizeDateValue } from "@/utils/dateParser";
+
+// Helper function to convert a date value (which might be shorthand like "today") to yyyy-MM-dd format
+function convertToDateInputFormat(dateValue: string | undefined, settings: Settings): string {
+  if (!dateValue) return "";
+
+  // If it's already in ISO format (yyyy-MM-dd or yyyy-MM-ddTHH:mm), extract the date part
+  if (dateValue.match(/^\d{4}-\d{2}-\d{2}/)) {
+    return dateValue.split("T")[0];
+  }
+
+  // Try to parse shorthand values like "today", "tomorrow", etc.
+  const parsed = parseDate(dateValue, settings.dateTime, settings.workHours);
+  if (parsed) {
+    const date = new Date(parsed.timestamp);
+    return date.toISOString().split("T")[0];
+  }
+
+  // Fallback: try to parse as a regular date
+  const fallbackDate = new Date(dateValue);
+  if (!isNaN(fallbackDate.getTime())) {
+    return fallbackDate.toISOString().split("T")[0];
+  }
+
+  return "";
+}
+
+// Helper function to convert a date value (which might be shorthand) to HH:mm format
+function convertToTimeInputFormat(dateValue: string | undefined, settings: Settings): string {
+  if (!dateValue) return "";
+
+  // If it's in ISO format with time (yyyy-MM-ddTHH:mm), extract the time part
+  if (dateValue.includes("T")) {
+    const timePart = dateValue.split("T")[1];
+    if (timePart) {
+      return timePart.substring(0, 5); // Get HH:mm
+    }
+  }
+
+  // Try to parse shorthand values like "today", "tomorrow", etc.
+  const parsed = parseDate(dateValue, settings.dateTime, settings.workHours);
+  if (parsed) {
+    const date = new Date(parsed.timestamp);
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    return `${hours}:${minutes}`;
+  }
+
+  return "";
+}
 
 interface TodoDetailsOverlayProps {
   todo: Todo;
@@ -96,6 +146,9 @@ export function TodoDetailsOverlay({
 
   // Initialize metadata when overlay opens
   useEffect(() => {
+    // Normalize dueDate if it's a shorthand value
+    const normalizedDueDate = normalizeDateValue(todo.metadata.dueDate, settings.dateTime, settings.workHours);
+
     setEditingMetadata({
       assignedPeople: [...todo.metadata.assignedPeople],
       sourcePeople: [...todo.metadata.sourcePeople],
@@ -103,13 +156,13 @@ export function TodoDetailsOverlay({
       projects: [...todo.metadata.projects],
       dependencies: [...todo.metadata.dependencies],
       priority: todo.metadata.priority,
-      dueDate: todo.metadata.dueDate,
+      dueDate: normalizedDueDate || todo.metadata.dueDate,
       duration: todo.metadata.duration,
       recurring: todo.metadata.recurring,
       context: todo.metadata.context,
       tags: todo.metadata.tags || [],
     });
-  }, [todo]);
+  }, [todo, settings.dateTime, settings.workHours]);
 
   const markers = {
     assigned: "@",
@@ -757,19 +810,14 @@ export function TodoDetailsOverlay({
                               ? editingMetadata.dueDate.split("T")[0]
                               : editingMetadata.dueDate;
                             const date = new Date(dateStr + "T00:00:00");
+                            if (isNaN(date.getTime())) return "";
                             return date.toLocaleDateString("en-US", { weekday: "short" });
                           })()}
                         </span>
                       )}
                       <input
                         type="date"
-                        value={
-                          editingMetadata.dueDate
-                            ? editingMetadata.dueDate.includes("T")
-                              ? editingMetadata.dueDate.split("T")[0]
-                              : editingMetadata.dueDate
-                            : ""
-                        }
+                        value={convertToDateInputFormat(editingMetadata.dueDate, settings)}
                         onChange={(e) => {
                           const dateValue = e.target.value;
                           let newDueDate: string | undefined;
@@ -796,11 +844,7 @@ export function TodoDetailsOverlay({
                     </div>
                     <input
                       type="time"
-                      value={
-                        editingMetadata.dueDate && editingMetadata.dueDate.includes("T")
-                          ? editingMetadata.dueDate.split("T")[1]
-                          : ""
-                      }
+                      value={convertToTimeInputFormat(editingMetadata.dueDate, settings)}
                       onChange={(e) => {
                         const timeValue = e.target.value;
                         let newDueDate: string | undefined;
