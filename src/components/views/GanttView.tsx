@@ -435,19 +435,14 @@ export function GanttView({
     return dates;
   }, [selectedDate]);
 
-  // Get tasks for the entire week (including completed)
+  // Get tasks for the entire week using the scheduling map
   const weekTasks = useMemo(() => {
     return currentWeekDates.map((date) => {
       const dateStr = date.toISOString().split("T")[0];
-      const tasksForDay = todos.filter((todo) => {
-        if (!todo.metadata.dueDate) return false;
-        const dueDate = new Date(todo.metadata.dueDate);
-        const dueDateStr = dueDate.toISOString().split("T")[0];
-        return dueDateStr === dateStr;
-      });
+      const tasksForDay = allActiveTodos.filter(todo => taskSchedulingMap.get(todo.id) === dateStr);
       return { date, tasks: tasksForDay };
     });
-  }, [currentWeekDates, todos]);
+  }, [currentWeekDates, allActiveTodos, taskSchedulingMap]);
 
   // Get scheduled tasks for each day of the week for mini Gantt
   const weekScheduledTasks = useMemo(() => {
@@ -457,13 +452,18 @@ export function GanttView({
       const dayStart = parseTime(daySchedule.startTime, date);
       const dayEnd = parseTime(daySchedule.endTime, date);
       const totalMinutes = (dayEnd.getTime() - dayStart.getTime()) / 60000;
+      const dayBreaks = daySchedule.breaks.map((b) => ({
+        startTime: parseTime(b.startTime, date),
+        endTime: parseTime(b.endTime, date),
+      }));
 
-      const tasksForDay = todos.filter((todo) => {
-        if (!todo.metadata.dueDate) return false;
-        const dueDate = new Date(todo.metadata.dueDate);
-        const dueDateStr = dueDate.toISOString().split("T")[0];
-        return dueDateStr === dateStr;
-      });
+      // Get tasks scheduled for this day from the map
+      const tasksForDay = allActiveTodos.filter(todo => taskSchedulingMap.get(todo.id) === dateStr);
+
+      const now = new Date();
+      const isCurrentDay = date.toDateString() === now.toDateString();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
       // Schedule tasks for this day
       const scheduled: Array<{
@@ -472,9 +472,34 @@ export function GanttView({
         widthPercent: number;
         color: string;
       }> = [];
+      
       let currentTime = new Date(dayStart);
+      if (isCurrentDay && now > dayStart && now < dayEnd) {
+        currentTime = new Date(now);
+      }
 
       for (const todo of tasksForDay) {
+        // Ensure not in the past
+        if (isCurrentDay && currentTime < now) {
+          currentTime = new Date(now);
+        }
+        
+        // Skip breaks
+        let inBreak = true;
+        while (inBreak && currentTime < dayEnd) {
+          inBreak = false;
+          for (const breakBlock of dayBreaks) {
+            if (currentTime >= breakBlock.startTime && currentTime < breakBlock.endTime) {
+              currentTime = new Date(breakBlock.endTime);
+              if (isCurrentDay && currentTime < now) {
+                currentTime = new Date(now);
+              }
+              inBreak = true;
+              break;
+            }
+          }
+        }
+        
         if (currentTime >= dayEnd) break;
 
         const durationMinutes = parseDuration(todo.metadata.duration);
@@ -498,7 +523,7 @@ export function GanttView({
 
       return { date, scheduled, dayStart, dayEnd, totalMinutes };
     });
-  }, [currentWeekDates, todos, workHours]);
+  }, [currentWeekDates, allActiveTodos, taskSchedulingMap, workHours]);
 
   const navigateWeek = (direction: number) => {
     const newDate = new Date(selectedDate);
