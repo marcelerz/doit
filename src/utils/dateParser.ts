@@ -461,8 +461,34 @@ export const normalizeDateValue = (
     return dateValue;
   }
 
+  // Preprocess certain formats to make them parseable
+  let processedValue = dateValue.toLowerCase().trim();
+
+  // Handle "next [day]" format by converting spaces to calculate the next occurrence
+  const nextDayMatch = processedValue.match(/^next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/);
+  if (nextDayMatch) {
+    const targetDay = nextDayMatch[1];
+    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const targetDayIndex = dayNames.indexOf(targetDay);
+
+    const now = new Date();
+    const currentDay = now.getDay();
+    let daysToAdd = targetDayIndex - currentDay;
+    if (daysToAdd <= 0) {
+      daysToAdd += 7; // Next week's occurrence
+    }
+
+    const targetDate = new Date(now);
+    targetDate.setDate(now.getDate() + daysToAdd);
+    const times = getBodEod(targetDate, workHours);
+    const [hours, minutes] = times.eod.split(":").map(Number);
+    targetDate.setHours(hours, minutes, 0, 0);
+
+    return toLocalISOString(targetDate);
+  }
+
   // Special case: "today" without a time should default to EOD
-  if (dateValue.toLowerCase().trim() === "today") {
+  if (processedValue === "today") {
     const eodParsed = parseDate("eod", dateTimeSettings, workHours);
     if (eodParsed) {
       return toLocalISOString(new Date(eodParsed.timestamp));

@@ -6,7 +6,7 @@ import { MarkerColors, Settings, LinkPattern, Person, Project, Priority } from "
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Comments } from "@/components/shared/Comments";
-import { formatDateForDisplay } from "@/utils/dateParser";
+import { formatDateForDisplay, normalizeDateValue } from "@/utils/dateParser";
 
 interface TodoItemProps {
   todo: Todo;
@@ -64,6 +64,7 @@ export function TodoItem({
   const [currentTokens, setCurrentTokens] = useState<TokenMatch[]>([]);
   const [currentFullText, setCurrentFullText] = useState("");
   const [currentPlainText, setCurrentPlainText] = useState("");
+  const [showDelayedDropdown, setShowDelayedDropdown] = useState(false);
   const smartInputRef = useRef<SmartEditableInputHandle>(null);
 
   const markers = {
@@ -551,6 +552,83 @@ export function TodoItem({
           )}
         </div>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          {/* Delayed button - only for active todos */}
+          {todo.state === "active" && (
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDelayedDropdown(!showDelayedDropdown);
+                }}
+                className="p-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-400 rounded-md transition-colors"
+                aria-label="Delay todo"
+                title="Delay"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </button>
+              {showDelayedDropdown && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowDelayedDropdown(false)} />
+                  <div className="absolute right-0 z-20 mt-1 w-48 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg py-1 max-h-64 overflow-y-auto">
+                    {[
+                      { label: "Today", value: "today" },
+                      { label: "Tomorrow", value: "tomorrow" },
+                      { label: "Next Week", value: "next week" },
+                      { label: "Next Month", value: "next month" },
+                      { label: "Next Monday", value: "next monday" },
+                      { label: "Next Tuesday", value: "next tuesday" },
+                      { label: "Next Wednesday", value: "next wednesday" },
+                      { label: "Next Thursday", value: "next thursday" },
+                      { label: "Next Friday", value: "next friday" },
+                      { label: "Next Saturday", value: "next saturday" },
+                      { label: "Next Sunday", value: "next sunday" },
+                      { label: "In 2 Days", value: "in 2 days" },
+                      { label: "In 3 Days", value: "in 3 days" },
+                      { label: "In 5 Days", value: "in 5 days" },
+                      { label: "In 1 Week", value: "in 1 week" },
+                      { label: "In 2 Weeks", value: "in 2 weeks" },
+                      { label: "In 3 Weeks", value: "in 3 weeks" },
+                      { label: "In 1 Month", value: "in 1 month" },
+                      { label: "In 2 Months", value: "in 2 months" },
+                      { label: "In 3 Months", value: "in 3 months" },
+                      { label: "In 6 Months", value: "in 6 months" },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const normalizedDate = normalizeDateValue(
+                            option.value,
+                            settings.dateTime,
+                            settings.workHours,
+                          );
+                          if (normalizedDate) {
+                            const updatedMetadata = {
+                              ...todo.metadata,
+                              dueDate: normalizedDate,
+                            };
+                            onEdit(todo.id, todo.text, todo.plainText, updatedMetadata);
+                          }
+                          setShowDelayedDropdown(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-zinc-900 dark:text-zinc-100 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Edit button - only for active (not completed, not archived) todos */}
           {todo.state === "active" && (
             <button
