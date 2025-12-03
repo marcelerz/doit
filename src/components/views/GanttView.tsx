@@ -253,9 +253,8 @@ export function GanttView({
       if (currentDay.getTime() - today.getTime() > 30 * 24 * 60 * 60 * 1000) break;
     }
 
-    
     return map;
-  }, [allActiveTodos, workHours]);  // Get todos for selected date based on scheduling map
+  }, [allActiveTodos, workHours]); // Get todos for selected date based on scheduling map
   const todosForDate = useMemo(() => {
     const dateKey = selectedDate.toISOString().split("T")[0];
     return allActiveTodos.filter((todo) => taskSchedulingMap.get(todo.id) === dateKey);
