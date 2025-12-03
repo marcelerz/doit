@@ -6,9 +6,11 @@ interface ProjectItemProps {
   project: Project;
   onClick: () => void;
   onDelete: (id: string) => void;
+  onArchive?: (id: string) => void;
+  onUnarchive?: (id: string) => void;
 }
 
-export function ProjectItem({ project, onClick, onDelete }: ProjectItemProps) {
+export function ProjectItem({ project, onClick, onDelete, onArchive, onUnarchive }: ProjectItemProps) {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm(`Delete ${project.name}?`)) {
@@ -19,7 +21,7 @@ export function ProjectItem({ project, onClick, onDelete }: ProjectItemProps) {
   return (
     <div
       onClick={onClick}
-      className="group bg-white dark:bg-zinc-800 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-purple-500 dark:hover:border-purple-500 cursor-pointer transition-all hover:shadow-md"
+      className="group bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 hover:shadow-md transition-all"
     >
       <div className="flex items-start gap-3">
         {/* Avatar */}
@@ -44,20 +46,13 @@ export function ProjectItem({ project, onClick, onDelete }: ProjectItemProps) {
 
           {/* Alternatives */}
           {project.alternatives.length > 0 && (
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
               <span className="text-zinc-500 dark:text-zinc-500">aka:</span> {project.alternatives.join(", ")}
             </p>
           )}
 
-          {/* Markers */}
-          <div className="flex flex-wrap gap-1 mb-2">
-            <span className="inline-flex items-center text-xs px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-300">
-              #{project.name}
-            </span>
-          </div>
-
           {/* Metadata */}
-          <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 mt-2">
             {project.comments && project.comments.length > 0 && (
               <span className="flex items-center gap-1">💬 {project.comments.length}</span>
             )}
@@ -66,11 +61,57 @@ export function ProjectItem({ project, onClick, onDelete }: ProjectItemProps) {
         </div>
 
         {/* Actions */}
-        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          {/* Archive button - for non-archived projects */}
+          {!project.archived && onArchive && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onArchive(project.id);
+              }}
+              className="p-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-md transition-colors"
+              aria-label="Archive project"
+              title="Archive"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                />
+              </svg>
+            </button>
+          )}
+
+          {/* Unarchive button - for archived projects */}
+          {project.archived && onUnarchive && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onUnarchive(project.id);
+              }}
+              className="p-2 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 rounded-md transition-colors"
+              aria-label="Unarchive project"
+              title="Unarchive"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                />
+              </svg>
+            </button>
+          )}
+
+          {/* Delete button */}
           <button
             onClick={handleDelete}
-            className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-            title="Delete project"
+            className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
+            aria-label="Delete project"
+            title="Delete"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path

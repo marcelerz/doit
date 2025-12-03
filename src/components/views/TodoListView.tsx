@@ -1703,6 +1703,8 @@ export function TodoList() {
                       person={person}
                       onClick={() => setDetailsOverlayPersonId(person.id)}
                       onDelete={deletePerson}
+                      onArchive={archivePerson}
+                      onUnarchive={unarchivePerson}
                     />
                   </li>
                 ))}
@@ -1744,6 +1746,8 @@ export function TodoList() {
                       project={project}
                       onClick={() => setDetailsOverlayProjectId(project.id)}
                       onDelete={deleteProject}
+                      onArchive={archiveProject}
+                      onUnarchive={unarchiveProject}
                     />
                   </li>
                 ))}
