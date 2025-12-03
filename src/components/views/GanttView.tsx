@@ -322,10 +322,40 @@ export function GanttView({
     return todos.filter((todo) => !todo.metadata.dueDate && todo.state !== "deleted").length;
   }, [todos]);
 
-  // Get schedule and time bounds
+  // Get schedule and time bounds, dynamically expanded for completed tasks outside work hours
   const schedule = getScheduleForDate(selectedDate);
-  const dayStartTime = useMemo(() => parseTime(schedule.startTime, selectedDate), [schedule, selectedDate]);
-  const dayEndTime = useMemo(() => parseTime(schedule.endTime, selectedDate), [schedule, selectedDate]);
+  const { expandedStartTime, expandedEndTime } = useMemo(() => {
+    let minTime = parseTime(schedule.startTime, selectedDate);
+    let maxTime = parseTime(schedule.endTime, selectedDate);
+
+    // Check if any completed/archived tasks fall outside work hours
+    todosForDate.forEach((todo) => {
+      if ((todo.state === "completed" || todo.state === "archived") && todo.completedAt) {
+        const completionDate = new Date(todo.completedAt);
+        const durationMinutes = parseDuration(todo.metadata.duration);
+        const taskStartTime = new Date(completionDate.getTime() - durationMinutes * 60 * 1000);
+
+        if (taskStartTime < minTime) {
+          // Round down to the nearest hour
+          const rounded = new Date(taskStartTime);
+          rounded.setMinutes(0, 0, 0);
+          minTime = rounded;
+        }
+        if (completionDate > maxTime) {
+          // Round up to the next hour
+          const rounded = new Date(completionDate);
+          rounded.setMinutes(0, 0, 0);
+          rounded.setHours(rounded.getHours() + 1);
+          maxTime = rounded;
+        }
+      }
+    });
+
+    return { expandedStartTime: minTime, expandedEndTime: maxTime };
+  }, [schedule, selectedDate, todosForDate]);
+
+  const dayStartTime = expandedStartTime;
+  const dayEndTime = expandedEndTime;
   const totalDayMinutes = (dayEndTime.getTime() - dayStartTime.getTime()) / 60000;
 
   // Get break blocks
@@ -501,15 +531,6 @@ export function GanttView({
     return (minutes / totalDayMinutes) * 100;
   };
 
-  // Get time position for full 24-hour day (for completed tasks outside work hours)
-  const getFullDayTimePosition = (time: Date): number => {
-    const dayStart = new Date(selectedDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const totalMinutes = 24 * 60;
-    const minutes = (time.getTime() - dayStart.getTime()) / 60000;
-    return (minutes / totalMinutes) * 100;
-  };
-
   const getPriorityColor = (priority?: string) => {
     if (!priority) return "bg-zinc-400";
     const p = priority.toLowerCase();
@@ -550,21 +571,26 @@ export function GanttView({
   // Generate hour markers
   const hourMarkers = useMemo(() => {
     const markers = [];
-    const startHour = dayStartTime.getHours();
-    const endHour = dayEndTime.getHours();
 
-    for (let hour = startHour; hour <= endHour; hour++) {
-      const markerTime = new Date(selectedDate);
-      markerTime.setHours(hour, 0, 0, 0);
-      if (markerTime >= dayStartTime && markerTime <= dayEndTime) {
+    // Start from the first hour of the day start time
+    const startMarker = new Date(dayStartTime);
+    startMarker.setMinutes(0, 0, 0);
+
+    let currentMarker = new Date(startMarker);
+
+    // Generate markers for each hour until we exceed the end time
+    while (currentMarker <= dayEndTime) {
+      if (currentMarker >= dayStartTime) {
         markers.push({
-          time: markerTime,
-          position: getTimePosition(markerTime),
+          time: new Date(currentMarker),
+          position: getTimePosition(currentMarker),
         });
       }
+      currentMarker.setHours(currentMarker.getHours() + 1);
     }
+
     return markers;
-  }, [dayStartTime, dayEndTime, selectedDate]);
+  }, [dayStartTime, dayEndTime]);
 
   // Get week's dates based on selected date (Monday to Sunday)
   const currentWeekDates = useMemo(() => {
@@ -635,14 +661,10 @@ export function GanttView({
           // Calculate when task would have started (completion time - duration)
           const taskStartTime = new Date(completionDate.getTime() - durationMinutes * 60 * 1000);
 
-          // Use full 24-hour day for positioning completed tasks
-          const fullDayStart = new Date(date);
-          fullDayStart.setHours(0, 0, 0, 0);
-          const fullDayMinutes = 24 * 60;
-
-          const startMinutes = (taskStartTime.getTime() - fullDayStart.getTime()) / 60000;
-          const startPercent = (startMinutes / fullDayMinutes) * 100;
-          const widthPercent = (durationMinutes / fullDayMinutes) * 100;
+          // Use work hours for positioning (same as active tasks)
+          const startMinutes = (taskStartTime.getTime() - dayStart.getTime()) / 60000;
+          const startPercent = (startMinutes / totalMinutes) * 100;
+          const widthPercent = (durationMinutes / totalMinutes) * 100;
 
           scheduled.push({
             todo,
@@ -827,13 +849,22 @@ export function GanttView({
               <div key={index} className="relative h-2 bg-zinc-100 dark:bg-zinc-800 rounded-sm overflow-hidden">
                 {scheduled.map((task, i) => {
                   const isCompleted = task.todo.state === "completed" || task.todo.state === "archived";
+
+                  // Clamp values to visible range (0-100%)
+                  const clampedStart = Math.max(0, Math.min(100, task.startPercent));
+                  const clampedEnd = Math.max(0, Math.min(100, task.startPercent + task.widthPercent));
+                  const clampedWidth = clampedEnd - clampedStart;
+
+                  // Only render if there's any visible width
+                  if (clampedWidth <= 0) return null;
+
                   return (
                     <div
                       key={i}
                       className="absolute top-0 bottom-0"
                       style={{
-                        left: `${task.startPercent}%`,
-                        width: `${task.widthPercent}%`,
+                        left: `${clampedStart}%`,
+                        width: `${clampedWidth}%`,
                         backgroundColor: task.color,
                         opacity: isCompleted ? 0.5 : 1,
                       }}
@@ -978,12 +1009,10 @@ export function GanttView({
               {/* Tasks timeline */}
               <div className="relative space-y-0 mx-4" style={{ overflow: "visible" }}>
                 {scheduledTasks.map((task, index) => {
-                  // Use full day positioning for completed/archived tasks
+                  // Now all tasks use the same positioning since timeline is dynamically expanded
                   const isCompletedTask = task.todo.state === "completed" || task.todo.state === "archived";
-                  const startPos = isCompletedTask
-                    ? getFullDayTimePosition(task.startTime)
-                    : getTimePosition(task.startTime);
-                  const endPos = isCompletedTask ? getFullDayTimePosition(task.endTime) : getTimePosition(task.endTime);
+                  const startPos = getTimePosition(task.startTime);
+                  const endPos = getTimePosition(task.endTime);
                   const width = endPos - startPos;
                   const targetPos = getTimePosition(task.targetDate);
 
