@@ -73,6 +73,11 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
         )}
       </div>
 
+      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        Define custom link patterns to convert text markers into clickable links. Use {"{id}"} as a placeholder for the
+        identifier.
+      </p>
+
       {isAdding && (
         <form
           onSubmit={handleSubmit}
