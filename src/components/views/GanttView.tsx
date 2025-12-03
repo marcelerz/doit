@@ -850,12 +850,27 @@ export function GanttView({
                 {scheduled.map((task, i) => {
                   const isCompleted = task.todo.state === "completed" || task.todo.state === "archived";
 
-                  // Clamp values to visible range (0-100%)
-                  const clampedStart = Math.max(0, Math.min(100, task.startPercent));
-                  const clampedEnd = Math.max(0, Math.min(100, task.startPercent + task.widthPercent));
-                  const clampedWidth = clampedEnd - clampedStart;
+                  // Handle tasks outside work hours
+                  let clampedStart = task.startPercent;
+                  let clampedWidth = task.widthPercent;
 
-                  // Only render if there's any visible width
+                  // If task starts before work hours, clamp to start
+                  if (task.startPercent < 0) {
+                    clampedStart = 0;
+                    clampedWidth = Math.min(task.widthPercent + task.startPercent, 100);
+                  }
+                  // If task starts after work hours, show at the end
+                  else if (task.startPercent >= 100) {
+                    clampedStart = 95; // Show at 95% to indicate it's beyond
+                    clampedWidth = 5; // Small indicator width
+                  }
+                  // If task extends beyond work hours
+                  else if (task.startPercent + task.widthPercent > 100) {
+                    clampedStart = task.startPercent;
+                    clampedWidth = 100 - task.startPercent;
+                  }
+
+                  // Only render if there's valid width
                   if (clampedWidth <= 0) return null;
 
                   return (
@@ -868,7 +883,9 @@ export function GanttView({
                         backgroundColor: task.color,
                         opacity: isCompleted ? 0.5 : 1,
                       }}
-                      title={task.todo.plainText}
+                      title={`${task.todo.plainText}${
+                        task.startPercent >= 100 ? " (after hours)" : task.startPercent < 0 ? " (before hours)" : ""
+                      }`}
                     />
                   );
                 })}
