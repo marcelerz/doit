@@ -18,6 +18,7 @@ import { ProjectDetailsOverlay } from "@/components/overlays/ProjectDetailsOverl
 import { PersonItem } from "@/components/items/PersonItem";
 import { ProjectItem } from "@/components/items/ProjectItem";
 import { calculateUsageStats, sortByUsage, UsageStats } from "@/utils/usageStats";
+import { normalizeDateValue } from "@/utils/dateParser";
 
 interface TodoFilters {
   searchText: string;
@@ -522,7 +523,11 @@ export function TodoList() {
       metadata.priority = autoAssign.priority;
     }
     if (!metadata.dueDate && autoAssign.dueDate) {
-      metadata.dueDate = autoAssign.dueDate;
+      // Normalize the date value (handles "today", "tomorrow", etc.)
+      const normalized = normalizeDateValue(autoAssign.dueDate, settings.dateTime, settings.workHours);
+      if (normalized) {
+        metadata.dueDate = normalized;
+      }
     }
     if (!metadata.duration && autoAssign.duration) {
       metadata.duration = autoAssign.duration;
