@@ -284,13 +284,13 @@ export function TodoList() {
         const saved = localStorage.getItem("doit-view-options");
         if (saved) {
           const parsed = JSON.parse(saved);
-          return (parsed.sortField as SortField) || "created";
+          return (parsed.sortField as SortField) || "priority";
         }
       }
     } catch (e) {
       console.error("Failed to load view options from localStorage:", e);
     }
-    return "created";
+    return "priority";
   });
 
   const [sortDirection, setSortDirection] = useState<SortDirection>(() => {
@@ -299,13 +299,13 @@ export function TodoList() {
         const saved = localStorage.getItem("doit-view-options");
         if (saved) {
           const parsed = JSON.parse(saved);
-          return (parsed.sortDirection as SortDirection) || "desc";
+          return (parsed.sortDirection as SortDirection) || "asc";
         }
       }
     } catch (e) {
       console.error("Failed to load view options from localStorage:", e);
     }
-    return "desc";
+    return "asc";
   });
 
   const [groupBy, setGroupBy] = useState<GroupBy>(() => {
@@ -314,13 +314,13 @@ export function TodoList() {
         const saved = localStorage.getItem("doit-view-options");
         if (saved) {
           const parsed = JSON.parse(saved);
-          return (parsed.groupBy as GroupBy) || "none";
+          return (parsed.groupBy as GroupBy) || "dueDate";
         }
       }
     } catch (e) {
       console.error("Failed to load view options from localStorage:", e);
     }
-    return "none";
+    return "dueDate";
   });
 
   // Save all view options to localStorage whenever any of them change
