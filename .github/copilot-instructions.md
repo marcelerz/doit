@@ -94,23 +94,28 @@ Todos now use a unified state system instead of separate boolean flags:
 - **Timestamps**: `createdAt`, `updatedAt`, `completedAt`, `archivedAt`, `deletedAt`
 - **Migration**: Automatically converts legacy boolean-based todos (v3) to state-based system (v4)
 
-## What Was Created
+## Component Organization
 
-1. **Components**
+Components are organized by purpose:
 
-   - `TodoList.tsx` - Main todo list with filtering, sorting, grouping
-   - `TodoItem.tsx` - Individual todo item with state-based button visibility
-   - `SmartInput.tsx` - Smart input with token recognition
-   - `MarkedText.tsx` - Text display with formatted markers
+- **views/** - Main application views (TodoListView, CalendarView, GanttView, PeopleView, ProjectsView)
+- **items/** - List item components (TodoItem, PersonItem, ProjectItem)
+- **overlays/** - Modal/detail views (TodoDetailsOverlay, PersonDetailsOverlay, ProjectDetailsOverlay)
+- **input/** - Input components (SmartInput, RichTextEditor)
+- **shared/** - Reusable components (Activity, Comments, MarkedText, MarkerReference, Notification)
+- **settings/** - Settings tab components
 
-2. **Hooks**
+## Hooks
 
-   - `useTodos.ts` - Todo state management with localStorage
+- `useTodos.ts` - Todo state management with localStorage
+- `usePeople.ts` - People management with separate storage
+- `useProjects.ts` - Projects management with separate storage
+- `useSettings.ts` - Application settings management
 
-3. **Types**
+## Types
 
-   - `todo.ts` - TodoState type and Todo interface
-   - `LegacyTodo` - Backward compatibility during migration
+- `todo.ts` - TodoState type and Todo interface
+- `settings.ts` - Settings, Person, Project, Priority interfaces
 
 4. **Features**
    - ✅ Add, edit, delete todos

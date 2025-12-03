@@ -6,17 +6,17 @@ import { useTodos } from "@/hooks/useTodos";
 import { useSettings } from "@/hooks/useSettings";
 import { usePeople } from "@/hooks/usePeople";
 import { useProjects } from "@/hooks/useProjects";
-import { TodoItem } from "./TodoItem";
-import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/SmartInput";
+import { TodoItem } from "@/components/items/TodoItem";
+import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { TodoMetadata } from "@/types/todo";
-import { GanttView } from "./views/GanttView";
-import { CalendarView } from "./views/CalendarView";
-import { MarkerReference } from "./MarkerReference";
-import { TodoDetailsOverlay } from "./TodoDetailsOverlay";
-import { PersonDetailsOverlay } from "./PersonDetailsOverlay";
-import { ProjectDetailsOverlay } from "./ProjectDetailsOverlay";
-import { PersonItem } from "./PersonItem";
-import { ProjectItem } from "./ProjectItem";
+import { GanttView } from "./GanttView";
+import { CalendarView } from "./CalendarView";
+import { MarkerReference } from "@/components/shared/MarkerReference";
+import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
+import { PersonDetailsOverlay } from "@/components/overlays/PersonDetailsOverlay";
+import { ProjectDetailsOverlay } from "@/components/overlays/ProjectDetailsOverlay";
+import { PersonItem } from "@/components/items/PersonItem";
+import { ProjectItem } from "@/components/items/ProjectItem";
 import { calculateUsageStats, sortByUsage, UsageStats } from "@/utils/usageStats";
 
 interface TodoFilters {

@@ -3,10 +3,8 @@
 import { Todo, TodoMetadata } from "@/types/todo";
 import { MarkerColors, WorkHoursSettings } from "@/types/settings";
 import { useMemo, useState, useRef } from "react";
-import { MarkedText } from "@/components/MarkedText";
-import SmartEditableInput, { SmartEditableInputHandle, TokenMatch } from "@/components/SmartInput";
-import { MarkerReference } from "@/components/MarkerReference";
-import { TodoDetailsOverlay } from "@/components/TodoDetailsOverlay";
+import { MarkedText } from "@/components/shared/MarkedText";
+import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 
 interface GanttViewProps {
   todos: Todo[];

@@ -6,7 +6,7 @@
 import { Todo, TodoMetadata, TodoState } from "@/types/todo";
 import { Settings, defaultSettings, Person, Project, Priority } from "@/types/settings";
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "./storage";
+import { STORAGE_KEYS, saveToStorage } from "./storage";
 
 const CURRENT_VERSION = 4; // Increment when adding new migrations
 

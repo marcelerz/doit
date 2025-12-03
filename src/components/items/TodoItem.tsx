@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Todo, TodoMetadata } from "@/types/todo";
 import { MarkerColors, Settings, LinkPattern, Person, Project, Priority } from "@/types/settings";
-import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/SmartInput";
-import { MarkedText } from "./MarkedText";
-import { Comments } from "./Comments";
+import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
+import { MarkedText } from "@/components/shared/MarkedText";
+import { Comments } from "@/components/shared/Comments";
 
 interface TodoItemProps {
   todo: Todo;

@@ -1,7 +1,6 @@
 "use client";
 
 import { Person } from "@/types/settings";
-import { MarkedText } from "./MarkedText";
 
 interface PersonItemProps {
   person: Person;

@@ -2,7 +2,7 @@
  * Activity logging utilities for tracking changes to todos
  */
 
-import { ActivityEntry, Todo, TodoMetadata } from "@/types/todo";
+import { ActivityEntry, TodoMetadata } from "@/types/todo";
 
 /**
  * Generate a unique ID for an activity entry

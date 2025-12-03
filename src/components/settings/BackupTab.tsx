@@ -15,7 +15,7 @@ import {
   type BackupSettings,
   type BackupData,
 } from "@/utils/backup";
-import { Notification, ConfirmDialog, type NotificationType } from "@/components/Notification";
+import { Notification, ConfirmDialog, type NotificationType } from "@/components/shared/Notification";
 
 interface BackupTabProps {
   onRestore?: () => void; // Callback to refresh data after restore

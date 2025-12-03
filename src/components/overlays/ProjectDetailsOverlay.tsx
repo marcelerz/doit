@@ -1,24 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Person } from "@/types/settings";
-import RichTextEditor from "./RichTextEditor";
-import { Activity } from "./Activity";
+import { Project } from "@/types/settings";
+import RichTextEditor from "@/components/input/RichTextEditor";
+import { Activity } from "@/components/shared/Activity";
 
-interface PersonDetailsOverlayProps {
-  person: Person;
+interface ProjectDetailsOverlayProps {
+  project: Project;
   onClose: () => void;
-  onUpdate: (id: string, updates: Partial<Person>) => void;
+  onUpdate: (id: string, updates: Partial<Project>) => void;
   onDelete: (id: string) => void;
   onArchive?: (id: string) => void;
   onUnarchive?: (id: string) => void;
-  onAddComment: (personId: string, content: string) => void;
-  onEditComment: (personId: string, commentId: number, content: string) => void;
-  onDeleteComment: (personId: string, commentId: number) => void;
+  onAddComment: (projectId: string, content: string) => void;
+  onEditComment: (projectId: string, commentId: number, content: string) => void;
+  onDeleteComment: (projectId: string, commentId: number) => void;
 }
 
-export function PersonDetailsOverlay({
-  person,
+export function ProjectDetailsOverlay({
+  project,
   onClose,
   onUpdate,
   onDelete,
@@ -27,34 +27,34 @@ export function PersonDetailsOverlay({
   onAddComment,
   onEditComment,
   onDeleteComment,
-}: PersonDetailsOverlayProps) {
-  const [editingName, setEditingName] = useState(person.name);
-  const [editingAlternatives, setEditingAlternatives] = useState(person.alternatives.join(", "));
-  const [editingColor, setEditingColor] = useState(person.color);
-  const [editingImageUrl, setEditingImageUrl] = useState(person.imageUrl || "");
-  const [editingContext, setEditingContext] = useState(person.context || "");
+}: ProjectDetailsOverlayProps) {
+  const [editingName, setEditingName] = useState(project.name);
+  const [editingAlternatives, setEditingAlternatives] = useState(project.alternatives.join(", "));
+  const [editingColor, setEditingColor] = useState(project.color);
+  const [editingImageUrl, setEditingImageUrl] = useState(project.imageUrl || "");
+  const [editingContext, setEditingContext] = useState(project.context || "");
   const [newComment, setNewComment] = useState("");
 
-  // Sync local state when person changes (after updates)
+  // Sync local state when project changes (after updates)
   useEffect(() => {
-    setEditingName(person.name);
-    setEditingAlternatives(person.alternatives.join(", "));
-    setEditingColor(person.color);
-    setEditingImageUrl(person.imageUrl || "");
-    setEditingContext(person.context || "");
-  }, [person]);
+    setEditingName(project.name);
+    setEditingAlternatives(project.alternatives.join(", "));
+    setEditingColor(project.color);
+    setEditingImageUrl(project.imageUrl || "");
+    setEditingContext(project.context || "");
+  }, [project]);
 
   // Auto-save when fields change
   useEffect(() => {
     const handler = setTimeout(() => {
       if (
-        editingName.trim() !== person.name ||
-        editingAlternatives !== person.alternatives.join(", ") ||
-        editingColor !== person.color ||
-        (editingImageUrl.trim() || undefined) !== person.imageUrl ||
-        (editingContext.trim() || undefined) !== person.context
+        editingName.trim() !== project.name ||
+        editingAlternatives !== project.alternatives.join(", ") ||
+        editingColor !== project.color ||
+        (editingImageUrl.trim() || undefined) !== project.imageUrl ||
+        (editingContext.trim() || undefined) !== project.context
       ) {
-        onUpdate(person.id, {
+        onUpdate(project.id, {
           name: editingName.trim(),
           alternatives: editingAlternatives
             .split(",")
@@ -68,7 +68,7 @@ export function PersonDetailsOverlay({
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [editingName, editingAlternatives, editingColor, editingImageUrl, editingContext, person, onUpdate]);
+  }, [editingName, editingAlternatives, editingColor, editingImageUrl, editingContext, project, onUpdate]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -82,13 +82,13 @@ export function PersonDetailsOverlay({
 
   const handleAddComment = () => {
     if (newComment.trim()) {
-      onAddComment(person.id, newComment);
+      onAddComment(project.id, newComment);
       setNewComment("");
     }
   };
 
   const handleDelete = () => {
-    onDelete(person.id);
+    onDelete(project.id);
     onClose();
   };
 
@@ -112,16 +112,10 @@ export function PersonDetailsOverlay({
                 {editingName.charAt(0).toUpperCase()}
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{editingName || "Person"}</h2>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{editingName || "Project"}</h2>
                 <div className="flex gap-1.5 mt-1">
-                  <span className="text-xs px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium">
-                    @{person.name}
-                  </span>
-                  <span className="text-xs px-2 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">
-                    ${person.name}
-                  </span>
-                  <span className="text-xs px-2 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium">
-                    ^{person.name}
+                  <span className="text-xs px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-medium">
+                    #{project.name}
                   </span>
                 </div>
               </div>
@@ -147,8 +141,8 @@ export function PersonDetailsOverlay({
                   type="text"
                   value={editingName}
                   onChange={(e) => setEditingName(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Person name"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Project name"
                 />
               </div>
 
@@ -161,8 +155,8 @@ export function PersonDetailsOverlay({
                   type="text"
                   value={editingAlternatives}
                   onChange={(e) => setEditingAlternatives(e.target.value)}
-                  placeholder="e.g., Johnny, JD, John D."
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., Web Redesign, Site Refresh"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
                 {editingAlternatives && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
@@ -196,8 +190,8 @@ export function PersonDetailsOverlay({
                     type="text"
                     value={editingColor}
                     onChange={(e) => setEditingColor(e.target.value)}
-                    className="flex-1 px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="#3b82f6"
+                    className="flex-1 px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="#9333ea"
                   />
                 </div>
               </div>
@@ -211,8 +205,8 @@ export function PersonDetailsOverlay({
                   type="text"
                   value={editingImageUrl}
                   onChange={(e) => setEditingImageUrl(e.target.value)}
-                  placeholder="https://example.com/avatar.jpg"
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="https://example.com/project-logo.jpg"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
                 {editingImageUrl && (
                   <div className="mt-2 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
@@ -246,14 +240,14 @@ export function PersonDetailsOverlay({
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-2 pt-4">
               {/* Archive/Unarchive button */}
-              {person.archived && onUnarchive ? (
+              {project.archived && onUnarchive ? (
                 <button
                   onClick={() => {
-                    onUnarchive(person.id);
+                    onUnarchive(project.id);
                     onClose();
                   }}
                   className="p-2 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 rounded-md transition-colors"
-                  aria-label="Unarchive person"
+                  aria-label="Unarchive project"
                   title="Unarchive"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -266,15 +260,15 @@ export function PersonDetailsOverlay({
                   </svg>
                 </button>
               ) : (
-                !person.archived &&
+                !project.archived &&
                 onArchive && (
                   <button
                     onClick={() => {
-                      onArchive(person.id);
+                      onArchive(project.id);
                       onClose();
                     }}
                     className="p-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-md transition-colors"
-                    aria-label="Archive person"
+                    aria-label="Archive project"
                     title="Archive"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -293,7 +287,7 @@ export function PersonDetailsOverlay({
               <button
                 onClick={handleDelete}
                 className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
-                aria-label="Delete person"
+                aria-label="Delete project"
                 title="Delete"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -333,7 +327,7 @@ export function PersonDetailsOverlay({
               </button>
             </div>
 
-            <Activity activities={person.activity || []} comments={person.comments} />
+            <Activity activities={project.activity || []} comments={project.comments} />
           </div>
         </div>
       </div>
