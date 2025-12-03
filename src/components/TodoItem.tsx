@@ -314,7 +314,7 @@ export function TodoItem({
           className="w-5 h-5 mt-0.5 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer flex-shrink-0"
         />
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onToggleExpand}>
-          <div className="text-base mb-2">
+          <div className="text-base">
             <MarkedText
               text={todo.text}
               completed={todo.state === "completed" || todo.state === "archived"}
@@ -326,136 +326,6 @@ export function TodoItem({
               dateTimeSettings={generalSettings.dateTime}
             />
           </div>
-
-          {!isExpanded &&
-            (todo.metadata.assignedPeople.length > 0 ||
-              todo.metadata.projects.length > 0 ||
-              todo.metadata.sourcePeople.length > 0 ||
-              todo.metadata.mentionedPeople.length > 0 ||
-              todo.metadata.priority ||
-              todo.metadata.dueDate ||
-              todo.metadata.duration) && (
-              <div className="flex items-center justify-between gap-2">
-                {/* Left group: Assigned, Source, Mentioned */}
-                <div className="flex flex-wrap gap-1">
-                  {todo.metadata.assignedPeople.map((person, idx) => {
-                    const bgColor = getPersonColor(person);
-                    const textColor = getTextColor(bgColor);
-                    return (
-                      <button
-                        key={`assigned-${idx}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onMarkerClick?.("assignedPeople", person);
-                        }}
-                        style={{ backgroundColor: bgColor, color: textColor }}
-                        className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
-                      >
-                        @{person}
-                      </button>
-                    );
-                  })}
-                  {todo.metadata.sourcePeople.map((person, idx) => {
-                    const bgColor = getPersonColor(person);
-                    const textColor = getTextColor(bgColor);
-                    return (
-                      <button
-                        key={`source-${idx}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onMarkerClick?.("sourcePeople", person);
-                        }}
-                        style={{ backgroundColor: bgColor, color: textColor }}
-                        className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
-                      >
-                        ${person}
-                      </button>
-                    );
-                  })}
-                  {todo.metadata.mentionedPeople.map((person, idx) => {
-                    const bgColor = getPersonColor(person);
-                    const textColor = getTextColor(bgColor);
-                    return (
-                      <button
-                        key={`mentioned-${idx}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onMarkerClick?.("mentionedPeople", person);
-                        }}
-                        style={{ backgroundColor: bgColor, color: textColor }}
-                        className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
-                      >
-                        ^{person}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Center group: Projects, Priority */}
-                <div className="flex flex-wrap gap-1 justify-center">
-                  {todo.metadata.projects.map((project, idx) => {
-                    const bgColor = getProjectColor(project);
-                    const textColor = getTextColor(bgColor);
-                    return (
-                      <button
-                        key={`project-${idx}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onMarkerClick?.("projects", project);
-                        }}
-                        style={{ backgroundColor: bgColor, color: textColor }}
-                        className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
-                      >
-                        #{project}
-                      </button>
-                    );
-                  })}
-                  {todo.metadata.priority &&
-                    (() => {
-                      const bgColor = getPriorityColor(todo.metadata.priority);
-                      const textColor = getTextColor(bgColor);
-                      return (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onMarkerClick?.("priorities", todo.metadata.priority!);
-                          }}
-                          style={{ backgroundColor: bgColor, color: textColor }}
-                          className="px-2 py-0.5 text-xs rounded-full hover:opacity-80 transition-opacity cursor-pointer"
-                        >
-                          !!{todo.metadata.priority}
-                        </button>
-                      );
-                    })()}
-                </div>
-
-                {/* Right group: Due date, Duration */}
-                <div className="flex flex-wrap gap-1 justify-end">
-                  {todo.metadata.dueDate && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMarkerClick?.("dueDates", todo.metadata.dueDate!);
-                      }}
-                      className="px-2 py-0.5 text-xs rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors cursor-pointer"
-                    >
-                      ~{todo.metadata.dueDate}
-                    </button>
-                  )}
-                  {todo.metadata.duration && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMarkerClick?.("durations", todo.metadata.duration!);
-                      }}
-                      className="px-2 py-0.5 text-xs rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-200 dark:hover:bg-cyan-900/50 transition-colors cursor-pointer"
-                    >
-                      *{todo.metadata.duration}
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
 
           {/* Expanded Details */}
           {isExpanded && (
