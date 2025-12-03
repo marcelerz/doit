@@ -132,7 +132,7 @@ export function getAllBackups(): BackupData[] {
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith(BACKUP_KEY_PREFIX)) {
+      if (key && key.startsWith(BACKUP_KEY_PREFIX) && key !== BACKUP_SETTINGS_KEY) {
         const data = localStorage.getItem(key);
         if (data) {
           const backup = JSON.parse(data) as BackupData;

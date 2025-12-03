@@ -15,6 +15,7 @@ import {
   type BackupSettings,
   type BackupData,
 } from "@/utils/backup";
+import { Notification, ConfirmDialog, type NotificationType } from "@/components/Notification";
 
 interface BackupTabProps {
   onRestore?: () => void; // Callback to refresh data after restore
@@ -28,6 +29,14 @@ export function BackupTab({ onRestore }: BackupTabProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [notification, setNotification] = useState<{ message: string; type: NotificationType } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    confirmVariant?: "danger" | "primary";
+  } | null>(null);
 
   useEffect(() => {
     loadBackups();
@@ -51,49 +60,60 @@ export function BackupTab({ onRestore }: BackupTabProps) {
       const success = createBackup();
       if (success) {
         loadBackups();
-        alert("Backup created successfully!");
+        setNotification({ message: "Backup created successfully!", type: "success" });
       } else {
-        alert("Failed to create backup. Please try again.");
+        setNotification({ message: "Failed to create backup. Please try again.", type: "error" });
       }
     } catch (error) {
       console.error("Backup error:", error);
-      alert("An error occurred while creating the backup.");
+      setNotification({ message: "An error occurred while creating the backup.", type: "error" });
     } finally {
       setIsCreating(false);
     }
   };
 
   const handleRestoreBackup = (backup: BackupData) => {
-    if (
-      window.confirm(
-        `Are you sure you want to restore the backup from ${new Date(
-          backup.timestamp,
-        ).toLocaleString()}?\n\nThis will replace all current data. Consider creating a backup first!`,
-      )
-    ) {
-      const success = restoreBackup(backup);
-      if (success) {
-        alert("Backup restored successfully! The page will reload.");
-        onRestore?.();
-        window.location.reload();
-      } else {
-        alert("Failed to restore backup. Please try again.");
-      }
-    }
+    setConfirmDialog({
+      title: "Restore Backup",
+      message: `Are you sure you want to restore the backup from ${new Date(
+        backup.timestamp,
+      ).toLocaleString()}?\n\nThis will replace all current data. Consider creating a backup first!`,
+      confirmText: "Restore",
+      confirmVariant: "danger",
+      onConfirm: () => {
+        const success = restoreBackup(backup);
+        if (success) {
+          setNotification({ message: "Backup restored successfully! The page will reload.", type: "success" });
+          onRestore?.();
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          setNotification({ message: "Failed to restore backup. Please try again.", type: "error" });
+        }
+        setConfirmDialog(null);
+      },
+    });
   };
 
   const handleDeleteBackup = (timestamp: number) => {
-    if (window.confirm("Are you sure you want to delete this backup? This action cannot be undone.")) {
-      const success = deleteBackup(timestamp);
-      if (success) {
-        loadBackups();
-        if (selectedBackup === timestamp) {
-          setSelectedBackup(null);
+    setConfirmDialog({
+      title: "Delete Backup",
+      message: "Are you sure you want to delete this backup? This action cannot be undone.",
+      confirmText: "Delete",
+      confirmVariant: "danger",
+      onConfirm: () => {
+        const success = deleteBackup(timestamp);
+        if (success) {
+          loadBackups();
+          if (selectedBackup === timestamp) {
+            setSelectedBackup(null);
+          }
+          setNotification({ message: "Backup deleted successfully.", type: "success" });
+        } else {
+          setNotification({ message: "Failed to delete backup. Please try again.", type: "error" });
         }
-      } else {
-        alert("Failed to delete backup. Please try again.");
-      }
-    }
+        setConfirmDialog(null);
+      },
+    });
   };
 
   const handleExportBackup = (backup: BackupData) => {
@@ -117,13 +137,13 @@ export function BackupTab({ onRestore }: BackupTabProps) {
       const result = await importBackupFromFile(file);
       if (result.success) {
         loadBackups();
-        alert("Backup imported successfully!");
+        setNotification({ message: "Backup imported successfully!", type: "success" });
       } else {
-        alert(`Failed to import backup: ${result.error || "Unknown error"}`);
+        setNotification({ message: `Failed to import backup: ${result.error || "Unknown error"}`, type: "error" });
       }
     } catch (error) {
       console.error("Import error:", error);
-      alert("An error occurred while importing the backup.");
+      setNotification({ message: "An error occurred while importing the backup.", type: "error" });
     } finally {
       setIsImporting(false);
       // Reset file input
@@ -365,6 +385,23 @@ export function BackupTab({ onRestore }: BackupTabProps) {
           ))}
         </ul>
       </div>
+
+      {/* Notification */}
+      {notification && (
+        <Notification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />
+      )}
+
+      {/* Confirm Dialog */}
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmText={confirmDialog.confirmText}
+          confirmVariant={confirmDialog.confirmVariant}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
     </div>
   );
 }

@@ -90,7 +90,7 @@ export const defaultMarkerColors: MarkerColors = {
   duration: "#d4faff", // Cyan
   recurring: "#e1f5e1", // Light green
   dependency: "#fff4e6", // Light orange
-  tag: "#d4f4dd", // Light teal/mint
+  tag: "#ffe4cc", // Light orange
 };
 
 export interface DateTimeSettings {
