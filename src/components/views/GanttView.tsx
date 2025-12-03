@@ -122,40 +122,13 @@ export function GanttView({
     return date;
   };
 
-  // Get todos for selected date
-  const todosForDate = useMemo(() => {
-    const dateKey = selectedDate.toISOString().split("T")[0];
-
+  // Get all active todos (not completed, archived, or deleted), sorted by priority
+  const allActiveTodos = useMemo(() => {
     let filtered = todos.filter((todo) => {
-      if (todo.state === "deleted" || todo.state === "completed" || todo.state === "archived") return false;
-
-      if (!todo.metadata.dueDate) {
-        return showTasksWithoutDates;
-      }
-
-      try {
-        let dueDate: Date;
-        const dueDateStr = todo.metadata.dueDate;
-
-        if (dueDateStr.includes("T") || dueDateStr.includes("Z")) {
-          dueDate = new Date(dueDateStr);
-        } else if (dueDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          const [year, month, day] = dueDateStr.split("-").map(Number);
-          dueDate = new Date(year, month - 1, day);
-        } else {
-          dueDate = new Date(dueDateStr);
-        }
-
-        if (isNaN(dueDate.getTime())) return false;
-
-        const dueDateKey = dueDate.toISOString().split("T")[0];
-        return dueDateKey === dateKey;
-      } catch {
-        return false;
-      }
+      return todo.state === "active";
     });
 
-    // Sort by priority
+    // Sort by priority (higher priority first)
     const priorityOrder: Record<string, number> = { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4 };
     filtered.sort((a, b) => {
       const aPriority = priorityOrder[a.metadata.priority?.toLowerCase() || ""] ?? 999;
@@ -164,7 +137,94 @@ export function GanttView({
     });
 
     return filtered;
-  }, [todos, selectedDate, showTasksWithoutDates]);
+  }, [todos]);
+
+  // Determine which day each task should be scheduled on (ASAP scheduling)
+  const taskSchedulingMap = useMemo(() => {
+    const map = new Map<string, string>(); // todoId -> dateKey
+    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let currentDay = new Date(today);
+    let remainingTodos = [...allActiveTodos];
+    
+    // Schedule tasks across days starting from today
+    while (remainingTodos.length > 0) {
+      const daySchedule = getScheduleForDate(currentDay);
+      const dayStart = parseTime(daySchedule.startTime, currentDay);
+      const dayEnd = parseTime(daySchedule.endTime, currentDay);
+      const dayBreaks = daySchedule.breaks.map((b) => ({
+        startTime: parseTime(b.startTime, currentDay),
+        endTime: parseTime(b.endTime, currentDay),
+      }));
+      const isCurrentDay = currentDay.toDateString() === today.toDateString();
+      
+      // Start from current time if today, otherwise start of work day
+      let currentTime = new Date(dayStart);
+      if (isCurrentDay && now > dayStart && now < dayEnd) {
+        currentTime = new Date(now);
+      }
+      
+      const scheduledToday: string[] = [];
+      
+      for (const todo of remainingTodos) {
+        // Ensure we're not in the past (for today)
+        if (isCurrentDay && currentTime < now) {
+          currentTime = new Date(now);
+        }
+        
+        // Skip breaks
+        let inBreak = true;
+        while (inBreak && currentTime < dayEnd) {
+          inBreak = false;
+          for (const breakBlock of dayBreaks) {
+            if (currentTime >= breakBlock.startTime && currentTime < breakBlock.endTime) {
+              currentTime = new Date(breakBlock.endTime);
+              if (isCurrentDay && currentTime < now) {
+                currentTime = new Date(now);
+              }
+              inBreak = true;
+              break;
+            }
+          }
+        }
+        
+        if (currentTime >= dayEnd) break; // No more time today
+        
+        const durationMinutes = parseDuration(todo.metadata.duration);
+        const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
+        
+        if (taskEnd <= dayEnd) {
+          // Task fits on this day - schedule it
+          const dateKey = currentDay.toISOString().split("T")[0];
+          map.set(todo.id, dateKey);
+          scheduledToday.push(todo.id);
+          currentTime = new Date(taskEnd.getTime() + workHours.contextSwitchingTime * 60000);
+        } else {
+          // Task doesn't fit - stop scheduling for this day, will try next day
+          break;
+        }
+      }
+      
+      // Remove scheduled tasks from remaining
+      remainingTodos = remainingTodos.filter(t => !scheduledToday.includes(t.id));
+      
+      // Move to next day
+      currentDay.setDate(currentDay.getDate() + 1);
+      
+      // Safety: don't schedule more than 30 days out
+      if (currentDay.getTime() - today.getTime() > 30 * 24 * 60 * 60 * 1000) break;
+    }
+    
+    return map;
+  }, [allActiveTodos, workHours]);
+
+  // Get todos for selected date based on scheduling map
+  const todosForDate = useMemo(() => {
+    const dateKey = selectedDate.toISOString().split("T")[0];
+    return allActiveTodos.filter(todo => taskSchedulingMap.get(todo.id) === dateKey);
+  }, [allActiveTodos, taskSchedulingMap, selectedDate]);
 
   // Count todos without due dates
   const todosWithoutDates = useMemo(() => {
@@ -189,10 +249,21 @@ export function GanttView({
   // Schedule tasks
   const scheduledTasks: ScheduledTask[] = useMemo(() => {
     const tasks: ScheduledTask[] = [];
-    let currentTime = new Date(dayStartTime);
     const now = new Date();
+    const isToday = selectedDate.toDateString() === now.toDateString();
+    
+    // Start from current time if today and we're past the start time, otherwise start of day
+    let currentTime = new Date(dayStartTime);
+    if (isToday && now > dayStartTime && now < dayEndTime) {
+      currentTime = new Date(now);
+    }
 
     for (const todo of todosForDate) {
+      // If today, ensure currentTime is not in the past
+      if (isToday && currentTime < now) {
+        currentTime = new Date(now);
+      }
+
       // Check if we're in a break
       let inBreak = true;
       while (inBreak && currentTime < dayEndTime) {
@@ -200,6 +271,10 @@ export function GanttView({
         for (const breakBlock of breakBlocks) {
           if (currentTime >= breakBlock.startTime && currentTime < breakBlock.endTime) {
             currentTime = new Date(breakBlock.endTime);
+            // After skipping break, check again if we're still not in the past
+            if (isToday && currentTime < now) {
+              currentTime = new Date(now);
+            }
             inBreak = true;
             break;
           }
