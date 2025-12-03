@@ -13,8 +13,18 @@ import { DateTimeTab } from "@/components/settings/DateTimeTab";
 import { WorkHoursTab } from "@/components/settings/WorkHoursTab";
 import { AutoAssignTab } from "@/components/settings/AutoAssignTab";
 import { BackupTab } from "@/components/settings/BackupTab";
+import { StorageTab } from "@/components/settings/StorageTab";
 
-type Tab = "general" | "datetime" | "workhours" | "autoassign" | "priorities" | "links" | "markers" | "backup";
+type Tab =
+  | "general"
+  | "datetime"
+  | "workhours"
+  | "autoassign"
+  | "priorities"
+  | "links"
+  | "markers"
+  | "backup"
+  | "storage";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
@@ -200,6 +210,16 @@ export default function SettingsPage() {
               >
                 Backup
               </button>
+              <button
+                onClick={() => setActiveTab("storage")}
+                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
+                  activeTab === "storage"
+                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
+                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                }`}
+              >
+                Storage
+              </button>
             </div>
 
             {/* Scroll hint overlay on the left */}
@@ -268,6 +288,7 @@ export default function SettingsPage() {
               <MarkersTab markerColors={settings.markerColors} onUpdate={updateMarkerColors} />
             )}
             {activeTab === "backup" && <BackupTab />}
+            {activeTab === "storage" && <StorageTab />}
           </div>
         </div>
       </div>
