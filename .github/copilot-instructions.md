@@ -18,6 +18,8 @@
 - [x] Convert from boolean-based to state-based todo system
 - [x] Add multiple view tabs (List, Gantt, Calendar)
 - [x] Update Date/Time settings to derive BOD/EOD from Work Hours
+- [x] Restructure settings localStorage to organize by tabs
+- [x] Create storage abstraction layer and separate people/projects from settings
 
 ## Project Details
 
@@ -26,6 +28,55 @@
 - **Design**: Full-page, mobile-responsive
 - **Status**: Complete and running
 - **Migration Version**: 5 (removed BOD/EOD from dateTime settings)
+
+## Architecture
+
+### Storage Abstraction Layer
+
+The app now uses a storage abstraction layer (`src/utils/storage.ts`) that provides:
+
+- `StorageAdapter` interface for easy swapping of storage mechanisms
+- `LocalStorageAdapter` as the default implementation
+- Generic helpers: `loadFromStorage`, `saveToStorage`, `removeFromStorage`
+- Centralized storage keys in `STORAGE_KEYS` constant
+
+This makes it easy to switch from localStorage to IndexedDB, API, or any other storage mechanism in the future.
+
+### Data Organization
+
+Data is now organized into separate top-level storage keys:
+
+- `doit-todos` - Todo items (managed by `useTodos` hook)
+- `doit-people` - People entities (managed by `usePeople` hook)
+- `doit-projects` - Project entities (managed by `useProjects` hook)
+- `doit-settings` - Application settings (managed by `useSettings` hook)
+- `doit-version` - Data version for migrations
+
+### Hooks Architecture
+
+- **`useTodos`** - Manages todo state, CRUD operations, undo/redo
+- **`usePeople`** - Manages people state, CRUD operations, comments
+- **`useProjects`** - Manages projects state, CRUD operations, comments
+- **`useSettings`** - Manages application settings (priorities, links, markers, general, dateTime, workHours, autoAssign)
+
+Each hook:
+
+- Loads data from storage on mount using the storage abstraction
+- Automatically saves changes back to storage
+- Provides specific methods for data manipulation
+- Is independent and can be used separately
+
+## Settings Structure
+
+Settings are organized by tabs and no longer include people/projects:
+
+- `priorities` - Priorities Tab
+- `linkPatterns` - Links Tab
+- `markerColors` - Markers Tab
+- `general` - General Tab (archiveDays, autoDelete)
+- `dateTime` - Date/Time Tab (morning, noon, afternoon, evening, workWeekStart, fiscalYearStart)
+- `workHours` - Work Hours Tab (schedules, BOD/EOD computation)
+- `autoAssign` - Auto-Assign Tab (default metadata for new todos)
 
 ## Views
 

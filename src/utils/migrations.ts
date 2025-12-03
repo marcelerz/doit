@@ -1,14 +1,14 @@
 /**
- * Data migration utilities for localStorage
+ * Data migration utilities for storage
  * Ensures backward compatibility when data structures change
  */
 
 import { Todo, TodoMetadata, TodoState } from "@/types/todo";
 import { Settings, defaultSettings, Person, Project, Priority } from "@/types/settings";
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
+import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "./storage";
 
 const CURRENT_VERSION = 4; // Increment when adding new migrations
-const VERSION_KEY = "doit-data-version";
 
 /**
  * Check if a todo should be archived based on settings
@@ -133,15 +133,30 @@ function migratePriority(priority: any): Priority {
  * Migrate settings to the current format
  */
 export function migrateSettings(loadedSettings: any): Settings {
-  // Migrate dateTime settings: remove startOfDay/endOfDay if present (v5 migration)
-  const dateTimeSettings = loadedSettings.general?.dateTime || {};
-  const { startOfDay, endOfDay, ...cleanedDateTime } = dateTimeSettings;
+  // Migrate people and projects to separate storage if they exist in settings
+  if (loadedSettings.people && Array.isArray(loadedSettings.people)) {
+    const migratedPeople = loadedSettings.people.map(migratePerson);
+    saveToStorage(STORAGE_KEYS.PEOPLE, migratedPeople);
+    console.log(`Migrated ${migratedPeople.length} people to separate storage`);
+  }
+
+  if (loadedSettings.projects && Array.isArray(loadedSettings.projects)) {
+    const migratedProjects = loadedSettings.projects.map(migrateProject);
+    saveToStorage(STORAGE_KEYS.PROJECTS, migratedProjects);
+    console.log(`Migrated ${migratedProjects.length} projects to separate storage`);
+  }
+
+  // Handle nested structure migration (old: general.dateTime, new: dateTime at top level)
+  const dateTime = loadedSettings.dateTime || loadedSettings.general?.dateTime || {};
+  const workHours = loadedSettings.workHours || loadedSettings.general?.workHours || {};
+  const autoAssign = loadedSettings.autoAssign || loadedSettings.general?.autoAssign || {};
+  const general = loadedSettings.general || {};
+
+  // Remove startOfDay/endOfDay from dateTime if present (v5 migration)
+  const { startOfDay, endOfDay, ...cleanedDateTime } = dateTime;
 
   return {
     ...defaultSettings,
-    ...loadedSettings,
-    people: (loadedSettings.people || defaultSettings.people).map(migratePerson),
-    projects: (loadedSettings.projects || defaultSettings.projects).map(migrateProject),
     priorities: (loadedSettings.priorities || defaultSettings.priorities).map(migratePriority),
     linkPatterns: loadedSettings.linkPatterns || defaultSettings.linkPatterns,
     markerColors: {
@@ -150,24 +165,23 @@ export function migrateSettings(loadedSettings: any): Settings {
     },
     general: {
       ...defaultSettings.general,
-      ...(loadedSettings.general || {}),
-      archiveDays: loadedSettings.general?.archiveDays ?? defaultSettings.general.archiveDays,
+      archiveDays: general.archiveDays ?? defaultSettings.general.archiveDays,
       autoDelete: {
         ...defaultSettings.general.autoDelete,
-        ...(loadedSettings.general?.autoDelete || {}),
+        ...(general.autoDelete || {}),
       },
-      dateTime: {
-        ...defaultSettings.general.dateTime,
-        ...cleanedDateTime, // Use cleaned settings without startOfDay/endOfDay
-      },
-      workHours: {
-        ...defaultSettings.general.workHours,
-        ...(loadedSettings.general?.workHours || {}),
-      },
-      autoAssign: {
-        ...defaultSettings.general.autoAssign,
-        ...(loadedSettings.general?.autoAssign || {}),
-      },
+    },
+    dateTime: {
+      ...defaultSettings.dateTime,
+      ...cleanedDateTime,
+    },
+    workHours: {
+      ...defaultSettings.workHours,
+      ...workHours,
+    },
+    autoAssign: {
+      ...defaultSettings.autoAssign,
+      ...autoAssign,
     },
   };
 }
@@ -219,14 +233,14 @@ export function migrateTodos(loadedTodos: any[], settings: Settings): Todo[] {
  */
 export function checkAndUpdateVersion(): boolean {
   try {
-    const storedVersion = localStorage.getItem(VERSION_KEY);
+    const storedVersion = localStorage.getItem(STORAGE_KEYS.VERSION);
     const currentVersion = storedVersion ? parseInt(storedVersion, 10) : 0;
 
     if (currentVersion < CURRENT_VERSION) {
       // Create auto-backup before migration if enabled
       autoBackupIfNeeded();
 
-      localStorage.setItem(VERSION_KEY, CURRENT_VERSION.toString());
+      localStorage.setItem(STORAGE_KEYS.VERSION, CURRENT_VERSION.toString());
       return true; // Migration needed
     }
 
@@ -254,5 +268,5 @@ export function getCurrentVersion(): number {
  * Force migration of all data (useful for debugging)
  */
 export function forceMigration(): void {
-  localStorage.setItem(VERSION_KEY, "0");
+  localStorage.setItem(STORAGE_KEYS.VERSION, "0");
 }

@@ -1,17 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { GeneralSettings, Person, Project, Priority } from "@/types/settings";
+import { AutoAssignSettings, Person, Project, Priority } from "@/types/settings";
 
 interface AutoAssignTabProps {
-  general: GeneralSettings;
+  autoAssign: AutoAssignSettings;
   people: Person[];
   projects: Project[];
   priorities: Priority[];
-  onUpdate: (settings: Partial<GeneralSettings>) => void;
+  onUpdate: (settings: Partial<AutoAssignSettings>) => void;
 }
 
-export function AutoAssignTab({ general, people, projects, priorities, onUpdate }: AutoAssignTabProps) {
+export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpdate }: AutoAssignTabProps) {
   // Dropdown state for each field
   const [showAssignedDropdown, setShowAssignedDropdown] = useState(false);
   const [assignedSearch, setAssignedSearch] = useState("");
@@ -118,14 +118,12 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
     return allSuggestions.filter((s) => s.toLowerCase().includes(lowerInput));
   };
 
-  const handleAutoAssignFieldChange = (field: keyof GeneralSettings["autoAssign"], value: string) => {
+  const handleAutoAssignFieldChange = (field: keyof AutoAssignSettings, value: string) => {
     if (field === "enabled") return; // Skip boolean field
 
     onUpdate({
-      autoAssign: {
-        ...general.autoAssign,
-        [field]: value || undefined, // Set to undefined if empty
-      },
+      ...autoAssign,
+      [field]: value || undefined, // Set to undefined if empty
     });
   };
 
@@ -148,12 +146,12 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
               <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">@</code>
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {general.autoAssign.assignedPerson && (
+              {autoAssign.assignedPerson && (
                 <button
                   onClick={() => handleAutoAssignFieldChange("assignedPerson", "")}
                   className="text-xs px-2 py-1 rounded border bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
                 >
-                  @{general.autoAssign.assignedPerson} ✕
+                  @{autoAssign.assignedPerson} ✕
                 </button>
               )}
               <div className="relative">
@@ -161,7 +159,7 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
                   onClick={() => setShowAssignedDropdown(!showAssignedDropdown)}
                   className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                 >
-                  {general.autoAssign.assignedPerson ? "Change" : "+"}
+                  {autoAssign.assignedPerson ? "Change" : "+"}
                 </button>
                 {showAssignedDropdown && (
                   <>
@@ -227,12 +225,12 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
               Default Source Person <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">$</code>
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {general.autoAssign.sourcePerson && (
+              {autoAssign.sourcePerson && (
                 <button
                   onClick={() => handleAutoAssignFieldChange("sourcePerson", "")}
                   className="text-xs px-2 py-1 rounded border bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-800 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
                 >
-                  ${general.autoAssign.sourcePerson} ✕
+                  ${autoAssign.sourcePerson} ✕
                 </button>
               )}
               <div className="relative">
@@ -240,7 +238,7 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
                   onClick={() => setShowSourceDropdown(!showSourceDropdown)}
                   className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                 >
-                  {general.autoAssign.sourcePerson ? "Change" : "+"}
+                  {autoAssign.sourcePerson ? "Change" : "+"}
                 </button>
                 {showSourceDropdown && (
                   <>
@@ -306,12 +304,12 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
               Default Project <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">#</code>
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {general.autoAssign.project && (
+              {autoAssign.project && (
                 <button
                   onClick={() => handleAutoAssignFieldChange("project", "")}
                   className="text-xs px-2 py-1 rounded border bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
                 >
-                  #{general.autoAssign.project} ✕
+                  #{autoAssign.project} ✕
                 </button>
               )}
               <div className="relative">
@@ -319,7 +317,7 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
                   onClick={() => setShowProjectDropdown(!showProjectDropdown)}
                   className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                 >
-                  {general.autoAssign.project ? "Change" : "+"}
+                  {autoAssign.project ? "Change" : "+"}
                 </button>
                 {showProjectDropdown && (
                   <>
@@ -385,12 +383,12 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
               Default Priority <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">!!</code>
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {general.autoAssign.priority && (
+              {autoAssign.priority && (
                 <button
                   onClick={() => handleAutoAssignFieldChange("priority", "")}
                   className="text-xs px-2 py-1 rounded border bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
                 >
-                  !!{general.autoAssign.priority} ✕
+                  !!{autoAssign.priority} ✕
                 </button>
               )}
               <div className="relative">
@@ -398,7 +396,7 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
                   onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
                   className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                 >
-                  {general.autoAssign.priority ? "Change" : "+"}
+                  {autoAssign.priority ? "Change" : "+"}
                 </button>
                 {showPriorityDropdown && (
                   <>
@@ -467,12 +465,12 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
               Default Due Date <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">~</code>
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {general.autoAssign.dueDate && (
+              {autoAssign.dueDate && (
                 <button
                   onClick={() => handleAutoAssignFieldChange("dueDate", "")}
                   className="text-xs px-2 py-1 rounded border bg-pink-100 dark:bg-pink-900/30 border-pink-300 dark:border-pink-700 text-pink-800 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors"
                 >
-                  ~{general.autoAssign.dueDate} ✕
+                  ~{autoAssign.dueDate} ✕
                 </button>
               )}
               <div className="relative">
@@ -480,7 +478,7 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
                   onClick={() => setShowDueDateDropdown(!showDueDateDropdown)}
                   className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                 >
-                  {general.autoAssign.dueDate ? "Change" : "+"}
+                  {autoAssign.dueDate ? "Change" : "+"}
                 </button>
                 {showDueDateDropdown && (
                   <>
@@ -543,12 +541,12 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
               Default Duration <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">*</code>
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {general.autoAssign.duration && (
+              {autoAssign.duration && (
                 <button
                   onClick={() => handleAutoAssignFieldChange("duration", "")}
                   className="text-xs px-2 py-1 rounded border bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
                 >
-                  *{general.autoAssign.duration} ✕
+                  *{autoAssign.duration} ✕
                 </button>
               )}
               <div className="relative">
@@ -556,7 +554,7 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
                   onClick={() => setShowDurationDropdown(!showDurationDropdown)}
                   className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                 >
-                  {general.autoAssign.duration ? "Change" : "+"}
+                  {autoAssign.duration ? "Change" : "+"}
                 </button>
                 {showDurationDropdown && (
                   <>
@@ -619,12 +617,12 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
               Default Recurring <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">%</code>
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {general.autoAssign.recurring && (
+              {autoAssign.recurring && (
                 <button
                   onClick={() => handleAutoAssignFieldChange("recurring", "")}
                   className="text-xs px-2 py-1 rounded border bg-emerald-100 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
                 >
-                  %{general.autoAssign.recurring} ✕
+                  %{autoAssign.recurring} ✕
                 </button>
               )}
               <div className="relative">
@@ -632,7 +630,7 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
                   onClick={() => setShowRecurringDropdown(!showRecurringDropdown)}
                   className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                 >
-                  {general.autoAssign.recurring ? "Change" : "+"}
+                  {autoAssign.recurring ? "Change" : "+"}
                 </button>
                 {showRecurringDropdown && (
                   <>

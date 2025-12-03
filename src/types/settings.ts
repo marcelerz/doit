@@ -167,23 +167,12 @@ export const defaultDateTimeSettings: DateTimeSettings = {
   fiscalYearStart: 1, // January
 };
 
+// General Tab Settings
 export interface GeneralSettings {
   archiveDays: number; // Number of days before completed tasks are archived
   autoDelete: {
     enabled: boolean; // Enable automatic deletion of old completed/archived tasks
     deleteDays: number; // Number of days after completion before tasks are deleted
-  };
-  dateTime: DateTimeSettings;
-  workHours: WorkHoursSettings;
-  autoAssign: {
-    enabled: boolean;
-    assignedPerson?: string; // Default person to assign (@)
-    sourcePerson?: string; // Default source person ($)
-    project?: string; // Default project (#)
-    priority?: string; // Default priority (!!)
-    dueDate?: string; // Default due date (~)
-    duration?: string; // Default duration (*)
-    recurring?: string; // Default recurring pattern (%)
   };
 }
 
@@ -193,32 +182,49 @@ export const defaultGeneralSettings: GeneralSettings = {
     enabled: true,
     deleteDays: 90, // Delete after 90 days (3 months) by default
   },
-  dateTime: defaultDateTimeSettings,
-  workHours: defaultWorkHoursSettings,
-  autoAssign: {
-    enabled: true, // Always enabled by default
-    assignedPerson: undefined,
-    sourcePerson: undefined,
-    project: undefined,
-    priority: "medium", // Default to medium priority
-    dueDate: "today",
-    duration: "30m", // Default to 30 minutes
-    recurring: undefined,
-  },
+};
+
+// Auto-Assign Tab Settings
+export interface AutoAssignSettings {
+  enabled: boolean;
+  assignedPerson?: string; // Default person to assign (@)
+  sourcePerson?: string; // Default source person ($)
+  project?: string; // Default project (#)
+  priority?: string; // Default priority (!!)
+  dueDate?: string; // Default due date (~)
+  duration?: string; // Default duration (*)
+  recurring?: string; // Default recurring pattern (%)
+}
+
+export const defaultAutoAssignSettings: AutoAssignSettings = {
+  enabled: true, // Always enabled by default
+  assignedPerson: undefined,
+  sourcePerson: undefined,
+  project: undefined,
+  priority: "medium", // Default to medium priority
+  dueDate: "today",
+  duration: "30m", // Default to 30 minutes
+  recurring: undefined,
 };
 
 export interface Settings {
-  people: Person[];
-  projects: Project[];
+  // Priorities Tab
   priorities: Priority[];
+  // Links Tab
   linkPatterns: LinkPattern[];
+  // Markers Tab
   markerColors: MarkerColors;
+  // General Tab
   general: GeneralSettings;
+  // Date/Time Tab
+  dateTime: DateTimeSettings;
+  // Work Hours Tab
+  workHours: WorkHoursSettings;
+  // Auto-Assign Tab
+  autoAssign: AutoAssignSettings;
 }
 
 export const defaultSettings: Settings = {
-  people: [],
-  projects: [],
   priorities: [
     {
       id: "1",
@@ -244,4 +250,7 @@ export const defaultSettings: Settings = {
   linkPatterns: [],
   markerColors: defaultMarkerColors,
   general: defaultGeneralSettings,
+  dateTime: defaultDateTimeSettings,
+  workHours: defaultWorkHoursSettings,
+  autoAssign: defaultAutoAssignSettings,
 };

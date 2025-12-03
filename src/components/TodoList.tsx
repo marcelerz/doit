@@ -4,6 +4,8 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useTodos } from "@/hooks/useTodos";
 import { useSettings } from "@/hooks/useSettings";
+import { usePeople } from "@/hooks/usePeople";
+import { useProjects } from "@/hooks/useProjects";
 import { TodoItem } from "./TodoItem";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/SmartInput";
 import { TodoMetadata } from "@/types/todo";
@@ -52,26 +54,32 @@ export function TodoList() {
     undo,
     dismissUndo,
   } = useTodos();
+  const { settings, addPriority } = useSettings();
+
   const {
-    settings,
+    people,
     addPerson,
-    addProject,
-    addPriority,
     updatePerson,
     deletePerson,
     archivePerson,
     unarchivePerson,
+    addPersonComment,
+    editPersonComment,
+    deletePersonComment,
+  } = usePeople();
+
+  const {
+    projects,
+    addProject,
     updateProject,
     deleteProject,
     archiveProject,
     unarchiveProject,
-    addPersonComment,
-    editPersonComment,
-    deletePersonComment,
     addProjectComment,
     editProjectComment,
     deleteProjectComment,
-  } = useSettings();
+  } = useProjects();
+
   const [currentTokens, setCurrentTokens] = useState<TokenMatch[]>([]);
   const [currentFullText, setCurrentFullText] = useState("");
   const [currentPlainText, setCurrentPlainText] = useState("");
@@ -108,17 +116,17 @@ export function TodoList() {
   // Sort people, projects, and priorities by usage frequency, filtering out archived items for selection
   const sortedPeople = useMemo(() => {
     return sortByUsage(
-      settings.people.filter((p) => !p.archived),
+      people.filter((p) => !p.archived),
       combinedPeopleUsage,
     );
-  }, [settings.people, combinedPeopleUsage]);
+  }, [people, combinedPeopleUsage]);
 
   const sortedProjects = useMemo(() => {
     return sortByUsage(
-      settings.projects.filter((p) => !p.archived),
+      projects.filter((p) => !p.archived),
       usageStats.projects,
     );
-  }, [settings.projects, usageStats.projects]);
+  }, [projects, usageStats.projects]);
 
   const sortedPriorities = useMemo(() => {
     return sortByUsage(settings.priorities, usageStats.priorities);
@@ -126,12 +134,12 @@ export function TodoList() {
 
   // All people and projects (including archived) for display in their tabs
   const allPeople = useMemo(() => {
-    return sortByUsage(settings.people, combinedPeopleUsage);
-  }, [settings.people, combinedPeopleUsage]);
+    return sortByUsage(people, combinedPeopleUsage);
+  }, [people, combinedPeopleUsage]);
 
   const allProjects = useMemo(() => {
-    return sortByUsage(settings.projects, usageStats.projects);
-  }, [settings.projects, usageStats.projects]);
+    return sortByUsage(projects, usageStats.projects);
+  }, [projects, usageStats.projects]);
 
   // Wrapper functions to convert name string to object format
   const handleAddPerson = (name: string) => {
@@ -499,7 +507,7 @@ export function TodoList() {
     });
 
     // Apply auto-assignment defaults if field not provided
-    const autoAssign = settings.general.autoAssign;
+    const autoAssign = settings.autoAssign;
 
     if (metadata.assignedPeople.length === 0 && autoAssign.assignedPerson) {
       metadata.assignedPeople.push(autoAssign.assignedPerson);
@@ -1602,7 +1610,7 @@ export function TodoList() {
           <GanttView
             todos={todos}
             markerColors={settings.markerColors}
-            workHours={settings.general.workHours}
+            workHours={settings.workHours}
             onEditTodo={editTodo}
             availablePeople={sortedPeople}
             availableProjects={sortedProjects}
@@ -1614,7 +1622,7 @@ export function TodoList() {
             onDelete={deleteTodo}
             onArchive={archiveTodo}
             onUnarchive={unarchiveTodo}
-            generalSettings={settings.general}
+            settings={settings}
             linkPatterns={settings.linkPatterns}
             onAddComment={addTodoComment}
             onEditComment={editTodoComment}
@@ -1626,7 +1634,7 @@ export function TodoList() {
           <CalendarView
             todos={todos}
             markerColors={settings.markerColors}
-            generalSettings={settings.general}
+            settings={settings}
             linkPatterns={settings.linkPatterns}
             availablePeople={sortedPeople}
             availableProjects={sortedProjects}
@@ -1780,7 +1788,7 @@ export function TodoList() {
                                     onUnarchive={unarchiveTodo}
                                     onEdit={editTodo}
                                     markerColors={settings.markerColors}
-                                    generalSettings={settings.general}
+                                    settings={settings}
                                     linkPatterns={settings.linkPatterns}
                                     availablePeople={sortedPeople}
                                     availableProjects={sortedProjects}
@@ -1837,7 +1845,7 @@ export function TodoList() {
                               onUnarchive={unarchiveTodo}
                               onEdit={editTodo}
                               markerColors={settings.markerColors}
-                              generalSettings={settings.general}
+                              settings={settings}
                               linkPatterns={settings.linkPatterns}
                               availablePeople={sortedPeople}
                               availableProjects={sortedProjects}
@@ -1891,7 +1899,7 @@ export function TodoList() {
                               onUnarchive={unarchiveTodo}
                               onEdit={editTodo}
                               markerColors={settings.markerColors}
-                              generalSettings={settings.general}
+                              settings={settings}
                               linkPatterns={settings.linkPatterns}
                               availablePeople={sortedPeople}
                               availableProjects={sortedProjects}
@@ -2091,7 +2099,7 @@ export function TodoList() {
                     onArchive={archiveTodo}
                     onUnarchive={unarchiveTodo}
                     markerColors={settings.markerColors}
-                    generalSettings={settings.general}
+                    settings={settings}
                     linkPatterns={settings.linkPatterns}
                     availablePeople={sortedPeople}
                     availableProjects={sortedProjects}
@@ -2111,7 +2119,7 @@ export function TodoList() {
         {/* Person Details Overlay */}
         {detailsOverlayPersonId &&
           (() => {
-            const person = settings.people.find((p) => p.id === detailsOverlayPersonId);
+            const person = people.find((p) => p.id === detailsOverlayPersonId);
             return person ? (
               <PersonDetailsOverlay
                 person={person}
@@ -2130,7 +2138,7 @@ export function TodoList() {
         {/* Project Details Overlay */}
         {detailsOverlayProjectId &&
           (() => {
-            const project = settings.projects.find((p) => p.id === detailsOverlayProjectId);
+            const project = projects.find((p) => p.id === detailsOverlayProjectId);
             return project ? (
               <ProjectDetailsOverlay
                 project={project}
@@ -2188,8 +2196,8 @@ export function TodoList() {
                       availableProjects={sortedProjects}
                       availablePriorities={sortedPriorities}
                       availableTodos={todos}
-                      dateTimeSettings={settings.general.dateTime}
-                      workHoursSettings={settings.general.workHours}
+                      dateTimeSettings={settings.dateTime}
+                      workHoursSettings={settings.workHours}
                       onAddPerson={handleAddPerson}
                       onAddProject={handleAddProject}
                       onAddPriority={handleAddPriority}

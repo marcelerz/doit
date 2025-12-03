@@ -7,9 +7,7 @@ import { defaultSettings } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
 import { areDependenciesSatisfied, getDependencyBlockMessage } from "@/utils/dependencyValidator";
 import { createActivity, generateMetadataActivities } from "@/utils/activityLogger";
-
-const STORAGE_KEY = "doit-todos";
-const SETTINGS_KEY = "doit-settings";
+import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/utils/storage";
 
 export type UndoAction = {
   id: string;
@@ -27,49 +25,34 @@ export function useTodos() {
   const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
   const [dependencyBlockNotification, setDependencyBlockNotification] = useState<string | null>(null);
 
-  // Load todos from localStorage on mount
+  // Load todos from storage on mount
   useEffect(() => {
-    try {
-      // Check if migration is needed
-      const migrationNeeded = checkAndUpdateVersion();
+    // Check if migration is needed
+    const migrationNeeded = checkAndUpdateVersion();
 
-      // Load settings first to use for migration
-      let settings = defaultSettings;
-      const storedSettings = localStorage.getItem(SETTINGS_KEY);
-      if (storedSettings) {
-        settings = migrateSettings(JSON.parse(storedSettings));
-      }
+    // Load settings first to use for migration
+    let settings = defaultSettings;
+    const storedSettings = loadFromStorage(STORAGE_KEYS.SETTINGS, defaultSettings);
+    settings = migrateSettings(storedSettings);
 
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const loadedTodos = JSON.parse(stored);
-        const migratedTodos = migrateTodos(loadedTodos, settings);
-        // Filter out any deleted todos
-        const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
-        setTodos(cleanedTodos);
+    const loadedTodos = loadFromStorage<Todo[]>(STORAGE_KEYS.TODOS, []);
+    const migratedTodos = migrateTodos(loadedTodos, settings);
+    // Filter out any deleted todos
+    const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
+    setTodos(cleanedTodos);
 
-        // If migration was needed or we removed deleted todos, save the cleaned data
-        if (migrationNeeded || cleanedTodos.length !== migratedTodos.length) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanedTodos));
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load todos:", error);
-    } finally {
-      setIsLoaded(true);
+    // If migration was needed or we removed deleted todos, save the cleaned data
+    if (migrationNeeded || cleanedTodos.length !== loadedTodos.length) {
+      saveToStorage(STORAGE_KEYS.TODOS, cleanedTodos);
     }
+
+    setIsLoaded(true);
   }, []);
 
-  // Save todos to localStorage whenever they change
+  // Save todos to storage whenever they change
   useEffect(() => {
     if (isLoaded) {
-      try {
-        // Filter out deleted todos before saving
-        const todosToSave = todos.filter((todo) => todo.state !== "deleted");
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(todosToSave));
-      } catch (error) {
-        console.error("Failed to save todos:", error);
-      }
+      saveToStorage(STORAGE_KEYS.TODOS, todos);
     }
   }, [todos, isLoaded]);
 

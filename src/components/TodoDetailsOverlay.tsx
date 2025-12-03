@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Todo, TodoMetadata } from "@/types/todo";
-import { MarkerColors, GeneralSettings, LinkPattern, Person, Project, Priority } from "@/types/settings";
+import { MarkerColors, Settings, LinkPattern, Person, Project, Priority } from "@/types/settings";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/SmartInput";
 import { MarkedText } from "./MarkedText";
 import { Comments } from "./Comments";
@@ -21,7 +21,7 @@ interface TodoDetailsOverlayProps {
   onArchive?: (id: string) => void;
   onUnarchive?: (id: string) => void;
   markerColors: MarkerColors;
-  generalSettings: GeneralSettings;
+  settings: Settings;
   linkPatterns: LinkPattern[];
   availablePeople: Person[];
   availableProjects: Project[];
@@ -45,7 +45,7 @@ export function TodoDetailsOverlay({
   onArchive,
   onUnarchive,
   markerColors,
-  generalSettings,
+  settings,
   linkPatterns,
   availablePeople,
   availableProjects,
@@ -315,8 +315,8 @@ export function TodoDetailsOverlay({
                       availablePeople={availablePeople}
                       availableProjects={availableProjects}
                       availablePriorities={availablePriorities}
-                      dateTimeSettings={generalSettings.dateTime}
-                      workHoursSettings={generalSettings.workHours}
+                      dateTimeSettings={settings.dateTime}
+                      workHoursSettings={settings.workHours}
                       onAddPerson={onAddPerson}
                       onAddProject={onAddProject}
                       onAddPriority={onAddPriority}
@@ -348,8 +348,8 @@ export function TodoDetailsOverlay({
                       text={todo.text}
                       markerColors={markerColors}
                       linkPatterns={linkPatterns}
-                      dateTimeSettings={generalSettings.dateTime}
-                      workHoursSettings={generalSettings.workHours}
+                      dateTimeSettings={settings.dateTime}
+                      workHoursSettings={settings.workHours}
                     />
                   </h2>
                 )}
@@ -1094,7 +1094,7 @@ export function TodoDetailsOverlay({
                         onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
                         className="text-xs px-2 py-1 rounded border bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
                       >
-                        !!{editingMetadata.priority || generalSettings.autoAssign.priority || "None"}
+                        !!{editingMetadata.priority || settings.autoAssign.priority || "None"}
                       </button>
                       {showPriorityDropdown && (
                         <>

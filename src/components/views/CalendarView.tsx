@@ -4,12 +4,12 @@ import { Todo } from "@/types/todo";
 import { MarkerColors } from "@/types/settings";
 import { useState, useMemo } from "react";
 import { TodoItem } from "../TodoItem";
-import { GeneralSettings, Person, Project, Priority } from "@/types/settings";
+import { Settings, Person, Project, Priority } from "@/types/settings";
 
 interface CalendarViewProps {
   todos: Todo[];
   markerColors: MarkerColors;
-  generalSettings: GeneralSettings;
+  settings: Settings;
   linkPatterns: any[];
   availablePeople: Person[];
   availableProjects: Project[];
@@ -30,7 +30,7 @@ interface CalendarViewProps {
 export function CalendarView({
   todos,
   markerColors,
-  generalSettings,
+  settings,
   linkPatterns,
   availablePeople,
   availableProjects,
@@ -403,7 +403,7 @@ export function CalendarView({
                   onUnarchive={onUnarchive}
                   onEdit={onEdit}
                   markerColors={markerColors}
-                  generalSettings={generalSettings}
+                  settings={settings}
                   linkPatterns={linkPatterns}
                   availablePeople={availablePeople}
                   availableProjects={availableProjects}

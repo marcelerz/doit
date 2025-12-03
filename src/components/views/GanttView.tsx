@@ -17,7 +17,7 @@ interface GanttViewProps {
   onEditTodo: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
   onArchive?: (id: string) => void;
   onUnarchive?: (id: string) => void;
-  generalSettings: import("@/types/settings").GeneralSettings;
+  settings: import("@/types/settings").Settings;
   linkPatterns: import("@/types/settings").LinkPattern[];
   availablePeople: import("@/types/settings").Person[];
   availableProjects: import("@/types/settings").Project[];
@@ -56,7 +56,7 @@ export function GanttView({
   onEditTodo,
   onArchive,
   onUnarchive,
-  generalSettings,
+  settings,
   linkPatterns,
   availablePeople,
   availableProjects,
@@ -658,7 +658,7 @@ export function GanttView({
               onArchive={onArchive}
               onUnarchive={onUnarchive}
               markerColors={markerColors}
-              generalSettings={generalSettings}
+              settings={settings}
               linkPatterns={linkPatterns}
               availablePeople={availablePeople}
               availableProjects={availableProjects}

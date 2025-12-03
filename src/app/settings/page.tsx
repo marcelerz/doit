@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useSettings } from "@/hooks/useSettings";
+import { usePeople } from "@/hooks/usePeople";
+import { useProjects } from "@/hooks/useProjects";
 import { PrioritiesTab } from "@/components/settings/PrioritiesTab";
 import { LinksTab } from "@/components/settings/LinksTab";
 import { MarkersTab } from "@/components/settings/MarkersTab";
@@ -62,13 +64,7 @@ export default function SettingsPage() {
   };
   const {
     settings,
-    isLoaded,
-    addPerson,
-    updatePerson,
-    deletePerson,
-    addProject,
-    updateProject,
-    deleteProject,
+    isLoaded: settingsLoaded,
     addPriority,
     updatePriority,
     deletePriority,
@@ -77,7 +73,16 @@ export default function SettingsPage() {
     deleteLinkPattern,
     updateMarkerColors,
     updateGeneralSettings,
+    updateDateTimeSettings,
+    updateWorkHoursSettings,
+    updateAutoAssignSettings,
   } = useSettings();
+
+  const { people, isLoaded: peopleLoaded, addPerson, updatePerson, deletePerson } = usePeople();
+
+  const { projects, isLoaded: projectsLoaded, addProject, updateProject, deleteProject } = useProjects();
+
+  const isLoaded = settingsLoaded && peopleLoaded && projectsLoaded;
 
   if (!isLoaded) {
     return (
@@ -230,25 +235,17 @@ export default function SettingsPage() {
 
           <div className="p-6">
             {activeTab === "general" && <GeneralTab general={settings.general} onUpdate={updateGeneralSettings} />}
-            {activeTab === "datetime" && (
-              <DateTimeTab
-                dateTime={settings.general.dateTime}
-                onUpdate={(dateTime) => updateGeneralSettings({ dateTime })}
-              />
-            )}
+            {activeTab === "datetime" && <DateTimeTab dateTime={settings.dateTime} onUpdate={updateDateTimeSettings} />}
             {activeTab === "workhours" && (
-              <WorkHoursTab
-                workHours={settings.general.workHours}
-                onUpdate={(workHours) => updateGeneralSettings({ workHours })}
-              />
+              <WorkHoursTab workHours={settings.workHours} onUpdate={updateWorkHoursSettings} />
             )}
             {activeTab === "autoassign" && (
               <AutoAssignTab
-                general={settings.general}
-                people={settings.people}
-                projects={settings.projects}
+                autoAssign={settings.autoAssign}
+                people={people}
+                projects={projects}
                 priorities={settings.priorities}
-                onUpdate={updateGeneralSettings}
+                onUpdate={updateAutoAssignSettings}
               />
             )}
             {activeTab === "priorities" && (

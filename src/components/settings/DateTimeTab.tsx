@@ -1,14 +1,14 @@
 "use client";
 
-import { GeneralSettings } from "@/types/settings";
+import { DateTimeSettings } from "@/types/settings";
 
 interface DateTimeTabProps {
-  dateTime: GeneralSettings["dateTime"];
-  onUpdate: (dateTime: GeneralSettings["dateTime"]) => void;
+  dateTime: DateTimeSettings;
+  onUpdate: (dateTime: DateTimeSettings) => void;
 }
 
 export function DateTimeTab({ dateTime, onUpdate }: DateTimeTabProps) {
-  const handleDateTimeChange = (field: keyof GeneralSettings["dateTime"], value: string | number) => {
+  const handleDateTimeChange = (field: keyof DateTimeSettings, value: string | number) => {
     onUpdate({
       ...dateTime,
       [field]: value,

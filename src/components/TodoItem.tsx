@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Todo, TodoMetadata } from "@/types/todo";
-import { MarkerColors, GeneralSettings, LinkPattern, Person, Project, Priority } from "@/types/settings";
+import { MarkerColors, Settings, LinkPattern, Person, Project, Priority } from "@/types/settings";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/SmartInput";
 import { MarkedText } from "./MarkedText";
 import { Comments } from "./Comments";
@@ -15,7 +15,7 @@ interface TodoItemProps {
   onArchive?: (id: string) => void;
   onUnarchive?: (id: string) => void;
   markerColors: MarkerColors;
-  generalSettings: GeneralSettings;
+  settings: Settings;
   linkPatterns: LinkPattern[];
   availablePeople: Person[];
   availableProjects: Project[];
@@ -43,7 +43,7 @@ export function TodoItem({
   onArchive,
   onUnarchive,
   markerColors,
-  generalSettings,
+  settings,
   linkPatterns,
   availablePeople,
   availableProjects,
@@ -172,8 +172,8 @@ export function TodoItem({
     });
 
     // Preserve existing metadata or apply auto-assignment defaults for fields not explicitly provided
-    if (generalSettings.autoAssign.enabled) {
-      const autoAssign = generalSettings.autoAssign;
+    if (settings.autoAssign.enabled) {
+      const autoAssign = settings.autoAssign;
 
       // If no assigned people in edit and none existed before, apply auto-assign
       if (metadata.assignedPeople.length === 0) {
@@ -273,8 +273,8 @@ export function TodoItem({
             availableProjects={availableProjects}
             availablePriorities={availablePriorities}
             availableTodos={availableTodos}
-            dateTimeSettings={generalSettings.dateTime}
-            workHoursSettings={generalSettings.workHours}
+            dateTimeSettings={settings.dateTime}
+            workHoursSettings={settings.workHours}
             onAddPerson={onAddPerson}
             onAddProject={onAddProject}
             onAddPriority={onAddPriority}
@@ -324,8 +324,8 @@ export function TodoItem({
               availablePeople={availablePeople}
               availableProjects={availableProjects}
               availablePriorities={availablePriorities}
-              dateTimeSettings={generalSettings.dateTime}
-              workHoursSettings={generalSettings.workHours}
+              dateTimeSettings={settings.dateTime}
+              workHoursSettings={settings.workHours}
             />
           </div>
 
