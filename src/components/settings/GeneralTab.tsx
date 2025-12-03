@@ -73,10 +73,10 @@ export function GeneralTab({ general, onUpdate }: GeneralTabProps) {
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div className="flex-1">
-              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Auto-Delete Completed Tasks</h3>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Auto-Delete Tasks</h3>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                Automatically delete completed tasks after a specified number of days. This is useful for keeping your
-                todo list clean and removing old tasks you no longer need.
+                Automatically delete completed and archived tasks after a specified number of days. This is useful for
+                keeping your todo list clean and removing old tasks you no longer need.
               </p>
               <label className="flex items-center gap-3 cursor-pointer mb-4">
                 <input
@@ -109,9 +109,12 @@ export function GeneralTab({ general, onUpdate }: GeneralTabProps) {
           <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-2">ℹ️ How it works</h4>
           <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
             {[
-              "Tasks marked as complete will appear in the 'Completed' section",
-              "After the specified number of days, they will move to the 'Archived' section",
-              "Archived tasks remain visible but are collapsed by default",
+              "Active tasks appear in the main 'Active' section",
+              "When marked complete, tasks move to the 'Completed' section",
+              "After the specified archive days, completed tasks move to the 'Archived' section",
+              "Archived tasks are collapsed by default but remain visible",
+              "If auto-delete is enabled, both completed and archived tasks are permanently deleted after the specified delete days",
+              "Auto-delete countdown starts from completion date for completed tasks, and from archive date for archived tasks",
             ].map((note, index) => (
               <li key={index}>{note}</li>
             ))}

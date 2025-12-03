@@ -26,12 +26,18 @@ function shouldArchive(todo: Todo, archiveDays: number): boolean {
  * Check if a todo should be deleted based on settings
  */
 function shouldDelete(todo: Todo, autoDeleteEnabled: boolean, deleteDays: number): boolean {
-  if (!autoDeleteEnabled || todo.state !== "completed" || !todo.completedAt) {
+  if (!autoDeleteEnabled || (todo.state !== "completed" && todo.state !== "archived")) {
     return false;
   }
 
-  const daysSinceCompletion = (Date.now() - todo.completedAt) / (1000 * 60 * 60 * 24);
-  return daysSinceCompletion >= deleteDays;
+  // Use the appropriate timestamp based on state
+  const timestamp = todo.state === "archived" ? todo.archivedAt || todo.completedAt : todo.completedAt;
+  if (!timestamp) {
+    return false;
+  }
+
+  const daysSinceTimestamp = (Date.now() - timestamp) / (1000 * 60 * 60 * 24);
+  return daysSinceTimestamp >= deleteDays;
 }
 
 /**
