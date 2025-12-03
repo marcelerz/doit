@@ -909,8 +909,10 @@ export function GanttView({
                             <div
                               className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-green-600 dark:text-green-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
                               style={{
-                                left: `${(endPos + Math.min(targetPos, 100)) / 2}%`,
-                                transform: "translate(-50%, -50%)",
+                                // If not enough space on right (< 15%), position on left of task
+                                left:
+                                  100 - endPos < 15 ? `${startPos}%` : `${(endPos + Math.min(targetPos, 100)) / 2}%`,
+                                transform: 100 - endPos < 15 ? "translate(-100%, -50%)" : "translate(-50%, -50%)",
                               }}
                             >
                               +{formatDuration(task.bufferMinutes)} buffer
@@ -931,8 +933,9 @@ export function GanttView({
                             <div
                               className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-red-600 dark:text-red-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
                               style={{
-                                left: `${(Math.max(targetPos, 0) + endPos) / 2}%`,
-                                transform: "translate(-50%, -50%)",
+                                // If not enough space on left (< 15%), position on right of task
+                                left: startPos < 15 ? `${endPos}%` : `${(Math.max(targetPos, 0) + startPos) / 2}%`,
+                                transform: startPos < 15 ? "translate(0%, -50%)" : "translate(-50%, -50%)",
                               }}
                             >
                               -{formatDuration(task.bufferMinutes)} overdue
