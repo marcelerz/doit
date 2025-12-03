@@ -456,7 +456,12 @@ export function TodoDetailsOverlay({
                       </button>
                       {showAssignedDropdown && (
                         <SearchableDropdown
-                          items={availablePeople.map((p) => ({ id: p.name, label: p.name, prefix: "@" }))}
+                          items={availablePeople.map((p) => ({
+                            id: p.name,
+                            label: p.name,
+                            prefix: "@",
+                            alternatives: p.alternatives,
+                          }))}
                           onSelect={(item) => {
                             handleMetadataChange({
                               ...editingMetadata,
@@ -517,7 +522,11 @@ export function TodoDetailsOverlay({
                     })}
                     {showProjectDropdown && (
                       <SearchableDropdown
-                        items={availableProjects.map((p) => ({ id: p.name, label: `#${p.name}` }))}
+                        items={availableProjects.map((p) => ({
+                          id: p.name,
+                          label: `#${p.name}`,
+                          alternatives: p.alternatives,
+                        }))}
                         onSelect={(item) => {
                           handleMetadataChange({
                             ...editingMetadata,
@@ -583,7 +592,11 @@ export function TodoDetailsOverlay({
                     })}
                     {showSourceDropdown && (
                       <SearchableDropdown
-                        items={availablePeople.map((p) => ({ id: p.name, label: `$${p.name}` }))}
+                        items={availablePeople.map((p) => ({
+                          id: p.name,
+                          label: `$${p.name}`,
+                          alternatives: p.alternatives,
+                        }))}
                         onSelect={(item) => {
                           handleMetadataChange({
                             ...editingMetadata,
@@ -649,7 +662,11 @@ export function TodoDetailsOverlay({
                     })}
                     {showMentionedDropdown && (
                       <SearchableDropdown
-                        items={availablePeople.map((p) => ({ id: p.name, label: `^${p.name}` }))}
+                        items={availablePeople.map((p) => ({
+                          id: p.name,
+                          label: `^${p.name}`,
+                          alternatives: p.alternatives,
+                        }))}
                         onSelect={(item) => {
                           handleMetadataChange({
                             ...editingMetadata,
@@ -694,7 +711,11 @@ export function TodoDetailsOverlay({
                   <div className="flex flex-wrap gap-1.5">
                     {showPriorityDropdown && (
                       <SearchableDropdown
-                        items={availablePriorities.map((p) => ({ id: p.name, label: `!!${p.name}` }))}
+                        items={availablePriorities.map((p) => ({
+                          id: p.name,
+                          label: `!!${p.name}`,
+                          alternatives: p.alternatives,
+                        }))}
                         onSelect={(item) => {
                           handleMetadataChange({
                             ...editingMetadata,

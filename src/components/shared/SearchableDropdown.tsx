@@ -5,6 +5,7 @@ interface SearchableDropdownItem {
   id: string;
   label: string;
   prefix?: string;
+  alternatives?: string[];
 }
 
 interface SearchableDropdownProps {
@@ -66,7 +67,15 @@ export function SearchableDropdown({
 
   const filteredItems = items
     .filter((item) => !excludeIds.includes(item.id))
-    .filter((item) => search === "" || item.label.toLowerCase().includes(search.toLowerCase()))
+    .filter((item) => {
+      if (search === "") return true;
+      const searchLower = search.toLowerCase();
+      // Search in label
+      if (item.label.toLowerCase().includes(searchLower)) return true;
+      // Search in alternatives
+      if (item.alternatives && item.alternatives.some((alt) => alt.toLowerCase().includes(searchLower))) return true;
+      return false;
+    })
     .slice(0, 10);
 
   const hasAddOption = allowAdd && onAdd && filteredItems.length === 0 && search.trim() !== "";
