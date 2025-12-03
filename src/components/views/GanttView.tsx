@@ -132,15 +132,15 @@ export function GanttView({
     filtered.sort((a, b) => {
       // Find priority objects
       const aPriorityObj = availablePriorities.find(
-        (p) => p.name === a.metadata.priority || p.alternatives.includes(a.metadata.priority || "")
+        (p) => p.name === a.metadata.priority || p.alternatives.includes(a.metadata.priority || ""),
       );
       const bPriorityObj = availablePriorities.find(
-        (p) => p.name === b.metadata.priority || p.alternatives.includes(b.metadata.priority || "")
+        (p) => p.name === b.metadata.priority || p.alternatives.includes(b.metadata.priority || ""),
       );
-      
+
       const aOrder = aPriorityObj?.order ?? 999;
       const bOrder = bPriorityObj?.order ?? 999;
-      
+
       return aOrder - bOrder; // Lower order first
     });
 
