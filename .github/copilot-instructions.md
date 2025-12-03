@@ -128,6 +128,9 @@ Components are organized by purpose:
 - **AlternativesInput** - Comma-separated input with preview badges
 - **ActionButtons** - Archive/unarchive + delete button group
 - **CollapsibleSection** - Collapsible section with header and count
+- **EmptyState** - Standardized empty state with emoji, message, and optional action
+- **MetadataSection** - Reusable metadata section with badges and add dropdown
+- **FilterSection** - Standardized filter section with select/clear all buttons
 
 ### Hooks
 
