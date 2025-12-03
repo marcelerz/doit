@@ -1,5 +1,13 @@
 import React from "react";
-import { MarkerColors, LinkPattern, Person, Project, Priority, DateTimeSettings } from "@/types/settings";
+import {
+  MarkerColors,
+  LinkPattern,
+  Person,
+  Project,
+  Priority,
+  DateTimeSettings,
+  WorkHoursSettings,
+} from "@/types/settings";
 import { parseDate } from "@/utils/dateParser";
 
 interface MarkedTextProps {
@@ -11,6 +19,7 @@ interface MarkedTextProps {
   availableProjects?: Project[];
   availablePriorities?: Priority[];
   dateTimeSettings?: DateTimeSettings;
+  workHoursSettings?: WorkHoursSettings;
 }
 
 export function MarkedText({
@@ -22,6 +31,7 @@ export function MarkedText({
   availableProjects = [],
   availablePriorities = [],
   dateTimeSettings,
+  workHoursSettings,
 }: MarkedTextProps) {
   // Parse the text and create elements with markers highlighted
   const parts: React.ReactNode[] = [];
@@ -200,8 +210,8 @@ export function MarkedText({
       } else if (match.type === "dueDate") {
         // For dueDate, parse and format the date for display
         bgColor = markerColors?.[match.type as keyof MarkerColors];
-        if (match.name && dateTimeSettings) {
-          const parsed = parseDate(match.name, dateTimeSettings);
+        if (match.name && dateTimeSettings && workHoursSettings) {
+          const parsed = parseDate(match.name, dateTimeSettings, workHoursSettings);
           if (parsed) {
             displayText = `~${parsed.formatted}`;
           }

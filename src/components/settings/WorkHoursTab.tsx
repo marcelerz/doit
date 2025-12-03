@@ -87,82 +87,112 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
     });
   };
 
-  const renderScheduleEditor = (schedule: DaySchedule, type: "common" | "weekday" | "weekend", title: string) => (
-    <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
-      <h4 className="font-medium text-zinc-900 dark:text-zinc-100">{title}</h4>
+  const renderScheduleEditor = (schedule: DaySchedule, type: "common" | "weekday" | "weekend", title: string) => {
+    const isEnabled = schedule.enabled !== false; // Default to enabled if not specified
+    const showToggle = type === "weekday" || type === "weekend";
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Start Time</label>
-          <input
-            type="time"
-            value={schedule.startTime}
-            onChange={(e) => updateSchedule(type, { startTime: e.target.value })}
-            className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+    return (
+      <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h4 className="font-medium text-zinc-900 dark:text-zinc-100">{title}</h4>
+          {showToggle && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isEnabled}
+                onChange={(e) => updateSchedule(type, { enabled: e.target.checked })}
+                className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-600"
+              />
+              <span className="text-sm text-zinc-700 dark:text-zinc-300">{isEnabled ? "Enabled" : "Disabled"}</span>
+            </label>
+          )}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">End Time</label>
-          <input
-            type="time"
-            value={schedule.endTime}
-            onChange={(e) => updateSchedule(type, { endTime: e.target.value })}
-            className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-      </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Break Periods</label>
-          <button onClick={() => addBreak(type)} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
-            + Add Break
-          </button>
-        </div>
-        {schedule.breaks.length === 0 ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">No breaks configured</p>
-        ) : (
-          <div className="space-y-2">
-            {schedule.breaks.map((breakPeriod) => (
-              <div key={breakPeriod.id} className="bg-white dark:bg-zinc-900 rounded p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <input
-                    type="text"
-                    value={breakPeriod.name}
-                    onChange={(e) => updateBreak(type, breakPeriod.id, { name: e.target.value })}
-                    className="flex-1 px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    placeholder="Break name"
-                  />
-                  <button
-                    onClick={() => removeBreak(type, breakPeriod.id)}
-                    className="ml-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="time"
-                    value={breakPeriod.startTime}
-                    onChange={(e) => updateBreak(type, breakPeriod.id, { startTime: e.target.value })}
-                    className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                  <input
-                    type="time"
-                    value={breakPeriod.endTime}
-                    onChange={(e) => updateBreak(type, breakPeriod.id, { endTime: e.target.value })}
-                    className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
+        {isEnabled && (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Start Time</label>
+                <input
+                  type="time"
+                  value={schedule.startTime}
+                  onChange={(e) => updateSchedule(type, { startTime: e.target.value })}
+                  className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
-            ))}
-          </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">End Time</label>
+                <input
+                  type="time"
+                  value={schedule.endTime}
+                  onChange={(e) => updateSchedule(type, { endTime: e.target.value })}
+                  className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Break Periods</label>
+                <button
+                  onClick={() => addBreak(type)}
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  + Add Break
+                </button>
+              </div>
+              {schedule.breaks.length === 0 ? (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">No breaks configured</p>
+              ) : (
+                <div className="space-y-2">
+                  {schedule.breaks.map((breakPeriod) => (
+                    <div key={breakPeriod.id} className="bg-white dark:bg-zinc-900 rounded p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <input
+                          type="text"
+                          value={breakPeriod.name}
+                          onChange={(e) => updateBreak(type, breakPeriod.id, { name: e.target.value })}
+                          className="flex-1 px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder="Break name"
+                        />
+                        <button
+                          onClick={() => removeBreak(type, breakPeriod.id)}
+                          className="ml-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="time"
+                          value={breakPeriod.startTime}
+                          onChange={(e) => updateBreak(type, breakPeriod.id, { startTime: e.target.value })}
+                          className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        <input
+                          type="time"
+                          value={breakPeriod.endTime}
+                          onChange={(e) => updateBreak(type, breakPeriod.id, { endTime: e.target.value })}
+                          className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -269,33 +299,147 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
           <div className="space-y-4">
             {WEEKDAYS.map((day) => {
               const schedule = workHours.customSchedules[day] || workHours.weekdaySchedule;
+              const isEnabled = schedule.enabled !== false; // Default to enabled if not specified
               return (
                 <div key={day} className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
-                  <h4 className="font-medium text-zinc-900 dark:text-zinc-100">{WEEKDAY_LABELS[day]}</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                        Start Time
-                      </label>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-zinc-900 dark:text-zinc-100">{WEEKDAY_LABELS[day]}</h4>
+                    <label className="flex items-center gap-2 cursor-pointer">
                       <input
-                        type="time"
-                        value={schedule.startTime}
-                        onChange={(e) => updateCustomSchedule(day, { startTime: e.target.value })}
-                        className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        type="checkbox"
+                        checked={isEnabled}
+                        onChange={(e) => updateCustomSchedule(day, { enabled: e.target.checked })}
+                        className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-600"
                       />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                        End Time
-                      </label>
-                      <input
-                        type="time"
-                        value={schedule.endTime}
-                        onChange={(e) => updateCustomSchedule(day, { endTime: e.target.value })}
-                        className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+                      <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                        {isEnabled ? "Enabled" : "Disabled"}
+                      </span>
+                    </label>
                   </div>
+                  {isEnabled && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            Start Time
+                          </label>
+                          <input
+                            type="time"
+                            value={schedule.startTime}
+                            onChange={(e) => updateCustomSchedule(day, { startTime: e.target.value })}
+                            className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            End Time
+                          </label>
+                          <input
+                            type="time"
+                            value={schedule.endTime}
+                            onChange={(e) => updateCustomSchedule(day, { endTime: e.target.value })}
+                            className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            Break Periods
+                          </label>
+                          <button
+                            onClick={() => {
+                              const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
+                              const newBreak: BreakPeriod = {
+                                id: `break-${Date.now()}`,
+                                name: "Break",
+                                startTime: "12:00",
+                                endTime: "13:00",
+                              };
+                              updateCustomSchedule(day, {
+                                breaks: [...existing.breaks, newBreak],
+                              });
+                            }}
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            + Add Break
+                          </button>
+                        </div>
+                        {schedule.breaks.length === 0 ? (
+                          <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">No breaks configured</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {schedule.breaks.map((breakPeriod) => (
+                              <div key={breakPeriod.id} className="bg-white dark:bg-zinc-900 rounded p-3 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <input
+                                    type="text"
+                                    value={breakPeriod.name}
+                                    onChange={(e) => {
+                                      const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
+                                      updateCustomSchedule(day, {
+                                        breaks: existing.breaks.map((b) =>
+                                          b.id === breakPeriod.id ? { ...b, name: e.target.value } : b,
+                                        ),
+                                      });
+                                    }}
+                                    className="flex-1 px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    placeholder="Break name"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
+                                      updateCustomSchedule(day, {
+                                        breaks: existing.breaks.filter((b) => b.id !== breakPeriod.id),
+                                      });
+                                    }}
+                                    className="ml-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                      />
+                                    </svg>
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <input
+                                    type="time"
+                                    value={breakPeriod.startTime}
+                                    onChange={(e) => {
+                                      const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
+                                      updateCustomSchedule(day, {
+                                        breaks: existing.breaks.map((b) =>
+                                          b.id === breakPeriod.id ? { ...b, startTime: e.target.value } : b,
+                                        ),
+                                      });
+                                    }}
+                                    className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  />
+                                  <input
+                                    type="time"
+                                    value={breakPeriod.endTime}
+                                    onChange={(e) => {
+                                      const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
+                                      updateCustomSchedule(day, {
+                                        breaks: existing.breaks.map((b) =>
+                                          b.id === breakPeriod.id ? { ...b, endTime: e.target.value } : b,
+                                        ),
+                                      });
+                                    }}
+                                    className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })}

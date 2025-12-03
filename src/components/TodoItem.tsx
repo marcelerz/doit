@@ -274,6 +274,7 @@ export function TodoItem({
             availablePriorities={availablePriorities}
             availableTodos={availableTodos}
             dateTimeSettings={generalSettings.dateTime}
+            workHoursSettings={generalSettings.workHours}
             onAddPerson={onAddPerson}
             onAddProject={onAddProject}
             onAddPriority={onAddPriority}
@@ -324,6 +325,7 @@ export function TodoItem({
               availableProjects={availableProjects}
               availablePriorities={availablePriorities}
               dateTimeSettings={generalSettings.dateTime}
+              workHoursSettings={generalSettings.workHours}
             />
           </div>
 

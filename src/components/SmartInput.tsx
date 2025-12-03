@@ -1,5 +1,5 @@
 import React, { useRef, forwardRef, useImperativeHandle, useState, useEffect } from "react";
-import { Person, Project, Priority, DateTimeSettings } from "@/types/settings";
+import { Person, Project, Priority, DateTimeSettings, WorkHoursSettings } from "@/types/settings";
 import { getDueDateSuggestions, parseDate, formatDateTime } from "@/utils/dateParser";
 import { getRecurringSuggestions } from "@/utils/recurringParser";
 import { Todo } from "@/types/todo";
@@ -27,6 +27,7 @@ export interface SmartEditableInputProps {
   onAddProject?: (name: string) => void; // Callback to add a new project
   onAddPriority?: (name: string) => void; // Callback to add a new priority
   dateTimeSettings?: DateTimeSettings; // Settings for parsing shorthand dates
+  workHoursSettings?: WorkHoursSettings; // Work hours for computing BOD/EOD
 }
 
 export interface SmartEditableInputHandle {
@@ -52,6 +53,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       onAddProject,
       onAddPriority,
       dateTimeSettings,
+      workHoursSettings,
     },
     ref,
   ) => {
@@ -370,8 +372,8 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
 
         // For due dates, try to parse and show formatted date as preview
         let displayText = token.raw;
-        if (token.type === "dueDate" && dateTimeSettings) {
-          const parsed = parseDate(token.value, dateTimeSettings);
+        if (token.type === "dueDate" && dateTimeSettings && workHoursSettings) {
+          const parsed = parseDate(token.value, dateTimeSettings, workHoursSettings);
           if (parsed) {
             displayText = `~${parsed.formatted}`;
           }
@@ -673,10 +675,10 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         if (selectedIndex >= 0 && selectedIndex < autocomplete.values.length) {
           finalValue = autocomplete.values[selectedIndex];
         }
-      } else if (autocomplete.type === "duedate" && dateTimeSettings) {
+      } else if (autocomplete.type === "duedate" && dateTimeSettings && workHoursSettings) {
         // For due date, parse the shorthand and convert to actual date
         const shorthand = value.includes(" - ") ? value.split(" - ")[0] : value;
-        const parsed = parseDate(shorthand, dateTimeSettings);
+        const parsed = parseDate(shorthand, dateTimeSettings, workHoursSettings);
         if (parsed) {
           finalValue = parsed.formatted;
         }

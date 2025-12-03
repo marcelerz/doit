@@ -17,6 +17,7 @@
 - [x] Add metadata organization and UI persistence
 - [x] Convert from boolean-based to state-based todo system
 - [x] Add multiple view tabs (List, Gantt, Calendar)
+- [x] Update Date/Time settings to derive BOD/EOD from Work Hours
 
 ## Project Details
 
@@ -24,7 +25,7 @@
 - **Features**: Todo app with localStorage persistence, state-based architecture, multiple views
 - **Design**: Full-page, mobile-responsive
 - **Status**: Complete and running
-- **Migration Version**: 4
+- **Migration Version**: 5 (removed BOD/EOD from dateTime settings)
 
 ## Views
 

@@ -316,6 +316,7 @@ export function TodoDetailsOverlay({
                       availableProjects={availableProjects}
                       availablePriorities={availablePriorities}
                       dateTimeSettings={generalSettings.dateTime}
+                      workHoursSettings={generalSettings.workHours}
                       onAddPerson={onAddPerson}
                       onAddProject={onAddProject}
                       onAddPriority={onAddPriority}
@@ -343,7 +344,13 @@ export function TodoDetailsOverlay({
                     className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 cursor-text hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded px-2 py-1 -mx-2 -my-1 transition-colors"
                     onClick={() => setIsEditing(true)}
                   >
-                    <MarkedText text={todo.text} markerColors={markerColors} linkPatterns={linkPatterns} />
+                    <MarkedText
+                      text={todo.text}
+                      markerColors={markerColors}
+                      linkPatterns={linkPatterns}
+                      dateTimeSettings={generalSettings.dateTime}
+                      workHoursSettings={generalSettings.workHours}
+                    />
                   </h2>
                 )}
               </div>

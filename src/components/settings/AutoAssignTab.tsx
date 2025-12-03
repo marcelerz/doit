@@ -38,15 +38,20 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
       "2h",
       "3h",
       "4h",
+      "5h",
       "6h",
-      "8h",
+      "7h",
+      "10h",
       "1d",
       "2d",
       "3d",
       "5d",
       "1w",
       "2w",
+      "3w",
       "1m",
+      "2m",
+      "3m",
     ];
 
     if (!input.trim()) return allSuggestions;
@@ -60,6 +65,7 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
       "today",
       "tomorrow",
       "next week",
+      "next month",
       "next monday",
       "next tuesday",
       "next wednesday",
@@ -69,10 +75,14 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
       "next sunday",
       "in 2 days",
       "in 3 days",
+      "in 5 days",
       "in 1 week",
       "in 2 weeks",
+      "in 3 weeks",
       "in 1 month",
-      "next month",
+      "in 2 months",
+      "in 3 months",
+      "in 6 months",
     ];
 
     if (!input.trim()) return allSuggestions;
@@ -83,23 +93,23 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
 
   const getRecurringSuggestions = (input: string): string[] => {
     const allSuggestions = [
-      "daily",
-      "every day",
-      "every weekday",
-      "weekly",
-      "every week",
-      "every monday",
-      "every tuesday",
-      "every wednesday",
-      "every thursday",
-      "every friday",
-      "every saturday",
-      "every sunday",
-      "every 2 weeks",
-      "monthly",
-      "every month",
-      "yearly",
-      "every year",
+      "daily (current time)",
+      "weekly (current time)",
+      "monthly (current time)",
+      "yearly (current time)",
+      "every day (BOD)",
+      "every weekday (BOD)",
+      "every week (BOD)",
+      "every 2 weeks (BOD)",
+      "every month (BOD)",
+      "every year (BOD)",
+      "every monday (BOD)",
+      "every tuesday (BOD)",
+      "every wednesday (BOD)",
+      "every thursday (BOD)",
+      "every friday (BOD)",
+      "every saturday (BOD)",
+      "every sunday (BOD)",
     ];
 
     if (!input.trim()) return allSuggestions;
@@ -128,19 +138,6 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         Automatically assign default values to new todos when markers are not explicitly provided.
       </p>
-
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-        <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-2">ℹ️ How it works</h4>
-        <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
-          {[
-            "Auto-assignment default values are applied only if markers are not provided",
-            "Explicitly provided markers always override auto-assignment defaults",
-            "Leave fields empty if you don't want automatic assignment for that metadata type",
-          ].map((note, index) => (
-            <li key={index}>{note}</li>
-          ))}
-        </ul>
-      </div>
 
       <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
         <div className="space-y-4">
@@ -692,6 +689,19 @@ export function AutoAssignTab({ general, people, projects, priorities, onUpdate 
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+        <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-2">ℹ️ How it works</h4>
+        <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
+          {[
+            "Auto-assignment default values are applied only if markers are not provided",
+            "Explicitly provided markers always override auto-assignment defaults",
+            "Leave fields empty if you don't want automatic assignment for that metadata type",
+          ].map((note, index) => (
+            <li key={index}>{note}</li>
+          ))}
+        </ul>
       </div>
     </div>
   );

@@ -160,27 +160,6 @@ export function BackupTab({ onRestore }: BackupTabProps) {
         Automatically back up your data and restore from previous backups. Backups are stored locally in your browser.
       </p>
 
-      {/* Statistics */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-        <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">📊 Backup Statistics</h3>
-        <div className="grid grid-cols-2 gap-3 text-sm text-blue-800 dark:text-blue-200">
-          <div>
-            <span className="font-medium">Total Backups:</span> {stats.count}
-          </div>
-          <div>
-            <span className="font-medium">Total Size:</span> {formatSize(stats.totalSize)}
-          </div>
-          <div>
-            <span className="font-medium">Oldest:</span>{" "}
-            {stats.oldestDate ? new Date(stats.oldestDate).toLocaleDateString() : "N/A"}
-          </div>
-          <div>
-            <span className="font-medium">Newest:</span>{" "}
-            {stats.newestDate ? new Date(stats.newestDate).toLocaleDateString() : "N/A"}
-          </div>
-        </div>
-      </div>
-
       {/* Auto-Backup Settings */}
       <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
         <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Auto-Backup Settings</h3>
@@ -286,6 +265,27 @@ export function BackupTab({ onRestore }: BackupTabProps) {
             >
               {isImporting ? "Importing..." : "Import Backup File"}
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Statistics */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+        <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">📊 Backup Statistics</h3>
+        <div className="grid grid-cols-2 gap-3 text-sm text-blue-800 dark:text-blue-200">
+          <div>
+            <span className="font-medium">Total Backups:</span> {stats.count}
+          </div>
+          <div>
+            <span className="font-medium">Total Size:</span> {formatSize(stats.totalSize)}
+          </div>
+          <div>
+            <span className="font-medium">Oldest:</span>{" "}
+            {stats.oldestDate ? new Date(stats.oldestDate).toLocaleDateString() : "N/A"}
+          </div>
+          <div>
+            <span className="font-medium">Newest:</span>{" "}
+            {stats.newestDate ? new Date(stats.newestDate).toLocaleDateString() : "N/A"}
           </div>
         </div>
       </div>

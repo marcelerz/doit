@@ -73,19 +73,6 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
         )}
       </div>
 
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-        <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">How it works</h3>
-        <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
-          Link patterns convert text like{" "}
-          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">T12345</code> into clickable links.
-        </p>
-        <p className="text-sm text-blue-800 dark:text-blue-200">
-          Pattern: Capital letter followed by 4+ digits. Use{" "}
-          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">{"{id}"}</code> in the URL template as a
-          placeholder for the number.
-        </p>
-      </div>
-
       {isAdding && (
         <form
           onSubmit={handleSubmit}
@@ -205,6 +192,19 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
             </div>
           ))
         )}
+      </div>
+
+      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+        <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">How it works</h3>
+        <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+          Link patterns convert text like{" "}
+          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">T12345</code> into clickable links.
+        </p>
+        <p className="text-sm text-blue-800 dark:text-blue-200">
+          Pattern: Capital letter followed by 4+ digits. Use{" "}
+          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">{"{id}"}</code> in the URL template as a
+          placeholder for the number.
+        </p>
       </div>
     </div>
   );

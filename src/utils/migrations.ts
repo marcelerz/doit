@@ -133,6 +133,10 @@ function migratePriority(priority: any): Priority {
  * Migrate settings to the current format
  */
 export function migrateSettings(loadedSettings: any): Settings {
+  // Migrate dateTime settings: remove startOfDay/endOfDay if present (v5 migration)
+  const dateTimeSettings = loadedSettings.general?.dateTime || {};
+  const { startOfDay, endOfDay, ...cleanedDateTime } = dateTimeSettings;
+
   return {
     ...defaultSettings,
     ...loadedSettings,
@@ -154,7 +158,11 @@ export function migrateSettings(loadedSettings: any): Settings {
       },
       dateTime: {
         ...defaultSettings.general.dateTime,
-        ...(loadedSettings.general?.dateTime || {}),
+        ...cleanedDateTime, // Use cleaned settings without startOfDay/endOfDay
+      },
+      workHours: {
+        ...defaultSettings.general.workHours,
+        ...(loadedSettings.general?.workHours || {}),
       },
       autoAssign: {
         ...defaultSettings.general.autoAssign,

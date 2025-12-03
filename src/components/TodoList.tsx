@@ -2189,6 +2189,7 @@ export function TodoList() {
                       availablePriorities={sortedPriorities}
                       availableTodos={todos}
                       dateTimeSettings={settings.general.dateTime}
+                      workHoursSettings={settings.general.workHours}
                       onAddPerson={handleAddPerson}
                       onAddProject={handleAddProject}
                       onAddPriority={handleAddPriority}

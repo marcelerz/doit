@@ -22,45 +22,14 @@ export function DateTimeTab({ dateTime, onUpdate }: DateTimeTabProps) {
       </div>
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Configure time boundaries for shorthand date expressions like "eod" (end of day) and "bow" (beginning of week).
+        Configure time boundaries for shorthand date expressions. BOD (Beginning of Day) and EOD (End of Day) are
+        automatically derived from your Work Hours settings.
       </p>
 
       <div className="space-y-4">
         {/* Date & Time Settings */}
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
           <div className="space-y-4">
-            {/* Start of Day */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Start of Day (BOD)
-              </label>
-              <input
-                type="time"
-                value={dateTime.startOfDay}
-                onChange={(e) => handleDateTimeChange("startOfDay", e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                Used when interpreting "bod" or "beginning of day" in due dates
-              </p>
-            </div>
-
-            {/* End of Day */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                End of Day (EOD)
-              </label>
-              <input
-                type="time"
-                value={dateTime.endOfDay}
-                onChange={(e) => handleDateTimeChange("endOfDay", e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                Used when interpreting "eod" or "end of day" in due dates
-              </p>
-            </div>
-
             {/* Morning */}
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Morning</label>
@@ -174,7 +143,7 @@ export function DateTimeTab({ dateTime, onUpdate }: DateTimeTabProps) {
           <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-2">ℹ️ Shorthand Date Examples</h4>
           <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
             {[
-              "bod, eod - Beginning/End of day (use configured times)",
+              "bod, eod - Beginning/End of day (derived from Work Hours tab)",
               "morning, noon, afternoon, evening - Time-of-day shortcuts",
               "bow, eow - Beginning/End of week (respects workWeekStart)",
               "bom, eom - Beginning/End of month",
