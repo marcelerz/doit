@@ -36,6 +36,8 @@
 - [x] Refactor TodoDetailsOverlay to use MetadataSection for 6 metadata types (people, projects, tags, dependencies)
 - [x] Refactor TodoListView to use EmptyState for people and projects views
 - [x] Refactor TodoListView to use FilterSection for all 10 filter types (assigned, projects, source, mentioned, priorities, dueDates, durations, tags, recurring, dependencies)
+- [x] Make filter button colors dynamic using marker colors from settings (not hardcoded)
+- [x] Create utility functions for common patterns (metadataParser, filterHelpers)
 
 ## Project Details
 
@@ -153,6 +155,8 @@ Components are organized by purpose:
 - **storage.ts** - Storage abstraction layer
 - **dateParser.ts** - Date parsing, suggestions, and conversion utilities (convertToDateInputFormat, convertToTimeInputFormat)
 - **recurringParser.ts** - Recurring pattern parsing
+- **metadataParser.ts** - Token-to-metadata conversion (parseTokensToMetadata)
+- **filterHelpers.ts** - Filter operations (setToSortedArray, arrayHasAnyFromSet, setHasValue)
 
 ## Types
 

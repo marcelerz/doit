@@ -21,6 +21,8 @@ import { calculateUsageStats, sortByUsage, UsageStats } from "@/utils/usageStats
 import { normalizeDateValue } from "@/utils/dateParser";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterSection } from "@/components/shared/FilterSection";
+import { parseTokensToMetadata } from "@/utils/metadataParser";
+import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
 
 interface TodoFilters {
   searchText: string;
@@ -465,49 +467,7 @@ export function TodoList() {
     if (!currentPlainText.trim()) return;
 
     // Parse tokens into metadata
-    const metadata: TodoMetadata = {
-      assignedPeople: [],
-      sourcePeople: [],
-      mentionedPeople: [],
-      projects: [],
-      dependencies: [],
-      tags: [],
-    };
-
-    currentTokens.forEach((token) => {
-      switch (token.type) {
-        case "assigned":
-          metadata.assignedPeople.push(token.value);
-          break;
-        case "source":
-          metadata.sourcePeople.push(token.value);
-          break;
-        case "mentioned":
-          metadata.mentionedPeople.push(token.value);
-          break;
-        case "project":
-          metadata.projects.push(token.value);
-          break;
-        case "priority":
-          metadata.priority = token.value;
-          break;
-        case "dueDate":
-          metadata.dueDate = token.value;
-          break;
-        case "duration":
-          metadata.duration = token.value;
-          break;
-        case "recurring":
-          metadata.recurring = token.value;
-          break;
-        case "dependency":
-          metadata.dependencies.push(token.value);
-          break;
-        case "tag":
-          metadata.tags.push(token.value);
-          break;
-      }
-    });
+    const metadata = parseTokensToMetadata(currentTokens);
 
     // Apply auto-assignment defaults if field not provided
     const autoAssign = settings.autoAssign;
@@ -583,16 +543,16 @@ export function TodoList() {
     });
 
     return {
-      assignedPeople: Array.from(assignedPeople).sort(),
-      sourcePeople: Array.from(sourcePeople).sort(),
-      mentionedPeople: Array.from(mentionedPeople).sort(),
-      projects: Array.from(projects).sort(),
-      priorities: Array.from(priorities).sort(),
-      dueDates: Array.from(dueDates).sort(),
-      durations: Array.from(durations).sort(),
-      tags: Array.from(tags).sort(),
-      recurring: Array.from(recurring).sort(),
-      dependencies: Array.from(dependencies).sort(),
+      assignedPeople: setToSortedArray(assignedPeople),
+      sourcePeople: setToSortedArray(sourcePeople),
+      mentionedPeople: setToSortedArray(mentionedPeople),
+      projects: setToSortedArray(projects),
+      priorities: setToSortedArray(priorities),
+      dueDates: setToSortedArray(dueDates),
+      durations: setToSortedArray(durations),
+      tags: setToSortedArray(tags),
+      recurring: setToSortedArray(recurring),
+      dependencies: setToSortedArray(dependencies),
     };
   }, [todos]);
 
@@ -708,61 +668,61 @@ export function TodoList() {
 
       // Metadata filters (OR logic within each category)
       if (filters.assignedPeople.size > 0) {
-        if (!todo.metadata.assignedPeople.some((p) => filters.assignedPeople.has(p))) {
+        if (!arrayHasAnyFromSet(todo.metadata.assignedPeople, filters.assignedPeople)) {
           return false;
         }
       }
 
       if (filters.sourcePeople.size > 0) {
-        if (!todo.metadata.sourcePeople.some((p) => filters.sourcePeople.has(p))) {
+        if (!arrayHasAnyFromSet(todo.metadata.sourcePeople, filters.sourcePeople)) {
           return false;
         }
       }
 
       if (filters.mentionedPeople.size > 0) {
-        if (!todo.metadata.mentionedPeople.some((p) => filters.mentionedPeople.has(p))) {
+        if (!arrayHasAnyFromSet(todo.metadata.mentionedPeople, filters.mentionedPeople)) {
           return false;
         }
       }
 
       if (filters.projects.size > 0) {
-        if (!todo.metadata.projects.some((p) => filters.projects.has(p))) {
+        if (!arrayHasAnyFromSet(todo.metadata.projects, filters.projects)) {
           return false;
         }
       }
 
       if (filters.priorities.size > 0) {
-        if (!todo.metadata.priority || !filters.priorities.has(todo.metadata.priority)) {
+        if (!setHasValue(filters.priorities, todo.metadata.priority)) {
           return false;
         }
       }
 
       if (filters.dueDates.size > 0) {
-        if (!todo.metadata.dueDate || !filters.dueDates.has(todo.metadata.dueDate)) {
+        if (!setHasValue(filters.dueDates, todo.metadata.dueDate)) {
           return false;
         }
       }
 
       if (filters.durations.size > 0) {
-        if (!todo.metadata.duration || !filters.durations.has(todo.metadata.duration)) {
+        if (!setHasValue(filters.durations, todo.metadata.duration)) {
           return false;
         }
       }
 
       if (filters.tags.size > 0) {
-        if (!todo.metadata.tags.some((t) => filters.tags.has(t))) {
+        if (!arrayHasAnyFromSet(todo.metadata.tags, filters.tags)) {
           return false;
         }
       }
 
       if (filters.recurring.size > 0) {
-        if (!todo.metadata.recurring || !filters.recurring.has(todo.metadata.recurring)) {
+        if (!setHasValue(filters.recurring, todo.metadata.recurring)) {
           return false;
         }
       }
 
       if (filters.dependencies.size > 0) {
-        if (!todo.metadata.dependencies.some((d) => filters.dependencies.has(d))) {
+        if (!arrayHasAnyFromSet(todo.metadata.dependencies, filters.dependencies)) {
           return false;
         }
       }
