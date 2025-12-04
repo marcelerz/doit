@@ -929,14 +929,14 @@ export function TodoApp() {
   const now = Date.now();
 
   // Categorize todos and apply filters (exclude deleted todos)
-  const allActiveTodos = todos.filter((todo) => todo.state === "active");
+  const allActiveTodos = todos.filter((todo) => todo.isActive);
   const allCompletedTodos = todos.filter((todo) => {
-    if (todo.state !== "completed") return false;
+    if (!todo.isCompleted) return false;
     if (!todo.completedAt) return true; // Legacy completed todos without timestamp
     const timeSinceCompletion = now - todo.completedAt;
     return timeSinceCompletion < archiveThresholdMs;
   });
-  const allArchivedTodos = todos.filter((todo) => todo.state === "archived");
+  const allArchivedTodos = todos.filter((todo) => todo.isArchived);
 
   const activeTodos = sortTodos(applyFilters(allActiveTodos));
   const groupedActiveTodos = groupTodos(activeTodos);

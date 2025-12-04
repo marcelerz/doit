@@ -241,12 +241,31 @@ export function TodoDetailsOverlay({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">
-          {/* Header */}
+          {/* Header with Status Badge */}
+          <div className="flex items-center justify-between mb-4">
+            <div
+              className="px-3 py-1 rounded-full text-xs font-medium"
+              style={{ backgroundColor: todo.statusColor + "20", color: todo.statusColor }}
+            >
+              {todo.statusBadge}
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-zinc-500 dark:text-zinc-400"
+              aria-label="Close"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Task Content */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-start gap-3 flex-1">
               <input
                 type="checkbox"
-                checked={todo.state === "completed"}
+                checked={todo.isCompleted}
                 onChange={() => onToggle(todo.id)}
                 className="mt-1 w-5 h-5 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
               />
@@ -405,37 +424,34 @@ export function TodoDetailsOverlay({
                 )}
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors ml-4"
-              aria-label="Close"
-              title="Close"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
+
+          {/* Metadata Summary */}
+          {todo.hasMetadata && (
+            <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">{todo.metadataSummary}</p>
+            </div>
+          )}
 
           {/* Timestamps */}
           <div className="pb-4 border-b border-zinc-200 dark:border-zinc-800 mb-4">
             <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-600 dark:text-zinc-400">
               <div>
-                <span className="font-medium">Created:</span> {new Date(todo.createdAt).toLocaleString()}
+                <span className="font-medium">Created:</span> {todo.createdDateDisplay} ({todo.ageDisplay})
               </div>
               {todo.updatedAt && (
                 <div>
-                  <span className="font-medium">Updated:</span> {new Date(todo.updatedAt).toLocaleString()}
+                  <span className="font-medium">Updated:</span> {todo.updatedDateDisplay}
                 </div>
               )}
               {todo.completedAt && (
                 <div>
-                  <span className="font-medium">Completed:</span> {new Date(todo.completedAt).toLocaleString()}
+                  <span className="font-medium">Completed:</span> {todo.completedDateDisplay}
                 </div>
               )}
               {todo.archivedAt && (
                 <div>
-                  <span className="font-medium">Archived:</span> {new Date(todo.archivedAt).toLocaleString()}
+                  <span className="font-medium">Archived:</span> {new Date(todo.archivedAt).toLocaleDateString()}
                 </div>
               )}
             </div>
@@ -1086,7 +1102,17 @@ export function TodoDetailsOverlay({
 
           {/* Activity (includes comments inline) */}
           <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-4">
-            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">📋 Activity</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+                📋 Activity
+                {todo.hasActivity && (
+                  <span className="ml-2 text-xs font-normal text-zinc-500 dark:text-zinc-500">
+                    ({todo.activityCount} {todo.activityCount === 1 ? "entry" : "entries"}
+                    {todo.hasComments && `, ${todo.commentCount} ${todo.commentCount === 1 ? "comment" : "comments"}`})
+                  </span>
+                )}
+              </h4>
+            </div>
 
             {/* Add comment input */}
             {onAddComment && (

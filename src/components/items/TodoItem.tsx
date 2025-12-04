@@ -313,7 +313,7 @@ export function TodoItem({
       <div className="flex items-start gap-3">
         <input
           type="checkbox"
-          checked={todo.state === "completed" || todo.state === "archived"}
+          checked={todo.isCompleted || todo.isArchived}
           onChange={() => onToggle(todo.id)}
           onClick={(e) => e.stopPropagation()}
           className="w-5 h-5 mt-0.5 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer flex-shrink-0"
@@ -322,7 +322,7 @@ export function TodoItem({
           <div className="text-base">
             <MarkedText
               text={todo.text}
-              completed={todo.state === "completed" || todo.state === "archived"}
+              completed={todo.isCompleted || todo.isArchived}
               markerColors={markerColors}
               linkPatterns={linkPatterns}
               availablePeople={availablePeople}
@@ -343,16 +343,16 @@ export function TodoItem({
               <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-600 dark:text-zinc-400">
                   <div>
-                    <span className="font-medium">Created:</span> {new Date(todo.createdAt).toLocaleString()}
+                    <span className="font-medium">Created:</span> {todo.createdDateDisplay} ({todo.ageDisplay})
                   </div>
                   {todo.updatedAt && (
                     <div>
-                      <span className="font-medium">Updated:</span> {new Date(todo.updatedAt).toLocaleString()}
+                      <span className="font-medium">Updated:</span> {todo.updatedDateDisplay}
                     </div>
                   )}
                   {todo.completedAt && (
                     <div>
-                      <span className="font-medium">Completed:</span> {new Date(todo.completedAt).toLocaleString()}
+                      <span className="font-medium">Completed:</span> {todo.completedDateDisplay}
                     </div>
                   )}
                   {todo.archivedAt && (
@@ -555,7 +555,7 @@ export function TodoItem({
         </div>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           {/* Delayed button - only for active todos */}
-          {todo.state === "active" && (
+          {todo.isActive && (
             <div className="relative">
               <button
                 onClick={(e) => {
@@ -632,7 +632,7 @@ export function TodoItem({
           )}
 
           {/* Edit button - only for active (not completed, not archived) todos */}
-          {todo.state === "active" && (
+          {todo.isActive && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -654,7 +654,7 @@ export function TodoItem({
           )}
 
           {/* Archive button - for active and completed todos */}
-          {(todo.state === "active" || todo.state === "completed") && onArchive && (
+          {(todo.isActive || todo.isCompleted) && onArchive && (
             <button
               onClick={(e) => {
                 e.stopPropagation();

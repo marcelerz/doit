@@ -207,7 +207,7 @@ export function GanttView({
 
     // First, schedule all completed/archived tasks at their exact completion time
     const activeTodosOnly = allActiveTodos.filter((todo) => {
-      if (todo.state === "completed" && todo.completedAt) {
+      if (todo.isCompleted && todo.completedAt) {
         const completionDate = new Date(todo.completedAt);
 
         // Assign to the day based on LOCAL date (not UTC date)
@@ -220,7 +220,7 @@ export function GanttView({
         return false; // Remove from active scheduling
       }
 
-      if (todo.state === "archived") {
+      if (todo.isArchived) {
         // Archived tasks use completedAt if available, otherwise skip scheduling
         if (todo.completedAt) {
           const completionDate = new Date(todo.completedAt);
@@ -331,7 +331,7 @@ export function GanttView({
 
     // Check if any completed/archived tasks fall outside work hours
     todosForDate.forEach((todo) => {
-      if ((todo.state === "completed" || todo.state === "archived") && todo.completedAt) {
+      if ((todo.isCompleted || todo.isArchived) && todo.completedAt) {
         const completionDate = new Date(todo.completedAt);
         const durationMinutes = parseDuration(todo.metadata.duration);
         const taskStartTime = new Date(completionDate.getTime() - durationMinutes * 60 * 1000);
@@ -382,7 +382,7 @@ export function GanttView({
 
     for (const todo of todosForDate) {
       // For completed/archived tasks, schedule based on their actual completion time
-      if ((todo.state === "completed" || todo.state === "archived") && todo.completedAt) {
+      if ((todo.isCompleted || todo.isArchived) && todo.completedAt) {
         const completionDate = new Date(todo.completedAt);
         const durationMinutes = parseDuration(todo.metadata.duration);
 
@@ -545,8 +545,8 @@ export function GanttView({
 
   const getProjectColor = (todo: TodoModel): string => {
     // Use gray for completed, light yellow for archived
-    if (todo.state === "completed") return "#9ca3af"; // gray-400
-    if (todo.state === "archived") return "#fef08a"; // yellow-200
+    if (todo.isCompleted) return "#9ca3af"; // gray-400
+    if (todo.isArchived) return "#fef08a"; // yellow-200
 
     // If todo has a project, look up the project entity and use its custom color
     if (todo.metadata.projects && todo.metadata.projects.length > 0) {
@@ -656,7 +656,7 @@ export function GanttView({
 
       for (const todo of tasksForDay) {
         // For completed/archived tasks, schedule based on their actual completion time
-        if ((todo.state === "completed" || todo.state === "archived") && todo.completedAt) {
+        if ((todo.isCompleted || todo.isArchived) && todo.completedAt) {
           const completionDate = new Date(todo.completedAt);
           const durationMinutes = parseDuration(todo.metadata.duration);
 
@@ -850,7 +850,7 @@ export function GanttView({
             return (
               <div key={index} className="relative h-2 bg-zinc-100 dark:bg-zinc-800 rounded-sm overflow-hidden">
                 {scheduled.map((task, i) => {
-                  const isCompleted = task.todo.state === "completed" || task.todo.state === "archived";
+                  const isCompleted = task.todo.isCompleted || task.todo.isArchived;
 
                   // Handle tasks outside work hours
                   let clampedStart = task.startPercent;
@@ -1029,7 +1029,7 @@ export function GanttView({
               <div className="relative space-y-0 mx-4" style={{ overflow: "visible" }}>
                 {scheduledTasks.map((task, index) => {
                   // Now all tasks use the same positioning since timeline is dynamically expanded
-                  const isCompletedTask = task.todo.state === "completed" || task.todo.state === "archived";
+                  const isCompletedTask = task.todo.isCompleted || task.todo.isArchived;
                   const startPos = getTimePosition(task.startTime);
                   const endPos = getTimePosition(task.endTime);
                   const width = endPos - startPos;
