@@ -56,9 +56,9 @@ export default function SettingsPage() {
     updateAutoAssignSettings,
   } = useSettings();
 
-  const { people, isLoaded: peopleLoaded, addPerson, updatePerson, deletePerson } = usePeople();
+  const { people, isLoaded: peopleLoaded } = usePeople();
 
-  const { projects, isLoaded: projectsLoaded, addProject, updateProject, deleteProject } = useProjects();
+  const { projects, isLoaded: projectsLoaded } = useProjects();
 
   const isLoaded = settingsLoaded && peopleLoaded && projectsLoaded;
 
