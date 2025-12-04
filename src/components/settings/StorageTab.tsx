@@ -20,24 +20,32 @@ export function StorageTab() {
   const [storageType, setStorageType] = useState<StorageType>("localStorage");
 
   useEffect(() => {
-    detectStorageType();
-    estimateStorageQuota();
-    calculateStorageUsage();
+    const init = async () => {
+      const adapter = getStorageAdapter();
+      const adapterName = adapter.constructor.name;
+      const detectedType: StorageType = adapterName === "IndexedDBAdapter" ? "indexedDB" : "localStorage";
+      setStorageType(detectedType);
+      
+      await estimateStorageQuota(detectedType);
+      await calculateStorageUsage();
+    };
+    init();
   }, []);
 
   const detectStorageType = () => {
     const adapter = getStorageAdapter();
     const adapterName = adapter.constructor.name;
-    setStorageType(adapterName === "IndexedDBAdapter" ? "indexedDB" : "localStorage");
+    return adapterName === "IndexedDBAdapter" ? "indexedDB" : "localStorage";
   };
 
-  const estimateStorageQuota = async () => {
+  const estimateStorageQuota = async (type?: StorageType) => {
+    const currentType = type || storageType;
     try {
       // Try to get actual quota using StorageManager API
       if ("storage" in navigator && "estimate" in navigator.storage) {
         const estimate = await navigator.storage.estimate();
         if (estimate.quota) {
-          if (storageType === "indexedDB") {
+          if (currentType === "indexedDB") {
             // For IndexedDB, use the full quota (usually much larger)
             setTotalAvailable(estimate.quota);
           } else {
@@ -54,7 +62,7 @@ export function StorageTab() {
     }
 
     // Fallback based on storage type
-    if (storageType === "indexedDB") {
+    if (currentType === "indexedDB") {
       setTotalAvailable(50 * 1024 * 1024); // 50MB conservative estimate for IndexedDB
     } else {
       setTotalAvailable(5 * 1024 * 1024); // 5MB conservative estimate for localStorage
@@ -190,8 +198,9 @@ export function StorageTab() {
         </div>
         <button
           onClick={() => {
-            detectStorageType();
-            estimateStorageQuota();
+            const detectedType = detectStorageType();
+            setStorageType(detectedType);
+            estimateStorageQuota(detectedType);
             calculateStorageUsage();
           }}
           className="text-sm px-3 py-1.5 rounded-md bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
