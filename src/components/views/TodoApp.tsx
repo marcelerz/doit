@@ -23,6 +23,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterSection } from "@/components/shared/FilterSection";
 import { parseTokensToMetadata } from "@/utils/metadataParser";
 import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
+import { STORAGE_KEYS, getStorageAdapter } from "@/utils/storage";
 
 interface TodoFilters {
   searchText: string;
@@ -225,7 +226,8 @@ export function TodoApp() {
   const [viewPresets, setViewPresets] = useState<ViewPreset[]>(() => {
     try {
       if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("doit-view-presets");
+        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_PRESETS);
+        const saved = typeof result === "string" ? result : null;
         if (saved) {
           return JSON.parse(saved);
         }
@@ -239,7 +241,7 @@ export function TodoApp() {
   // Save view presets to localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("doit-view-presets", JSON.stringify(viewPresets));
+      getStorageAdapter().setItem(STORAGE_KEYS.VIEW_PRESETS, JSON.stringify(viewPresets));
     }
   }, [viewPresets]);
 
@@ -247,7 +249,8 @@ export function TodoApp() {
   const [filters, setFilters] = useState<TodoFilters>(() => {
     try {
       if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("doit-view-options");
+        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
+        const saved = typeof result === "string" ? result : null;
         if (saved) {
           const parsed = JSON.parse(saved);
           return {
@@ -288,7 +291,8 @@ export function TodoApp() {
   const [sortField, setSortField] = useState<SortField>(() => {
     try {
       if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("doit-view-options");
+        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
+        const saved = typeof result === "string" ? result : null;
         if (saved) {
           const parsed = JSON.parse(saved);
           return (parsed.sortField as SortField) || "priority";
@@ -303,7 +307,8 @@ export function TodoApp() {
   const [sortDirection, setSortDirection] = useState<SortDirection>(() => {
     try {
       if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("doit-view-options");
+        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
+        const saved = typeof result === "string" ? result : null;
         if (saved) {
           const parsed = JSON.parse(saved);
           return (parsed.sortDirection as SortDirection) || "asc";
@@ -318,7 +323,8 @@ export function TodoApp() {
   const [groupBy, setGroupBy] = useState<GroupBy>(() => {
     try {
       if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("doit-view-options");
+        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
+        const saved = typeof result === "string" ? result : null;
         if (saved) {
           const parsed = JSON.parse(saved);
           return (parsed.groupBy as GroupBy) || "dueDate";
@@ -351,7 +357,7 @@ export function TodoApp() {
       groupBy,
     };
     if (typeof window !== "undefined") {
-      localStorage.setItem("doit-view-options", JSON.stringify(viewOptions));
+      getStorageAdapter().setItem(STORAGE_KEYS.VIEW_OPTIONS, JSON.stringify(viewOptions));
     }
 
     // Check if current view matches any preset

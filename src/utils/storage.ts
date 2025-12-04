@@ -5,9 +5,11 @@
  */
 
 export interface StorageAdapter {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-  removeItem(key: string): void;
+  getItem(key: string): Promise<string | null> | string | null;
+  setItem(key: string, value: string): Promise<void> | void;
+  removeItem(key: string): Promise<void> | void;
+  clear?(): Promise<void> | void;
+  getAllKeys?(): Promise<string[]> | string[];
 }
 
 class LocalStorageAdapter implements StorageAdapter {
@@ -35,6 +37,134 @@ class LocalStorageAdapter implements StorageAdapter {
       console.error(`Failed to remove item ${key}:`, error);
     }
   }
+
+  clear(): void {
+    try {
+      localStorage.clear();
+    } catch (error) {
+      console.error("Failed to clear storage:", error);
+    }
+  }
+
+  getAllKeys(): string[] {
+    try {
+      return Object.keys(localStorage);
+    } catch (error) {
+      console.error("Failed to get all keys:", error);
+      return [];
+    }
+  }
+}
+
+// IndexedDB adapter implementation
+class IndexedDBAdapter implements StorageAdapter {
+  private dbName = "doit-db";
+  private storeName = "keyvalue";
+  private dbVersion = 1;
+  private db: IDBDatabase | null = null;
+
+  private async getDB(): Promise<IDBDatabase> {
+    if (this.db) return this.db;
+
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, this.dbVersion);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        this.db = request.result;
+        resolve(this.db);
+      };
+
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains(this.storeName)) {
+          db.createObjectStore(this.storeName);
+        }
+      };
+    });
+  }
+
+  async getItem(key: string): Promise<string | null> {
+    try {
+      const db = await this.getDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(this.storeName, "readonly");
+        const store = transaction.objectStore(this.storeName);
+        const request = store.get(key);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result ?? null);
+      });
+    } catch (error) {
+      console.error(`Failed to get item ${key}:`, error);
+      return null;
+    }
+  }
+
+  async setItem(key: string, value: string): Promise<void> {
+    try {
+      const db = await this.getDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(this.storeName, "readwrite");
+        const store = transaction.objectStore(this.storeName);
+        const request = store.put(value, key);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve();
+      });
+    } catch (error) {
+      console.error(`Failed to set item ${key}:`, error);
+    }
+  }
+
+  async removeItem(key: string): Promise<void> {
+    try {
+      const db = await this.getDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(this.storeName, "readwrite");
+        const store = transaction.objectStore(this.storeName);
+        const request = store.delete(key);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve();
+      });
+    } catch (error) {
+      console.error(`Failed to remove item ${key}:`, error);
+    }
+  }
+
+  async clear(): Promise<void> {
+    try {
+      const db = await this.getDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(this.storeName, "readwrite");
+        const store = transaction.objectStore(this.storeName);
+        const request = store.clear();
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve();
+      });
+    } catch (error) {
+      console.error("Failed to clear storage:", error);
+    }
+  }
+
+  async getAllKeys(): Promise<string[]> {
+    try {
+      const db = await this.getDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(this.storeName, "readonly");
+        const store = transaction.objectStore(this.storeName);
+        const request = store.getAllKeys();
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result as string[]);
+      });
+    } catch (error) {
+      console.error("Failed to get all keys:", error);
+      return [];
+    }
+  }
 }
 
 // Default storage adapter - can be swapped for different implementations
@@ -48,18 +178,26 @@ export function getStorageAdapter(): StorageAdapter {
   return storageAdapter;
 }
 
-// Storage keys
+// Create IndexedDB adapter instance
+export function createIndexedDBAdapter(): StorageAdapter {
+  return new IndexedDBAdapter();
+}
+
+// Storage keys - centralized registry of all storage keys
 export const STORAGE_KEYS = {
   TODOS: "doit-todos",
   PEOPLE: "doit-people",
   PROJECTS: "doit-projects",
   SETTINGS: "doit-settings",
   VERSION: "doit-version",
+  VIEW_PRESETS: "doit-view-presets",
+  VIEW_OPTIONS: "doit-view-options",
+  BACKUP_SETTINGS: "doit-backup-settings",
 } as const;
 
-// Generic storage helpers
-export function loadFromStorage<T>(key: string, defaultValue: T): T {
-  const stored = storageAdapter.getItem(key);
+// Generic storage helpers that handle both sync and async adapters
+export async function loadFromStorage<T>(key: string, defaultValue: T): Promise<T> {
+  const stored = await storageAdapter.getItem(key);
   if (!stored) return defaultValue;
 
   try {
@@ -70,14 +208,62 @@ export function loadFromStorage<T>(key: string, defaultValue: T): T {
   }
 }
 
-export function saveToStorage<T>(key: string, value: T): void {
+export async function saveToStorage<T>(key: string, value: T): Promise<void> {
   try {
-    storageAdapter.setItem(key, JSON.stringify(value));
+    await storageAdapter.setItem(key, JSON.stringify(value));
   } catch (error) {
     console.error(`Failed to save data for ${key}:`, error);
   }
 }
 
-export function removeFromStorage(key: string): void {
-  storageAdapter.removeItem(key);
+export async function removeFromStorage(key: string): Promise<void> {
+  await storageAdapter.removeItem(key);
+}
+
+export async function clearAllStorage(): Promise<void> {
+  if (storageAdapter.clear) {
+    await storageAdapter.clear();
+  }
+}
+
+export async function getAllStorageKeys(): Promise<string[]> {
+  if (storageAdapter.getAllKeys) {
+    return await storageAdapter.getAllKeys();
+  }
+  return [];
+}
+
+// Synchronous versions for backward compatibility (only work with LocalStorage)
+export function loadFromStorageSync<T>(key: string, defaultValue: T): T {
+  const stored = storageAdapter.getItem(key);
+  if (stored instanceof Promise) {
+    console.warn(`Cannot use sync method with async storage adapter for key: ${key}`);
+    return defaultValue;
+  }
+  if (!stored) return defaultValue;
+
+  try {
+    return JSON.parse(stored);
+  } catch (error) {
+    console.error(`Failed to parse stored data for ${key}:`, error);
+    return defaultValue;
+  }
+}
+
+export function saveToStorageSync<T>(key: string, value: T): void {
+  try {
+    const result = storageAdapter.setItem(key, JSON.stringify(value));
+    if (result instanceof Promise) {
+      console.warn(`Cannot use sync method with async storage adapter for key: ${key}`);
+    }
+  } catch (error) {
+    console.error(`Failed to save data for ${key}:`, error);
+  }
+}
+
+export function removeFromStorageSync(key: string): void {
+  const result = storageAdapter.removeItem(key);
+  if (result instanceof Promise) {
+    console.warn(`Cannot use sync method with async storage adapter for key: ${key}`);
+  }
 }

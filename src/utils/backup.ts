@@ -2,8 +2,17 @@
  * Backup and restore utilities for localStorage data
  */
 
+import { Settings, defaultSettings } from "@/types/settings";
+import { Todo } from "@/types/todo";
+import {
+  STORAGE_KEYS,
+  loadFromStorageSync,
+  saveToStorageSync,
+  removeFromStorageSync,
+  getStorageAdapter,
+} from "@/utils/storage";
+
 const BACKUP_KEY_PREFIX = "doit-backup-";
-const BACKUP_SETTINGS_KEY = "doit-backup-settings";
 
 export interface BackupSettings {
   autoBackupEnabled: boolean;
@@ -29,31 +38,15 @@ export const defaultBackupSettings: BackupSettings = {
 /**
  * Get backup settings from localStorage
  */
-export function getBackupSettings(): BackupSettings {
-  try {
-    const stored = localStorage.getItem(BACKUP_SETTINGS_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return {
-        ...defaultBackupSettings,
-        ...parsed,
-      };
-    }
-  } catch (error) {
-    console.error("Failed to load backup settings:", error);
-  }
-  return defaultBackupSettings;
+export function loadBackupSettings(): BackupSettings {
+  return loadFromStorageSync<BackupSettings>(STORAGE_KEYS.BACKUP_SETTINGS, defaultBackupSettings);
 }
 
 /**
  * Save backup settings to localStorage
  */
 export function saveBackupSettings(settings: BackupSettings): void {
-  try {
-    localStorage.setItem(BACKUP_SETTINGS_KEY, JSON.stringify(settings));
-  } catch (error) {
-    console.error("Failed to save backup settings:", error);
-  }
+  saveToStorageSync(STORAGE_KEYS.BACKUP_SETTINGS, settings);
 }
 
 /**
@@ -69,24 +62,25 @@ function getTodayDateString(): string {
  */
 export function createBackup(source: "auto" | "manual" = "manual"): boolean {
   try {
-    const todosData = localStorage.getItem("doit-todos") || "[]";
-    const settingsData = localStorage.getItem("doit-settings") || "{}";
+    const adapter = getStorageAdapter();
+    const todosData = adapter.getItem(STORAGE_KEYS.TODOS) || "[]";
+    const settingsData = adapter.getItem(STORAGE_KEYS.SETTINGS) || "{}";
 
     const now = new Date();
     const backup: BackupData = {
       timestamp: now.getTime(),
       date: now.toISOString(),
-      todos: todosData,
-      settings: settingsData,
+      todos: typeof todosData === "string" ? todosData : "[]",
+      settings: typeof settingsData === "string" ? settingsData : "{}",
       source,
     };
 
     const backupKey = `${BACKUP_KEY_PREFIX}${now.getTime()}`;
-    localStorage.setItem(backupKey, JSON.stringify(backup));
+    adapter.setItem(backupKey, JSON.stringify(backup));
 
     // Update last backup date if auto backup
     if (source === "auto") {
-      const backupSettings = getBackupSettings();
+      const backupSettings = loadBackupSettings();
       backupSettings.lastBackupDate = getTodayDateString();
       saveBackupSettings(backupSettings);
     }
@@ -102,7 +96,7 @@ export function createBackup(source: "auto" | "manual" = "manual"): boolean {
  * Check if a backup should be created today
  */
 export function shouldCreateBackupToday(): boolean {
-  const settings = getBackupSettings();
+  const settings = loadBackupSettings();
   if (!settings.autoBackupEnabled) {
     return false;
   }
@@ -130,12 +124,16 @@ export function getAllBackups(): BackupData[] {
   const backups: BackupData[] = [];
 
   try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(BACKUP_KEY_PREFIX) && key !== BACKUP_SETTINGS_KEY) {
-        const data = localStorage.getItem(key);
-        if (data) {
-          const backup = JSON.parse(data) as BackupData;
+    const adapter = getStorageAdapter();
+    const allKeys = adapter.getAllKeys ? adapter.getAllKeys() : [];
+    const keys = Array.isArray(allKeys) ? allKeys : [];
+
+    for (const key of keys) {
+      if (key && key.startsWith(BACKUP_KEY_PREFIX)) {
+        const data = adapter.getItem(key);
+        const dataStr = typeof data === "string" ? data : null;
+        if (dataStr) {
+          const backup = JSON.parse(dataStr) as BackupData;
           backups.push(backup);
         }
       }
@@ -155,11 +153,12 @@ export function getAllBackups(): BackupData[] {
  */
 export function restoreBackup(backup: BackupData): boolean {
   try {
+    const adapter = getStorageAdapter();
     // Restore todos
-    localStorage.setItem("doit-todos", backup.todos);
+    adapter.setItem(STORAGE_KEYS.TODOS, backup.todos);
 
     // Restore settings
-    localStorage.setItem("doit-settings", backup.settings);
+    adapter.setItem(STORAGE_KEYS.SETTINGS, backup.settings);
 
     return true;
   } catch (error) {
@@ -174,7 +173,7 @@ export function restoreBackup(backup: BackupData): boolean {
 export function deleteBackup(timestamp: number): boolean {
   try {
     const backupKey = `${BACKUP_KEY_PREFIX}${timestamp}`;
-    localStorage.removeItem(backupKey);
+    removeFromStorageSync(backupKey);
     return true;
   } catch (error) {
     console.error("Failed to delete backup:", error);
@@ -186,7 +185,7 @@ export function deleteBackup(timestamp: number): boolean {
  * Clean up old backups based on retention policy
  */
 export function cleanupOldBackups(): number {
-  const settings = getBackupSettings();
+  const settings = loadBackupSettings();
   const backups = getAllBackups();
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - settings.retentionDays);
@@ -268,7 +267,7 @@ export function importBackupFromFile(file: File): Promise<{ success: boolean; er
 
         // Store the imported backup
         const backupKey = `${BACKUP_KEY_PREFIX}${importedBackup.timestamp}`;
-        localStorage.setItem(backupKey, JSON.stringify(backupWithMetadata));
+        getStorageAdapter().setItem(backupKey, JSON.stringify(backupWithMetadata));
 
         resolve({ success: true });
       } catch (error) {

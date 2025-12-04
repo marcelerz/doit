@@ -1,4 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { STORAGE_KEYS } from "@/utils/storage";
+
+const STORAGE_KEY = STORAGE_KEYS.VIEW_OPTIONS;
 
 export interface FilterState {
   searchText: string;
@@ -14,15 +17,13 @@ export interface FilterState {
   dependencies: Set<string>;
 }
 
-const STORAGE_KEY = "doit-view-options";
-
 export function useFilters() {
   const [filters, setFilters] = useState<FilterState>(() => {
     try {
       if (typeof window !== "undefined") {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
           return {
             searchText: parsed.filters?.searchText || "",
             assignedPeople: new Set(parsed.filters?.assignedPeople || []),

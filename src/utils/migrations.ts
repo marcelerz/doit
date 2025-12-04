@@ -6,7 +6,7 @@
 import { Todo, TodoMetadata, TodoState } from "@/types/todo";
 import { Settings, defaultSettings, Person, Project, Priority } from "@/types/settings";
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
-import { STORAGE_KEYS, saveToStorage } from "./storage";
+import { STORAGE_KEYS, saveToStorage, getStorageAdapter } from "./storage";
 
 const CURRENT_VERSION = 5; // Increment when adding new migrations
 
@@ -242,14 +242,16 @@ export function migrateTodos(loadedTodos: any[], settings: Settings): Todo[] {
  */
 export function checkAndUpdateVersion(): boolean {
   try {
-    const storedVersion = localStorage.getItem(STORAGE_KEYS.VERSION);
+    const adapter = getStorageAdapter();
+    const storedVersionResult = adapter.getItem(STORAGE_KEYS.VERSION);
+    const storedVersion = typeof storedVersionResult === "string" ? storedVersionResult : null;
     const currentVersion = storedVersion ? parseInt(storedVersion, 10) : 0;
 
     if (currentVersion < CURRENT_VERSION) {
       // Create auto-backup before migration if enabled
       autoBackupIfNeeded();
 
-      localStorage.setItem(STORAGE_KEYS.VERSION, CURRENT_VERSION.toString());
+      adapter.setItem(STORAGE_KEYS.VERSION, CURRENT_VERSION.toString());
       return true; // Migration needed
     }
 

@@ -40,6 +40,9 @@
 - [x] Create utility functions for common patterns (metadataParser, filterHelpers)
 - [x] Extract showFiltersSection as derived state in TodoApp
 - [x] Rename TodoListView to TodoApp (better reflects multi-view nature)
+- [x] Create comprehensive storage abstraction with IndexedDB support
+- [x] Centralize all storage operations through storage adapter
+- [x] Add all storage keys to STORAGE_KEYS registry
 
 ## Project Details
 
@@ -53,12 +56,16 @@
 
 ### Storage Abstraction Layer
 
-The app now uses a storage abstraction layer (`src/utils/storage.ts`) that provides:
+The app uses a storage abstraction layer (`src/utils/storage.ts`) that provides:
 
 - `StorageAdapter` interface for easy swapping of storage mechanisms
 - `LocalStorageAdapter` as the default implementation
-- Generic helpers: `loadFromStorage`, `saveToStorage`, `removeFromStorage`
+- `IndexedDBAdapter` for large data storage support
+- Generic async helpers: `loadFromStorage`, `saveToStorage`, `removeFromStorage`
+- Synchronous helpers for backward compatibility: `loadFromStorageSync`, `saveToStorageSync`, `removeFromStorageSync`
 - Centralized storage keys in `STORAGE_KEYS` constant
+- `setStorageAdapter()` to switch between localStorage and IndexedDB
+- `createIndexedDBAdapter()` factory for IndexedDB instances
 
 This makes it easy to switch from localStorage to IndexedDB, API, or any other storage mechanism in the future.
 
@@ -71,6 +78,11 @@ Data is now organized into separate top-level storage keys:
 - `doit-projects` - Project entities (managed by `useProjects` hook)
 - `doit-settings` - Application settings (managed by `useSettings` hook)
 - `doit-version` - Data version for migrations
+- `doit-view-presets` - Saved view configurations
+- `doit-view-options` - Current view state (filters, sort, group)
+- `doit-backup-settings` - Backup configuration
+
+All keys are centralized in `STORAGE_KEYS` constant for easy management.
 
 ### Hooks Architecture
 
