@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { STORAGE_KEYS } from "@/utils/storage";
+import { useState, useMemo, useCallback } from "react";
+import { STORAGE_KEYS } from "@/storage/storage";
 
 const STORAGE_KEY = STORAGE_KEYS.VIEW_OPTIONS;
 

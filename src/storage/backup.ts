@@ -2,12 +2,8 @@
  * Backup and restore utilities for localStorage data
  */
 
-import { Settings, defaultSettings } from "@/types/settings";
-import { Todo } from "@/types/todo";
 import {
   STORAGE_KEYS,
-  loadFromStorageSync,
-  saveToStorageSync,
   removeFromStorageSync,
   getStorageAdapter,
   loadFromStorage,

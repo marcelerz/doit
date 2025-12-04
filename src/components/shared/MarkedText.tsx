@@ -1,13 +1,5 @@
 import React from "react";
-import {
-  MarkerColors,
-  LinkPattern,
-  Person,
-  Project,
-  Priority,
-  DateTimeSettings,
-  WorkHoursSettings,
-} from "@/types/settings";
+import { MarkerColors, LinkPattern, Priority, DateTimeSettings, WorkHoursSettings } from "@/types/settings";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { parseDate } from "@/utils/dateParser";

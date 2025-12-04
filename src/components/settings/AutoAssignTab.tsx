@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AutoAssignSettings, Person, Project, Priority } from "@/types/settings";
+import { AutoAssignSettings, Priority } from "@/types/settings";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 

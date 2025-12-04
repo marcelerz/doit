@@ -8,7 +8,6 @@ import { usePeople } from "@/hooks/usePeople";
 import { useProjects } from "@/hooks/useProjects";
 import { TodoItem } from "@/components/items/TodoItem";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
-import { TodoMetadata } from "@/types/todo";
 import { GanttView } from "./GanttView";
 import { CalendarView } from "./CalendarView";
 import { MarkerReference } from "@/components/shared/MarkerReference";

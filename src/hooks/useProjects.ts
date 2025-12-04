@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Project } from "@/types/settings";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { createProjectModels, ProjectModel } from "@/models/ProjectModel";
+import { createProjectModels } from "@/models/ProjectModel";
 
 export function useProjects() {
   const [rawProjects, setRawProjects] = useState<Project[]>([]);

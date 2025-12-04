@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Doit - Simple Todo App",
-  description: "A beautiful and simple todo app built with Next.js",
+  title: "DoIt",
+  description: "A simple, extensible, local todo app",
 };
 
 export const viewport: Viewport = {

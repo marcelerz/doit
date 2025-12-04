@@ -1,5 +1,5 @@
 import { Todo, TodoMetadata, TodoState, ActivityEntry } from "@/types/todo";
-import { Settings, AutoAssignSettings } from "@/types/settings";
+import { Settings } from "@/types/settings";
 import { normalizeDateValue, parseDate } from "@/utils/dateParser";
 import { parseRecurringPattern } from "@/utils/recurringParser";
 

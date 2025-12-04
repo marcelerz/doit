@@ -1,6 +1,6 @@
 import React, { useRef, forwardRef, useImperativeHandle, useState, useEffect } from "react";
 import { Person, Project, Priority, DateTimeSettings, WorkHoursSettings } from "@/types/settings";
-import { getDueDateSuggestions, parseDate, formatDateTime } from "@/utils/dateParser";
+import { getDueDateSuggestions, parseDate } from "@/utils/dateParser";
 import { getRecurringSuggestions } from "@/utils/recurringParser";
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";

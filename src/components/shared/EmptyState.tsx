@@ -8,7 +8,7 @@ interface EmptyStateProps {
   onAction?: () => void;
 }
 
-export function EmptyState({ emoji, title, message, actionLabel, onAction }: EmptyStateProps) {
+export function EmptyState({ emoji, message, actionLabel, onAction }: EmptyStateProps) {
   return (
     <div className="text-center py-16">
       <div className="text-6xl mb-4">{emoji}</div>

@@ -2,27 +2,17 @@
 
 import { useState, useRef, useEffect } from "react";
 import { TodoMetadata } from "@/types/todo";
-import { MarkerColors, Settings, LinkPattern, Person, Project, Priority } from "@/types/settings";
+import { MarkerColors, Settings, LinkPattern, Priority } from "@/types/settings";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Activity } from "@/components/shared/Activity";
 import RichTextEditor from "@/components/input/RichTextEditor";
-import { MarkerReference } from "@/components/shared/MarkerReference";
-import { Modal } from "@/components/shared/Modal";
 import { Badge } from "@/components/shared/Badge";
 import { SearchableDropdown } from "@/components/shared/SearchableDropdown";
 import { ActionButtons } from "@/components/shared/ActionButtons";
 import { MetadataSection } from "@/components/shared/MetadataSection";
 import { getDurationSuggestions, filterRecurringSuggestions } from "@/utils/suggestions";
-import { Comments } from "@/components/shared/Comments";
-import {
-  parseDate,
-  normalizeDateValue,
-  toLocalISOString,
-  formatDateForDisplay,
-  convertToDateInputFormat,
-  convertToTimeInputFormat,
-} from "@/utils/dateParser";
+import { normalizeDateValue, convertToDateInputFormat, convertToTimeInputFormat } from "@/utils/dateParser";
 import { calculateUsageStats, sortStringsByUsage } from "@/utils/usageStats";
 import { useDropdownManager } from "@/hooks/useDropdownManager";
 import { TodoModel } from "@/models/TodoModel";
@@ -73,8 +63,6 @@ export function TodoDetailsOverlay({
   onAddProject,
   onAddPriority,
   onAddComment,
-  onEditComment,
-  onDeleteComment,
 }: TodoDetailsOverlayProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTokens, setEditTokens] = useState<TokenMatch[]>([]);
@@ -195,14 +183,6 @@ export function TodoDetailsOverlay({
     const newText = parts.join(" ");
     onEdit(todo.id, newText, todo.plainText, newMetadata);
     setEditingMetadata(newMetadata);
-  };
-
-  const togglePersonInList = (list: string[], person: string) => {
-    return list.includes(person) ? list.filter((p) => p !== person) : [...list, person];
-  };
-
-  const toggleProjectInList = (projects: string[], project: string) => {
-    return projects.includes(project) ? projects.filter((p) => p !== project) : [...projects, project];
   };
 
   // Helper functions for colors

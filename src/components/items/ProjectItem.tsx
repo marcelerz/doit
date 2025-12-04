@@ -11,14 +11,7 @@ interface ProjectItemProps {
   onRequestDeleteConfirm: (id: string, name: string) => void;
 }
 
-export function ProjectItem({
-  project,
-  onClick,
-  onDelete,
-  onArchive,
-  onUnarchive,
-  onRequestDeleteConfirm,
-}: ProjectItemProps) {
+export function ProjectItem({ project, onClick, onArchive, onUnarchive, onRequestDeleteConfirm }: ProjectItemProps) {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     onRequestDeleteConfirm(project.id, project.name);

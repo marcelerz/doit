@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { TodoMetadata } from "@/types/todo";
-import { MarkerColors, Settings, LinkPattern, Person, Project, Priority } from "@/types/settings";
+import { MarkerColors, Settings, LinkPattern, Priority } from "@/types/settings";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Comments } from "@/components/shared/Comments";

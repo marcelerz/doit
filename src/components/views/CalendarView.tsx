@@ -6,7 +6,7 @@ import { ProjectModel } from "@/models/ProjectModel";
 import { MarkerColors } from "@/types/settings";
 import { useState, useMemo } from "react";
 import { TodoItem } from "@/components/items/TodoItem";
-import { Settings, Person, Project, Priority } from "@/types/settings";
+import { Settings, Priority } from "@/types/settings";
 
 interface CalendarViewProps {
   todos: TodoModel[];
