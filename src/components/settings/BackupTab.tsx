@@ -24,7 +24,7 @@ interface BackupTabProps {
 export function BackupTab({ onRestore }: BackupTabProps) {
   const [settings, setSettings] = useState<BackupSettings>(() => loadBackupSettings());
   const [backups, setBackups] = useState<BackupData[]>([]);
-  const [stats, setStats] = useState(() => getBackupStats());
+  const [stats, setStats] = useState({ count: 0, totalSize: 0, oldestDate: null, newestDate: null });
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState<number | null>(null);
@@ -42,10 +42,11 @@ export function BackupTab({ onRestore }: BackupTabProps) {
     loadBackups();
   }, []);
 
-  const loadBackups = () => {
-    const allBackups = getAllBackups();
+  const loadBackups = async () => {
+    const allBackups = await getAllBackups();
     setBackups(allBackups);
-    setStats(getBackupStats());
+    const backupStats = await getBackupStats();
+    setStats(backupStats);
   };
 
   const handleSettingsChange = (updates: Partial<BackupSettings>) => {
@@ -80,8 +81,8 @@ export function BackupTab({ onRestore }: BackupTabProps) {
       ).toLocaleString()}?\n\nThis will replace all current data. Consider creating a backup first!`,
       confirmText: "Restore",
       confirmVariant: "danger",
-      onConfirm: () => {
-        const success = restoreBackup(backup);
+      onConfirm: async () => {
+        const success = await restoreBackup(backup);
         if (success) {
           setNotification({ message: "Backup restored successfully! The page will reload.", type: "success" });
           onRestore?.();

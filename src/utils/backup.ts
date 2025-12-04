@@ -60,23 +60,25 @@ function getTodayDateString(): string {
 /**
  * Create a backup of current data
  */
-export function createBackup(source: "auto" | "manual" = "manual"): boolean {
+export async function createBackup(source: "auto" | "manual" = "manual"): Promise<boolean> {
   try {
     const adapter = getStorageAdapter();
-    const todosData = adapter.getItem(STORAGE_KEYS.TODOS) || "[]";
-    const settingsData = adapter.getItem(STORAGE_KEYS.SETTINGS) || "{}";
+
+    // Use async methods for proper IndexedDB support
+    const todosData = await adapter.getItem(STORAGE_KEYS.TODOS);
+    const settingsData = await adapter.getItem(STORAGE_KEYS.SETTINGS);
 
     const now = new Date();
     const backup: BackupData = {
       timestamp: now.getTime(),
       date: now.toISOString(),
-      todos: typeof todosData === "string" ? todosData : "[]",
-      settings: typeof settingsData === "string" ? settingsData : "{}",
+      todos: typeof todosData === "string" ? todosData : JSON.stringify(todosData || []),
+      settings: typeof settingsData === "string" ? settingsData : JSON.stringify(settingsData || {}),
       source,
     };
 
     const backupKey = `${BACKUP_KEY_PREFIX}${now.getTime()}`;
-    adapter.setItem(backupKey, JSON.stringify(backup));
+    await adapter.setItem(backupKey, JSON.stringify(backup));
 
     // Update last backup date if auto backup
     if (source === "auto") {
@@ -108,9 +110,9 @@ export function shouldCreateBackupToday(): boolean {
 /**
  * Auto-backup if needed (called during migration/startup)
  */
-export function autoBackupIfNeeded(): void {
+export async function autoBackupIfNeeded(): Promise<void> {
   if (shouldCreateBackupToday()) {
-    const success = createBackup("auto");
+    const success = await createBackup("auto");
     if (success) {
       console.log("Auto-backup created successfully");
     }
@@ -120,17 +122,17 @@ export function autoBackupIfNeeded(): void {
 /**
  * Get all backups, sorted by timestamp (newest first)
  */
-export function getAllBackups(): BackupData[] {
+export async function getAllBackups(): Promise<BackupData[]> {
   const backups: BackupData[] = [];
 
   try {
     const adapter = getStorageAdapter();
-    const allKeys = adapter.getAllKeys ? adapter.getAllKeys() : [];
+    const allKeys = adapter.getAllKeys ? await adapter.getAllKeys() : [];
     const keys = Array.isArray(allKeys) ? allKeys : [];
 
     for (const key of keys) {
       if (key && key.startsWith(BACKUP_KEY_PREFIX)) {
-        const data = adapter.getItem(key);
+        const data = await adapter.getItem(key);
         const dataStr = typeof data === "string" ? data : null;
         if (dataStr) {
           const backup = JSON.parse(dataStr) as BackupData;
@@ -151,14 +153,14 @@ export function getAllBackups(): BackupData[] {
 /**
  * Restore a backup
  */
-export function restoreBackup(backup: BackupData): boolean {
+export async function restoreBackup(backup: BackupData): Promise<boolean> {
   try {
     const adapter = getStorageAdapter();
     // Restore todos
-    adapter.setItem(STORAGE_KEYS.TODOS, backup.todos);
+    await adapter.setItem(STORAGE_KEYS.TODOS, backup.todos);
 
     // Restore settings
-    adapter.setItem(STORAGE_KEYS.SETTINGS, backup.settings);
+    await adapter.setItem(STORAGE_KEYS.SETTINGS, backup.settings);
 
     return true;
   } catch (error) {
@@ -184,9 +186,9 @@ export function deleteBackup(timestamp: number): boolean {
 /**
  * Clean up old backups based on retention policy
  */
-export function cleanupOldBackups(): number {
+export async function cleanupOldBackups(): Promise<number> {
   const settings = loadBackupSettings();
-  const backups = getAllBackups();
+  const backups = await getAllBackups();
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - settings.retentionDays);
   const cutoffTimestamp = cutoffDate.getTime();
@@ -287,13 +289,13 @@ export function importBackupFromFile(file: File): Promise<{ success: boolean; er
 /**
  * Get backup statistics
  */
-export function getBackupStats(): {
+export async function getBackupStats(): Promise<{
   count: number;
   oldestDate: string | null;
   newestDate: string | null;
   totalSize: number;
-} {
-  const backups = getAllBackups();
+}> {
+  const backups = await getAllBackups();
 
   const totalSize = backups.reduce((sum, b) => {
     const todosSize = typeof b.todos === "string" ? b.todos.length : 0;
