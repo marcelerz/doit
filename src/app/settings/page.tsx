@@ -141,6 +141,7 @@ export default function SettingsPage() {
   const buttons = Object.entries(tabs).map(([label]) => {
     return (
       <button
+        key={label}
         onClick={() => setActiveTab(tabs[label])}
         className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
           activeTab === tabs[label]
