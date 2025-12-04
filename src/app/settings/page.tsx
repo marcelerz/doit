@@ -16,17 +16,20 @@ import { AutoAssignTab } from "@/components/settings/AutoAssignTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 import { StorageTab } from "@/components/settings/StorageTab";
 
-type Tab =
-  | "general"
-  | "datetime"
-  | "workhours"
-  | "gantt"
-  | "autoassign"
-  | "priorities"
-  | "links"
-  | "markers"
-  | "backup"
-  | "storage";
+const tabs = {
+  General: "general",
+  "Date/Time": "datetime",
+  "Work Hours": "workhours",
+  Gantt: "gantt",
+  "Auto-Assign": "autoassign",
+  Priorities: "priorities",
+  Links: "links",
+  Markers: "markers",
+  Backup: "backup",
+  Storage: "storage",
+} as const;
+
+type Tab = (typeof tabs)[keyof typeof tabs];
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
@@ -125,26 +128,14 @@ export default function SettingsPage() {
     );
   }
 
-  const tabs: Record<string, Tab> = {
-    General: "general",
-    "Date/Time": "datetime",
-    "Work Hours": "workhours",
-    Gantt: "gantt",
-    "Auto-Assign": "autoassign",
-    Priorities: "priorities",
-    Links: "links",
-    Markers: "markers",
-    Backup: "backup",
-    Storage: "storage",
-  };
-
   const buttons = Object.entries(tabs).map(([label]) => {
+    const tabKey = label as keyof typeof tabs;
     return (
       <button
         key={label}
-        onClick={() => setActiveTab(tabs[label])}
+        onClick={() => setActiveTab(tabs[tabKey])}
         className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-          activeTab === tabs[label]
+          activeTab === tabs[tabKey]
             ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
             : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
         }`}
@@ -217,42 +208,57 @@ export default function SettingsPage() {
           </div>
 
           <div className="p-6">
-            {activeTab === "general" && <GeneralTab general={settings.general} onUpdate={updateGeneralSettings} />}
-            {activeTab === "datetime" && <DateTimeTab dateTime={settings.dateTime} onUpdate={updateDateTimeSettings} />}
-            {activeTab === "workhours" && (
-              <WorkHoursTab workHours={settings.workHours} onUpdate={updateWorkHoursSettings} />
-            )}
-            {activeTab === "gantt" && <GanttTab gantt={settings.gantt} onUpdate={updateGantt} />}
-            {activeTab === "autoassign" && (
-              <AutoAssignTab
-                autoAssign={settings.autoAssign}
-                people={people}
-                projects={projects}
-                priorities={settings.priorities}
-                onUpdate={updateAutoAssignSettings}
-              />
-            )}
-            {activeTab === "priorities" && (
-              <PrioritiesTab
-                priorities={settings.priorities}
-                onAdd={addPriority}
-                onUpdate={updatePriority}
-                onDelete={deletePriority}
-              />
-            )}
-            {activeTab === "links" && (
-              <LinksTab
-                linkPatterns={settings.linkPatterns}
-                onAdd={addLinkPattern}
-                onUpdate={updateLinkPattern}
-                onDelete={deleteLinkPattern}
-              />
-            )}
-            {activeTab === "markers" && (
-              <MarkersTab markerColors={settings.markerColors} onUpdate={updateMarkerColors} />
-            )}
-            {activeTab === "backup" && <BackupTab />}
-            {activeTab === "storage" && <StorageTab />}
+            {(() => {
+              switch (activeTab) {
+                case "general":
+                  return <GeneralTab general={settings.general} onUpdate={updateGeneralSettings} />;
+                case "datetime":
+                  return <DateTimeTab dateTime={settings.dateTime} onUpdate={updateDateTimeSettings} />;
+                case "workhours":
+                  return <WorkHoursTab workHours={settings.workHours} onUpdate={updateWorkHoursSettings} />;
+                case "gantt":
+                  return <GanttTab gantt={settings.gantt} onUpdate={updateGantt} />;
+                case "autoassign":
+                  return (
+                    <AutoAssignTab
+                      autoAssign={settings.autoAssign}
+                      people={people}
+                      projects={projects}
+                      priorities={settings.priorities}
+                      onUpdate={updateAutoAssignSettings}
+                    />
+                  );
+                case "priorities":
+                  return (
+                    <PrioritiesTab
+                      priorities={settings.priorities}
+                      onAdd={addPriority}
+                      onUpdate={updatePriority}
+                      onDelete={deletePriority}
+                    />
+                  );
+                case "links":
+                  return (
+                    <LinksTab
+                      linkPatterns={settings.linkPatterns}
+                      onAdd={addLinkPattern}
+                      onUpdate={updateLinkPattern}
+                      onDelete={deleteLinkPattern}
+                    />
+                  );
+                case "markers":
+                  return <MarkersTab markerColors={settings.markerColors} onUpdate={updateMarkerColors} />;
+                case "backup":
+                  return <BackupTab />;
+                case "storage":
+                  return <StorageTab />;
+                default: {
+                  // Exhaustiveness check
+                  const _exhaustiveCheck: never = activeTab;
+                  return _exhaustiveCheck;
+                }
+              }
+            })()}
           </div>
         </div>
       </div>
