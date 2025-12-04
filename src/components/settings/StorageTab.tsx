@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { STORAGE_KEYS } from "@/utils/storage";
+import { STORAGE_KEYS, getStorageAdapter } from "@/utils/storage";
 
 interface StorageItem {
   key: string;
@@ -10,16 +10,26 @@ interface StorageItem {
   color: string;
 }
 
+type StorageType = "localStorage" | "indexedDB";
+
 export function StorageTab() {
   const [storageItems, setStorageItems] = useState<StorageItem[]>([]);
   const [totalUsed, setTotalUsed] = useState(0);
   const [totalAvailable, setTotalAvailable] = useState(0);
   const [detectionMethod, setDetectionMethod] = useState<"api" | "measured" | "fallback">("fallback");
+  const [storageType, setStorageType] = useState<StorageType>("localStorage");
 
   useEffect(() => {
+    detectStorageType();
     estimateStorageQuota();
     calculateStorageUsage();
   }, []);
+
+  const detectStorageType = () => {
+    const adapter = getStorageAdapter();
+    const adapterName = adapter.constructor.name;
+    setStorageType(adapterName === "IndexedDBAdapter" ? "indexedDB" : "localStorage");
+  };
 
   const estimateStorageQuota = async () => {
     try {
@@ -27,10 +37,14 @@ export function StorageTab() {
       if ("storage" in navigator && "estimate" in navigator.storage) {
         const estimate = await navigator.storage.estimate();
         if (estimate.quota) {
-          // For localStorage, browsers typically allocate 5-10MB from the total quota
-          // We'll use a conservative estimate of the actual localStorage portion
-          const localStorageQuota = Math.min(estimate.quota * 0.001, 10 * 1024 * 1024); // Max 10MB
-          setTotalAvailable(localStorageQuota);
+          if (storageType === "indexedDB") {
+            // For IndexedDB, use the full quota (usually much larger)
+            setTotalAvailable(estimate.quota);
+          } else {
+            // For localStorage, browsers typically allocate 5-10MB from the total quota
+            const localStorageQuota = Math.min(estimate.quota * 0.001, 10 * 1024 * 1024); // Max 10MB
+            setTotalAvailable(localStorageQuota);
+          }
           setDetectionMethod("api");
           return;
         }
@@ -39,38 +53,16 @@ export function StorageTab() {
       console.warn("Failed to estimate storage quota:", error);
     }
 
-    // Fallback: Try to measure by attempting to write
-    try {
-      const testKey = "__storage_test__";
-      let low = 0;
-      let high = 10 * 1024 * 1024; // Start with 10MB
-      let estimate = high;
-
-      // Binary search to find approximate limit
-      while (low < high) {
-        const mid = Math.floor((low + high) / 2);
-        const testData = "a".repeat(mid);
-
-        try {
-          localStorage.setItem(testKey, testData);
-          localStorage.removeItem(testKey);
-          low = mid + 1;
-          estimate = mid;
-        } catch (e) {
-          high = mid;
-        }
-      }
-
-      setTotalAvailable(estimate);
-      setDetectionMethod("measured");
-    } catch (error) {
-      // Ultimate fallback
-      setTotalAvailable(5 * 1024 * 1024); // 5MB conservative estimate
-      setDetectionMethod("fallback");
+    // Fallback based on storage type
+    if (storageType === "indexedDB") {
+      setTotalAvailable(50 * 1024 * 1024); // 50MB conservative estimate for IndexedDB
+    } else {
+      setTotalAvailable(5 * 1024 * 1024); // 5MB conservative estimate for localStorage
     }
+    setDetectionMethod("fallback");
   };
 
-  const calculateStorageUsage = () => {
+  const calculateStorageUsage = async () => {
     const items: StorageItem[] = [];
     let total = 0;
 
@@ -83,46 +75,63 @@ export function StorageTab() {
       [STORAGE_KEYS.VERSION]: { label: "Version", color: "#6b7280" }, // gray
     };
 
+    const adapter = getStorageAdapter();
+
     // Add main storage items
-    Object.entries(storageMap).forEach(([key, config]) => {
-      const data = localStorage.getItem(key);
-      if (data) {
-        const size = new Blob([data]).size;
-        items.push({ key, size, label: config.label, color: config.color });
-        total += size;
+    for (const [key, config] of Object.entries(storageMap)) {
+      try {
+        const result = adapter.getItem(key);
+        const data = result instanceof Promise ? await result : result;
+        if (data) {
+          const size = new Blob([data]).size;
+          items.push({ key, size, label: config.label, color: config.color });
+          total += size;
+        }
+      } catch (error) {
+        console.error(`Failed to get size for ${key}:`, error);
       }
-    });
+    }
 
     // Add backup items
     let backupSize = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    const allKeys = adapter.getAllKeys ? adapter.getAllKeys() : [];
+    const keys = allKeys instanceof Promise ? await allKeys : allKeys;
+
+    for (const key of keys) {
       if (key && key.startsWith("doit-backup-") && key !== "doit-backup-settings") {
-        const data = localStorage.getItem(key);
-        if (data) {
-          backupSize += new Blob([data]).size;
+        try {
+          const result = adapter.getItem(key);
+          const data = result instanceof Promise ? await result : result;
+          if (data) {
+            backupSize += new Blob([data]).size;
+          }
+        } catch (error) {
+          console.error(`Failed to get size for backup ${key}:`, error);
         }
       }
     }
+
     if (backupSize > 0) {
       items.push({ key: "backups", size: backupSize, label: "Backups", color: "#ec4899" }); // pink
       total += backupSize;
     }
 
-    // Add other localStorage items not managed by our app
-    let otherSize = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && !key.startsWith("doit-")) {
-        const data = localStorage.getItem(key);
-        if (data) {
-          otherSize += new Blob([data]).size;
+    // For localStorage, add other items not managed by our app
+    if (storageType === "localStorage") {
+      let otherSize = 0;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && !key.startsWith("doit-")) {
+          const data = localStorage.getItem(key);
+          if (data) {
+            otherSize += new Blob([data]).size;
+          }
         }
       }
-    }
-    if (otherSize > 0) {
-      items.push({ key: "other", size: otherSize, label: "Other", color: "#94a3b8" }); // slate
-      total += otherSize;
+      if (otherSize > 0) {
+        items.push({ key: "other", size: otherSize, label: "Other", color: "#94a3b8" }); // slate
+        total += otherSize;
+      }
     }
 
     setStorageItems(items.sort((a, b) => b.size - a.size));
@@ -132,9 +141,10 @@ export function StorageTab() {
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ["Bytes", "KB", "MB"];
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+    const sizeIndex = Math.min(i, sizes.length - 1); // Prevent index out of bounds
+    return `${parseFloat((bytes / Math.pow(k, sizeIndex)).toFixed(2))} ${sizes[sizeIndex]}`;
   };
 
   const getPercentage = (size: number): number => {
@@ -151,7 +161,7 @@ export function StorageTab() {
       case "measured":
         return "Measured by binary search";
       case "fallback":
-        return "Conservative estimate (5MB)";
+        return storageType === "indexedDB" ? "Conservative estimate (50MB)" : "Conservative estimate (5MB)";
     }
   };
 
@@ -169,9 +179,18 @@ export function StorageTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Storage</h2>
+        <div>
+          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Storage</h2>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+            Using{" "}
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">
+              {storageType === "indexedDB" ? "IndexedDB" : "localStorage"}
+            </span>
+          </p>
+        </div>
         <button
           onClick={() => {
+            detectStorageType();
             estimateStorageQuota();
             calculateStorageUsage();
           }}
@@ -182,7 +201,8 @@ export function StorageTab() {
       </div>
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        View your local storage usage. This shows how much browser storage is being used by Doit.
+        View your {storageType === "indexedDB" ? "IndexedDB" : "local"} storage usage. This shows how much browser
+        storage is being used by Doit.
       </p>
 
       {/* Storage Summary */}
@@ -299,7 +319,7 @@ export function StorageTab() {
         </div>
       )}
 
-      {/* Info about localStorage limits */}
+      {/* Info about storage */}
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
         <div className="flex items-start gap-3">
           <svg
@@ -316,13 +336,27 @@ export function StorageTab() {
             />
           </svg>
           <div>
-            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">About Local Storage</h4>
+            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+              About {storageType === "indexedDB" ? "IndexedDB" : "Local Storage"}
+            </h4>
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              {detectionMethod === "api" && "Storage limit detected using browser's Storage API. "}
-              {detectionMethod === "measured" &&
-                "Storage limit measured by testing write capacity. This is an approximation. "}
-              {detectionMethod === "fallback" && "Using conservative 5MB estimate. Actual limit may be higher. "}
-              This data is stored locally on your device and is not synced across browsers or devices.
+              {storageType === "indexedDB" ? (
+                <>
+                  IndexedDB provides significantly more storage capacity (typically 50MB-1GB+) compared to localStorage.
+                  {detectionMethod === "api" && " Storage limit detected using browser's Storage API. "}
+                  {detectionMethod === "fallback" &&
+                    " Using conservative 50MB estimate. Actual limit may be much higher. "}
+                  Your data is stored locally on this device and is not synced across browsers or devices.
+                </>
+              ) : (
+                <>
+                  {detectionMethod === "api" && "Storage limit detected using browser's Storage API. "}
+                  {detectionMethod === "measured" &&
+                    "Storage limit measured by testing write capacity. This is an approximation. "}
+                  {detectionMethod === "fallback" && "Using conservative 5MB estimate. Actual limit may be higher. "}
+                  This data is stored locally on your device and is not synced across browsers or devices.
+                </>
+              )}
             </p>
           </div>
         </div>
