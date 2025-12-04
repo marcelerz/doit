@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { STORAGE_KEYS, getStorageAdapter } from "@/utils/storage";
+import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
 
 interface StorageItem {
   key: string;

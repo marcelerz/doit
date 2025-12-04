@@ -12,7 +12,7 @@ import {
   getStorageAdapter,
   loadFromStorage,
   saveToStorage,
-} from "@/utils/storage";
+} from "@/storage/storage";
 
 const BACKUP_KEY_PREFIX = "doit-backup-";
 
