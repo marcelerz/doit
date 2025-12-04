@@ -105,6 +105,34 @@ export default function SettingsPage() {
     );
   }
 
+  const tabs: Record<string, Tab> = {
+    General: "general",
+    "Date/Time": "datetime",
+    "Work Hours": "workhours",
+    Gantt: "gantt",
+    "Auto-Assign": "autoassign",
+    Priorities: "priorities",
+    Links: "links",
+    Markers: "markers",
+    Backup: "backup",
+    Storage: "storage",
+  };
+
+  const buttons = Object.entries(tabs).map(([label]) => {
+    return (
+      <button
+        onClick={() => setActiveTab(tabs[label])}
+        className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
+          activeTab === tabs[label]
+            ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
+            : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+        }`}
+      >
+        {label}
+      </button>
+    );
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800 py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -133,106 +161,7 @@ export default function SettingsPage() {
                 WebkitOverflowScrolling: "touch",
               }}
             >
-              <button
-                onClick={() => setActiveTab("general")}
-                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "general"
-                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                }`}
-              >
-                General
-              </button>
-              <button
-                onClick={() => setActiveTab("datetime")}
-                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "datetime"
-                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                }`}
-              >
-                Date/Time
-              </button>
-              <button
-                onClick={() => setActiveTab("workhours")}
-                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "workhours"
-                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                }`}
-              >
-                Work Hours
-              </button>
-              <button
-                onClick={() => setActiveTab("gantt")}
-                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "gantt"
-                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                }`}
-              >
-                Gantt
-              </button>
-              <button
-                onClick={() => setActiveTab("autoassign")}
-                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "autoassign"
-                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                }`}
-              >
-                Auto-Assign
-              </button>
-              <button
-                onClick={() => setActiveTab("priorities")}
-                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "priorities"
-                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                }`}
-              >
-                Priorities
-              </button>
-              <button
-                onClick={() => setActiveTab("links")}
-                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "links"
-                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                }`}
-              >
-                Links
-              </button>
-              <button
-                onClick={() => setActiveTab("markers")}
-                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "markers"
-                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                }`}
-              >
-                Markers
-              </button>
-              <button
-                onClick={() => setActiveTab("backup")}
-                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "backup"
-                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                }`}
-              >
-                Backup
-              </button>
-              <button
-                onClick={() => setActiveTab("storage")}
-                className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "storage"
-                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                }`}
-              >
-                Storage
-              </button>
+              {buttons}
             </div>
 
             {/* Scroll hint overlay on the left */}
