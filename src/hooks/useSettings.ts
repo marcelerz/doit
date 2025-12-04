@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Settings, defaultSettings, Priority, LinkPattern, MarkerColors } from "@/types/settings";
-import { migrateSettings } from "@/utils/migrations";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/utils/storage";
-import { waitForStorageInit } from "@/utils/storageInit";
+import { migrateSettings } from "@/storage/migrations";
+import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
+import { waitForStorageInit } from "@/storage/storageInit";
 
 export function useSettings() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);

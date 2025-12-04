@@ -24,7 +24,7 @@ import { FilterSection } from "@/components/shared/FilterSection";
 import { ConfirmDialog } from "@/components/shared/Notification";
 import { parseTokensToMetadata } from "@/utils/metadataParser";
 import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
-import { STORAGE_KEYS, getStorageAdapter } from "@/utils/storage";
+import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
 
 interface TodoFilters {
   searchText: string;

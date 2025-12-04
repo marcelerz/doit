@@ -14,7 +14,7 @@ import {
   getBackupStats,
   type BackupSettings,
   type BackupData,
-} from "@/utils/backup";
+} from "@/storage/backup";
 import { Notification, ConfirmDialog, type NotificationType } from "@/components/shared/Notification";
 
 interface BackupTabProps {

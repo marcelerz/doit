@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Todo, TodoMetadata, ActivityEntry } from "@/types/todo";
-import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/utils/migrations";
+import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/storage/migrations";
 import { defaultSettings, Settings } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
 import { createActivity, generateMetadataActivities } from "@/utils/activityLogger";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/utils/storage";
+import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { TodoModel, createTodoModels } from "@/models/TodoModel";
 
 export type UndoAction = {

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Person } from "@/types/settings";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/utils/storage";
-import { createPersonModels, PersonModel } from "@/models/PersonModel";
+import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
+import { createPersonModels } from "@/models/PersonModel";
 
 export function usePeople() {
   const [rawPeople, setRawPeople] = useState<Person[]>([]);
