@@ -34,46 +34,8 @@ export default function SettingsPage() {
   const [showLeftHint, setShowLeftHint] = useState(false);
   const [showRightHint, setShowRightHint] = useState(false);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isHoveringHintRef = useRef(false);
 
-  // Check if scrolling is needed and which direction
-  useEffect(() => {
-    const checkScroll = () => {
-      if (scrollContainerRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-        const hasOverflow = scrollWidth > clientWidth;
-
-        setShowLeftHint(hasOverflow && scrollLeft > 0);
-        setShowRightHint(hasOverflow && scrollLeft < scrollWidth - clientWidth - 1);
-      }
-    };
-
-    checkScroll();
-    const container = scrollContainerRef.current;
-    container?.addEventListener("scroll", checkScroll);
-    window.addEventListener("resize", checkScroll);
-
-    return () => {
-      container?.removeEventListener("scroll", checkScroll);
-      window.removeEventListener("resize", checkScroll);
-    };
-  }, []);
-
-  const handleScrollHoverEnter = (direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      scrollIntervalRef.current = setInterval(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollLeft += direction === "right" ? 5 : -5;
-        }
-      }, 20);
-    }
-  };
-
-  const handleScrollHoverLeave = () => {
-    if (scrollIntervalRef.current) {
-      clearInterval(scrollIntervalRef.current);
-      scrollIntervalRef.current = null;
-    }
-  };
   const {
     settings,
     isLoaded: settingsLoaded,
@@ -96,6 +58,64 @@ export default function SettingsPage() {
   const { projects, isLoaded: projectsLoaded, addProject, updateProject, deleteProject } = useProjects();
 
   const isLoaded = settingsLoaded && peopleLoaded && projectsLoaded;
+
+  // Check if scrolling is needed and which direction
+  useEffect(() => {
+    const checkScroll = () => {
+      // Don't update hints while hovering
+      if (isHoveringHintRef.current) return;
+
+      if (scrollContainerRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+        const hasOverflow = scrollWidth > clientWidth;
+
+        setShowLeftHint(hasOverflow && scrollLeft > 0);
+        setShowRightHint(hasOverflow && scrollLeft < scrollWidth - clientWidth - 1);
+      }
+    };
+
+    // Use requestAnimationFrame to ensure DOM is painted
+    const rafId = requestAnimationFrame(() => {
+      checkScroll();
+    });
+
+    const container = scrollContainerRef.current;
+    container?.addEventListener("scroll", checkScroll);
+    window.addEventListener("resize", checkScroll);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      container?.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [isLoaded]); // Re-run when data is loaded
+
+  const handleScrollHoverEnter = (direction: "left" | "right") => {
+    isHoveringHintRef.current = true;
+    if (scrollContainerRef.current) {
+      scrollIntervalRef.current = setInterval(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollLeft += direction === "right" ? 5 : -5;
+        }
+      }, 20);
+    }
+  };
+
+  const handleScrollHoverLeave = () => {
+    isHoveringHintRef.current = false;
+    if (scrollIntervalRef.current) {
+      clearInterval(scrollIntervalRef.current);
+      scrollIntervalRef.current = null;
+    }
+
+    // Check scroll position after hover ends
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      const hasOverflow = scrollWidth > clientWidth;
+      setShowLeftHint(hasOverflow && scrollLeft > 0);
+      setShowRightHint(hasOverflow && scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
 
   if (!isLoaded) {
     return (
