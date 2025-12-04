@@ -10,6 +10,8 @@ import {
   saveToStorageSync,
   removeFromStorageSync,
   getStorageAdapter,
+  loadFromStorage,
+  saveToStorage,
 } from "@/utils/storage";
 
 const BACKUP_KEY_PREFIX = "doit-backup-";
@@ -36,17 +38,17 @@ export const defaultBackupSettings: BackupSettings = {
 };
 
 /**
- * Get backup settings from localStorage
+ * Get backup settings from storage (async)
  */
-export function loadBackupSettings(): BackupSettings {
-  return loadFromStorageSync<BackupSettings>(STORAGE_KEYS.BACKUP_SETTINGS, defaultBackupSettings);
+export async function loadBackupSettings(): Promise<BackupSettings> {
+  return await loadFromStorage<BackupSettings>(STORAGE_KEYS.BACKUP_SETTINGS, defaultBackupSettings);
 }
 
 /**
- * Save backup settings to localStorage
+ * Save backup settings to storage (async)
  */
-export function saveBackupSettings(settings: BackupSettings): void {
-  saveToStorageSync(STORAGE_KEYS.BACKUP_SETTINGS, settings);
+export async function saveBackupSettings(settings: BackupSettings): Promise<void> {
+  await saveToStorage(STORAGE_KEYS.BACKUP_SETTINGS, settings);
 }
 
 /**
@@ -82,9 +84,9 @@ export async function createBackup(source: "auto" | "manual" = "manual"): Promis
 
     // Update last backup date if auto backup
     if (source === "auto") {
-      const backupSettings = loadBackupSettings();
+      const backupSettings = await loadBackupSettings();
       backupSettings.lastBackupDate = getTodayDateString();
-      saveBackupSettings(backupSettings);
+      await saveBackupSettings(backupSettings);
     }
 
     return true;
@@ -97,8 +99,8 @@ export async function createBackup(source: "auto" | "manual" = "manual"): Promis
 /**
  * Check if a backup should be created today
  */
-export function shouldCreateBackupToday(): boolean {
-  const settings = loadBackupSettings();
+export async function shouldCreateBackupToday(): Promise<boolean> {
+  const settings = await loadBackupSettings();
   if (!settings.autoBackupEnabled) {
     return false;
   }
@@ -111,7 +113,7 @@ export function shouldCreateBackupToday(): boolean {
  * Auto-backup if needed (called during migration/startup)
  */
 export async function autoBackupIfNeeded(): Promise<void> {
-  if (shouldCreateBackupToday()) {
+  if (await shouldCreateBackupToday()) {
     const success = await createBackup("auto");
     if (success) {
       console.log("Auto-backup created successfully");
@@ -135,8 +137,15 @@ export async function getAllBackups(): Promise<BackupData[]> {
         const data = await adapter.getItem(key);
         const dataStr = typeof data === "string" ? data : null;
         if (dataStr) {
-          const backup = JSON.parse(dataStr) as BackupData;
-          backups.push(backup);
+          try {
+            const backup = JSON.parse(dataStr) as BackupData;
+            // Filter out invalid backups (missing timestamp or invalid timestamp)
+            if (backup.timestamp && !isNaN(backup.timestamp) && backup.timestamp > 0) {
+              backups.push(backup);
+            }
+          } catch (error) {
+            console.warn(`Failed to parse backup ${key}:`, error);
+          }
         }
       }
     }
@@ -187,7 +196,7 @@ export function deleteBackup(timestamp: number): boolean {
  * Clean up old backups based on retention policy
  */
 export async function cleanupOldBackups(): Promise<number> {
-  const settings = loadBackupSettings();
+  const settings = await loadBackupSettings();
   const backups = await getAllBackups();
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - settings.retentionDays);

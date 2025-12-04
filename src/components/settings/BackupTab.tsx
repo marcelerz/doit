@@ -22,9 +22,18 @@ interface BackupTabProps {
 }
 
 export function BackupTab({ onRestore }: BackupTabProps) {
-  const [settings, setSettings] = useState<BackupSettings>(() => loadBackupSettings());
+  const [settings, setSettings] = useState<BackupSettings>({
+    autoBackupEnabled: true,
+    retentionDays: 30,
+    lastBackupDate: null,
+  });
   const [backups, setBackups] = useState<BackupData[]>([]);
-  const [stats, setStats] = useState({ count: 0, totalSize: 0, oldestDate: null, newestDate: null });
+  const [stats, setStats] = useState<{
+    count: number;
+    totalSize: number;
+    oldestDate: string | null;
+    newestDate: string | null;
+  }>({ count: 0, totalSize: 0, oldestDate: null, newestDate: null });
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState<number | null>(null);
@@ -39,28 +48,47 @@ export function BackupTab({ onRestore }: BackupTabProps) {
   } | null>(null);
 
   useEffect(() => {
-    loadBackups();
+    const init = async () => {
+      const loadedSettings = await loadBackupSettings();
+      setSettings(loadedSettings);
+      await loadBackups(loadedSettings);
+    };
+    init();
   }, []);
 
-  const loadBackups = async () => {
+  const loadBackups = async (currentSettings?: BackupSettings) => {
     const allBackups = await getAllBackups();
     setBackups(allBackups);
     const backupStats = await getBackupStats();
     setStats(backupStats);
-  };
 
-  const handleSettingsChange = (updates: Partial<BackupSettings>) => {
+    // Find the last auto-backup date from actual backups
+    const autoBackups = allBackups.filter((b) => b.source === "auto");
+    if (autoBackups.length > 0) {
+      const lastAutoBackup = autoBackups[0]; // Already sorted newest first
+      const lastAutoDate = new Date(lastAutoBackup.timestamp).toISOString().split("T")[0];
+
+      // Update settings if it doesn't match
+      const settingsToCheck = currentSettings || settings;
+      if (settingsToCheck.lastBackupDate !== lastAutoDate) {
+        const newSettings = { ...settingsToCheck, lastBackupDate: lastAutoDate };
+        setSettings(newSettings);
+        await saveBackupSettings(newSettings);
+      }
+    }
+  };
+  const handleSettingsChange = async (updates: Partial<BackupSettings>) => {
     const newSettings = { ...settings, ...updates };
     setSettings(newSettings);
-    saveBackupSettings(newSettings);
+    await saveBackupSettings(newSettings);
   };
 
   const handleCreateBackup = async () => {
     setIsCreating(true);
     try {
-      const success = createBackup();
+      const success = await createBackup();
       if (success) {
-        loadBackups();
+        await loadBackups(); // Await the refresh
         setNotification({ message: "Backup created successfully!", type: "success" });
       } else {
         setNotification({ message: "Failed to create backup. Please try again.", type: "error" });
@@ -101,10 +129,10 @@ export function BackupTab({ onRestore }: BackupTabProps) {
       message: "Are you sure you want to delete this backup? This action cannot be undone.",
       confirmText: "Delete",
       confirmVariant: "danger",
-      onConfirm: () => {
+      onConfirm: async () => {
         const success = deleteBackup(timestamp);
         if (success) {
-          loadBackups();
+          await loadBackups();
           if (selectedBackup === timestamp) {
             setSelectedBackup(null);
           }
@@ -137,7 +165,7 @@ export function BackupTab({ onRestore }: BackupTabProps) {
     try {
       const result = await importBackupFromFile(file);
       if (result.success) {
-        loadBackups();
+        await loadBackups();
         setNotification({ message: "Backup imported successfully!", type: "success" });
       } else {
         setNotification({ message: `Failed to import backup: ${result.error || "Unknown error"}`, type: "error" });
