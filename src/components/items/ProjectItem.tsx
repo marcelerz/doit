@@ -1,9 +1,9 @@
 "use client";
 
-import { Project } from "@/types/settings";
+import { ProjectModel } from "@/models/ProjectModel";
 
 interface ProjectItemProps {
-  project: Project;
+  project: ProjectModel;
   onClick: () => void;
   onDelete: (id: string) => void;
   onArchive?: (id: string) => void;
@@ -29,7 +29,7 @@ export function ProjectItem({ project, onClick, onDelete, onArchive, onUnarchive
           className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
           style={{ backgroundColor: project.color || "#e2ccff" }}
         >
-          {project.name.charAt(0).toUpperCase()}
+          {project.initials}
         </div>
 
         {/* Content */}
@@ -37,7 +37,7 @@ export function ProjectItem({ project, onClick, onDelete, onArchive, onUnarchive
           {/* Name */}
           <div className="flex items-center gap-2 mb-1">
             <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{project.name}</h3>
-            {project.archived && (
+            {project.isArchived && (
               <span className="text-xs px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700">
                 Archived
               </span>
@@ -52,9 +52,9 @@ export function ProjectItem({ project, onClick, onDelete, onArchive, onUnarchive
           )}
 
           {/* Metadata */}
-          {project.comments && project.comments.length > 0 && (
+          {project.hasComments && (
             <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-              <span className="flex items-center gap-1">💬 {project.comments.length}</span>
+              <span className="flex items-center gap-1">💬 {project.commentCount}</span>
             </div>
           )}
         </div>
@@ -62,7 +62,7 @@ export function ProjectItem({ project, onClick, onDelete, onArchive, onUnarchive
         {/* Actions */}
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           {/* Archive button - for non-archived projects */}
-          {!project.archived && onArchive && (
+          {project.isActive && onArchive && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -84,7 +84,7 @@ export function ProjectItem({ project, onClick, onDelete, onArchive, onUnarchive
           )}
 
           {/* Unarchive button - for archived projects */}
-          {project.archived && onUnarchive && (
+          {project.isArchived && onUnarchive && (
             <button
               onClick={(e) => {
                 e.stopPropagation();

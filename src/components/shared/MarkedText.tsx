@@ -8,6 +8,8 @@ import {
   DateTimeSettings,
   WorkHoursSettings,
 } from "@/types/settings";
+import { PersonModel } from "@/models/PersonModel";
+import { ProjectModel } from "@/models/ProjectModel";
 import { parseDate } from "@/utils/dateParser";
 
 interface MarkedTextProps {
@@ -15,8 +17,8 @@ interface MarkedTextProps {
   completed?: boolean;
   markerColors?: MarkerColors;
   linkPatterns?: LinkPattern[];
-  availablePeople?: Person[];
-  availableProjects?: Project[];
+  availablePeople?: PersonModel[];
+  availableProjects?: ProjectModel[];
   availablePriorities?: Priority[];
   dateTimeSettings?: DateTimeSettings;
   workHoursSettings?: WorkHoursSettings;

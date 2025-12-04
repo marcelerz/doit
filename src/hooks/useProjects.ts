@@ -1,17 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Project } from "@/types/settings";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/utils/storage";
+import { createProjectModels, ProjectModel } from "@/models/ProjectModel";
 
 export function useProjects() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [rawProjects, setRawProjects] = useState<Project[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Wrap raw projects in ProjectModel instances for consumers
+  const projects = useMemo(() => createProjectModels(rawProjects), [rawProjects]);
 
   // Load projects from storage on mount
   useEffect(() => {
     loadFromStorage<Project[]>(STORAGE_KEYS.PROJECTS, []).then((loadedProjects) => {
-      setProjects(loadedProjects);
+      setRawProjects(loadedProjects);
       setIsLoaded(true);
     });
   }, []);
@@ -19,11 +23,11 @@ export function useProjects() {
   // Save projects to storage whenever they change
   useEffect(() => {
     if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.PROJECTS, projects).catch((error) => {
+      saveToStorage(STORAGE_KEYS.PROJECTS, rawProjects).catch((error) => {
         console.error("Failed to save projects:", error);
       });
     }
-  }, [projects, isLoaded]);
+  }, [rawProjects, isLoaded]);
 
   const addProject = (project: Omit<Project, "id" | "comments" | "activity">) => {
     const now = Date.now();
@@ -40,11 +44,11 @@ export function useProjects() {
         },
       ],
     };
-    setProjects((prev) => [...prev, newProject]);
+    setRawProjects((prev) => [...prev, newProject]);
   };
 
   const updateProject = (id: string, updates: Partial<Project>) => {
-    setProjects((prev) =>
+    setRawProjects((prev) =>
       prev.map((p) => {
         if (p.id === id) {
           const updatedProject = { ...p, ...updates };
@@ -101,7 +105,7 @@ export function useProjects() {
   };
 
   const archiveProject = (id: string) => {
-    setProjects((prev) =>
+    setRawProjects((prev) =>
       prev.map((p) => {
         if (p.id === id) {
           const now = Date.now();
@@ -125,7 +129,7 @@ export function useProjects() {
   };
 
   const unarchiveProject = (id: string) => {
-    setProjects((prev) =>
+    setRawProjects((prev) =>
       prev.map((p) => {
         if (p.id === id) {
           const now = Date.now();
@@ -149,12 +153,12 @@ export function useProjects() {
   };
 
   const deleteProject = (id: string) => {
-    setProjects((prev) => prev.filter((p) => p.id !== id));
+    setRawProjects((prev) => prev.filter((p) => p.id !== id));
   };
 
   const addProjectComment = (projectId: string, content: string) => {
     const now = Date.now();
-    setProjects((prev) =>
+    setRawProjects((prev) =>
       prev.map((project) => {
         if (project.id === projectId) {
           const newComment = {
@@ -173,7 +177,7 @@ export function useProjects() {
 
   const editProjectComment = (projectId: string, commentId: number, content: string) => {
     const now = Date.now();
-    setProjects((prev) =>
+    setRawProjects((prev) =>
       prev.map((project) => {
         if (project.id === projectId) {
           return {
@@ -191,7 +195,7 @@ export function useProjects() {
   };
 
   const deleteProjectComment = (projectId: string, commentId: number) => {
-    setProjects((prev) =>
+    setRawProjects((prev) =>
       prev.map((project) => {
         if (project.id === projectId) {
           return {

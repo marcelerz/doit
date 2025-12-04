@@ -1,17 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Person } from "@/types/settings";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/utils/storage";
+import { createPersonModels, PersonModel } from "@/models/PersonModel";
 
 export function usePeople() {
-  const [people, setPeople] = useState<Person[]>([]);
+  const [rawPeople, setRawPeople] = useState<Person[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Wrap raw people in PersonModel instances for consumers
+  const people = useMemo(() => createPersonModels(rawPeople), [rawPeople]);
 
   // Load people from storage on mount
   useEffect(() => {
     loadFromStorage<Person[]>(STORAGE_KEYS.PEOPLE, []).then((loadedPeople) => {
-      setPeople(loadedPeople);
+      setRawPeople(loadedPeople);
       setIsLoaded(true);
     });
   }, []);
@@ -19,11 +23,11 @@ export function usePeople() {
   // Save people to storage whenever they change
   useEffect(() => {
     if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.PEOPLE, people).catch((error) => {
+      saveToStorage(STORAGE_KEYS.PEOPLE, rawPeople).catch((error) => {
         console.error("Failed to save people:", error);
       });
     }
-  }, [people, isLoaded]);
+  }, [rawPeople, isLoaded]);
 
   const addPerson = (person: Omit<Person, "id" | "comments" | "activity">) => {
     const now = Date.now();
@@ -40,11 +44,11 @@ export function usePeople() {
         },
       ],
     };
-    setPeople((prev) => [...prev, newPerson]);
+    setRawPeople((prev) => [...prev, newPerson]);
   };
 
   const updatePerson = (id: string, updates: Partial<Person>) => {
-    setPeople((prev) =>
+    setRawPeople((prev) =>
       prev.map((p) => {
         if (p.id === id) {
           const updatedPerson = { ...p, ...updates };
@@ -101,7 +105,7 @@ export function usePeople() {
   };
 
   const archivePerson = (id: string) => {
-    setPeople((prev) =>
+    setRawPeople((prev) =>
       prev.map((p) => {
         if (p.id === id) {
           const now = Date.now();
@@ -125,7 +129,7 @@ export function usePeople() {
   };
 
   const unarchivePerson = (id: string) => {
-    setPeople((prev) =>
+    setRawPeople((prev) =>
       prev.map((p) => {
         if (p.id === id) {
           const now = Date.now();
@@ -149,12 +153,12 @@ export function usePeople() {
   };
 
   const deletePerson = (id: string) => {
-    setPeople((prev) => prev.filter((p) => p.id !== id));
+    setRawPeople((prev) => prev.filter((p) => p.id !== id));
   };
 
   const addPersonComment = (personId: string, content: string) => {
     const now = Date.now();
-    setPeople((prev) =>
+    setRawPeople((prev) =>
       prev.map((person) => {
         if (person.id === personId) {
           const newComment = {
@@ -173,7 +177,7 @@ export function usePeople() {
 
   const editPersonComment = (personId: string, commentId: number, content: string) => {
     const now = Date.now();
-    setPeople((prev) =>
+    setRawPeople((prev) =>
       prev.map((person) => {
         if (person.id === personId) {
           return {
@@ -191,7 +195,7 @@ export function usePeople() {
   };
 
   const deletePersonComment = (personId: string, commentId: number) => {
-    setPeople((prev) =>
+    setRawPeople((prev) =>
       prev.map((person) => {
         if (person.id === personId) {
           return {

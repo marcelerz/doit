@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ProjectModel } from "@/models/ProjectModel";
 import { Project } from "@/types/settings";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
@@ -9,7 +10,7 @@ import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { ActionButtons } from "@/components/shared/ActionButtons";
 
 interface ProjectDetailsOverlayProps {
-  project: Project;
+  project: ProjectModel;
   onClose: () => void;
   onUpdate: (id: string, updates: Partial<Project>) => void;
   onDelete: (id: string) => void;

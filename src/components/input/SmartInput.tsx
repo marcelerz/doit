@@ -3,6 +3,8 @@ import { Person, Project, Priority, DateTimeSettings, WorkHoursSettings } from "
 import { getDueDateSuggestions, parseDate, formatDateTime } from "@/utils/dateParser";
 import { getRecurringSuggestions } from "@/utils/recurringParser";
 import { TodoModel } from "@/models/TodoModel";
+import { PersonModel } from "@/models/PersonModel";
+import { ProjectModel } from "@/models/ProjectModel";
 
 export interface TokenMatch {
   type: string;
@@ -19,8 +21,8 @@ export interface SmartEditableInputProps {
   placeholder?: string;
   initialValue?: string;
   onEnterPress?: () => void;
-  availablePeople?: Person[]; // List of valid people with alternatives
-  availableProjects?: Project[]; // List of valid projects with alternatives
+  availablePeople?: PersonModel[]; // List of valid people with alternatives
+  availableProjects?: ProjectModel[]; // List of valid projects with alternatives
   availablePriorities?: Priority[]; // List of valid priorities with alternatives
   availableTodos?: TodoModel[]; // List of todos for dependency selection
   onAddPerson?: (name: string) => void; // Callback to add a new person

@@ -49,16 +49,20 @@
 - [x] Create StorageInitializer component for app startup
 - [x] Create TodoModel business logic abstraction layer
 - [x] Refactor useTodos to return TodoModel[] instead of Todo[]
+- [x] Create PersonModel and ProjectModel business logic abstractions
+- [x] Refactor usePeople to return PersonModel[] instead of Person[]
+- [x] Refactor useProjects to return ProjectModel[] instead of Project[]
+- [x] Update all components to use PersonModel and ProjectModel
 
 ## Project Details
 
 - **Type**: Next.js TypeScript webapp
-- **Features**: Todo app with automatic IndexedDB/localStorage, state-based architecture, multiple views, business logic abstraction
+- **Features**: Todo app with automatic IndexedDB/localStorage, state-based architecture, multiple views, business logic abstraction (TodoModel, PersonModel, ProjectModel)
 - **Design**: Full-page, mobile-responsive
 - **Status**: Complete and running
 - **Storage**: Automatic IndexedDB with localStorage fallback and migration
 - **Migration Version**: 5 (removed imageUrl field from people and projects)
-- **Business Logic**: TodoModel abstraction layer - useTodos returns TodoModel[] instead of Todo[]
+- **Business Logic**: Model abstraction layer - useTodos returns TodoModel[], usePeople returns PersonModel[], useProjects returns ProjectModel[]
 
 ## Architecture
 
@@ -117,7 +121,11 @@ Each hook:
 
 ### Business Logic Layer
 
-The app uses a **TodoModel** abstraction layer (`src/models/TodoModel.ts`) that wraps `Todo` objects with extensive business logic:
+The app uses a **Model abstraction layer** for all major entities, wrapping raw data objects with extensive business logic:
+
+#### TodoModel (`src/models/TodoModel.ts`)
+
+Wraps `Todo` objects with 30+ methods and properties:
 
 **Validation Methods:**
 
@@ -158,20 +166,87 @@ The app uses a **TodoModel** abstraction layer (`src/models/TodoModel.ts`) that 
 
 - `isActive`, `isCompleted`, `isArchived`, `isDeleted`, `isRecurring`
 
-The **useTodos** hook returns `TodoModel[]` instead of `Todo[]`:
+#### PersonModel (`src/models/PersonModel.ts`)
+
+Wraps `Person` objects with business logic:
+
+**Validation Methods:**
+
+- `canArchive()` - Check if person can be archived
+- `canUnarchive()` - Check if person can be unarchived
+- `canDelete(allTodos)` - Check if person can be deleted (validates not assigned to todos)
+
+**Computed Properties:**
+
+- `isActive`, `isArchived` - State checks
+- `hasComments`, `commentCount`, `latestComment` - Comment info
+- `hasActivity`, `activityCount`, `latestActivity` - Activity tracking
+- `initials` - Two-letter initials from name
+- `displayName` - Name with alternatives: "John Doe (Johnny, JD)"
+- `statusBadge`, `statusColor` - UI badge properties
+- `allNames` - Array of name + alternatives
+
+**Display & Search:**
+
+- `getMetadataSummary(todoCount)` - Formatted metadata: "3 todos • 2 comments • Active"
+- `matchesSearch(text)` - Searches name, alternatives, context, comments
+- `matchesAnyName(names)` - Check if matches given names (for @mentions)
+
+#### ProjectModel (`src/models/ProjectModel.ts`)
+
+Wraps `Project` objects with business logic (similar to PersonModel):
+
+**Validation Methods:**
+
+- `canArchive()` - Check if project can be archived
+- `canUnarchive()` - Check if project can be unarchived
+- `canDelete(allTodos)` - Check if project can be deleted (validates not used in todos)
+
+**Computed Properties:**
+
+- `isActive`, `isArchived` - State checks
+- `hasComments`, `commentCount`, `latestComment` - Comment info
+- `hasActivity`, `activityCount`, `latestActivity` - Activity tracking
+- `initials` - Two-letter initials from name
+- `displayName` - Name with alternatives
+- `statusBadge`, `statusColor` - UI badge properties
+- `allNames` - Array of name + alternatives
+
+**Display & Search:**
+
+- `getMetadataSummary(todoCount)` - Formatted metadata: "5 todos • 3 comments • Active"
+- `matchesSearch(text)` - Searches name, alternatives, context, comments
+- `matchesAnyName(names)` - Check if matches given names (for #project mentions)
+
+#### Hook Usage Pattern
+
+All hooks follow the same pattern:
 
 ```typescript
-const { todos, settings } = useTodos();
+// useTodos.ts
+const [rawTodos, setRawTodos] = useState<Todo[]>([]);
+const todos = useMemo(() => createTodoModels(rawTodos, settings), [rawTodos, settings]);
 // todos is TodoModel[] - business logic built-in
-console.log(todos[0].assignedPeople); // With auto-assign
-console.log(todos[0].isOverdue); // Boolean
-console.log(todos[0].dueDateDisplay); // "Today" or formatted date
 
-// Access raw Todo when needed
-const rawTodo = todos[0].raw;
+// usePeople.ts
+const [rawPeople, setRawPeople] = useState<Person[]>([]);
+const people = useMemo(() => createPersonModels(rawPeople), [rawPeople]);
+// people is PersonModel[] - business logic built-in
+
+// useProjects.ts
+const [rawProjects, setRawProjects] = useState<Project[]>([]);
+const projects = useMemo(() => createProjectModels(rawProjects), [rawProjects]);
+// projects is ProjectModel[] - business logic built-in
 ```
 
-See `docs/todomodel-usage-guide.md` and `docs/todomodel-refactoring-summary.md` for detailed usage.
+**The hooks:**
+
+- Return Model[] instead of raw data
+- Internal state uses raw data for mutations
+- useMemo automatically wraps on every change
+- Access `.raw` property when saving back to storage
+
+See `docs/todomodel-usage-guide.md` for detailed usage examples.
 
 ## Settings Structure
 

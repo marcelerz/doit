@@ -8,6 +8,8 @@ import { MarkedText } from "@/components/shared/MarkedText";
 import { Comments } from "@/components/shared/Comments";
 import { formatDateForDisplay, normalizeDateValue } from "@/utils/dateParser";
 import { TodoModel } from "@/models/TodoModel";
+import { PersonModel } from "@/models/PersonModel";
+import { ProjectModel } from "@/models/ProjectModel";
 
 interface TodoItemProps {
   todo: TodoModel;
@@ -19,8 +21,8 @@ interface TodoItemProps {
   markerColors: MarkerColors;
   settings: Settings;
   linkPatterns: LinkPattern[];
-  availablePeople: Person[];
-  availableProjects: Project[];
+  availablePeople: PersonModel[];
+  availableProjects: ProjectModel[];
   availablePriorities: Priority[];
   availableTodos?: TodoModel[]; // For dependency selection
   onAddPerson?: (name: string) => void;

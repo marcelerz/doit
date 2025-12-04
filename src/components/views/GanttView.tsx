@@ -18,8 +18,8 @@ interface GanttViewProps {
   onUnarchive?: (id: string) => void;
   settings: import("@/types/settings").Settings;
   linkPatterns: import("@/types/settings").LinkPattern[];
-  availablePeople: import("@/types/settings").Person[];
-  availableProjects: import("@/types/settings").Project[];
+  availablePeople: import("@/models/PersonModel").PersonModel[];
+  availableProjects: import("@/models/ProjectModel").ProjectModel[];
   availablePriorities: import("@/types/settings").Priority[];
   onAddPerson: (person: string) => void;
   onAddProject: (project: string) => void;

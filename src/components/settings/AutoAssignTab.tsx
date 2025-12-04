@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { AutoAssignSettings, Person, Project, Priority } from "@/types/settings";
+import { PersonModel } from "@/models/PersonModel";
+import { ProjectModel } from "@/models/ProjectModel";
 
 interface AutoAssignTabProps {
   autoAssign: AutoAssignSettings;
-  people: Person[];
-  projects: Project[];
+  people: PersonModel[];
+  projects: ProjectModel[];
   priorities: Priority[];
   onUpdate: (settings: Partial<AutoAssignSettings>) => void;
 }

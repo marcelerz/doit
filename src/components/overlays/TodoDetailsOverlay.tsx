@@ -26,6 +26,8 @@ import {
 import { calculateUsageStats, sortStringsByUsage } from "@/utils/usageStats";
 import { useDropdownManager } from "@/hooks/useDropdownManager";
 import { TodoModel } from "@/models/TodoModel";
+import { PersonModel } from "@/models/PersonModel";
+import { ProjectModel } from "@/models/ProjectModel";
 
 interface TodoDetailsOverlayProps {
   todo: TodoModel;
@@ -40,8 +42,8 @@ interface TodoDetailsOverlayProps {
   markerColors: MarkerColors;
   settings: Settings;
   linkPatterns: LinkPattern[];
-  availablePeople: Person[];
-  availableProjects: Project[];
+  availablePeople: PersonModel[];
+  availableProjects: ProjectModel[];
   availablePriorities: Priority[];
   onAddPerson?: (name: string) => void;
   onAddProject?: (name: string) => void;

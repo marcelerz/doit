@@ -1,6 +1,8 @@
 "use client";
 
 import { TodoModel } from "@/models/TodoModel";
+import { PersonModel } from "@/models/PersonModel";
+import { ProjectModel } from "@/models/ProjectModel";
 import { MarkerColors } from "@/types/settings";
 import { useState, useMemo } from "react";
 import { TodoItem } from "@/components/items/TodoItem";
@@ -11,8 +13,8 @@ interface CalendarViewProps {
   markerColors: MarkerColors;
   settings: Settings;
   linkPatterns: any[];
-  availablePeople: Person[];
-  availableProjects: Project[];
+  availablePeople: PersonModel[];
+  availableProjects: ProjectModel[];
   availablePriorities: Priority[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
