@@ -8,14 +8,20 @@ interface PersonItemProps {
   onDelete: (id: string) => void;
   onArchive?: (id: string) => void;
   onUnarchive?: (id: string) => void;
+  onRequestDeleteConfirm: (id: string, name: string) => void;
 }
 
-export function PersonItem({ person, onClick, onDelete, onArchive, onUnarchive }: PersonItemProps) {
+export function PersonItem({
+  person,
+  onClick,
+  onDelete,
+  onArchive,
+  onUnarchive,
+  onRequestDeleteConfirm,
+}: PersonItemProps) {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm(`Delete ${person.name}?`)) {
-      onDelete(person.id);
-    }
+    onRequestDeleteConfirm(person.id, person.name);
   };
 
   return (

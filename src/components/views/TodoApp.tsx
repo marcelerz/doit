@@ -21,6 +21,7 @@ import { calculateUsageStats, sortByUsage, UsageStats } from "@/utils/usageStats
 import { normalizeDateValue } from "@/utils/dateParser";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterSection } from "@/components/shared/FilterSection";
+import { ConfirmDialog } from "@/components/shared/Notification";
 import { parseTokensToMetadata } from "@/utils/metadataParser";
 import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
 import { STORAGE_KEYS, getStorageAdapter } from "@/utils/storage";
@@ -191,6 +192,13 @@ export function TodoApp() {
   const [isAddOverlayOpen, setIsAddOverlayOpen] = useState(false);
   const [isAddPersonOverlayOpen, setIsAddPersonOverlayOpen] = useState(false);
   const [isAddProjectOverlayOpen, setIsAddProjectOverlayOpen] = useState(false);
+
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // View presets state
   const [isSavePresetOpen, setIsSavePresetOpen] = useState(false);
@@ -1457,6 +1465,16 @@ export function TodoApp() {
                       onDelete={deletePerson}
                       onArchive={archivePerson}
                       onUnarchive={unarchivePerson}
+                      onRequestDeleteConfirm={(id, name) => {
+                        setConfirmDialog({
+                          title: "Delete Person",
+                          message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+                          onConfirm: () => {
+                            deletePerson(id);
+                            setConfirmDialog(null);
+                          },
+                        });
+                      }}
                     />
                   </li>
                 ))}
@@ -1497,6 +1515,16 @@ export function TodoApp() {
                       onDelete={deleteProject}
                       onArchive={archiveProject}
                       onUnarchive={unarchiveProject}
+                      onRequestDeleteConfirm={(id, name) => {
+                        setConfirmDialog({
+                          title: "Delete Project",
+                          message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+                          onConfirm: () => {
+                            deleteProject(id);
+                            setConfirmDialog(null);
+                          },
+                        });
+                      }}
                     />
                   </li>
                 ))}
@@ -2200,6 +2228,18 @@ export function TodoApp() {
           </div>
         )}
       </div>
+
+      {/* Confirm Dialog */}
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+          confirmText="Delete"
+          confirmVariant="danger"
+        />
+      )}
     </div>
   );
 }
