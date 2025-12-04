@@ -40,7 +40,7 @@ interface TodoFilters {
 
 type ViewTab = "list" | "gantt" | "calendar" | "people" | "projects";
 
-export function TodoList() {
+export function TodoApp() {
   const {
     todos,
     addTodo,
@@ -90,6 +90,9 @@ export function TodoList() {
   const [currentPlainText, setCurrentPlainText] = useState("");
   const smartInputRef = useRef<SmartEditableInputHandle>(null);
   const [activeView, setActiveView] = useState<ViewTab>("list");
+
+  // Derived state: show filters section only in list view
+  const showFiltersSection = activeView === "list";
 
   // Calculate usage statistics from all todos
   const usageStats = useMemo<UsageStats>(() => {
@@ -1088,7 +1091,7 @@ export function TodoList() {
         </div>
 
         {/* Filter Section - Only show in List view */}
-        {activeView === "list" && (
+        {showFiltersSection && (
           <div className="mb-6 space-y-3">
             {/* View Presets Row */}
             {viewPresets.length > 0 && (

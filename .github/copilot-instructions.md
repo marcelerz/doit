@@ -34,10 +34,12 @@
 - [x] Refactor TodoDetailsOverlay to use useDropdownManager and ActionButtons
 - [x] Create EmptyState, MetadataSection, and FilterSection components for maximum reusability
 - [x] Refactor TodoDetailsOverlay to use MetadataSection for 6 metadata types (people, projects, tags, dependencies)
-- [x] Refactor TodoListView to use EmptyState for people and projects views
-- [x] Refactor TodoListView to use FilterSection for all 10 filter types (assigned, projects, source, mentioned, priorities, dueDates, durations, tags, recurring, dependencies)
+- [x] Refactor TodoApp to use EmptyState for people and projects views
+- [x] Refactor TodoApp to use FilterSection for all 10 filter types (assigned, projects, source, mentioned, priorities, dueDates, durations, tags, recurring, dependencies)
 - [x] Make filter button colors dynamic using marker colors from settings (not hardcoded)
 - [x] Create utility functions for common patterns (metadataParser, filterHelpers)
+- [x] Extract showFiltersSection as derived state in TodoApp
+- [x] Rename TodoListView to TodoApp (better reflects multi-view nature)
 
 ## Project Details
 
@@ -116,7 +118,7 @@ Todos now use a unified state system instead of separate boolean flags:
 
 Components are organized by purpose:
 
-- **views/** - Main application views (TodoListView, CalendarView, GanttView, PeopleView, ProjectsView)
+- **views/** - Main application views (TodoApp [main container], CalendarView, GanttView, PeopleView, ProjectsView)
 - **items/** - List item components (TodoItem, PersonItem, ProjectItem)
 - **overlays/** - Modal/detail views (TodoDetailsOverlay, PersonDetailsOverlay, ProjectDetailsOverlay)
 - **input/** - Input components (SmartInput, RichTextEditor)

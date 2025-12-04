@@ -1,5 +1,5 @@
-import { TodoList } from "@/components/views/TodoListView";
+import { TodoApp } from "@/components/views/TodoApp";
 
 export default function Home() {
-  return <TodoList />;
+  return <TodoApp />;
 }
