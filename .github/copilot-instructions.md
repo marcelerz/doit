@@ -47,15 +47,15 @@
 - [x] Implement automatic data migration from localStorage to IndexedDB
 - [x] Add Safari and Safari Private Mode compatibility
 - [x] Create StorageInitializer component for app startup
+- [x] Create TodoModel business logic abstraction layer
 
 ## Project Details
 
 - **Type**: Next.js TypeScript webapp
-- **Features**: Todo app with automatic IndexedDB/localStorage, state-based architecture, multiple views
+- **Features**: Todo app with automatic IndexedDB/localStorage, state-based architecture, multiple views, business logic abstraction
 - **Design**: Full-page, mobile-responsive
 - **Status**: Complete and running
 - **Storage**: Automatic IndexedDB with localStorage fallback and migration
-- **Status**: Complete and running
 - **Migration Version**: 5 (removed imageUrl field from people and projects)
 
 ## Architecture
@@ -101,7 +101,7 @@ All keys are centralized in `STORAGE_KEYS` constant for easy management.
 
 ### Hooks Architecture
 
-- **`useTodos`** - Manages todo state, CRUD operations, undo/redo
+- **`useTodos`** - Manages todo state, CRUD operations, undo/redo, exports `createModels()` helper
 - **`usePeople`** - Manages people state, CRUD operations, comments
 - **`useProjects`** - Manages projects state, CRUD operations, comments
 - **`useSettings`** - Manages application settings (priorities, links, markers, general, dateTime, workHours, autoAssign)
@@ -112,6 +112,33 @@ Each hook:
 - Automatically saves changes back to storage
 - Provides specific methods for data manipulation
 - Is independent and can be used separately
+
+### Business Logic Layer
+
+The app uses a **TodoModel** abstraction layer (`src/models/TodoModel.ts`) that wraps `Todo` objects:
+
+- **Auto-assign defaults**: Automatically applies settings when metadata fields are empty
+- **Date normalization**: Converts shorthand dates (e.g., "today") to full dates
+- **Date calculations**: Provides `isOverdue`, `isDueToday`, `isDueThisWeek`, `daysUntilDue`
+- **Display helpers**: Provides formatted strings like `dueDateDisplay` ("Today", "Tomorrow", etc.)
+- **Smart vs Raw getters**: `assignedPeople` (with auto-assign) vs `assignedPeopleRaw` (exact value)
+- **State checks**: `isActive`, `isCompleted`, `isArchived`, `isDeleted`, `isRecurring`
+- **Priority helpers**: `priorityColor`, `priorityOrder` from settings
+
+Usage:
+
+```typescript
+const { todos, settings, createModels } = useTodos();
+const todoModels = createModels(); // Array of TodoModel instances
+
+// Or create a single model
+const todoModel = new TodoModel(todo, settings);
+console.log(todoModel.assignedPeople); // With auto-assign
+console.log(todoModel.isOverdue); // Boolean
+console.log(todoModel.dueDateDisplay); // "Today" or formatted date
+```
+
+See `docs/todomodel-usage-guide.md` for detailed usage examples.
 
 ## Settings Structure
 

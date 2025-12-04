@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { Todo, TodoMetadata, ActivityEntry } from "@/types/todo";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/utils/migrations";
-import { defaultSettings } from "@/types/settings";
+import { defaultSettings, Settings } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
 import { areDependenciesSatisfied, getDependencyBlockMessage } from "@/utils/dependencyValidator";
 import { createActivity, generateMetadataActivities } from "@/utils/activityLogger";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/utils/storage";
+import { TodoModel, createTodoModels } from "@/models/TodoModel";
 
 export type UndoAction = {
   id: string;
@@ -24,6 +25,7 @@ export function useTodos() {
   const [undoActions, setUndoActions] = useState<UndoAction[]>([]);
   const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
   const [dependencyBlockNotification, setDependencyBlockNotification] = useState<string | null>(null);
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
 
   // Load todos from storage on mount
   useEffect(() => {
@@ -35,8 +37,9 @@ export function useTodos() {
       loadFromStorage(STORAGE_KEYS.SETTINGS, defaultSettings),
       loadFromStorage<Todo[]>(STORAGE_KEYS.TODOS, []),
     ]).then(([storedSettings, loadedTodos]) => {
-      const settings = migrateSettings(storedSettings);
-      const migratedTodos = migrateTodos(loadedTodos, settings);
+      const migratedSettings = migrateSettings(storedSettings);
+      setSettings(migratedSettings);
+      const migratedTodos = migrateTodos(loadedTodos, migratedSettings);
       // Filter out any deleted todos
       const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
       setTodos(cleanedTodos);
@@ -470,5 +473,8 @@ export function useTodos() {
     dependencyBlockNotification,
     undo,
     dismissUndo,
+    settings, // Export settings for TodoModel creation
+    // Helper to create TodoModel instances
+    createModels: (todosToWrap?: Todo[]) => createTodoModels(todosToWrap || todos, settings),
   };
 }
