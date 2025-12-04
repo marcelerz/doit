@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Settings, defaultSettings, Priority, LinkPattern, MarkerColors } from "@/types/settings";
 import { migrateSettings } from "@/utils/migrations";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/utils/storage";
+import { waitForStorageInit } from "@/utils/storageInit";
 
 export function useSettings() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
@@ -11,11 +12,17 @@ export function useSettings() {
 
   // Load settings from storage on mount
   useEffect(() => {
-    loadFromStorage<Settings>(STORAGE_KEYS.SETTINGS, defaultSettings).then((loadedSettings) => {
+    const loadSettings = async () => {
+      // Wait for storage to be initialized first
+      await waitForStorageInit();
+
+      const loadedSettings = await loadFromStorage<Settings>(STORAGE_KEYS.SETTINGS, defaultSettings);
       const migratedSettings = migrateSettings(loadedSettings);
       setSettings(migratedSettings);
       setIsLoaded(true);
-    });
+    };
+
+    loadSettings();
   }, []);
 
   // Save settings to storage whenever they change

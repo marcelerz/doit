@@ -6,6 +6,23 @@
 
 import { StorageAdapter, setStorageAdapter, createIndexedDBAdapter, STORAGE_KEYS } from "./storage";
 
+// Global promise to track initialization
+let initializationPromise: Promise<void> | null = null;
+let isInitialized = false;
+
+/**
+ * Wait for storage to be initialized
+ * This should be called before any storage operations
+ */
+export async function waitForStorageInit(): Promise<void> {
+  if (isInitialized) {
+    return;
+  }
+  if (initializationPromise) {
+    await initializationPromise;
+  }
+}
+
 // Check if IndexedDB is available and working
 async function isIndexedDBAvailable(): Promise<boolean> {
   if (typeof window === "undefined" || !window.indexedDB) {
@@ -88,6 +105,16 @@ async function migrateToIndexedDB(adapter: StorageAdapter): Promise<void> {
 
     // Set a flag to indicate migration is complete
     await adapter.setItem("doit-migrated-to-indexeddb", "true");
+
+    // Clear localStorage after successful migration to prevent re-migration
+    for (const key of keys) {
+      try {
+        localStorage.removeItem(key);
+      } catch (error) {
+        console.error(`Failed to clear localStorage key ${key}:`, error);
+      }
+    }
+    console.log("Cleared migrated data from localStorage");
   } catch (error) {
     console.error("Failed to migrate to IndexedDB:", error);
     throw error;
@@ -166,6 +193,19 @@ export async function initializeStorage(): Promise<{
     } else {
       // Use IndexedDB (either already migrated or no local data)
       setStorageAdapter(indexedDBAdapter);
+
+      // If already migrated but localStorage still has data, clear it to prevent confusion
+      if (alreadyMigrated && hasLocalData) {
+        const keys = Object.values(STORAGE_KEYS);
+        for (const key of keys) {
+          try {
+            localStorage.removeItem(key);
+          } catch (error) {
+            console.error(`Failed to clear localStorage key ${key}:`, error);
+          }
+        }
+      }
+
       return {
         adapter: indexedDBAdapter,
         usingIndexedDB: true,
@@ -187,8 +227,8 @@ export async function initializeStorage(): Promise<{
  * This should be called once when the app starts
  */
 export function initializeStorageClient(): void {
-  if (typeof window !== "undefined") {
-    initializeStorage()
+  if (typeof window !== "undefined" && !initializationPromise) {
+    initializationPromise = initializeStorage()
       .then((result) => {
         if (result.usingIndexedDB) {
           console.log("✓ Using IndexedDB for storage");
@@ -198,9 +238,11 @@ export function initializeStorageClient(): void {
         } else {
           console.log("✓ Using localStorage for storage");
         }
+        isInitialized = true;
       })
       .catch((error) => {
         console.error("Failed to initialize storage:", error);
+        isInitialized = true; // Mark as initialized even on error to prevent hanging
       });
   }
 }
