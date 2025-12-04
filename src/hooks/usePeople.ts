@@ -10,15 +10,18 @@ export function usePeople() {
 
   // Load people from storage on mount
   useEffect(() => {
-    const loadedPeople = loadFromStorage<Person[]>(STORAGE_KEYS.PEOPLE, []);
-    setPeople(loadedPeople);
-    setIsLoaded(true);
+    loadFromStorage<Person[]>(STORAGE_KEYS.PEOPLE, []).then((loadedPeople) => {
+      setPeople(loadedPeople);
+      setIsLoaded(true);
+    });
   }, []);
 
   // Save people to storage whenever they change
   useEffect(() => {
     if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.PEOPLE, people);
+      saveToStorage(STORAGE_KEYS.PEOPLE, people).catch((error) => {
+        console.error("Failed to save people:", error);
+      });
     }
   }, [people, isLoaded]);
 

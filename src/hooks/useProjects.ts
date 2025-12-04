@@ -10,15 +10,18 @@ export function useProjects() {
 
   // Load projects from storage on mount
   useEffect(() => {
-    const loadedProjects = loadFromStorage<Project[]>(STORAGE_KEYS.PROJECTS, []);
-    setProjects(loadedProjects);
-    setIsLoaded(true);
+    loadFromStorage<Project[]>(STORAGE_KEYS.PROJECTS, []).then((loadedProjects) => {
+      setProjects(loadedProjects);
+      setIsLoaded(true);
+    });
   }, []);
 
   // Save projects to storage whenever they change
   useEffect(() => {
     if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.PROJECTS, projects);
+      saveToStorage(STORAGE_KEYS.PROJECTS, projects).catch((error) => {
+        console.error("Failed to save projects:", error);
+      });
     }
   }, [projects, isLoaded]);
 

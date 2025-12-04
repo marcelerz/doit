@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import {
-  getBackupSettings,
+  loadBackupSettings,
   saveBackupSettings,
   getAllBackups,
   createBackup,
@@ -22,7 +22,7 @@ interface BackupTabProps {
 }
 
 export function BackupTab({ onRestore }: BackupTabProps) {
-  const [settings, setSettings] = useState<BackupSettings>(() => getBackupSettings());
+  const [settings, setSettings] = useState<BackupSettings>(() => loadBackupSettings());
   const [backups, setBackups] = useState<BackupData[]>([]);
   const [stats, setStats] = useState(() => getBackupStats());
   const [isCreating, setIsCreating] = useState(false);

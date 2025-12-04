@@ -11,16 +11,19 @@ export function useSettings() {
 
   // Load settings from storage on mount
   useEffect(() => {
-    const loadedSettings = loadFromStorage<Settings>(STORAGE_KEYS.SETTINGS, defaultSettings);
-    const migratedSettings = migrateSettings(loadedSettings);
-    setSettings(migratedSettings);
-    setIsLoaded(true);
+    loadFromStorage<Settings>(STORAGE_KEYS.SETTINGS, defaultSettings).then((loadedSettings) => {
+      const migratedSettings = migrateSettings(loadedSettings);
+      setSettings(migratedSettings);
+      setIsLoaded(true);
+    });
   }, []);
 
   // Save settings to storage whenever they change
   useEffect(() => {
     if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.SETTINGS, settings);
+      saveToStorage(STORAGE_KEYS.SETTINGS, settings).catch((error) => {
+        console.error("Failed to save settings:", error);
+      });
     }
   }, [settings, isLoaded]);
 

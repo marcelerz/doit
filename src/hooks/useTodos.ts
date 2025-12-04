@@ -30,29 +30,34 @@ export function useTodos() {
     // Check if migration is needed
     const migrationNeeded = checkAndUpdateVersion();
 
-    // Load settings first to use for migration
-    let settings = defaultSettings;
-    const storedSettings = loadFromStorage(STORAGE_KEYS.SETTINGS, defaultSettings);
-    settings = migrateSettings(storedSettings);
+    // Load settings and todos asynchronously
+    Promise.all([
+      loadFromStorage(STORAGE_KEYS.SETTINGS, defaultSettings),
+      loadFromStorage<Todo[]>(STORAGE_KEYS.TODOS, []),
+    ]).then(([storedSettings, loadedTodos]) => {
+      const settings = migrateSettings(storedSettings);
+      const migratedTodos = migrateTodos(loadedTodos, settings);
+      // Filter out any deleted todos
+      const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
+      setTodos(cleanedTodos);
 
-    const loadedTodos = loadFromStorage<Todo[]>(STORAGE_KEYS.TODOS, []);
-    const migratedTodos = migrateTodos(loadedTodos, settings);
-    // Filter out any deleted todos
-    const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
-    setTodos(cleanedTodos);
+      // If migration was needed or we removed deleted todos, save the cleaned data
+      if (migrationNeeded || cleanedTodos.length !== loadedTodos.length) {
+        saveToStorage(STORAGE_KEYS.TODOS, cleanedTodos).catch((error) => {
+          console.error("Failed to save todos:", error);
+        });
+      }
 
-    // If migration was needed or we removed deleted todos, save the cleaned data
-    if (migrationNeeded || cleanedTodos.length !== loadedTodos.length) {
-      saveToStorage(STORAGE_KEYS.TODOS, cleanedTodos);
-    }
-
-    setIsLoaded(true);
+      setIsLoaded(true);
+    });
   }, []);
 
   // Save todos to storage whenever they change
   useEffect(() => {
     if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.TODOS, todos);
+      saveToStorage(STORAGE_KEYS.TODOS, todos).catch((error) => {
+        console.error("Failed to save todos:", error);
+      });
     }
   }, [todos, isLoaded]);
 

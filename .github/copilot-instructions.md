@@ -43,12 +43,18 @@
 - [x] Create comprehensive storage abstraction with IndexedDB support
 - [x] Centralize all storage operations through storage adapter
 - [x] Add all storage keys to STORAGE_KEYS registry
+- [x] Add automatic IndexedDB detection with localStorage fallback
+- [x] Implement automatic data migration from localStorage to IndexedDB
+- [x] Add Safari and Safari Private Mode compatibility
+- [x] Create StorageInitializer component for app startup
 
 ## Project Details
 
 - **Type**: Next.js TypeScript webapp
-- **Features**: Todo app with localStorage persistence, state-based architecture, multiple views
+- **Features**: Todo app with automatic IndexedDB/localStorage, state-based architecture, multiple views
 - **Design**: Full-page, mobile-responsive
+- **Status**: Complete and running
+- **Storage**: Automatic IndexedDB with localStorage fallback and migration
 - **Status**: Complete and running
 - **Migration Version**: 5 (removed imageUrl field from people and projects)
 
@@ -59,15 +65,24 @@
 The app uses a storage abstraction layer (`src/utils/storage.ts`) that provides:
 
 - `StorageAdapter` interface for easy swapping of storage mechanisms
-- `LocalStorageAdapter` as the default implementation
-- `IndexedDBAdapter` for large data storage support
+- `LocalStorageAdapter` implementation for basic localStorage
+- `IndexedDBAdapter` implementation for IndexedDB with larger capacity
+- **Automatic storage detection** (`src/utils/storageInit.ts`) - tries IndexedDB first, falls back to localStorage
+- **Safari compatibility** - detects Safari Private Mode and uses localStorage fallback
+- **Automatic migration** - migrates existing localStorage data to IndexedDB transparently
 - Generic async helpers: `loadFromStorage`, `saveToStorage`, `removeFromStorage`
 - Synchronous helpers for backward compatibility: `loadFromStorageSync`, `saveToStorageSync`, `removeFromStorageSync`
 - Centralized storage keys in `STORAGE_KEYS` constant
-- `setStorageAdapter()` to switch between localStorage and IndexedDB
+- `setStorageAdapter()` to manually switch storage mechanisms
 - `createIndexedDBAdapter()` factory for IndexedDB instances
+- `StorageInitializer` component that runs on app startup
 
-This makes it easy to switch from localStorage to IndexedDB, API, or any other storage mechanism in the future.
+The system automatically:
+
+1. Detects if IndexedDB is available (including Safari private mode check)
+2. Falls back to localStorage if IndexedDB is blocked or unavailable
+3. Migrates existing localStorage data to IndexedDB on first load
+4. Logs storage initialization status to console
 
 ### Data Organization
 
