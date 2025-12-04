@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Todo, TodoMetadata } from "@/types/todo";
+import { TodoMetadata } from "@/types/todo";
 import { MarkerColors, Settings, LinkPattern, Person, Project, Priority } from "@/types/settings";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Comments } from "@/components/shared/Comments";
 import { formatDateForDisplay, normalizeDateValue } from "@/utils/dateParser";
+import { TodoModel } from "@/models/TodoModel";
 
 interface TodoItemProps {
-  todo: Todo;
+  todo: TodoModel;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
@@ -21,7 +22,7 @@ interface TodoItemProps {
   availablePeople: Person[];
   availableProjects: Project[];
   availablePriorities: Priority[];
-  availableTodos?: Todo[]; // For dependency selection
+  availableTodos?: TodoModel[]; // For dependency selection
   onAddPerson?: (name: string) => void;
   onAddProject?: (name: string) => void;
   onAddPriority?: (name: string) => void;

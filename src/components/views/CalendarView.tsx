@@ -1,13 +1,13 @@
 "use client";
 
-import { Todo } from "@/types/todo";
+import { TodoModel } from "@/models/TodoModel";
 import { MarkerColors } from "@/types/settings";
 import { useState, useMemo } from "react";
 import { TodoItem } from "@/components/items/TodoItem";
 import { Settings, Person, Project, Priority } from "@/types/settings";
 
 interface CalendarViewProps {
-  todos: Todo[];
+  todos: TodoModel[];
   markerColors: MarkerColors;
   settings: Settings;
   linkPatterns: any[];
@@ -59,7 +59,7 @@ export function CalendarView({
 
   // Get todos by date
   const todosByDate = useMemo(() => {
-    const map = new Map<string, Todo[]>();
+    const map = new Map<string, TodoModel[]>();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     // Use local date for today key
@@ -213,7 +213,7 @@ export function CalendarView({
     return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   };
 
-  const getStateColor = (state: Todo["state"]) => {
+  const getStateColor = (state: TodoModel["state"]) => {
     switch (state) {
       case "completed":
         return "bg-green-500";

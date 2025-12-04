@@ -48,6 +48,7 @@
 - [x] Add Safari and Safari Private Mode compatibility
 - [x] Create StorageInitializer component for app startup
 - [x] Create TodoModel business logic abstraction layer
+- [x] Refactor useTodos to return TodoModel[] instead of Todo[]
 
 ## Project Details
 
@@ -57,6 +58,7 @@
 - **Status**: Complete and running
 - **Storage**: Automatic IndexedDB with localStorage fallback and migration
 - **Migration Version**: 5 (removed imageUrl field from people and projects)
+- **Business Logic**: TodoModel abstraction layer - useTodos returns TodoModel[] instead of Todo[]
 
 ## Architecture
 
@@ -115,30 +117,61 @@ Each hook:
 
 ### Business Logic Layer
 
-The app uses a **TodoModel** abstraction layer (`src/models/TodoModel.ts`) that wraps `Todo` objects:
+The app uses a **TodoModel** abstraction layer (`src/models/TodoModel.ts`) that wraps `Todo` objects with extensive business logic:
 
-- **Auto-assign defaults**: Automatically applies settings when metadata fields are empty
-- **Date normalization**: Converts shorthand dates (e.g., "today") to full dates
-- **Date calculations**: Provides `isOverdue`, `isDueToday`, `isDueThisWeek`, `daysUntilDue`
-- **Display helpers**: Provides formatted strings like `dueDateDisplay` ("Today", "Tomorrow", etc.)
-- **Smart vs Raw getters**: `assignedPeople` (with auto-assign) vs `assignedPeopleRaw` (exact value)
-- **State checks**: `isActive`, `isCompleted`, `isArchived`, `isDeleted`, `isRecurring`
-- **Priority helpers**: `priorityColor`, `priorityOrder` from settings
+**Validation Methods:**
 
-Usage:
+- `canComplete(allTodos)` - Checks dependencies and state before completion
+- `canArchive(allTodos)` - Validates archiving is allowed
+- `canDelete()` - Checks if deletion is permitted
+- `canUnarchive()` - Validates unarchiving
+
+**Date & Time:**
+
+- Auto-assigns defaults from settings when fields are empty
+- Normalizes shorthand dates (e.g., "today" → "2025-12-03")
+- Provides `isOverdue`, `isDueToday`, `isDueThisWeek`, `daysUntilDue`
+- Display helpers: `dueDateDisplay` ("Today", "Tomorrow", etc.)
+
+**UI Properties:**
+
+- `hasComments`, `commentCount`, `latestComment`
+- `hasActivity`, `activityCount`, `latestActivity`
+- `statusBadge`, `statusColor` - for UI badges
+- `metadataSummary` - formatted string of all metadata
+- `ageDisplay` - "2 hours ago" format
+- Date displays: `createdDateDisplay`, `updatedDateDisplay`, `completedDateDisplay`
+
+**Smart Getters (with auto-assign):**
+
+- `assignedPeople`, `sourcePeople`, `projects`, `priority`, `dueDate`, `duration`, `recurring`
+- Raw versions available: `assignedPeopleRaw`, `projectsRaw`, etc.
+
+**Display & Search:**
+
+- `getSummary(maxLength)` - truncated text
+- `matchesSearch(text)` - searches across all fields
+- `isBlockerFor(allTodos)` - finds dependent tasks
+- `durationDisplay` - formatted duration ("2h" from "120m")
+
+**State Checks:**
+
+- `isActive`, `isCompleted`, `isArchived`, `isDeleted`, `isRecurring`
+
+The **useTodos** hook returns `TodoModel[]` instead of `Todo[]`:
 
 ```typescript
-const { todos, settings, createModels } = useTodos();
-const todoModels = createModels(); // Array of TodoModel instances
+const { todos, settings } = useTodos();
+// todos is TodoModel[] - business logic built-in
+console.log(todos[0].assignedPeople); // With auto-assign
+console.log(todos[0].isOverdue); // Boolean
+console.log(todos[0].dueDateDisplay); // "Today" or formatted date
 
-// Or create a single model
-const todoModel = new TodoModel(todo, settings);
-console.log(todoModel.assignedPeople); // With auto-assign
-console.log(todoModel.isOverdue); // Boolean
-console.log(todoModel.dueDateDisplay); // "Today" or formatted date
+// Access raw Todo when needed
+const rawTodo = todos[0].raw;
 ```
 
-See `docs/todomodel-usage-guide.md` for detailed usage examples.
+See `docs/todomodel-usage-guide.md` and `docs/todomodel-refactoring-summary.md` for detailed usage.
 
 ## Settings Structure
 

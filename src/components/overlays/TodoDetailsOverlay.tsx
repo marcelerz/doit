@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Todo, TodoMetadata } from "@/types/todo";
+import { TodoMetadata } from "@/types/todo";
 import { MarkerColors, Settings, LinkPattern, Person, Project, Priority } from "@/types/settings";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { MarkedText } from "@/components/shared/MarkedText";
@@ -25,10 +25,11 @@ import {
 } from "@/utils/dateParser";
 import { calculateUsageStats, sortStringsByUsage } from "@/utils/usageStats";
 import { useDropdownManager } from "@/hooks/useDropdownManager";
+import { TodoModel } from "@/models/TodoModel";
 
 interface TodoDetailsOverlayProps {
-  todo: Todo;
-  todos?: Todo[]; // All todos for dependency selection
+  todo: TodoModel;
+  todos?: TodoModel[]; // All todos for dependency selection
   isOpen: boolean;
   onClose: () => void;
   onToggle: (id: string) => void;

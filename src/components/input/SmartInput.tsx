@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useState, useEffect } f
 import { Person, Project, Priority, DateTimeSettings, WorkHoursSettings } from "@/types/settings";
 import { getDueDateSuggestions, parseDate, formatDateTime } from "@/utils/dateParser";
 import { getRecurringSuggestions } from "@/utils/recurringParser";
-import { Todo } from "@/types/todo";
+import { TodoModel } from "@/models/TodoModel";
 
 export interface TokenMatch {
   type: string;
@@ -22,7 +22,7 @@ export interface SmartEditableInputProps {
   availablePeople?: Person[]; // List of valid people with alternatives
   availableProjects?: Project[]; // List of valid projects with alternatives
   availablePriorities?: Priority[]; // List of valid priorities with alternatives
-  availableTodos?: Todo[]; // List of todos for dependency selection
+  availableTodos?: TodoModel[]; // List of todos for dependency selection
   onAddPerson?: (name: string) => void; // Callback to add a new person
   onAddProject?: (name: string) => void; // Callback to add a new project
   onAddPriority?: (name: string) => void; // Callback to add a new priority

@@ -488,6 +488,317 @@ export class TodoModel {
   updateSettings(settings: Settings) {
     this._settings = settings;
   }
+
+  // ===== Validation Methods =====
+
+  /**
+   * Check if this todo can be completed
+   * Returns { canComplete: boolean, reason?: string }
+   */
+  canComplete(allTodos: TodoModel[]): { canComplete: boolean; reason?: string } {
+    // Already completed
+    if (this.isCompleted) {
+      return { canComplete: false, reason: "Task is already completed" };
+    }
+
+    // Archived or deleted tasks can't be completed
+    if (this.isArchived) {
+      return { canComplete: false, reason: "Task is archived" };
+    }
+    if (this.isDeleted) {
+      return { canComplete: false, reason: "Task is deleted" };
+    }
+
+    // Check dependencies
+    if (this.dependencies.length > 0) {
+      const unsatisfied = this.dependencies
+        .map((depId) => allTodos.find((t) => t.id === depId))
+        .filter((t) => t && !t.isCompleted);
+
+      if (unsatisfied.length > 0) {
+        const names = unsatisfied.map((t) => t!.plainText).join(", ");
+        return {
+          canComplete: false,
+          reason: `Cannot complete: ${unsatisfied.length} incomplete ${
+            unsatisfied.length === 1 ? "dependency" : "dependencies"
+          }: ${names}`,
+        };
+      }
+    }
+
+    return { canComplete: true };
+  }
+
+  /**
+   * Check if this todo can be archived
+   * Returns { canArchive: boolean, reason?: string }
+   */
+  canArchive(allTodos: TodoModel[]): { canArchive: boolean; reason?: string } {
+    // Already archived
+    if (this.isArchived) {
+      return { canArchive: false, reason: "Task is already archived" };
+    }
+
+    // Deleted tasks can't be archived
+    if (this.isDeleted) {
+      return { canArchive: false, reason: "Task is deleted" };
+    }
+
+    // Check dependencies only for active tasks
+    if (this.isActive && this.dependencies.length > 0) {
+      const unsatisfied = this.dependencies
+        .map((depId) => allTodos.find((t) => t.id === depId))
+        .filter((t) => t && !t.isCompleted);
+
+      if (unsatisfied.length > 0) {
+        const names = unsatisfied.map((t) => t!.plainText).join(", ");
+        return {
+          canArchive: false,
+          reason: `Cannot archive: ${unsatisfied.length} incomplete ${
+            unsatisfied.length === 1 ? "dependency" : "dependencies"
+          }: ${names}`,
+        };
+      }
+    }
+
+    return { canArchive: true };
+  }
+
+  /**
+   * Check if this todo can be deleted
+   * Returns { canDelete: boolean, reason?: string }
+   */
+  canDelete(): { canDelete: boolean; reason?: string } {
+    // Already deleted
+    if (this.isDeleted) {
+      return { canDelete: false, reason: "Task is already deleted" };
+    }
+
+    // Everything else can be deleted
+    return { canDelete: true };
+  }
+
+  /**
+   * Check if this todo can be unarchived
+   */
+  canUnarchive(): { canUnarchive: boolean; reason?: string } {
+    if (!this.isArchived) {
+      return { canUnarchive: false, reason: "Task is not archived" };
+    }
+    return { canUnarchive: true };
+  }
+
+  // ===== Computed Properties for UI =====
+
+  /**
+   * Get number of comments
+   */
+  get commentCount(): number {
+    return this.comments.length;
+  }
+
+  /**
+   * Check if this todo has comments
+   */
+  get hasComments(): boolean {
+    return this.comments.length > 0;
+  }
+
+  /**
+   * Get number of activity entries
+   */
+  get activityCount(): number {
+    return this.activity.length;
+  }
+
+  /**
+   * Check if this todo has activity
+   */
+  get hasActivity(): boolean {
+    return this.activity.length > 0;
+  }
+
+  /**
+   * Get the most recent comment
+   */
+  get latestComment() {
+    if (this.comments.length === 0) return undefined;
+    const comment = this.comments[this.comments.length - 1];
+    const latestHistory = comment.history[comment.history.length - 1];
+    return {
+      commentId: comment.commentId,
+      content: latestHistory.content,
+      date: latestHistory.date,
+    };
+  }
+
+  /**
+   * Get the most recent activity
+   */
+  get latestActivity() {
+    if (this.activity.length === 0) return undefined;
+    return this.activity[this.activity.length - 1];
+  }
+
+  /**
+   * Get formatted created date
+   */
+  get createdDateDisplay(): string {
+    return new Date(this.createdAt).toLocaleDateString();
+  }
+
+  /**
+   * Get formatted updated date
+   */
+  get updatedDateDisplay(): string | undefined {
+    if (!this.updatedAt) return undefined;
+    return new Date(this.updatedAt).toLocaleDateString();
+  }
+
+  /**
+   * Get formatted completed date
+   */
+  get completedDateDisplay(): string | undefined {
+    if (!this.completedAt) return undefined;
+    return new Date(this.completedAt).toLocaleDateString();
+  }
+
+  /**
+   * Get time since creation in human-readable format
+   */
+  get ageDisplay(): string {
+    const now = Date.now();
+    const diff = now - this.createdAt;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days} ${days === 1 ? "day" : "days"} ago`;
+    if (hours > 0) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+    if (minutes > 0) return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+    return "just now";
+  }
+
+  // ===== Display/Formatting Methods =====
+
+  /**
+   * Get a summary of the todo (truncated text)
+   */
+  getSummary(maxLength: number = 100): string {
+    if (this.plainText.length <= maxLength) return this.plainText;
+    return this.plainText.substring(0, maxLength) + "...";
+  }
+
+  /**
+   * Get status badge text
+   */
+  get statusBadge(): string {
+    if (this.isCompleted) return "Completed";
+    if (this.isArchived) return "Archived";
+    if (this.isDeleted) return "Deleted";
+    if (this.isOverdue) return "Overdue";
+    if (this.isDueToday) return "Due Today";
+    return "Active";
+  }
+
+  /**
+   * Get status color for UI
+   */
+  get statusColor(): string {
+    if (this.isCompleted) return "#10b981"; // green
+    if (this.isArchived) return "#6b7280"; // gray
+    if (this.isDeleted) return "#ef4444"; // red
+    if (this.isOverdue) return "#dc2626"; // dark red
+    if (this.isDueToday) return "#f59e0b"; // amber
+    return "#3b82f6"; // blue
+  }
+
+  /**
+   * Get metadata summary for display (e.g., "2 people, 1 project, High priority")
+   */
+  get metadataSummary(): string {
+    const parts: string[] = [];
+
+    const assignedCount = this.assignedPeople.length;
+    if (assignedCount > 0) {
+      parts.push(`${assignedCount} ${assignedCount === 1 ? "person" : "people"}`);
+    }
+
+    const projectCount = this.projects.length;
+    if (projectCount > 0) {
+      parts.push(`${projectCount} ${projectCount === 1 ? "project" : "projects"}`);
+    }
+
+    if (this.priority) {
+      parts.push(`${this.priority} priority`);
+    }
+
+    if (this.dueDate) {
+      parts.push(`due ${this.dueDateDisplay}`);
+    }
+
+    if (this.duration) {
+      parts.push(`${this.duration} duration`);
+    }
+
+    const tagCount = this.tags.length;
+    if (tagCount > 0) {
+      parts.push(`${tagCount} ${tagCount === 1 ? "tag" : "tags"}`);
+    }
+
+    return parts.length > 0 ? parts.join(", ") : "No metadata";
+  }
+
+  /**
+   * Check if todo matches search text
+   */
+  matchesSearch(searchText: string): boolean {
+    if (!searchText) return true;
+    const search = searchText.toLowerCase();
+    return (
+      this.plainText.toLowerCase().includes(search) ||
+      this.assignedPeople.some((p) => p.toLowerCase().includes(search)) ||
+      this.sourcePeople.some((p) => p.toLowerCase().includes(search)) ||
+      this.mentionedPeople.some((p) => p.toLowerCase().includes(search)) ||
+      this.projects.some((p) => p.toLowerCase().includes(search)) ||
+      this.tags.some((t) => t.toLowerCase().includes(search)) ||
+      (!!this.priority && this.priority.toLowerCase().includes(search))
+    );
+  }
+
+  /**
+   * Get a display-friendly duration string
+   */
+  get durationDisplay(): string | undefined {
+    if (!this.duration) return undefined;
+    const minutes = this.durationMinutes;
+    if (!minutes) return this.duration;
+
+    if (minutes < 60) {
+      return `${minutes}m`;
+    }
+    const hours = minutes / 60;
+    if (hours === Math.floor(hours)) {
+      return `${hours}h`;
+    }
+    return `${hours.toFixed(1)}h`;
+  }
+
+  /**
+   * Check if this todo is a blocker for other todos
+   */
+  isBlockerFor(allTodos: TodoModel[]): TodoModel[] {
+    return allTodos.filter((t) => t.dependencies.includes(this.id) && !t.isCompleted);
+  }
+
+  /**
+   * Get blocked todos (tasks that depend on this one)
+   */
+  get blockedTodosCount(): number {
+    // Note: This requires allTodos, so we can't compute it here
+    // Consumers should use isBlockerFor(allTodos).length
+    return 0;
+  }
 }
 
 /**

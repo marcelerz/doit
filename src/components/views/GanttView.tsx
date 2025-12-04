@@ -1,13 +1,14 @@
 "use client";
 
-import { Todo, TodoMetadata } from "@/types/todo";
+import { TodoMetadata } from "@/types/todo";
+import { TodoModel } from "@/models/TodoModel";
 import { MarkerColors, WorkHoursSettings } from "@/types/settings";
 import { useMemo, useState, useRef } from "react";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 
 interface GanttViewProps {
-  todos: Todo[];
+  todos: TodoModel[];
   markerColors: MarkerColors;
   workHours: WorkHoursSettings;
   onToggle: (id: string) => void;
@@ -29,7 +30,7 @@ interface GanttViewProps {
 }
 
 interface ScheduledTask {
-  todo: Todo;
+  todo: TodoModel;
   startTime: Date;
   endTime: Date;
   durationMinutes: number;
@@ -75,7 +76,7 @@ export function GanttView({
   const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(true);
   const [schedulingMode, setSchedulingMode] = useState<"asap" | "dueDate">("asap");
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
-  const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<Todo | null>(null);
+  const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<TodoModel | null>(null);
 
   // Parse duration string to minutes
   const parseDuration = (duration: string | undefined): number => {
@@ -542,7 +543,7 @@ export function GanttView({
     return "bg-blue-500";
   };
 
-  const getProjectColor = (todo: Todo): string => {
+  const getProjectColor = (todo: TodoModel): string => {
     // Use gray for completed, light yellow for archived
     if (todo.state === "completed") return "#9ca3af"; // gray-400
     if (todo.state === "archived") return "#fef08a"; // yellow-200
@@ -642,7 +643,7 @@ export function GanttView({
 
       // Schedule tasks for this day
       const scheduled: Array<{
-        todo: Todo;
+        todo: TodoModel;
         startPercent: number;
         widthPercent: number;
         color: string;

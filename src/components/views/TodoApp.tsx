@@ -667,12 +667,9 @@ export function TodoApp() {
   // Apply filters to todos
   const applyFilters = (todoList: typeof todos) => {
     return todoList.filter((todo) => {
-      // Text search
-      if (filters.searchText) {
-        const searchLower = filters.searchText.toLowerCase();
-        if (!todo.plainText.toLowerCase().includes(searchLower)) {
-          return false;
-        }
+      // Text search using TodoModel method
+      if (filters.searchText && !todo.matchesSearch(filters.searchText)) {
+        return false;
       }
 
       // Metadata filters (OR logic within each category)

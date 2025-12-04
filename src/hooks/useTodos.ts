@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Todo, TodoMetadata, ActivityEntry } from "@/types/todo";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/utils/migrations";
 import { defaultSettings, Settings } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
-import { areDependenciesSatisfied, getDependencyBlockMessage } from "@/utils/dependencyValidator";
 import { createActivity, generateMetadataActivities } from "@/utils/activityLogger";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/utils/storage";
 import { TodoModel, createTodoModels } from "@/models/TodoModel";
@@ -20,12 +19,15 @@ export type UndoAction = {
 };
 
 export function useTodos() {
-  const [todos, setTodos] = useState<Todo[]>([]);
+  const [rawTodos, setRawTodos] = useState<Todo[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [undoActions, setUndoActions] = useState<UndoAction[]>([]);
   const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
   const [dependencyBlockNotification, setDependencyBlockNotification] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
+
+  // Create TodoModel instances from raw todos
+  const todos = useMemo(() => createTodoModels(rawTodos, settings), [rawTodos, settings]);
 
   // Load todos from storage on mount
   useEffect(() => {
@@ -42,7 +44,7 @@ export function useTodos() {
       const migratedTodos = migrateTodos(loadedTodos, migratedSettings);
       // Filter out any deleted todos
       const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
-      setTodos(cleanedTodos);
+      setRawTodos(cleanedTodos);
 
       // If migration was needed or we removed deleted todos, save the cleaned data
       if (migrationNeeded || cleanedTodos.length !== loadedTodos.length) {
@@ -58,16 +60,16 @@ export function useTodos() {
   // Save todos to storage whenever they change
   useEffect(() => {
     if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.TODOS, todos).catch((error) => {
+      saveToStorage(STORAGE_KEYS.TODOS, rawTodos).catch((error) => {
         console.error("Failed to save todos:", error);
       });
     }
-  }, [todos, isLoaded]);
+  }, [rawTodos, isLoaded]);
 
   // Execute the pending action (actually delete after timeout)
   const executePendingAction = useCallback((action: UndoAction) => {
     if (action.type === "delete") {
-      setTodos((prev) => prev.filter((todo) => todo.id !== action.todo.id));
+      setRawTodos((prev) => prev.filter((todo) => todo.id !== action.todo.id));
     }
     // Start fade out animation
     setFadingOutIds((prev) => new Set(prev).add(action.id));
@@ -98,11 +100,11 @@ export function useTodos() {
             ...action.previousState,
             activity: [...action.previousState.activity, createActivity("undeleted", "Task undeleted")],
           };
-          setTodos((prev) => [restoredTodo, ...prev]);
+          setRawTodos((prev) => [restoredTodo, ...prev]);
         }
       } else if (action.previousState) {
         // Restore previous state for toggle/archive with appropriate activity
-        setTodos((prev) =>
+        setRawTodos((prev) =>
           prev.map((todo) => {
             if (todo.id === action.todo.id) {
               let activityType: ActivityEntry["type"];
@@ -165,21 +167,21 @@ export function useTodos() {
       comments: [],
       activity: [createActivity("created", "Task created")],
     };
-    setTodos((prev) => [newTodo, ...prev]);
+    setRawTodos((prev) => [newTodo, ...prev]);
   };
 
   const toggleTodo = (id: string) => {
-    const todoToToggle = todos.find((t) => t.id === id);
+    const todoToToggle = rawTodos.find((t) => t.id === id);
     if (!todoToToggle) return;
 
     const newState: "active" | "completed" = todoToToggle.state === "completed" ? "active" : "completed";
 
-    // Check dependencies before allowing completion
-    if (newState === "completed" && todoToToggle.metadata.dependencies.length > 0) {
-      const validation = areDependenciesSatisfied(todoToToggle.metadata.dependencies, todos);
-      if (!validation.satisfied) {
-        const message = getDependencyBlockMessage(validation.unsatisfiedTodos);
-        setDependencyBlockNotification(message);
+    // Check dependencies before allowing completion using TodoModel
+    if (newState === "completed") {
+      const todoModel = new TodoModel(todoToToggle, settings);
+      const validation = todoModel.canComplete(todos);
+      if (!validation.canComplete) {
+        setDependencyBlockNotification(validation.reason || "Cannot complete task");
         // Clear notification after 5 seconds
         setTimeout(() => setDependencyBlockNotification(null), 5000);
         return; // Don't allow completion
@@ -205,7 +207,7 @@ export function useTodos() {
       activity: [...todoToToggle.activity, activity],
     };
 
-    setTodos((prev) => prev.map((todo) => (todo.id === id ? updatedTodo : todo)));
+    setRawTodos((prev) => prev.map((todo) => (todo.id === id ? updatedTodo : todo)));
 
     // If completing a recurring task, create a new instance
     if (newState === "completed" && todoToToggle.metadata.recurring) {
@@ -245,7 +247,7 @@ export function useTodos() {
         newRecurringTodo.text = parts.join(" ");
 
         // Add the new recurring todo to the list
-        setTodos((prev) => [newRecurringTodo, ...prev]);
+        setRawTodos((prev) => [newRecurringTodo, ...prev]);
       }
     }
 
@@ -268,7 +270,7 @@ export function useTodos() {
   };
 
   const deleteTodo = (id: string) => {
-    const todoToDelete = todos.find((t) => t.id === id);
+    const todoToDelete = rawTodos.find((t) => t.id === id);
     if (!todoToDelete) return;
 
     const previousState = JSON.parse(JSON.stringify(todoToDelete)); // Deep copy
@@ -282,7 +284,7 @@ export function useTodos() {
     };
 
     // Update the todo to deleted state (keeps it in the list but hidden)
-    setTodos((prev) => prev.map((todo) => (todo.id === id ? deletedTodo : todo)));
+    setRawTodos((prev) => prev.map((todo) => (todo.id === id ? deletedTodo : todo)));
 
     // Create undo action
     const actionId = `${now}-delete-${id}`;
@@ -309,19 +311,17 @@ export function useTodos() {
   };
 
   const archiveTodo = (id: string) => {
-    const todoToArchive = todos.find((t) => t.id === id);
+    const todoToArchive = rawTodos.find((t) => t.id === id);
     if (!todoToArchive) return;
 
-    // Check dependencies before allowing archive (only for active/incomplete todos)
-    if (todoToArchive.state === "active" && todoToArchive.metadata.dependencies.length > 0) {
-      const validation = areDependenciesSatisfied(todoToArchive.metadata.dependencies, todos);
-      if (!validation.satisfied) {
-        const message = getDependencyBlockMessage(validation.unsatisfiedTodos);
-        setDependencyBlockNotification(message);
-        // Clear notification after 5 seconds
-        setTimeout(() => setDependencyBlockNotification(null), 5000);
-        return; // Don't allow archive
-      }
+    // Check dependencies before allowing archive using TodoModel
+    const todoModel = new TodoModel(todoToArchive, settings);
+    const validation = todoModel.canArchive(todos);
+    if (!validation.canArchive) {
+      setDependencyBlockNotification(validation.reason || "Cannot archive task");
+      // Clear notification after 5 seconds
+      setTimeout(() => setDependencyBlockNotification(null), 5000);
+      return; // Don't allow archive
     }
 
     const previousState = JSON.parse(JSON.stringify(todoToArchive)); // Deep copy
@@ -335,7 +335,7 @@ export function useTodos() {
       activity: [...todoToArchive.activity, createActivity("archived", "Task archived")],
     };
 
-    setTodos((prev) => prev.map((todo) => (todo.id === id ? updatedTodo : todo)));
+    setRawTodos((prev) => prev.map((todo) => (todo.id === id ? updatedTodo : todo)));
 
     // Create undo action
     const actionId = `${now}-archive-${id}`;
@@ -356,7 +356,7 @@ export function useTodos() {
   };
 
   const unarchiveTodo = (id: string) => {
-    setTodos((prev) =>
+    setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === id) {
           // If there's no completedAt timestamp, restore to active state
@@ -377,7 +377,7 @@ export function useTodos() {
   };
 
   const editTodo = (id: string, text: string, plainText: string, metadata: TodoMetadata) => {
-    setTodos((prev) =>
+    setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === id) {
           // Track text edit and metadata changes
@@ -407,7 +407,7 @@ export function useTodos() {
   };
 
   const addTodoComment = (todoId: string, content: string) => {
-    setTodos((prev) =>
+    setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
           const newComment = {
@@ -425,7 +425,7 @@ export function useTodos() {
   };
 
   const editTodoComment = (todoId: string, commentId: number, content: string) => {
-    setTodos((prev) =>
+    setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
           return {
@@ -443,7 +443,7 @@ export function useTodos() {
   };
 
   const deleteTodoComment = (todoId: string, commentId: number) => {
-    setTodos((prev) =>
+    setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
           return {
@@ -474,7 +474,5 @@ export function useTodos() {
     undo,
     dismissUndo,
     settings, // Export settings for TodoModel creation
-    // Helper to create TodoModel instances
-    createModels: (todosToWrap?: Todo[]) => createTodoModels(todosToWrap || todos, settings),
   };
 }
