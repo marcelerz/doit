@@ -25,7 +25,7 @@ export function StorageTab() {
       const adapterName = adapter.constructor.name;
       const detectedType: StorageType = adapterName === "IndexedDBAdapter" ? "indexedDB" : "localStorage";
       setStorageType(detectedType);
-      
+
       await estimateStorageQuota(detectedType);
       await calculateStorageUsage();
     };
