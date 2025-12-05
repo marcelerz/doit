@@ -2,6 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useState, useEffect } f
 import { Person, Project, Priority, DateTimeSettings, WorkHoursSettings } from "@/types/settings";
 import { getDueDateSuggestions, parseDate } from "@/utils/dateParser";
 import { getRecurringSuggestions } from "@/utils/recurringParser";
+import { detectDatesInText, detectedDateToISO, DetectedDate } from "@/utils/chronoDateParser";
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
@@ -12,6 +13,10 @@ export interface TokenMatch {
   raw: string; // raw matched string, e.g. "@marcel"
   start: number;
   end: number;
+  // For auto-detected dates (without ~)
+  isAutoDetected?: boolean;
+  detectedDateIndex?: number; // Which detected date is active (0-based)
+  allDetectedDates?: string[]; // All ISO dates found at this location
 }
 
 export interface SmartEditableInputProps {
@@ -60,6 +65,8 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
     ref,
   ) => {
     const editableRef = useRef<HTMLDivElement>(null);
+    // Track which detected date is active at each position (key is "start-end", value is index)
+    const [activeDateIndices, setActiveDateIndices] = useState<Record<string, number>>({});
     const [autocomplete, setAutocomplete] = useState<{
       show: boolean;
       options: string[];
@@ -108,8 +115,8 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       },
     }));
 
-    // Re-render content when availablePeople, availableProjects, or availablePriorities change
-    // This ensures highlighting updates when new people/projects/priorities are added
+    // Re-render content when availablePeople, availableProjects, availablePriorities, or activeDateIndices change
+    // This ensures highlighting updates when new people/projects/priorities are added or dates are deactivated
     useEffect(() => {
       if (editableRef.current && editableRef.current.textContent) {
         const currentText = editableRef.current.textContent;
@@ -120,7 +127,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           onTokensChange(tokens, currentText, plainText);
         }
       }
-    }, [availablePeople, availableProjects, availablePriorities]);
+    }, [availablePeople, availableProjects, availablePriorities, activeDateIndices]);
 
     const defaultColors: string[] = [
       "#cce5ff",
@@ -321,6 +328,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const tokens: TokenMatch[] = [];
       const tokenDefs = buildTokenRegex();
 
+      // First, extract explicit marker-based tokens
       for (const { type, symbol, regex } of tokenDefs) {
         let match: RegExpExecArray | null;
         while ((match = regex.exec(text))) {
@@ -356,6 +364,46 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         }
       }
 
+      // Second, detect dates using chrono-node (skip areas already covered by explicit ~ markers)
+      const detectedDates = detectDatesInText(text, new Date(), dateTimeSettings, workHoursSettings);
+      const explicitDueDateRanges = tokens
+        .filter((t) => t.type === "dueDate")
+        .map((t) => ({ start: t.start, end: t.end }));
+
+      for (const detected of detectedDates) {
+        // Skip if this position overlaps with an explicit ~ dueDate marker
+        const overlapsExplicit = explicitDueDateRanges.some(
+          (range) => !(detected.end <= range.start || detected.start >= range.end),
+        );
+
+        if (!overlapsExplicit) {
+          // Check if this date has been deactivated
+          const posKey = `${detected.start}-${detected.end}`;
+          const isDeactivated = activeDateIndices[posKey] === -1;
+
+          // Skip if deactivated
+          if (isDeactivated) {
+            continue;
+          }
+
+          const activeIndex = activeDateIndices[posKey] || 0;
+
+          // Convert detected date to ISO format
+          const isoDate = detectedDateToISO(detected);
+
+          tokens.push({
+            type: "dueDate",
+            value: isoDate,
+            raw: detected.text,
+            start: detected.start,
+            end: detected.end,
+            isAutoDetected: true,
+            detectedDateIndex: activeIndex,
+            allDetectedDates: [isoDate], // For now, just one date per detection
+          });
+        }
+      }
+
       tokens.sort((a, b) => a.start - b.start);
 
       let pos = 0;
@@ -374,7 +422,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
 
         // For due dates, try to parse and show formatted date as preview
         let displayText = token.raw;
-        if (token.type === "dueDate" && dateTimeSettings && workHoursSettings) {
+        if (token.type === "dueDate" && !token.isAutoDetected && dateTimeSettings && workHoursSettings) {
           const parsed = parseDate(token.value, dateTimeSettings, workHoursSettings);
           if (parsed) {
             displayText = `~${parsed.formatted}`;
@@ -384,6 +432,27 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         span.textContent = displayText;
         span.contentEditable = "false";
         span.dataset.token = token.type;
+
+        // For auto-detected dates, add click handler to cycle/deactivate
+        if (token.isAutoDetected) {
+          span.dataset.autoDetected = "true";
+          span.dataset.position = `${token.start}-${token.end}`;
+          span.style.cursor = "pointer";
+          span.title = "Click to deactivate auto-detected date";
+
+          // Add click handler
+          span.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const posKey = span.dataset.position!;
+            // Deactivate by setting to -1 (useEffect will re-render)
+            setActiveDateIndices((prev) => ({
+              ...prev,
+              [posKey]: -1,
+            }));
+          });
+        }
 
         // Determine background color - try to get entity-specific color first
         let bgColor = colorMap[token.type];
@@ -421,14 +490,18 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           bgColor = colorMap[token.type];
         }
 
+        // Auto-detected dates get a lighter, more subtle styling
+        const isAutoDetected = token.isAutoDetected;
         Object.assign(span.style, {
           display: "inline-block",
           padding: "2px 6px",
           margin: "0 2px",
           borderRadius: "4px",
-          fontWeight: "bold",
+          fontWeight: isAutoDetected ? "normal" : "bold",
           backgroundColor: bgColor,
           color: "#333",
+          opacity: isAutoDetected ? "0.8" : "1",
+          textDecoration: isAutoDetected ? "underline dotted" : "none",
         });
 
         fragment.appendChild(span);

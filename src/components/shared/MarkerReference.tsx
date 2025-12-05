@@ -19,7 +19,7 @@ export function MarkerReference() {
           <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">!!high</code> Priority
         </div>
         <div>
-          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">~date</code> Due
+          <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">~date</code> Due (or auto-detect)
         </div>
         <div>
           <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">*2h</code> Duration
@@ -34,6 +34,9 @@ export function MarkerReference() {
           <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">&amp;tag</code> Tag
         </div>
       </div>
+      <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+        💡 Dates are automatically detected (e.g., "tomorrow", "next Friday"). Click highlighted dates to deactivate.
+      </p>
     </div>
   );
 }
