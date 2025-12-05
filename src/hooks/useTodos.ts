@@ -238,7 +238,7 @@ export function useTodos() {
         const parts: string[] = [todoToToggle.plainText];
         newRecurringTodo.metadata.assignedPeople.forEach((p) => parts.push(`@${p}`));
         newRecurringTodo.metadata.sourcePeople.forEach((p) => parts.push(`$${p}`));
-        newRecurringTodo.metadata.mentionedPeople.forEach((p) => parts.push(`^${p}`));
+        newRecurringTodo.metadata.mentionedPeople.forEach((p) => parts.push(p));
         newRecurringTodo.metadata.projects.forEach((p) => parts.push(`#${p}`));
         if (newRecurringTodo.metadata.priority) parts.push(`!!${newRecurringTodo.metadata.priority}`);
         if (newRecurringTodo.metadata.dueDate) parts.push(`~${newRecurringTodo.metadata.dueDate}`);

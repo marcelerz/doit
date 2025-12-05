@@ -3,6 +3,7 @@ interface BadgeProps {
   onRemove?: () => void;
   variant?: "blue" | "green" | "pink" | "purple" | "red" | "teal" | "amber" | "zinc";
   size?: "sm" | "md";
+  customColor?: string; // Hex color for custom styling
 }
 
 const variantClasses = {
@@ -22,9 +23,37 @@ const variantClasses = {
 /**
  * Reusable badge component for displaying metadata with optional remove button
  */
-export function Badge({ children, onRemove, variant = "zinc", size = "sm" }: BadgeProps) {
+export function Badge({ children, onRemove, variant = "zinc", size = "sm", customColor }: BadgeProps) {
   const sizeClasses = size === "sm" ? "text-xs px-2 py-1" : "text-sm px-3 py-1.5";
 
+  // If custom color is provided, use inline styles instead of variant classes
+  if (customColor) {
+    const style = {
+      backgroundColor: customColor,
+      color: "#333",
+      borderColor: customColor,
+    };
+
+    if (onRemove) {
+      return (
+        <button
+          onClick={onRemove}
+          style={style}
+          className={`${sizeClasses} rounded border transition-opacity hover:opacity-80`}
+        >
+          {children} ✕
+        </button>
+      );
+    }
+
+    return (
+      <span style={style} className={`${sizeClasses} rounded border`}>
+        {children}
+      </span>
+    );
+  }
+
+  // Use variant classes if no custom color
   if (onRemove) {
     return (
       <button

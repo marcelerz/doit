@@ -272,7 +272,7 @@ export class ProjectModel {
 
   /**
    * Check if this project matches any of the given names or alternatives
-   * Used for parsing #project mentions in todo text
+   * Used for parsing %project mentions in todo text
    */
   matchesAnyName(names: string[]): boolean {
     const lowerNames = names.map((n) => n.toLowerCase());

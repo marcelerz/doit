@@ -1,9 +1,13 @@
 import React, { useRef, forwardRef, useImperativeHandle, useState, useEffect } from "react";
 import { Person, Project, Priority, DateTimeSettings, WorkHoursSettings } from "@/types/settings";
-import { getDueDateSuggestions, parseDate } from "@/utils/dateParser";
-import { getRecurringSuggestions } from "@/utils/recurringParser";
-import { detectDatesInText, detectedDateToISO, DetectedDate } from "@/utils/chronoDateParser";
-import { TodoModel } from "@/models/TodoModel";
+import {
+  detectDatesInText,
+  detectedDateToISO,
+  detectMentionedPeople,
+  detectMentionedProjects,
+  detectSourcePeople,
+  detectPriorities,
+} from "@/utils/chronoDateParser";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 
@@ -30,7 +34,6 @@ export interface SmartEditableInputProps {
   availablePeople?: PersonModel[]; // List of valid people with alternatives
   availableProjects?: ProjectModel[]; // List of valid projects with alternatives
   availablePriorities?: Priority[]; // List of valid priorities with alternatives
-  availableTodos?: TodoModel[]; // List of todos for dependency selection
   onAddPerson?: (name: string) => void; // Callback to add a new person
   onAddProject?: (name: string) => void; // Callback to add a new project
   onAddPriority?: (name: string) => void; // Callback to add a new priority
@@ -56,7 +59,6 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       availablePeople = [],
       availableProjects = [],
       availablePriorities = [],
-      availableTodos = [],
       onAddPerson,
       onAddProject,
       onAddPriority,
@@ -71,7 +73,6 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
     const [autocomplete, setAutocomplete] = useState<{
       show: boolean;
       options: string[];
-      values?: string[]; // For dependency: actual IDs to insert (parallel to options)
       selected: number;
       type: string;
       marker: string;
@@ -81,7 +82,6 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
     }>({
       show: false,
       options: [],
-      values: undefined,
       selected: 0,
       type: "",
       marker: "",
@@ -90,34 +90,39 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       position: { top: 0, left: 0 },
     });
 
-    useImperativeHandle(ref, () => ({
-      clear: () => {
-        if (editableRef.current) {
-          editableRef.current.innerHTML = "";
-          if (onTokensChange) {
-            onTokensChange([], "", "");
+    useImperativeHandle(
+      ref,
+      () => ({
+        clear: () => {
+          if (editableRef.current) {
+            editableRef.current.innerHTML = "";
+            if (onTokensChange) {
+              onTokensChange([], "", "");
+            }
           }
-        }
-      },
-      setValue: (text: string) => {
-        if (editableRef.current) {
-          const { fragment, tokens, plainText } = renderTokensFromText(text);
-          editableRef.current.innerHTML = "";
-          editableRef.current.appendChild(fragment);
-          if (onTokensChange) {
-            onTokensChange(tokens, text, plainText);
+        },
+        setValue: (text: string) => {
+          if (editableRef.current) {
+            const { fragment, tokens, plainText } = renderTokensFromText(text);
+            editableRef.current.innerHTML = "";
+            editableRef.current.appendChild(fragment);
+            if (onTokensChange) {
+              onTokensChange(tokens, text, plainText);
+            }
           }
-        }
-      },
-      focus: () => {
-        if (editableRef.current) {
-          editableRef.current.focus();
-        }
-      },
-    }));
+        },
+        focus: () => {
+          if (editableRef.current) {
+            editableRef.current.focus();
+          }
+        },
+      }),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [],
+    );
 
-    // Re-render content when availablePeople, availableProjects, availablePriorities, or activeDateIndices change
-    // This ensures highlighting updates when new people/projects/priorities are added or dates are deactivated
+    // Re-render content ONLY when activeDateIndices change (for date deactivation)
+    // We don't need to re-render for people/projects/priorities changes since they're handled during input
     useEffect(() => {
       if (editableRef.current && editableRef.current.textContent) {
         const currentText = editableRef.current.textContent;
@@ -128,29 +133,15 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           onTokensChange(tokens, currentText, plainText);
         }
       }
-    }, [availablePeople, availableProjects, availablePriorities, activeDateIndices]);
-
-    const defaultColors: string[] = [
-      "#cce5ff",
-      "#e2ccff",
-      "#ffd4d4",
-      "#d4fdd4",
-      "#d4faff",
-      "#ffe5b4",
-      "#e0ffff",
-      "#fce4ec",
-      "#e8f5e9",
-      "#f3e5f5",
-    ];
-
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeDateIndices]);
     const buildTokenRegex = (): { type: string; symbol: string; regex: RegExp }[] => {
       const patterns: { type: string; symbol: string; regex: RegExp }[] = [];
 
-      // Build patterns for people markers (@, $, ^)
+      // Build patterns for people markers (@ and $, but NOT ^)
       const peopleMarkers = [
         { type: "assigned", symbol: "@" },
         { type: "source", symbol: "$" },
-        { type: "mentioned", symbol: "^" },
       ];
 
       for (const { type, symbol } of peopleMarkers) {
@@ -167,13 +158,13 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         }
       }
 
-      // Build pattern for project marker (#)
+      // Build pattern for project marker (%)
       const allProjects = availableProjects.flatMap((p) => [p.name, ...p.alternatives]);
       if (allProjects.length > 0) {
         const sortedProjects = allProjects.sort((a, b) => b.length - a.length);
         const namesPattern = sortedProjects.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-        const regex = new RegExp(`#(${namesPattern})(?=\\s|$)`, "gi");
-        patterns.push({ type: "project", symbol: "#", regex });
+        const regex = new RegExp(`%(${namesPattern})(?=\\s|$)`, "gi");
+        patterns.push({ type: "project", symbol: "%", regex });
       }
 
       // Build pattern for priority marker (!!)
@@ -185,52 +176,12 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         patterns.push({ type: "priority", symbol: "!!", regex });
       }
 
-      // Build pattern for due date marker (~)
-      // Matches dates like: ~tomorrow, ~2024-12-25, ~Mon, 1st Dec 2025 3:12pm, ~23.12.2025 13:40, ~eod
-      // Pattern matches everything after ~ until we hit a known marker or end of input
-      // Allows letters (for month names, day names), digits, punctuation (commas, colons, slashes, dots)
-      // and am/pm indicators. Stops at other markers or double spaces.
-      const dueDatePattern = `~([^@#$^*~%\\n]+?)(?=\\s{2,}|\\s+[@#$^*~%!]{1,2}|$)`;
-      patterns.push({
-        type: "dueDate",
-        symbol: "~",
-        regex: new RegExp(dueDatePattern, "gi"),
-      });
-
-      // Build pattern for tag marker (&) - freeform text
-      const tagPattern = `&([^\\s@#$^*~%>&]+?)(?=\\s|$)`;
+      // Build pattern for tag marker (#) - freeform text
+      const tagPattern = `#([^\\s@%$!#>&]+?)(?=\\s|$)`;
       patterns.push({
         type: "tag",
-        symbol: "&",
+        symbol: "#",
         regex: new RegExp(tagPattern, "gi"),
-      });
-
-      // Build pattern for duration marker (*) with specific format support
-      // Supports: 5sec/secs/seconds, 5min/mins/minute/minutes, 3hr/hrs/h/hour/hours,
-      // 5d/day/days, 2w/wk/wks/week/weeks, 1m/month/months, 3y/yr/yrs/year/years
-      const durationPattern = `\\*(\\d+(?:sec|secs?|seconds?|mins?|minutes?|h|hrs?|hours?|d|days?|w|wks?|weeks?|m|months?|y|yrs?|years?))(?=\\s|$)`;
-      patterns.push({
-        type: "duration",
-        symbol: "*",
-        regex: new RegExp(durationPattern, "gi"),
-      });
-
-      // Build pattern for recurring marker (%)
-      // Matches patterns like: %every 2 days, %every monday, %monthly on 15th, %workday
-      const recurringPattern = `%([^@#$^*~%>\\n]+?)(?=\\s{2,}|\\s+[@#$^*~%>!]{1,2}|$)`;
-      patterns.push({
-        type: "recurring",
-        symbol: "%",
-        regex: new RegExp(recurringPattern, "gi"),
-      });
-
-      // Build pattern for dependency marker (>)
-      // Matches todo IDs after > symbol
-      const dependencyPattern = `>([a-zA-Z0-9-]+)(?=\\s|$)`;
-      patterns.push({
-        type: "dependency",
-        symbol: ">",
-        regex: new RegExp(dependencyPattern, "gi"),
       });
 
       return patterns;
@@ -288,40 +239,6 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       );
     };
 
-    const filterTodosBySearch = (search: string): { id: string; text: string }[] => {
-      const lowerSearch = search.toLowerCase();
-      if (search === "") return availableTodos.slice(0, 10).map((t) => ({ id: t.id, text: t.plainText }));
-      return availableTodos
-        .filter((t) => t.plainText.toLowerCase().includes(lowerSearch))
-        .slice(0, 10)
-        .map((t) => ({ id: t.id, text: t.plainText }));
-    };
-
-    const getDurationSuggestions = (search: string): string[] => {
-      // Duration units with descriptions
-      const units = [
-        { suffix: "sec", label: "sec - seconds" },
-        { suffix: "min", label: "min - minutes" },
-        { suffix: "h", label: "h - hours" },
-        { suffix: "d", label: "d - days" },
-        { suffix: "w", label: "w - weeks" },
-        { suffix: "m", label: "m - months" },
-        { suffix: "y", label: "y - years" },
-      ];
-
-      // Extract the number part if present
-      const numberMatch = search.match(/^(\d+)/);
-      const hasNumber = !!numberMatch;
-      const number = numberMatch ? numberMatch[1] : "";
-      const textAfterNumber = hasNumber ? search.slice(number.length) : search;
-
-      // Filter units based on what's typed after the number
-      const filtered = units.filter((u) => u.suffix.startsWith(textAfterNumber.toLowerCase()));
-
-      // Return suggestions with the number prepended
-      return filtered.map((u) => (hasNumber ? `${number}${u.suffix}` : u.label));
-    };
-
     const renderTokensFromText = (
       text: string,
     ): { fragment: DocumentFragment; tokens: TokenMatch[]; plainText: string } => {
@@ -334,13 +251,11 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         let match: RegExpExecArray | null;
         while ((match = regex.exec(text))) {
           const raw = match[0];
-          // For dueDate and recurring, match[1] contains the captured value without ~ or %
-          // For other types, extract by removing the symbol prefix
-          let value =
-            (type === "dueDate" || type === "recurring") && match[1] ? match[1].trim() : raw.slice(symbol.length);
+          // Extract value by removing the symbol prefix
+          let value = raw.slice(symbol.length);
 
           // For people markers, resolve alternatives to canonical name
-          if (["assigned", "source", "mentioned"].includes(type)) {
+          if (["assigned", "source"].includes(type)) {
             const person = findPersonByNameOrAlternative(value);
             if (person) {
               value = person.name; // Use canonical name
@@ -365,39 +280,16 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         }
       }
 
-      // Second, detect dates using chrono-node (skip areas already covered by explicit ~ markers)
-      console.log("\n🎯 [SmartInput] Processing text:", text);
+      // Second, detect dates using chrono-node (auto-detection only, no explicit markers)
       const detectedDates = detectDatesInText(text, new Date(), dateTimeSettings, workHoursSettings);
-      const explicitDueDateRanges = tokens
-        .filter((t) => t.type === "dueDate")
-        .map((t) => ({ start: t.start, end: t.end }));
 
-      console.log(`📍 [SmartInput] Explicit ~ markers: ${explicitDueDateRanges.length}`);
-      if (explicitDueDateRanges.length > 0) {
-        explicitDueDateRanges.forEach((range) => {
-          console.log(`  - Position ${range.start}-${range.end}`);
-        });
-      }
-
-      console.log(`\n🔄 [SmartInput] Processing ${detectedDates.length} detected dates`);
       for (const detected of detectedDates) {
-        // Skip if this position overlaps with an explicit ~ dueDate marker
-        const overlapsExplicit = explicitDueDateRanges.some(
-          (range) => !(detected.end <= range.start || detected.start >= range.end),
-        );
-
-        if (overlapsExplicit) {
-          console.log(`  ⏭️ Skipping "${detected.text}" - overlaps with explicit ~ marker`);
-          continue;
-        }
-
         // Check if this date has been deactivated
         const posKey = `${detected.start}-${detected.end}`;
         const isDeactivated = activeDateIndices[posKey] === -1;
 
         // Skip if deactivated
         if (isDeactivated) {
-          console.log(`  ⏭️ Skipping "${detected.text}" - user deactivated`);
           continue;
         }
 
@@ -408,13 +300,6 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
 
         // If this is a recurring pattern with duration (e.g., "every monday at 9am to 5pm")
         if (detected.recurring && detected.durationMinutes && detected.durationMinutes > 0) {
-          console.log(`  ✅ Adding dueDate + duration + recurring tokens for pattern "${detected.text}"`, {
-            position: `${detected.start}-${detected.end}`,
-            isoDate,
-            pattern: detected.recurring,
-            durationMinutes: detected.durationMinutes,
-          });
-
           // Add dueDate token (first occurrence with time)
           tokens.push({
             type: "dueDate",
@@ -461,12 +346,6 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         }
         // If this is a recurring pattern (without duration), create BOTH a dueDate and recurring token
         else if (detected.recurring) {
-          console.log(`  ✅ Adding dueDate + recurring tokens for pattern "${detected.text}"`, {
-            position: `${detected.start}-${detected.end}`,
-            isoDate,
-            pattern: detected.recurring,
-          });
-
           // Add dueDate token (first occurrence)
           tokens.push({
             type: "dueDate",
@@ -493,12 +372,6 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         }
         // If this is a range with a duration, create BOTH a dueDate and duration token
         else if (detected.durationMinutes && detected.durationMinutes > 0) {
-          console.log(`  ✅ Adding dueDate + duration tokens for range "${detected.text}"`, {
-            position: `${detected.start}-${detected.end}`,
-            isoDate,
-            durationMinutes: detected.durationMinutes,
-          });
-
           // Add dueDate token (start of range)
           tokens.push({
             type: "dueDate",
@@ -533,12 +406,6 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
             autoDetectedType: "range",
           });
         } else {
-          console.log(`  ✅ Adding dueDate token for "${detected.text}"`, {
-            position: `${detected.start}-${detected.end}`,
-            isoDate,
-            activeIndex,
-          });
-
           tokens.push({
             type: "dueDate",
             value: isoDate,
@@ -553,16 +420,192 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         }
       }
 
-      console.log(`\n📦 [SmartInput] Final token count: ${tokens.length}`);
-      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+      // Third, detect mentioned people using auto-detection (skip areas covered by @ or $ markers)
+      const detectedPeople = detectMentionedPeople(text, availablePeople);
+
+      // Get all ranges already covered by explicit @ or $ markers
+      const explicitPeopleRanges = tokens
+        .filter((t) => t.type === "assigned" || t.type === "source")
+        .map((t) => ({ start: t.start, end: t.end }));
+
+      for (const detected of detectedPeople) {
+        // Skip if this position overlaps with an explicit @ or $ marker
+        const overlapsExplicit = explicitPeopleRanges.some(
+          (range) => !(detected.end <= range.start || detected.start >= range.end),
+        );
+
+        if (overlapsExplicit) {
+          continue;
+        }
+
+        // Skip if this position overlaps with any date token (dates take precedence)
+        const overlapsDate = tokens.some(
+          (t) =>
+            (t.type === "dueDate" || t.type === "recurring") && !(detected.end <= t.start || detected.start >= t.end),
+        );
+
+        if (overlapsDate) {
+          continue;
+        }
+
+        tokens.push({
+          type: "mentioned",
+          value: detected.personName, // Use canonical name
+          raw: detected.text, // Original text as it appears
+          start: detected.start,
+          end: detected.end,
+          isAutoDetected: true,
+        });
+      }
+
+      // Fourth, detect mentioned projects using auto-detection (skip areas covered by % markers)
+      const detectedProjects = detectMentionedProjects(text, availableProjects);
+
+      // Get all ranges already covered by explicit % markers
+      const explicitProjectRanges = tokens
+        .filter((t) => t.type === "project")
+        .map((t) => ({ start: t.start, end: t.end }));
+
+      for (const detected of detectedProjects) {
+        // Skip if this position overlaps with an explicit % marker
+        const overlapsExplicit = explicitProjectRanges.some(
+          (range) => !(detected.end <= range.start || detected.start >= range.end),
+        );
+
+        if (overlapsExplicit) {
+          continue;
+        }
+
+        // Skip if this position overlaps with any date token (dates take precedence)
+        const overlapsDate = tokens.some(
+          (t) =>
+            (t.type === "dueDate" || t.type === "recurring") && !(detected.end <= t.start || detected.start >= t.end),
+        );
+
+        if (overlapsDate) {
+          continue;
+        }
+
+        // Skip if this position overlaps with any person token (people take precedence)
+        const overlapsPerson = tokens.some(
+          (t) =>
+            (t.type === "assigned" || t.type === "source" || t.type === "mentioned") &&
+            !(detected.end <= t.start || detected.start >= t.end),
+        );
+
+        if (overlapsPerson) {
+          continue;
+        }
+
+        tokens.push({
+          type: "project",
+          value: detected.projectName, // Use canonical name
+          raw: detected.text, // Original text as it appears
+          start: detected.start,
+          end: detected.end,
+          isAutoDetected: true,
+        });
+      }
+
+      // Fifth, detect source people using auto-detection (skip areas covered by $ markers)
+      const detectedSourcePeople = detectSourcePeople(text, availablePeople);
+
+      // Get all ranges already covered by explicit $ markers
+      const explicitSourceRanges = tokens
+        .filter((t) => t.type === "source")
+        .map((t) => ({ start: t.start, end: t.end }));
+
+      for (const detected of detectedSourcePeople) {
+        // Skip if this position overlaps with an explicit $ marker
+        const overlapsExplicit = explicitSourceRanges.some(
+          (range) => !(detected.end <= range.start || detected.start >= range.end),
+        );
+
+        if (overlapsExplicit) {
+          continue;
+        }
+
+        // Skip if this position overlaps with any date token (dates take precedence)
+        const overlapsDate = tokens.some(
+          (t) =>
+            (t.type === "dueDate" || t.type === "recurring") && !(detected.end <= t.start || detected.start >= t.end),
+        );
+
+        if (overlapsDate) {
+          continue;
+        }
+
+        // Skip if this position overlaps with any existing token (dates, people, projects take precedence)
+        const overlapsExisting = tokens.some((t) => !(detected.end <= t.start || detected.start >= t.end));
+
+        if (overlapsExisting) {
+          continue;
+        }
+
+        tokens.push({
+          type: "source",
+          value: detected.personName, // Use canonical name
+          raw: detected.text, // Original text as it appears
+          start: detected.start,
+          end: detected.end,
+          isAutoDetected: true,
+        });
+      }
+
+      // Sixth, detect priorities using auto-detection (skip areas covered by !! markers)
+      const detectedPriorities = detectPriorities(text, availablePriorities);
+
+      // Get all ranges already covered by explicit !! markers
+      const explicitPriorityRanges = tokens
+        .filter((t) => t.type === "priority")
+        .map((t) => ({ start: t.start, end: t.end }));
+
+      for (const detected of detectedPriorities) {
+        // Skip if this position overlaps with an explicit !! marker
+        const overlapsExplicit = explicitPriorityRanges.some(
+          (range) => !(detected.end <= range.start || detected.start >= range.end),
+        );
+
+        if (overlapsExplicit) {
+          continue;
+        }
+
+        // Skip if this position overlaps with any existing token
+        const overlapsExisting = tokens.some((t) => !(detected.end <= t.start || detected.start >= t.end));
+
+        if (overlapsExisting) {
+          continue;
+        }
+
+        tokens.push({
+          type: "priority",
+          value: detected.priorityName, // Use canonical name
+          raw: detected.text, // Original text as it appears
+          start: detected.start,
+          end: detected.end,
+          isAutoDetected: true,
+        });
+      }
 
       tokens.sort((a, b) => a.start - b.start);
 
       let pos = 0;
-      const colorMap: Record<string, string> = {};
-      let colorIdx = 0;
       let plainText = "";
       const processedIndices = new Set<number>();
+
+      // Types to exclude from plainText when auto-detected
+      const autoDetectedTypesToRemove = new Set(["dueDate", "duration", "recurring", "dependency"]);
+
+      // Explicit marker types to remove from plainText (keep @ and $ for people)
+      const explicitMarkerTypesToRemove = new Set([
+        "dueDate",
+        "duration",
+        "recurring",
+        "dependency",
+        "priority",
+        "project",
+        "tag",
+      ]);
 
       for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
@@ -591,89 +634,74 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         // Mark all co-located tokens as processed
         coLocatedIndices.forEach((idx) => processedIndices.add(idx));
 
-        console.log(
-          `🎨 [Segments] Processing ${coLocatedTokens.length} co-located tokens:`,
-          coLocatedTokens.map((t) => t.type),
-        );
+        // Helper function to get token color (custom or fallback)
+        const getTokenColor = (tok: TokenMatch): string => {
+          // For people tokens, try to get custom color
+          if (tok.type === "assigned" || tok.type === "source" || tok.type === "mentioned") {
+            const person = availablePeople.find((p) => p.name === tok.value || p.alternatives.includes(tok.value));
+            return person?.color || markerColors["assigned"] || "#e3f2fd";
+          }
 
-        // For co-located tokens, create segments with different colors
-        // Priority for coverage: recurring > duration > dueDate
-        const segments: Array<{ start: number; end: number; type: string; color: string }> = [];
+          // For project tokens, try to get custom color
+          if (tok.type === "project") {
+            const project = availableProjects.find((p) => p.name === tok.value || p.alternatives.includes(tok.value));
+            return project?.color || markerColors["project"] || "#f3e5f5";
+          }
 
-        // Sort tokens by priority (recurring > duration > dueDate)
-        const sortedTokens = [...coLocatedTokens].sort((a, b) => {
+          // For priority tokens, try to get custom color
+          if (tok.type === "priority") {
+            const priority = availablePriorities.find(
+              (p) => p.name === tok.value || p.alternatives.includes(tok.value),
+            );
+            return priority?.color || markerColors["priority"] || "#ffebee";
+          }
+
+          // For auto-detected date/duration/recurring, use marker colors
+          if (tok.isAutoDetected && tok.autoDetectedType) {
+            if (tok.type === "recurring") return markerColors["recurring"] || "#e0f2f1";
+            if (tok.type === "duration") return markerColors["duration"] || "#fff4e6";
+            if (tok.type === "dueDate") return markerColors["dueDate"] || "#fce4ec";
+          }
+
+          // Fallback to marker color or default
+          const fallbackColors: Record<string, string> = {
+            dueDate: "#fce4ec",
+            duration: "#fff4e6",
+            recurring: "#e0f2f1",
+            dependency: "#fff8e1",
+            assigned: "#e3f2fd",
+            source: "#f1f8e9",
+            mentioned: "#fff9c4",
+            project: "#f3e5f5",
+            priority: "#ffebee",
+            tag: "#e0f7fa",
+          };
+          return markerColors[tok.type as keyof typeof markerColors] || fallbackColors[tok.type] || "#f5f5f5";
+        };
+
+        // For co-located tokens (e.g., dueDate + duration + recurring at same position),
+        // use the primary token's color (recurring > duration > dueDate)
+        const primaryToken = [...coLocatedTokens].sort((a, b) => {
           const priority: Record<string, number> = { recurring: 3, duration: 2, dueDate: 1 };
           return (priority[b.type] || 0) - (priority[a.type] || 0);
-        });
+        })[0];
+        const color = getTokenColor(primaryToken);
 
-        // For each token, determine its specific text range within the full text
-        sortedTokens.forEach((tok) => {
-          let segStart = token.start;
-          let segEnd = token.end;
-
-          console.log(`  Processing token type="${tok.type}", value="${tok.value}", raw="${tok.raw}"`);
-
-          // Try to identify the specific part of the text this token represents
-          if (tok.type === "recurring" && tok.value) {
-            // For recurring patterns with time (e.g., "every 2nd thursday at 5am to 7pm"),
-            // use the full token range since tok.value contains the complete pattern
-            segStart = token.start;
-            segEnd = token.end;
-            console.log(`    → Recurring segment: "${text.slice(segStart, segEnd)}" at ${segStart}-${segEnd}`);
-          } else if (tok.type === "duration" && tok.value) {
-            // Find time range pattern like "5am to 8pm" in the original text
-            const searchText = text.slice(token.start, token.end);
-            const timeMatch = searchText.match(/\d+\s*(?:am|pm)\s+(?:to|until|-)\s+\d+\s*(?:am|pm)/i);
-            if (timeMatch) {
-              segStart = token.start + timeMatch.index!;
-              segEnd = segStart + timeMatch[0].length;
-              console.log(`    → Duration segment: "${text.slice(segStart, segEnd)}" at ${segStart}-${segEnd}`);
-            }
-          }
-
-          // Get the color for this token type
-          let color = markerColors[tok.type];
-          if (tok.isAutoDetected && tok.autoDetectedType) {
-            if (tok.type === "recurring") {
-              color = markerColors["recurring"];
-            } else if (tok.type === "duration") {
-              color = markerColors["duration"];
-            } else if (tok.type === "dueDate") {
-              color = markerColors["dueDate"];
-            }
-          }
-
-          segments.push({ start: segStart, end: segEnd, type: tok.type, color });
-        });
-
-        // Remove overlaps - higher priority tokens win
-        const finalSegments: typeof segments = [];
-        for (const seg of segments) {
-          let hasOverlap = false;
-          for (const existing of finalSegments) {
-            if (!(seg.end <= existing.start || seg.start >= existing.end)) {
-              hasOverlap = true;
-              break;
-            }
-          }
-          if (!hasOverlap) {
-            finalSegments.push(seg);
-          }
-        }
-
-        // Sort segments by position
-        finalSegments.sort((a, b) => a.start - b.start);
-
-        // Create a wrapper for all segments
+        // Create a wrapper span for the token
         const wrapper = document.createElement("span");
-        wrapper.style.display = "inline-block";
+        wrapper.textContent = text.slice(token.start, token.end);
+        wrapper.style.backgroundColor = color;
+        wrapper.style.padding = "2px 4px";
+        wrapper.style.borderRadius = "4px";
+        wrapper.style.opacity = "0.8";
 
-        // Add click handler to wrapper for deactivation
+        // Add dotted underline for auto-detected tokens
         if (token.isAutoDetected) {
+          wrapper.style.textDecoration = "underline dotted";
+          wrapper.style.cursor = "pointer";
+          wrapper.title = "Click to deactivate auto-detection";
           wrapper.dataset.autoDetected = "true";
           wrapper.dataset.position = `${token.start}-${token.end}`;
-          wrapper.style.cursor = "pointer";
-          wrapper.title = "Click to deactivate auto-detected date";
 
           wrapper.addEventListener("click", (e) => {
             e.preventDefault();
@@ -686,46 +714,29 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           });
         }
 
-        // Render segments with appropriate colors
-        let lastPos = token.start;
-        for (const seg of finalSegments) {
-          // Add any text before this segment
-          if (seg.start > lastPos) {
-            const beforeSpan = document.createElement("span");
-            beforeSpan.textContent = text.slice(lastPos, seg.start);
-            beforeSpan.style.backgroundColor = markerColors["dueDate"] || "#fce4ec";
-            beforeSpan.style.padding = "2px 4px";
-            beforeSpan.style.borderRadius = "4px";
-            beforeSpan.style.opacity = "0.8";
-            wrapper.appendChild(beforeSpan);
-          }
-
-          // Add the colored segment
-          const segSpan = document.createElement("span");
-          segSpan.textContent = text.slice(seg.start, seg.end);
-          segSpan.style.backgroundColor = seg.color;
-          segSpan.style.padding = "2px 4px";
-          segSpan.style.borderRadius = "4px";
-          segSpan.style.fontWeight = "normal";
-          segSpan.style.opacity = "0.8";
-          segSpan.style.textDecoration = "underline dotted";
-          wrapper.appendChild(segSpan);
-
-          lastPos = seg.end;
-        }
-
-        // Add any remaining text
-        if (lastPos < token.end) {
-          const afterSpan = document.createElement("span");
-          afterSpan.textContent = text.slice(lastPos, token.end);
-          afterSpan.style.backgroundColor = markerColors["dueDate"] || "#fce4ec";
-          afterSpan.style.padding = "2px 4px";
-          afterSpan.style.borderRadius = "4px";
-          afterSpan.style.opacity = "0.8";
-          wrapper.appendChild(afterSpan);
-        }
-
         fragment.appendChild(wrapper);
+
+        // For plainText: exclude certain tokens based on type and whether they're auto-detected
+        // Auto-detected date/duration/recurring/dependency should be removed
+        // Explicit markers (!!, %, #) should also be removed
+        // BUT keep @ and $ markers for people (assigned and source)
+        const shouldExcludeFromPlainText = coLocatedTokens.every((tok) => {
+          // Remove if auto-detected and in removal list
+          if (tok.isAutoDetected && autoDetectedTypesToRemove.has(tok.type)) {
+            return true;
+          }
+          // Remove if explicit marker that should be removed
+          if (!tok.isAutoDetected && explicitMarkerTypesToRemove.has(tok.type)) {
+            return true;
+          }
+          return false;
+        });
+
+        if (!shouldExcludeFromPlainText) {
+          // Include this token in plainText
+          plainText += text.slice(token.start, token.end);
+        }
+
         pos = token.end;
       }
 
@@ -760,22 +771,11 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const textBeforeCaret = caretPosition >= 0 ? fullText.substring(0, caretPosition) : fullText;
 
       // Look for marker symbols starting from the end backwards
-      const peopleMarkers = ["@", "$", "^"];
-      const projectMarker = "#";
+      const peopleMarkers = ["@", "$"];
+      const projectMarker = "%";
+      const tagMarker = "#";
       const priorityMarker = "!!";
-      const durationMarker = "*";
-      const dueDateMarker = "~";
-      const recurringMarker = "%";
-      const dependencyMarker = ">";
-      const allMarkers = [
-        ...peopleMarkers,
-        projectMarker,
-        priorityMarker,
-        durationMarker,
-        dueDateMarker,
-        recurringMarker,
-        dependencyMarker,
-      ];
+      const allMarkers = [...peopleMarkers, projectMarker, tagMarker, priorityMarker];
 
       // Find the last marker before the caret
       let lastMarkerPos = -1;
@@ -794,7 +794,6 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       let autocompleteMarker = "";
       let searchText = "";
       let options: string[] = [];
-      let autocompleteValues: string[] | undefined = undefined; // For dependency: store todo IDs
 
       if (lastMarkerPos >= 0) {
         const textAfterMarker = textBeforeCaret.substring(lastMarkerPos + lastMarker.length);
@@ -835,29 +834,6 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
                 }
               });
             });
-          } else if (lastMarker === durationMarker) {
-            shouldShowAutocomplete = true;
-            autocompleteType = "duration";
-            autocompleteMarker = lastMarker;
-            options = getDurationSuggestions(searchText);
-          } else if (lastMarker === dueDateMarker && dateTimeSettings) {
-            shouldShowAutocomplete = true;
-            autocompleteType = "duedate";
-            autocompleteMarker = lastMarker;
-            options = getDueDateSuggestions(searchText, dateTimeSettings);
-          } else if (lastMarker === recurringMarker) {
-            shouldShowAutocomplete = true;
-            autocompleteType = "recurring";
-            autocompleteMarker = lastMarker;
-            options = getRecurringSuggestions().filter((s) => s.toLowerCase().includes(searchText.toLowerCase()));
-          } else if (lastMarker === dependencyMarker) {
-            shouldShowAutocomplete = true;
-            autocompleteType = "dependency";
-            autocompleteMarker = lastMarker;
-            const filteredTodos = filterTodosBySearch(searchText);
-            options = filteredTodos.map((t) => t.text);
-            // Store the actual IDs separately for insertion later
-            autocompleteValues = filteredTodos.map((t) => t.id);
           }
         }
       }
@@ -868,14 +844,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         const divRect = div.getBoundingClientRect();
 
         // Show "Add new" option if there are no matches and search text is not empty
-        // (but not for duration, duedate, recurring, or dependency, which are just format suggestions or lookups)
-        const showAddNew =
-          options.length === 0 &&
-          searchText.trim() !== "" &&
-          autocompleteType !== "duration" &&
-          autocompleteType !== "duedate" &&
-          autocompleteType !== "recurring" &&
-          autocompleteType !== "dependency";
+        const showAddNew = options.length === 0 && searchText.trim() !== "";
         const canAddNew =
           (autocompleteType === "person" && onAddPerson) ||
           (autocompleteType === "project" && onAddProject) ||
@@ -884,7 +853,6 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         setAutocomplete({
           show: true,
           options,
-          values: autocompleteValues,
           selected: 0,
           type: autocompleteType,
           marker: autocompleteMarker,
@@ -980,7 +948,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const fullText = div.innerText.replace(/\n/g, " ");
 
       // Find the last marker position
-      const allMarkers = ["@", "$", "^", "#", "!!", "*", "~"];
+      const allMarkers = ["@", "$", "%", "#", "!!"];
       let lastMarkerPos = -1;
       let lastMarker = "";
 
@@ -994,21 +962,8 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
 
       if (lastMarkerPos === -1) return;
 
-      // For dependency, use the actual ID instead of the displayed text
-      let finalValue = value;
-      if (autocomplete.type === "dependency" && autocomplete.values) {
-        const selectedIndex = autocomplete.options.indexOf(value);
-        if (selectedIndex >= 0 && selectedIndex < autocomplete.values.length) {
-          finalValue = autocomplete.values[selectedIndex];
-        }
-      } else if (autocomplete.type === "duedate" && dateTimeSettings && workHoursSettings) {
-        // For due date, parse the shorthand and convert to actual date
-        const shorthand = value.includes(" - ") ? value.split(" - ")[0] : value;
-        const parsed = parseDate(shorthand, dateTimeSettings, workHoursSettings);
-        if (parsed) {
-          finalValue = parsed.formatted;
-        }
-      }
+      // Use the value as-is (no special processing needed for current marker types)
+      const finalValue = value;
 
       // Split text: before marker, and after the incomplete name
       const beforeMarker = fullText.substring(0, lastMarkerPos);

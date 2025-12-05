@@ -76,7 +76,7 @@ export function PeopleTab({ people, onAdd, onUpdate, onDelete }: PeopleTabProps)
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         Markers: <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">@</span> = assigned,{" "}
         <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">$</span> = source,{" "}
-        <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">^</span> = mentioned
+        <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">mentioned</span>
       </p>
 
       {isAdding && (

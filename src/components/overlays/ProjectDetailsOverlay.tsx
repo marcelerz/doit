@@ -112,7 +112,7 @@ export function ProjectDetailsOverlay({
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{editingName || "Project"}</h2>
                 <div className="flex gap-1.5 mt-1">
                   <span className="text-xs px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-medium">
-                    #{project.name}
+                    %{project.name}
                   </span>
                 </div>
               </div>

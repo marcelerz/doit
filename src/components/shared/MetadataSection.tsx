@@ -14,6 +14,7 @@ interface MetadataSectionProps {
   dropdownId: string;
   placeholder?: string;
   highlightColor?: "blue" | "purple" | "green" | "pink" | "red" | "amber" | "teal";
+  customColor?: string; // Hex color for custom styling
   emptyMessage?: string;
   getColor?: (value: string) => string;
   getTextColor?: (bgColor: string) => string;
@@ -34,6 +35,7 @@ export function MetadataSection({
   dropdownId,
   placeholder = "Search...",
   highlightColor = "blue",
+  customColor,
   emptyMessage,
   getColor,
   getTextColor,
@@ -82,8 +84,8 @@ export function MetadataSection({
               return (
                 <span
                   key={value}
-                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium"
-                  style={{ backgroundColor: bgColor, color: textColor }}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium border"
+                  style={{ backgroundColor: bgColor, color: textColor, borderColor: bgColor }}
                 >
                   {displayValue}
                   <button onClick={() => onRemove(value)} className="ml-1 hover:opacity-70">
@@ -94,7 +96,7 @@ export function MetadataSection({
             }
 
             return (
-              <Badge key={value} variant={highlightColor} onRemove={() => onRemove(value)}>
+              <Badge key={value} variant={highlightColor} customColor={customColor} onRemove={() => onRemove(value)}>
                 {displayValue}
               </Badge>
             );

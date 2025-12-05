@@ -155,7 +155,7 @@ export function TodoApp() {
     addPerson({
       name,
       alternatives: [],
-      color: "#3b82f6", // default blue
+      color: settings.markerColors.assigned, // Use marker color from settings
     });
   };
 
@@ -163,7 +163,7 @@ export function TodoApp() {
     addProject({
       name,
       alternatives: [],
-      color: "#8b5cf6", // default purple
+      color: settings.markerColors.project, // Use marker color from settings
     });
   };
 
@@ -171,7 +171,7 @@ export function TodoApp() {
     addPriority({
       name,
       alternatives: [],
-      color: "#ffa500", // default orange
+      color: settings.markerColors.priority, // Use marker color from settings
       order: settings.priorities.length + 1,
     });
   };
@@ -523,7 +523,7 @@ export function TodoApp() {
   const markers = {
     assigned: "@",
     source: "$",
-    mentioned: "^",
+    mentioned: "", // Auto-detected, no marker
     project: "#",
     priority: "!!",
     dueDate: "~",
@@ -1284,7 +1284,7 @@ export function TodoApp() {
 
                 {/* Mentioned People Filter */}
                 <FilterSection
-                  label="Mentioned (^)"
+                  label="Mentioned"
                   activeCount={filters.mentionedPeople.size}
                   options={filterOptions.mentionedPeople}
                   selectedValues={filters.mentionedPeople}
@@ -1293,7 +1293,7 @@ export function TodoApp() {
                   onClear={() => handleClearAll("mentionedPeople")}
                   getButtonColor={(value, isSelected) => getFilterButtonColor("mentionedPeople", value, isSelected)}
                   getButtonStyle={(value, isSelected) => getFilterButtonStyle("mentionedPeople", value, isSelected)}
-                  formatLabel={(value) => `^${value}`}
+                  formatLabel={(value) => value}
                 />
 
                 {/* Priority Filter */}

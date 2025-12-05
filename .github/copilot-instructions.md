@@ -54,6 +54,15 @@
 - [x] Refactor useProjects to return ProjectModel[] instead of Project[]
 - [x] Update all components to use PersonModel and ProjectModel
 - [x] Add recurring pattern auto-detection starting with "every"
+- [x] Implement auto-detection of mentioned people without ^ marker
+- [x] Implement auto-detection of mentioned projects with context patterns
+- [x] Implement auto-detection of source people with context patterns ("from", "via", "per", "source")
+- [x] Implement auto-detection of priorities with direct and context-based recognition
+- [x] Remove auto-detected dates, durations, recurring, and dependencies from plainText output
+- [x] Remove explicit marker text (^, \*, ~, >, !!, %, #) from plainText output
+- [x] Keep @ and $ markers in plainText for assigned and source people
+- [x] Swap markers: % for projects (was #), # for tags (was &), ^ for dueDate (was ~), ~ for recurring (was %)
+- [x] Remove explicit marker support for ^, \*, ~, > - these are now auto-detect only or set via fields
 
 ## Project Details
 
@@ -217,7 +226,7 @@ Wraps `Project` objects with business logic (similar to PersonModel):
 
 - `getMetadataSummary(todoCount)` - Formatted metadata: "5 todos • 3 comments • Active"
 - `matchesSearch(text)` - Searches name, alternatives, context, comments
-- `matchesAnyName(names)` - Check if matches given names (for #project mentions)
+- `matchesAnyName(names)` - Check if matches given names (for %project mentions)
 
 #### Hook Usage Pattern
 
@@ -271,7 +280,7 @@ The app now has three different views accessible via tabs:
 
 ## Auto-Detection Features
 
-The SmartInput component automatically detects dates and recurring patterns without requiring explicit markers:
+The SmartInput component automatically detects dates, recurring patterns, mentioned people, project references, source people, and priorities without requiring explicit markers:
 
 ### Date Auto-Detection
 
@@ -280,6 +289,7 @@ The SmartInput component automatically detects dates and recurring patterns with
 - **Date Ranges**: Detects ranges like "monday to friday" and automatically creates both dueDate and duration
 - **Visual Indicators**: Auto-detected dates show with lighter background and dotted underline
 - **Click to Deactivate**: Click auto-detected dates to deactivate them
+- **Removed from Input**: Auto-detected dates are removed from plainText output
 
 ### Recurring Pattern Auto-Detection
 
@@ -290,8 +300,114 @@ The SmartInput component automatically detects dates and recurring patterns with
   - Nth weekdays: "every first monday", "every 2nd tuesday", "every last friday"
 - **First Date Calculation**: Automatically derives the first due date from the pattern
 - **Dual Tokens**: Creates both dueDate (first occurrence) and recurring (pattern) tokens
+- **Removed from Input**: Auto-detected recurring patterns are removed from plainText output
 
-See `docs/recurring-auto-detection.md` for detailed documentation.
+### Person Mention Auto-Detection
+
+- **No Marker Required**: Mentioned people are automatically detected without needing the ^ marker
+- **Name Matching**: Detects person names and all their alternatives as whole words
+- **Smart Priority**: Avoids conflicts with explicit @ and $ markers, and with dates
+- **Color Highlighting**: Uses person's custom color or falls back to marker color (yellow/orange)
+- **Explicit Markers Still Available**: @ for assigned people and $ for source people still work as before
+- **Blacklist**: Common English words (me, i, the, and, etc.) are filtered to prevent false positives
+
+See `docs/person-mention-auto-detection.md` for detailed documentation.
+
+### Project Reference Auto-Detection
+
+- **Context-Based Detection**: Automatically detects projects when mentioned with context words
+- **Supported Patterns**:
+  - "on <project name>" - e.g., "working on Website Redesign"
+  - "in <project name>" - e.g., "task in Marketing Campaign"
+  - "for <project name>" - e.g., "meeting for API Development"
+  - "on project <project name>" - e.g., "focus on project Website"
+  - "in project <project name>" - e.g., "issue in project Backend"
+  - "for project <project name>" - e.g., "docs for project API"
+  - "<project name> project" - e.g., "Marketing project is ready"
+- **Alternative Names**: All project alternatives are recognized
+- **Smart Priority**: Avoids conflicts with explicit % markers, dates, and people
+- **No False Positives**: Requires context words to prevent detecting standalone project names
+- **Color Highlighting**: Uses project's custom color or falls back to marker color (purple)
+- **Explicit Marker Still Available**: % marker still works as before
+
+### Source Person Auto-Detection
+
+- **Context-Based Detection**: Automatically detects source people with context patterns
+- **Supported Patterns**:
+  - "from <person name>" - e.g., "feedback from Marcel"
+  - "via <person name>" - e.g., "received via John Doe"
+  - "per <person name>" - e.g., "update per Sarah"
+  - "source <person name>" - e.g., "information source Johnny"
+- **Alternative Names**: All person alternatives are recognized
+- **Smart Priority**: Avoids conflicts with explicit $ markers and other detected tokens
+- **Color Highlighting**: Uses person's custom color or falls back to marker color
+- **Explicit Marker Still Available**: $ marker still works as before
+- **Context Required**: Standalone names are not detected to prevent false positives
+
+### Priority Auto-Detection
+
+- **Direct Recognition**: Automatically detects priority names without requiring !! marker
+- **Supported Patterns**:
+  - Direct: "urgent", "high", "medium", "low"
+  - With suffix: "high priority", "urgent priority"
+  - With prefix: "priority high", "priority urgent"
+- **Alternative Names**: All priority alternatives are recognized (e.g., "critical", "ASAP", "important")
+- **Smart Priority**: Avoids conflicts with explicit !! markers and other detected tokens
+- **Color Highlighting**: Uses priority's custom color or falls back to marker color
+- **Explicit Marker Still Available**: !! marker still works as before
+- **No Context Required**: Priority names are specific enough to detect standalone
+
+### PlainText Output Behavior
+
+The SmartInput component removes the following from plainText output:
+
+**Always Removed (explicit markers):**
+
+- `!!` Priority marker and its value
+- `%` Project marker and its value
+- `#` Tag marker and its value
+
+**Kept in plainText (explicit markers):**
+
+- `@` Assigned person marker and name
+- `$` Source person marker and name
+
+**Auto-detected removals:**
+
+- Auto-detected dates (removed from plainText)
+- Auto-detected recurring patterns (removed from plainText)
+- Auto-detected duration ranges (removed from plainText)
+- Auto-detected dependencies (removed from plainText)
+
+**Auto-detected kept in plainText:**
+
+- Auto-detected mentioned people (kept in plainText)
+- Auto-detected projects (kept in plainText)
+- Auto-detected source people (kept in plainText)
+- Auto-detected priorities (kept in plainText)
+
+This behavior allows users to quickly set metadata values without cluttering the todo text.
+
+### Markers and Input Methods
+
+The app supports the following metadata assignment methods:
+
+**Explicit Markers (always available):**
+
+- `@name` - Assign person
+- `$name` - Source person
+- `%project` - Project
+- `!!priority` - Priority
+- `#tag` - Tag
+
+**Auto-Detection Only (no explicit markers):**
+
+- Due dates - Natural language detection ("tomorrow", "next Friday", etc.) and custom shorthands
+- Recurring patterns - "every" patterns ("every monday", "every 2 weeks", etc.)
+- Duration - Not detected, set via detail view field only
+- Dependencies - Not detected, set via detail view field only
+
+**Note:** Due date (^), duration (\*), recurring (~), and dependency (>) explicit markers have been removed. These are now set through auto-detection (dates and recurring) or through the dedicated fields in the detail view (duration and dependencies).
 
 ## Todo State System
 

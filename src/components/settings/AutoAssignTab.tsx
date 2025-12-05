@@ -303,7 +303,7 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
           {/* Project */}
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-              Default Project <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">#</code>
+              Default Project <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">%</code>
             </label>
             <div className="flex flex-wrap gap-1.5">
               {autoAssign.project && (
@@ -311,7 +311,7 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
                   onClick={() => handleAutoAssignFieldChange("project", "")}
                   className="text-xs px-2 py-1 rounded border bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
                 >
-                  #{autoAssign.project} ✕
+                  %{autoAssign.project} ✕
                 </button>
               )}
               <div className="relative">
@@ -361,7 +361,7 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
                               }}
                               className="w-full text-left text-xs px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                             >
-                              #{p.name}
+                              %{p.name}
                             </button>
                           ))}
                         {projects.filter(
@@ -463,16 +463,14 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
 
           {/* Due Date */}
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-              Default Due Date <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">~</code>
-            </label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Default Due Date</label>
             <div className="flex flex-wrap gap-1.5">
               {autoAssign.dueDate && (
                 <button
                   onClick={() => handleAutoAssignFieldChange("dueDate", "")}
                   className="text-xs px-2 py-1 rounded border bg-pink-100 dark:bg-pink-900/30 border-pink-300 dark:border-pink-700 text-pink-800 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors"
                 >
-                  ~{autoAssign.dueDate} ✕
+                  {autoAssign.dueDate} ✕
                 </button>
               )}
               <div className="relative">
@@ -526,7 +524,7 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
                             }}
                             className="w-full text-left text-xs px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                           >
-                            ~{suggestion}
+                            {suggestion}
                           </button>
                         ))}
                       </div>
@@ -539,16 +537,14 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
 
           {/* Duration */}
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-              Default Duration <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">*</code>
-            </label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Default Duration</label>
             <div className="flex flex-wrap gap-1.5">
               {autoAssign.duration && (
                 <button
                   onClick={() => handleAutoAssignFieldChange("duration", "")}
                   className="text-xs px-2 py-1 rounded border bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
                 >
-                  *{autoAssign.duration} ✕
+                  {autoAssign.duration} ✕
                 </button>
               )}
               <div className="relative">
@@ -602,7 +598,7 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
                             }}
                             className="w-full text-left text-xs px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                           >
-                            *{suggestion}
+                            {suggestion}
                           </button>
                         ))}
                       </div>
@@ -615,16 +611,14 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
 
           {/* Recurring */}
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-              Default Recurring <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded">%</code>
-            </label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Default Recurring</label>
             <div className="flex flex-wrap gap-1.5">
               {autoAssign.recurring && (
                 <button
                   onClick={() => handleAutoAssignFieldChange("recurring", "")}
                   className="text-xs px-2 py-1 rounded border bg-emerald-100 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
                 >
-                  %{autoAssign.recurring} ✕
+                  {autoAssign.recurring} ✕
                 </button>
               )}
               <div className="relative">
@@ -678,7 +672,7 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
                             }}
                             className="w-full text-left text-xs px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                           >
-                            %{suggestion}
+                            {suggestion}
                           </button>
                         ))}
                       </div>

@@ -3,6 +3,12 @@ import { MarkerColors, LinkPattern, Priority, DateTimeSettings, WorkHoursSetting
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { parseDate } from "@/utils/dateParser";
+import {
+  detectMentionedPeople,
+  detectMentionedProjects,
+  detectSourcePeople,
+  detectPriorities,
+} from "@/utils/chronoDateParser";
 
 interface MarkedTextProps {
   text: string;
@@ -70,19 +76,51 @@ export function MarkedText({
     return priority?.color;
   };
 
-  // Define all marker patterns with their types
-  const markerPatterns = [
-    { regex: /@[\w-_]+/g, type: "assigned" as const },
-    { regex: /#[\w-_]+/g, type: "project" as const },
-    { regex: /\$[\w-_]+/g, type: "source" as const },
-    { regex: /\^[\w-_]+/g, type: "mentioned" as const },
-    { regex: /!![\w-_]+/g, type: "priority" as const },
-    { regex: /~([^@#$^*~%>&\n]+?)(?=\s{2,}|\s+[@#$^*~%!>&]{1,2}|$)/g, type: "dueDate" as const },
-    { regex: /\*[\w-_]+/g, type: "duration" as const },
-    { regex: /%([^@#$^*~%>&\n]+?)(?=\s{2,}|\s+[@#$^*~%!>&]{1,2}|$)/g, type: "recurring" as const },
-    { regex: />[\w-]+/g, type: "dependency" as const },
-    { regex: /&[\w-_]+/g, type: "tag" as const },
+  // Define all marker patterns with their types (removed dueDate, duration, recurring, dependency)
+  // Match SmartInput patterns: use lookahead (?=\s|$) to match only if followed by space or end
+  // For people (@, $), projects (%), and priorities (!!), match known names only
+  // For tags (#), match any non-whitespace, non-marker characters
+  const markerPatterns: { regex: RegExp; type: keyof MarkerColors }[] = [];
+
+  // Build patterns for people markers (@ and $) - match known names only
+  const peopleMarkers = [
+    { type: "assigned" as const, symbol: "@" },
+    { type: "source" as const, symbol: "$" },
   ];
+
+  for (const { type, symbol } of peopleMarkers) {
+    const allNames = availablePeople.flatMap((p) => [p.name, ...p.alternatives]);
+    if (allNames.length > 0) {
+      const sortedNames = allNames.sort((a, b) => b.length - a.length);
+      const escapedSymbol = symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const namesPattern = sortedNames.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+      const regex = new RegExp(`${escapedSymbol}(${namesPattern})(?=\\s|$)`, "gi");
+      markerPatterns.push({ regex, type });
+    }
+  }
+
+  // Build pattern for project marker (%) - match known projects only
+  const allProjects = availableProjects.flatMap((p) => [p.name, ...p.alternatives]);
+  if (allProjects.length > 0) {
+    const sortedProjects = allProjects.sort((a, b) => b.length - a.length);
+    const namesPattern = sortedProjects.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+    const regex = new RegExp(`%(${namesPattern})(?=\\s|$)`, "gi");
+    markerPatterns.push({ regex, type: "project" as const });
+  }
+
+  // Build pattern for priority marker (!!) - match known priorities only
+  const allPriorities = availablePriorities.flatMap((p) => [p.name, ...p.alternatives]);
+  if (allPriorities.length > 0) {
+    const sortedPriorities = allPriorities.sort((a, b) => b.length - a.length);
+    const namesPattern = sortedPriorities.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+    const regex = new RegExp(`!!(${namesPattern})(?=\\s|$)`, "gi");
+    markerPatterns.push({ regex, type: "priority" as const });
+  }
+
+  // Build pattern for tag marker (#) - freeform text (same as SmartInput)
+  // Match any characters except whitespace and marker symbols, followed by space or end
+  const tagPattern = new RegExp(`#([^\\s@%$!#>&]+?)(?=\\s|$)`, "gi");
+  markerPatterns.push({ regex: tagPattern, type: "tag" as const });
 
   // Find all matches across all patterns
   const allMatches: {
@@ -102,23 +140,16 @@ export function MarkedText({
         // Extract the name without the marker symbol
         const markerSymbols: Record<string, string> = {
           assigned: "@",
-          project: "#",
+          project: "%",
           source: "$",
-          mentioned: "^",
           priority: "!!",
-          dueDate: "~",
-          duration: "*",
-          recurring: "%",
-          dependency: ">",
-          tag: "&",
+          tag: "#",
         };
         const symbol = markerSymbols[type] || "";
 
-        // For dueDate and recurring with capturing group, match[0] is the full match including ~ or %
-        // For other patterns, match[0] is also the full match
+        // Extract name without marker symbol
         const fullText = match[0];
-        const name =
-          (type === "dueDate" || type === "recurring") && match[1] ? match[1] : fullText.slice(symbol.length);
+        const name = fullText.slice(symbol.length);
 
         allMatches.push({
           start: match.index,
@@ -156,6 +187,138 @@ export function MarkedText({
       }
     }
   });
+
+  // Auto-detect mentioned people (skip areas covered by @ or $ markers)
+  const detectedPeople = detectMentionedPeople(text, availablePeople);
+  const explicitPeopleRanges = allMatches
+    .filter((m) => m.type === "assigned" || m.type === "source")
+    .map((m) => ({ start: m.start, end: m.end }));
+
+  for (const detected of detectedPeople) {
+    // Skip if this position overlaps with an explicit @ or $ marker
+    const overlapsExplicit = explicitPeopleRanges.some(
+      (range) => !(detected.end <= range.start || detected.start >= range.end),
+    );
+
+    if (overlapsExplicit) {
+      continue;
+    }
+
+    // Skip if this position overlaps with any existing match (dates, tags, etc. take precedence)
+    const overlapsOther = allMatches.some((m) => !(detected.end <= m.start || detected.start >= m.end));
+
+    if (overlapsOther) {
+      continue;
+    }
+
+    // Add as mentioned person
+    allMatches.push({
+      start: detected.start,
+      end: detected.end,
+      text: detected.text,
+      type: "mentioned",
+      name: detected.personName,
+    });
+  }
+
+  // Auto-detect mentioned projects (skip areas covered by % markers)
+  const detectedProjects = detectMentionedProjects(text, availableProjects);
+  const explicitProjectRanges = allMatches
+    .filter((m) => m.type === "project")
+    .map((m) => ({ start: m.start, end: m.end }));
+
+  for (const detected of detectedProjects) {
+    // Skip if this position overlaps with an explicit % marker
+    const overlapsExplicit = explicitProjectRanges.some(
+      (range) => !(detected.end <= range.start || detected.start >= range.end),
+    );
+
+    if (overlapsExplicit) {
+      continue;
+    }
+
+    // Skip if this position overlaps with any existing match (dates, tags, people, etc. take precedence)
+    const overlapsOther = allMatches.some((m) => !(detected.end <= m.start || detected.start >= m.end));
+
+    if (overlapsOther) {
+      continue;
+    }
+
+    // Add as project
+    allMatches.push({
+      start: detected.start,
+      end: detected.end,
+      text: detected.text,
+      type: "project",
+      name: detected.projectName,
+    });
+  }
+
+  // Auto-detect source people (skip areas covered by $ markers)
+  const detectedSourcePeople = detectSourcePeople(text, availablePeople);
+  const explicitSourceRanges = allMatches
+    .filter((m) => m.type === "source")
+    .map((m) => ({ start: m.start, end: m.end }));
+
+  for (const detected of detectedSourcePeople) {
+    // Skip if this position overlaps with an explicit $ marker
+    const overlapsExplicit = explicitSourceRanges.some(
+      (range) => !(detected.end <= range.start || detected.start >= range.end),
+    );
+
+    if (overlapsExplicit) {
+      continue;
+    }
+
+    // Skip if this position overlaps with any existing match
+    const overlapsOther = allMatches.some((m) => !(detected.end <= m.start || detected.start >= m.end));
+
+    if (overlapsOther) {
+      continue;
+    }
+
+    // Add as source
+    allMatches.push({
+      start: detected.start,
+      end: detected.end,
+      text: detected.text,
+      type: "source",
+      name: detected.personName,
+    });
+  }
+
+  // Auto-detect priorities (skip areas covered by !! markers)
+  const detectedPriorities = detectPriorities(text, availablePriorities);
+  const explicitPriorityRanges = allMatches
+    .filter((m) => m.type === "priority")
+    .map((m) => ({ start: m.start, end: m.end }));
+
+  for (const detected of detectedPriorities) {
+    // Skip if this position overlaps with an explicit !! marker
+    const overlapsExplicit = explicitPriorityRanges.some(
+      (range) => !(detected.end <= range.start || detected.start >= range.end),
+    );
+
+    if (overlapsExplicit) {
+      continue;
+    }
+
+    // Skip if this position overlaps with any existing match
+    const overlapsOther = allMatches.some((m) => !(detected.end <= m.start || detected.start >= m.end));
+
+    if (overlapsOther) {
+      continue;
+    }
+
+    // Add as priority
+    allMatches.push({
+      start: detected.start,
+      end: detected.end,
+      text: detected.text,
+      type: "priority",
+      name: detected.priorityName,
+    });
+  }
 
   // Sort matches by start position
   allMatches.sort((a, b) => a.start - b.start);
@@ -201,23 +364,8 @@ export function MarkedText({
       } else if (match.type === "priority") {
         bgColor = match.name ? findPriorityColor(match.name) : undefined;
         if (!bgColor) bgColor = markerColors?.[match.type];
-      } else if (match.type === "dueDate") {
-        // For dueDate, parse and format the date for display
-        bgColor = markerColors?.[match.type as keyof MarkerColors];
-        if (match.name && dateTimeSettings && workHoursSettings) {
-          const parsed = parseDate(match.name, dateTimeSettings, workHoursSettings);
-          if (parsed) {
-            displayText = `~${parsed.formatted}`;
-          }
-        }
-      } else if (match.type === "recurring") {
-        // For recurring, use marker colors
-        bgColor = markerColors?.recurring;
-      } else if (match.type === "dependency") {
-        // For dependency, use marker colors
-        bgColor = markerColors?.dependency;
       } else {
-        // For duration, use marker colors
+        // Use marker color for other types
         bgColor = markerColors?.[match.type as keyof MarkerColors];
       }
 

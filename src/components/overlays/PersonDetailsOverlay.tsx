@@ -118,7 +118,7 @@ export function PersonDetailsOverlay({
                     ${person.name}
                   </span>
                   <span className="text-xs px-2 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium">
-                    ^{person.name}
+                    {person.name}
                   </span>
                 </div>
               </div>

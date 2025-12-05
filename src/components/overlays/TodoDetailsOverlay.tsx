@@ -115,7 +115,7 @@ export function TodoDetailsOverlay({
   const markers = {
     assigned: "@",
     source: "$",
-    mentioned: "^",
+    mentioned: "", // Auto-detected, no marker
     project: "#",
     priority: "!!",
     dueDate: "~",
@@ -143,17 +143,20 @@ export function TodoDetailsOverlay({
   const handleSaveEdit = () => {
     if (!editPlainText.trim()) return;
 
+    // Start with existing metadata (additive approach - preserve what's not in tokens)
     const metadata: TodoMetadata = {
+      // Arrays: merge existing with tokens (additive)
       assignedPeople: editTokens.filter((t) => t.type === "assigned").map((t) => t.value),
       sourcePeople: editTokens.filter((t) => t.type === "source").map((t) => t.value),
       mentionedPeople: editTokens.filter((t) => t.type === "mentioned").map((t) => t.value),
       projects: editTokens.filter((t) => t.type === "project").map((t) => t.value),
       dependencies: editTokens.filter((t) => t.type === "dependency").map((t) => t.value),
-      priority: editTokens.find((t) => t.type === "priority")?.value,
-      dueDate: editTokens.find((t) => t.type === "dueDate")?.value,
-      duration: editTokens.find((t) => t.type === "duration")?.value,
-      recurring: editTokens.find((t) => t.type === "recurring")?.value,
       tags: editTokens.filter((t) => t.type === "tag").map((t) => t.value),
+      // Singular fields: use token value if found, otherwise preserve existing
+      priority: editTokens.find((t) => t.type === "priority")?.value || editingMetadata.priority,
+      dueDate: editTokens.find((t) => t.type === "dueDate")?.value || editingMetadata.dueDate,
+      duration: editTokens.find((t) => t.type === "duration")?.value || editingMetadata.duration,
+      recurring: editTokens.find((t) => t.type === "recurring")?.value || editingMetadata.recurring,
     };
 
     onEdit(todo.id, editFullText, editPlainText, metadata);
@@ -168,17 +171,17 @@ export function TodoDetailsOverlay({
   };
 
   const handleMetadataChange = (newMetadata: TodoMetadata) => {
+    console.log("=== TodoDetailsOverlay handleMetadataChange ===");
+    console.log("Old metadata:", todo.metadata);
+    console.log("New metadata:", newMetadata);
+
     const parts: string[] = [todo.plainText];
 
     newMetadata.assignedPeople.forEach((p) => parts.push(`@${p}`));
     newMetadata.sourcePeople.forEach((p) => parts.push(`$${p}`));
-    newMetadata.mentionedPeople.forEach((p) => parts.push(`^${p}`));
-    newMetadata.projects.forEach((p) => parts.push(`#${p}`));
-    newMetadata.dependencies.forEach((d) => parts.push(`>${d}`));
+    newMetadata.projects.forEach((p) => parts.push(`%${p}`));
     if (newMetadata.priority) parts.push(`!!${newMetadata.priority}`);
-    if (newMetadata.dueDate) parts.push(`~${newMetadata.dueDate}`);
-    if (newMetadata.duration) parts.push(`*${newMetadata.duration}`);
-    if (newMetadata.recurring) parts.push(`%${newMetadata.recurring}`);
+    newMetadata.tags.forEach((t) => parts.push(`#${t}`));
 
     const newText = parts.join(" ");
     onEdit(todo.id, newText, todo.plainText, newMetadata);
@@ -208,7 +211,8 @@ export function TodoDetailsOverlay({
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.5 ? "#000000" : "#FFFFFF";
+    // Use dark text (#333) for light backgrounds, white for dark backgrounds
+    return luminance > 0.5 ? "#333333" : "#FFFFFF";
   };
 
   if (!isOpen) return null;
@@ -352,7 +356,7 @@ export function TodoDetailsOverlay({
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <code className="bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 px-1.5 py-0.5 rounded font-mono">
-                                    ~date
+                                    ^date
                                   </code>
                                   <span className="text-zinc-600 dark:text-zinc-400">Due</span>
                                 </div>
@@ -376,7 +380,7 @@ export function TodoDetailsOverlay({
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <code className="bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded font-mono">
-                                    &amp;tag
+                                    #tag
                                   </code>
                                   <span className="text-zinc-600 dark:text-zinc-400">Tag</span>
                                 </div>
@@ -517,7 +521,7 @@ export function TodoDetailsOverlay({
               }}
               availableItems={availableProjects.map((p) => ({
                 id: p.name,
-                label: `#${p.name}`,
+                label: `%${p.name}`,
                 alternatives: p.alternatives,
               }))}
               dropdownId="project"
@@ -526,7 +530,7 @@ export function TodoDetailsOverlay({
               emptyMessage="All projects already added"
               getColor={getProjectColor}
               getTextColor={getTextColor}
-              prefix="#"
+              prefix="%"
             />
 
             {/* Source People */}
@@ -585,7 +589,7 @@ export function TodoDetailsOverlay({
               }}
               availableItems={availablePeople.map((p) => ({
                 id: p.name,
-                label: `^${p.name}`,
+                label: p.name,
                 alternatives: p.alternatives,
               }))}
               dropdownId="mentioned"
@@ -594,7 +598,7 @@ export function TodoDetailsOverlay({
               emptyMessage="All people already mentioned"
               getColor={getPersonColor}
               getTextColor={getTextColor}
-              prefix="^"
+              showPrefix={false}
             />
 
             {/* Priority */}
@@ -687,7 +691,7 @@ export function TodoDetailsOverlay({
               availableItems={sortedTags.map((tag) => ({ id: tag, label: tag, prefix: "#" }))}
               dropdownId="tag"
               placeholder="Search or add tag..."
-              highlightColor="teal"
+              customColor={markerColors.tag}
               emptyMessage="No existing tags. Type to create new."
             />
 
@@ -711,7 +715,7 @@ export function TodoDetailsOverlay({
               availableItems={todos.filter((t) => t.id !== todo.id).map((t) => ({ id: t.id, label: t.plainText }))}
               dropdownId="dependency"
               placeholder="Search tasks..."
-              highlightColor="amber"
+              customColor={markerColors.dependency}
               emptyMessage="All tasks already added"
               noItemsMessage="No other tasks available"
               renderCustomValue={(depId) => {
@@ -719,7 +723,7 @@ export function TodoDetailsOverlay({
                 if (!depTodo) return null;
                 return (
                   <Badge
-                    variant="amber"
+                    customColor={markerColors.dependency}
                     onRemove={() => {
                       handleMetadataChange({
                         ...editingMetadata,
@@ -907,24 +911,17 @@ export function TodoDetailsOverlay({
                   />
                 )}
                 {editingMetadata.duration ? (
-                  <button
-                    onClick={() => dropdown.toggleDropdown("duration")}
-                    className="text-xs px-2 py-1 rounded border bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors inline-flex items-center gap-1.5"
+                  <Badge
+                    customColor={markerColors.duration}
+                    onRemove={() => {
+                      handleMetadataChange({
+                        ...editingMetadata,
+                        duration: undefined,
+                      });
+                    }}
                   >
-                    *{editingMetadata.duration}
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMetadataChange({
-                          ...editingMetadata,
-                          duration: undefined,
-                        });
-                      }}
-                      className="hover:text-amber-900 dark:hover:text-amber-100"
-                    >
-                      ✕
-                    </span>
-                  </button>
+                    {editingMetadata.duration}
+                  </Badge>
                 ) : (
                   <button
                     onClick={() => dropdown.toggleDropdown("duration")}
@@ -964,24 +961,17 @@ export function TodoDetailsOverlay({
                   />
                 )}
                 {editingMetadata.recurring ? (
-                  <button
-                    onClick={() => dropdown.toggleDropdown("recurring")}
-                    className="text-xs px-2 py-1 rounded border bg-teal-100 dark:bg-teal-900/30 border-teal-300 dark:border-teal-700 text-teal-800 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-900/50 transition-colors inline-flex items-center gap-1.5"
+                  <Badge
+                    customColor={markerColors.recurring}
+                    onRemove={() => {
+                      handleMetadataChange({
+                        ...editingMetadata,
+                        recurring: undefined,
+                      });
+                    }}
                   >
-                    %{editingMetadata.recurring}
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMetadataChange({
-                          ...editingMetadata,
-                          recurring: undefined,
-                        });
-                      }}
-                      className="hover:text-teal-900 dark:hover:text-teal-100"
-                    >
-                      ✕
-                    </span>
-                  </button>
+                    {editingMetadata.recurring}
+                  </Badge>
                 ) : (
                   <button
                     onClick={() => dropdown.toggleDropdown("recurring")}

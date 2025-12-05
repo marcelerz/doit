@@ -2,10 +2,11 @@
  * Chrono-based date parser for natural language date detection
  * Detects dates in text without requiring markers
  * Augmented with custom shorthand dates (eod, morning, bow, etc.)
+ * Also detects person mentions and project references without requiring markers
  */
 
 import * as chrono from "chrono-node";
-import { DateTimeSettings, WorkHoursSettings } from "@/types/settings";
+import { DateTimeSettings, WorkHoursSettings, Person, Project, Priority } from "@/types/settings";
 import { parseShorthand } from "./dateParser";
 import { parseRecurringPattern, calculateNextOccurrence, RecurringPattern } from "./recurringParser";
 
@@ -19,6 +20,34 @@ export interface DetectedDate {
   endTimestamp?: number; // For ranges: the end timestamp
   durationMinutes?: number; // For ranges: calculated duration in minutes
   recurring?: RecurringPattern; // For recurring patterns: the parsed pattern
+}
+
+export interface DetectedPerson {
+  text: string; // The text that was matched (e.g., "Marcel")
+  start: number; // Start index in the original text
+  end: number; // End index in the original text
+  personName: string; // The canonical person name
+}
+
+export interface DetectedProject {
+  text: string; // The text that was matched (e.g., "on Website Redesign")
+  start: number; // Start index in the original text
+  end: number; // End index in the original text
+  projectName: string; // The canonical project name
+}
+
+export interface DetectedSourcePerson {
+  text: string; // The text that was matched (e.g., "from Marcel")
+  start: number; // Start index in the original text
+  end: number; // End index in the original text
+  personName: string; // The canonical person name
+}
+
+export interface DetectedPriority {
+  text: string; // The text that was matched (e.g., "high priority" or "urgent")
+  start: number; // Start index in the original text
+  end: number; // End index in the original text
+  priorityName: string; // The canonical priority name
 }
 
 // Custom shorthand patterns that we support
@@ -362,4 +391,589 @@ export function isPositionInDate(position: number, dates: DetectedDate[]): boole
  */
 export function getDateAtPosition(position: number, dates: DetectedDate[]): DetectedDate | null {
   return dates.find((date) => position >= date.start && position < date.end) || null;
+}
+
+/**
+ * Detect mentioned people in text without requiring ^ marker
+ * Matches person names and their alternatives as whole words
+ */
+export function detectMentionedPeople(text: string, availablePeople: Person[]): DetectedPerson[] {
+  console.log("\n👥 [detectMentionedPeople] Starting person detection");
+  console.log("📝 Input text:", text);
+  console.log(`👤 Available people: ${availablePeople.length}`);
+
+  const results: DetectedPerson[] = [];
+
+  // Blacklist common English words to avoid false positives
+  const blacklist = new Set([
+    "me",
+    "i",
+    "a",
+    "an",
+    "the",
+    "and",
+    "or",
+    "but",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "of",
+    "with",
+    "by",
+    "from",
+    "up",
+    "about",
+    "into",
+    "through",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "between",
+    "under",
+    "again",
+    "further",
+    "then",
+    "once",
+    "here",
+    "there",
+    "when",
+    "where",
+    "why",
+    "how",
+    "all",
+    "both",
+    "each",
+    "few",
+    "more",
+    "most",
+    "other",
+    "some",
+    "such",
+    "no",
+    "nor",
+    "not",
+    "only",
+    "own",
+    "same",
+    "so",
+    "than",
+    "too",
+    "very",
+    "s",
+    "t",
+    "can",
+    "will",
+    "just",
+    "don",
+    "should",
+    "now",
+    "he",
+    "she",
+    "it",
+    "we",
+    "they",
+    "us",
+    "them",
+    "his",
+    "her",
+    "its",
+    "our",
+    "their",
+    "my",
+    "your",
+  ]);
+
+  // Build a list of all names (canonical + alternatives) with their canonical names
+  const nameMap = new Map<string, string>(); // lowercase name -> canonical name
+
+  for (const person of availablePeople) {
+    // Add canonical name (unless blacklisted)
+    const lowerName = person.name.toLowerCase();
+    if (!blacklist.has(lowerName)) {
+      nameMap.set(lowerName, person.name);
+    }
+
+    // Add all alternatives (unless blacklisted)
+    for (const alt of person.alternatives) {
+      const lowerAlt = alt.toLowerCase();
+      if (!blacklist.has(lowerAlt)) {
+        nameMap.set(lowerAlt, person.name);
+      }
+    }
+  }
+
+  console.log(`📋 Total searchable names: ${nameMap.size}`);
+
+  // Sort names by length (longest first) to match longer names before shorter ones
+  // This prevents "Marcel Erzberg" being detected as just "Marcel"
+  const sortedNames = Array.from(nameMap.keys()).sort((a, b) => b.length - a.length);
+
+  // Track processed ranges to avoid overlaps
+  const processedRanges: Array<{ start: number; end: number }> = [];
+
+  for (const lowerName of sortedNames) {
+    // Create a regex that matches the name as a whole word (word boundaries)
+    // Escape special regex characters in the name
+    const escapedName = lowerName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`\\b${escapedName}\\b`, "gi");
+
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      const start = match.index;
+      const end = start + match[0].length;
+
+      // Check if this range overlaps with any already processed range
+      const overlaps = processedRanges.some((range) => !(end <= range.start || start >= range.end));
+
+      if (!overlaps) {
+        const canonicalName = nameMap.get(lowerName)!;
+        console.log(`  ✅ Found "${match[0]}" at position ${start}-${end} → ${canonicalName}`);
+
+        results.push({
+          text: match[0],
+          start,
+          end,
+          personName: canonicalName,
+        });
+
+        processedRanges.push({ start, end });
+      }
+    }
+  }
+
+  // Sort by position in text
+  results.sort((a, b) => a.start - b.start);
+
+  console.log(`\n✅ [detectMentionedPeople] Found ${results.length} mentioned people`);
+  results.forEach((person, index) => {
+    console.log(`  ${index + 1}. "${person.text}" at position ${person.start}-${person.end} → ${person.personName}`);
+  });
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+  return results;
+}
+
+/**
+ * Detect project references in text without requiring # marker
+ * Matches patterns like:
+ * - "on <project name>"
+ * - "in <project name>"
+ * - "on project <project name>"
+ * - "in project <project name>"
+ * - "<project name> project"
+ * - "for <project name>"
+ * - "for project <project name>"
+ */
+export function detectMentionedProjects(text: string, availableProjects: Project[]): DetectedProject[] {
+  console.log("\n📁 [detectMentionedProjects] Starting project detection");
+  console.log("📝 Input text:", text);
+  console.log(`📂 Available projects: ${availableProjects.length}`);
+
+  const results: DetectedProject[] = [];
+
+  // Blacklist common words that might be project names
+  const blacklist = new Set([
+    "me",
+    "it",
+    "this",
+    "that",
+    "these",
+    "those",
+    "work",
+    "time",
+    "day",
+    "week",
+    "month",
+    "year",
+    "project",
+    "projects",
+  ]);
+
+  // Build a list of all project names (canonical + alternatives)
+  const projectMap = new Map<string, string>(); // lowercase name -> canonical name
+
+  for (const project of availableProjects) {
+    const lowerName = project.name.toLowerCase();
+    if (!blacklist.has(lowerName)) {
+      projectMap.set(lowerName, project.name);
+    }
+
+    for (const alt of project.alternatives) {
+      const lowerAlt = alt.toLowerCase();
+      if (!blacklist.has(lowerAlt)) {
+        projectMap.set(lowerAlt, project.name);
+      }
+    }
+  }
+
+  console.log(`📋 Total searchable project names: ${projectMap.size}`);
+
+  // Sort names by length (longest first)
+  const sortedNames = Array.from(projectMap.keys()).sort((a, b) => b.length - a.length);
+
+  // Track processed ranges to avoid overlaps
+  const processedRanges: Array<{ start: number; end: number }> = [];
+
+  // Context patterns that indicate a project reference
+  const contextPatterns = [
+    { pattern: /\b(?:on|in|for)\s+project\s+/gi, prefix: true },
+    { pattern: /\b(?:on|in|for)\s+/gi, prefix: true },
+    { pattern: /\s+project\b/gi, prefix: false },
+  ];
+
+  for (const lowerName of sortedNames) {
+    const escapedName = lowerName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // Try each context pattern
+    for (const { pattern, prefix } of contextPatterns) {
+      let contextRegex: RegExp;
+
+      if (prefix) {
+        // Pattern comes before the project name: "on project Website" or "in Marketing"
+        contextRegex = new RegExp(`(${pattern.source})${escapedName}\\b`, "gi");
+      } else {
+        // Pattern comes after the project name: "Website project"
+        contextRegex = new RegExp(`\\b${escapedName}(${pattern.source})`, "gi");
+      }
+
+      let match;
+      while ((match = contextRegex.exec(text)) !== null) {
+        const fullMatch = match[0];
+        const start = match.index;
+        const end = start + fullMatch.length;
+
+        // Check for overlaps
+        const overlaps = processedRanges.some((range) => !(end <= range.start || start >= range.end));
+
+        if (!overlaps) {
+          const canonicalName = projectMap.get(lowerName)!;
+          console.log(`  ✅ Found "${fullMatch}" at position ${start}-${end} → ${canonicalName}`);
+
+          results.push({
+            text: fullMatch,
+            start,
+            end,
+            projectName: canonicalName,
+          });
+
+          processedRanges.push({ start, end });
+        }
+      }
+    }
+  }
+
+  // Sort by position in text
+  results.sort((a, b) => a.start - b.start);
+
+  console.log(`\n✅ [detectMentionedProjects] Found ${results.length} mentioned projects`);
+  results.forEach((project, index) => {
+    console.log(
+      `  ${index + 1}. "${project.text}" at position ${project.start}-${project.end} → ${project.projectName}`,
+    );
+  });
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+  return results;
+}
+
+/**
+ * Detect source people in text using context patterns
+ * Matches patterns like:
+ * - "from <person name>"
+ * - "source <person name>"
+ * - "via <person name>"
+ * - "per <person name>"
+ */
+export function detectSourcePeople(text: string, availablePeople: Person[]): DetectedSourcePerson[] {
+  console.log("\n📤 [detectSourcePeople] Starting source person detection");
+  console.log("📝 Input text:", text);
+  console.log(`👤 Available people: ${availablePeople.length}`);
+
+  const results: DetectedSourcePerson[] = [];
+
+  // Blacklist common English words
+  const blacklist = new Set([
+    "me",
+    "i",
+    "a",
+    "an",
+    "the",
+    "and",
+    "or",
+    "but",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "of",
+    "with",
+    "by",
+    "from",
+    "up",
+    "about",
+    "into",
+    "through",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "between",
+    "under",
+    "again",
+    "further",
+    "then",
+    "once",
+    "here",
+    "there",
+    "when",
+    "where",
+    "why",
+    "how",
+    "all",
+    "both",
+    "each",
+    "few",
+    "more",
+    "most",
+    "other",
+    "some",
+    "such",
+    "no",
+    "nor",
+    "not",
+    "only",
+    "own",
+    "same",
+    "so",
+    "than",
+    "too",
+    "very",
+    "s",
+    "t",
+    "can",
+    "will",
+    "just",
+    "don",
+    "should",
+    "now",
+    "he",
+    "she",
+    "it",
+    "we",
+    "they",
+    "us",
+    "them",
+    "his",
+    "her",
+    "its",
+    "our",
+    "their",
+    "my",
+    "your",
+  ]);
+
+  // Build a list of all names (canonical + alternatives)
+  const nameMap = new Map<string, string>();
+
+  for (const person of availablePeople) {
+    const lowerName = person.name.toLowerCase();
+    if (!blacklist.has(lowerName)) {
+      nameMap.set(lowerName, person.name);
+    }
+
+    for (const alt of person.alternatives) {
+      const lowerAlt = alt.toLowerCase();
+      if (!blacklist.has(lowerAlt)) {
+        nameMap.set(lowerAlt, person.name);
+      }
+    }
+  }
+
+  console.log(`📋 Total searchable names: ${nameMap.size}`);
+
+  // Sort names by length (longest first)
+  const sortedNames = Array.from(nameMap.keys()).sort((a, b) => b.length - a.length);
+
+  // Track processed ranges
+  const processedRanges: Array<{ start: number; end: number }> = [];
+
+  // Context patterns that indicate a source person
+  const contextPatterns = [
+    { pattern: /\b(?:from|via|per)\s+/gi, prefix: true },
+    { pattern: /\bsource\s+/gi, prefix: true },
+  ];
+
+  for (const lowerName of sortedNames) {
+    const escapedName = lowerName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    for (const { pattern, prefix } of contextPatterns) {
+      let contextRegex: RegExp;
+
+      if (prefix) {
+        contextRegex = new RegExp(`(${pattern.source})${escapedName}\\b`, "gi");
+      } else {
+        contextRegex = new RegExp(`\\b${escapedName}(${pattern.source})`, "gi");
+      }
+
+      let match;
+      while ((match = contextRegex.exec(text)) !== null) {
+        const fullMatch = match[0];
+        const start = match.index;
+        const end = start + fullMatch.length;
+
+        // Check for overlaps
+        const overlaps = processedRanges.some((range) => !(end <= range.start || start >= range.end));
+
+        if (!overlaps) {
+          const canonicalName = nameMap.get(lowerName)!;
+          console.log(`  ✅ Found "${fullMatch}" at position ${start}-${end} → ${canonicalName}`);
+
+          results.push({
+            text: fullMatch,
+            start,
+            end,
+            personName: canonicalName,
+          });
+
+          processedRanges.push({ start, end });
+        }
+      }
+    }
+  }
+
+  // Sort by position in text
+  results.sort((a, b) => a.start - b.start);
+
+  console.log(`\n✅ [detectSourcePeople] Found ${results.length} source people`);
+  results.forEach((person, index) => {
+    console.log(`  ${index + 1}. "${person.text}" at position ${person.start}-${person.end} → ${person.personName}`);
+  });
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+  return results;
+}
+
+/**
+ * Detect priorities in text
+ * Matches patterns like:
+ * - "<priority name>" - direct match (e.g., "urgent", "high priority")
+ * - "<priority name> priority" - with suffix
+ * - "priority <priority name>" - with prefix
+ * Priority names are typically specific enough to detect without additional context
+ */
+export function detectPriorities(text: string, availablePriorities: Priority[]): DetectedPriority[] {
+  console.log("\n⚡ [detectPriorities] Starting priority detection");
+  console.log("📝 Input text:", text);
+  console.log(`🎯 Available priorities: ${availablePriorities.length}`);
+
+  const results: DetectedPriority[] = [];
+
+  // No blacklist needed - priority names should be specific enough
+  // Build a list of all priority names (canonical + alternatives)
+  const priorityMap = new Map<string, string>();
+
+  for (const priority of availablePriorities) {
+    priorityMap.set(priority.name.toLowerCase(), priority.name);
+
+    for (const alt of priority.alternatives) {
+      priorityMap.set(alt.toLowerCase(), priority.name);
+    }
+  }
+
+  console.log(`📋 Total searchable priority names: ${priorityMap.size}`);
+
+  // Sort names by length (longest first)
+  const sortedNames = Array.from(priorityMap.keys()).sort((a, b) => b.length - a.length);
+
+  // Track processed ranges
+  const processedRanges: Array<{ start: number; end: number }> = [];
+
+  // Context patterns (optional - priorities can be detected standalone)
+  const contextPatterns = [
+    { pattern: /\bpriority\s+/gi, prefix: true }, // "priority high"
+    { pattern: /\s+priority\b/gi, prefix: false }, // "high priority"
+  ];
+
+  for (const lowerName of sortedNames) {
+    const escapedName = lowerName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // First, try direct match (no context required)
+    const directRegex = new RegExp(`\\b${escapedName}\\b`, "gi");
+    let match;
+    while ((match = directRegex.exec(text)) !== null) {
+      const fullMatch = match[0];
+      const start = match.index;
+      const end = start + fullMatch.length;
+
+      // Check for overlaps
+      const overlaps = processedRanges.some((range) => !(end <= range.start || start >= range.end));
+
+      if (!overlaps) {
+        const canonicalName = priorityMap.get(lowerName)!;
+        console.log(`  ✅ Found "${fullMatch}" at position ${start}-${end} → ${canonicalName}`);
+
+        results.push({
+          text: fullMatch,
+          start,
+          end,
+          priorityName: canonicalName,
+        });
+
+        processedRanges.push({ start, end });
+      }
+    }
+
+    // Also try with "priority" context
+    for (const { pattern, prefix } of contextPatterns) {
+      let contextRegex: RegExp;
+
+      if (prefix) {
+        contextRegex = new RegExp(`(${pattern.source})${escapedName}\\b`, "gi");
+      } else {
+        contextRegex = new RegExp(`\\b${escapedName}(${pattern.source})`, "gi");
+      }
+
+      while ((match = contextRegex.exec(text)) !== null) {
+        const fullMatch = match[0];
+        const start = match.index;
+        const end = start + fullMatch.length;
+
+        // Check for overlaps
+        const overlaps = processedRanges.some((range) => !(end <= range.start || start >= range.end));
+
+        if (!overlaps) {
+          const canonicalName = priorityMap.get(lowerName)!;
+          console.log(`  ✅ Found "${fullMatch}" at position ${start}-${end} → ${canonicalName}`);
+
+          results.push({
+            text: fullMatch,
+            start,
+            end,
+            priorityName: canonicalName,
+          });
+
+          processedRanges.push({ start, end });
+        }
+      }
+    }
+  }
+
+  // Sort by position in text
+  results.sort((a, b) => a.start - b.start);
+
+  console.log(`\n✅ [detectPriorities] Found ${results.length} priorities`);
+  results.forEach((priority, index) => {
+    console.log(
+      `  ${index + 1}. "${priority.text}" at position ${priority.start}-${priority.end} → ${priority.priorityName}`,
+    );
+  });
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+  return results;
 }

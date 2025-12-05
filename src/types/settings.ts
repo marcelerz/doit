@@ -68,7 +68,7 @@ export interface ActivityEntry {
 export interface MarkerColors extends Record<string, string> {
   assigned: string; // @
   source: string; // $
-  mentioned: string; // ^
+  mentioned: string; // (auto-detected)
   project: string; // #
   priority: string; // !!
   dueDate: string; // ~
@@ -194,11 +194,11 @@ export interface AutoAssignSettings {
   enabled: boolean;
   assignedPerson?: string; // Default person to assign (@)
   sourcePerson?: string; // Default source person ($)
-  project?: string; // Default project (#)
+  project?: string; // Default project (%)
   priority?: string; // Default priority (!!)
-  dueDate?: string; // Default due date (~)
+  dueDate?: string; // Default due date (^)
   duration?: string; // Default duration (*)
-  recurring?: string; // Default recurring pattern (%)
+  recurring?: string; // Default recurring pattern (~)
 }
 
 export const defaultAutoAssignSettings: AutoAssignSettings = {

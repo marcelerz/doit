@@ -74,7 +74,7 @@ export function ProjectsTab({ projects, onAdd, onUpdate, onDelete }: ProjectsTab
       </div>
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Marker: <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">#</span> = project assignment
+        Marker: <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">%</span> = project assignment
       </p>
 
       {isAdding && (
