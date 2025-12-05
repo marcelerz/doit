@@ -53,6 +53,7 @@
 - [x] Refactor usePeople to return PersonModel[] instead of Person[]
 - [x] Refactor useProjects to return ProjectModel[] instead of Project[]
 - [x] Update all components to use PersonModel and ProjectModel
+- [x] Add recurring pattern auto-detection starting with "every"
 
 ## Project Details
 
@@ -267,6 +268,30 @@ The app now has three different views accessible via tabs:
 1. **List View** - Traditional todo list with filtering, sorting, grouping
 2. **Gantt View** - Timeline visualization showing todos with due dates on a horizontal timeline
 3. **Calendar View** - Monthly calendar with dots indicating tasks, click to see details
+
+## Auto-Detection Features
+
+The SmartInput component automatically detects dates and recurring patterns without requiring explicit markers:
+
+### Date Auto-Detection
+
+- **Natural Language Dates**: Automatically detects dates using chrono-node (e.g., "tomorrow", "next Friday", "in 2 weeks")
+- **Custom Shorthands**: Detects 30+ custom shortcuts (e.g., "eod", "morning", "bow", "bom", "eoq")
+- **Date Ranges**: Detects ranges like "monday to friday" and automatically creates both dueDate and duration
+- **Visual Indicators**: Auto-detected dates show with lighter background and dotted underline
+- **Click to Deactivate**: Click auto-detected dates to deactivate them
+
+### Recurring Pattern Auto-Detection
+
+- **"Every" Patterns**: Automatically detects recurring patterns starting with "every"
+- **Supported Patterns**:
+  - Intervals: "every 2 days", "every week", "every 3 months"
+  - Weekdays: "every monday", "every friday", "every workday"
+  - Nth weekdays: "every first monday", "every 2nd tuesday", "every last friday"
+- **First Date Calculation**: Automatically derives the first due date from the pattern
+- **Dual Tokens**: Creates both dueDate (first occurrence) and recurring (pattern) tokens
+
+See `docs/recurring-auto-detection.md` for detailed documentation.
 
 ## Todo State System
 

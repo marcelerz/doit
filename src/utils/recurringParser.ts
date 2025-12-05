@@ -20,11 +20,28 @@ export interface RecurringPattern {
   month?: number; // 1-12 for month of year
   nthWeek?: number; // 1-5 for "1st monday", "2nd tuesday", etc.
   raw: string; // original pattern string
+  // Time information (optional) - for patterns like "every monday at 9am"
+  hour?: number; // 0-23
+  minute?: number; // 0-59
+  endHour?: number; // 0-23 for time ranges
+  endMinute?: number; // 0-59 for time ranges
+  durationMinutes?: number; // calculated duration for time ranges
 }
 
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "last"];
+const ORDINAL_WORDS = ["first", "second", "third", "fourth", "fifth", "last"];
+
+// Helper to normalize ordinal words to numeric form
+function normalizeOrdinal(ordinal: string): string {
+  const lower = ordinal.toLowerCase();
+  const wordIndex = ORDINAL_WORDS.indexOf(lower);
+  if (wordIndex !== -1) {
+    return ORDINALS[wordIndex];
+  }
+  return lower;
+}
 
 export function parseRecurringPattern(pattern: string): RecurringPattern | null {
   const normalized = pattern.toLowerCase().trim();
@@ -62,11 +79,13 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
   }
 
   // Nth weekday pattern: %every 1st monday, %every 2nd friday, %every last tuesday
+  // Also supports word forms: every first monday, every second friday
   const nthWeekdayMatch = normalized.match(
-    /^every\s+(1st|2nd|3rd|4th|5th|last)\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/,
+    /^every\s+(1st|2nd|3rd|4th|5th|last|first|second|third|fourth|fifth)\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/,
   );
   if (nthWeekdayMatch) {
-    const nthWeek = ORDINALS.indexOf(nthWeekdayMatch[1]) + 1; // 1-6 (6 = last)
+    const normalizedOrdinal = normalizeOrdinal(nthWeekdayMatch[1]);
+    const nthWeek = ORDINALS.indexOf(normalizedOrdinal) + 1; // 1-6 (6 = last)
     const weekday = WEEKDAYS.indexOf(nthWeekdayMatch[2]);
     return {
       type: "nth-weekday",
@@ -192,6 +211,14 @@ export function calculateNextOccurrence(pattern: RecurringPattern, fromDate: Dat
       next.setMonth((pattern.month || 1) - 1);
       next.setDate(Math.min(pattern.monthDay || 1, getLastDayOfMonth(next)));
       break;
+  }
+
+  // Apply time from pattern AFTER calculating the date
+  if (pattern.hour !== undefined) {
+    next.setHours(pattern.hour);
+    next.setMinutes(pattern.minute ?? 0);
+    next.setSeconds(0);
+    next.setMilliseconds(0);
   }
 
   return next;

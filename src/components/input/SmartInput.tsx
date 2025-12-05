@@ -17,6 +17,7 @@ export interface TokenMatch {
   isAutoDetected?: boolean;
   detectedDateIndex?: number; // Which detected date is active (0-based)
   allDetectedDates?: string[]; // All ISO dates found at this location
+  autoDetectedType?: "simple" | "range" | "recurring"; // What kind of auto-detection: simple date, date range, or recurring pattern
 }
 
 export interface SmartEditableInputProps {
@@ -365,31 +366,178 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       }
 
       // Second, detect dates using chrono-node (skip areas already covered by explicit ~ markers)
+      console.log("\n🎯 [SmartInput] Processing text:", text);
       const detectedDates = detectDatesInText(text, new Date(), dateTimeSettings, workHoursSettings);
       const explicitDueDateRanges = tokens
         .filter((t) => t.type === "dueDate")
         .map((t) => ({ start: t.start, end: t.end }));
 
+      console.log(`📍 [SmartInput] Explicit ~ markers: ${explicitDueDateRanges.length}`);
+      if (explicitDueDateRanges.length > 0) {
+        explicitDueDateRanges.forEach((range) => {
+          console.log(`  - Position ${range.start}-${range.end}`);
+        });
+      }
+
+      console.log(`\n🔄 [SmartInput] Processing ${detectedDates.length} detected dates`);
       for (const detected of detectedDates) {
         // Skip if this position overlaps with an explicit ~ dueDate marker
         const overlapsExplicit = explicitDueDateRanges.some(
           (range) => !(detected.end <= range.start || detected.start >= range.end),
         );
 
-        if (!overlapsExplicit) {
-          // Check if this date has been deactivated
-          const posKey = `${detected.start}-${detected.end}`;
-          const isDeactivated = activeDateIndices[posKey] === -1;
+        if (overlapsExplicit) {
+          console.log(`  ⏭️ Skipping "${detected.text}" - overlaps with explicit ~ marker`);
+          continue;
+        }
 
-          // Skip if deactivated
-          if (isDeactivated) {
-            continue;
-          }
+        // Check if this date has been deactivated
+        const posKey = `${detected.start}-${detected.end}`;
+        const isDeactivated = activeDateIndices[posKey] === -1;
 
-          const activeIndex = activeDateIndices[posKey] || 0;
+        // Skip if deactivated
+        if (isDeactivated) {
+          console.log(`  ⏭️ Skipping "${detected.text}" - user deactivated`);
+          continue;
+        }
 
-          // Convert detected date to ISO format
-          const isoDate = detectedDateToISO(detected);
+        const activeIndex = activeDateIndices[posKey] || 0;
+
+        // Convert detected date to ISO format
+        const isoDate = detectedDateToISO(detected);
+
+        // If this is a recurring pattern with duration (e.g., "every monday at 9am to 5pm")
+        if (detected.recurring && detected.durationMinutes && detected.durationMinutes > 0) {
+          console.log(`  ✅ Adding dueDate + duration + recurring tokens for pattern "${detected.text}"`, {
+            position: `${detected.start}-${detected.end}`,
+            isoDate,
+            pattern: detected.recurring,
+            durationMinutes: detected.durationMinutes,
+          });
+
+          // Add dueDate token (first occurrence with time)
+          tokens.push({
+            type: "dueDate",
+            value: isoDate,
+            raw: detected.text,
+            start: detected.start,
+            end: detected.end,
+            isAutoDetected: true,
+            detectedDateIndex: activeIndex,
+            allDetectedDates: [isoDate],
+            autoDetectedType: "recurring",
+          });
+
+          // Add duration token (same position)
+          const days = Math.floor(detected.durationMinutes / 1440);
+          const hours = Math.floor((detected.durationMinutes % 1440) / 60);
+          const mins = detected.durationMinutes % 60;
+
+          let durationStr = "";
+          if (days > 0) durationStr += `${days}d`;
+          if (hours > 0) durationStr += `${hours}h`;
+          if (mins > 0 || durationStr === "") durationStr += `${mins}m`;
+
+          tokens.push({
+            type: "duration",
+            value: durationStr,
+            raw: detected.text,
+            start: detected.start,
+            end: detected.end,
+            isAutoDetected: true,
+            autoDetectedType: "recurring",
+          });
+
+          // Add recurring token (same position)
+          tokens.push({
+            type: "recurring",
+            value: detected.recurring.raw,
+            raw: detected.text,
+            start: detected.start,
+            end: detected.end,
+            isAutoDetected: true,
+            autoDetectedType: "recurring",
+          });
+        }
+        // If this is a recurring pattern (without duration), create BOTH a dueDate and recurring token
+        else if (detected.recurring) {
+          console.log(`  ✅ Adding dueDate + recurring tokens for pattern "${detected.text}"`, {
+            position: `${detected.start}-${detected.end}`,
+            isoDate,
+            pattern: detected.recurring,
+          });
+
+          // Add dueDate token (first occurrence)
+          tokens.push({
+            type: "dueDate",
+            value: isoDate,
+            raw: detected.text,
+            start: detected.start,
+            end: detected.end,
+            isAutoDetected: true,
+            detectedDateIndex: activeIndex,
+            allDetectedDates: [isoDate],
+            autoDetectedType: "recurring", // Track what it was recognized as
+          });
+
+          // Add recurring token (same position, will be rendered together)
+          tokens.push({
+            type: "recurring",
+            value: detected.recurring.raw,
+            raw: detected.text,
+            start: detected.start,
+            end: detected.end,
+            isAutoDetected: true,
+            autoDetectedType: "recurring",
+          });
+        }
+        // If this is a range with a duration, create BOTH a dueDate and duration token
+        else if (detected.durationMinutes && detected.durationMinutes > 0) {
+          console.log(`  ✅ Adding dueDate + duration tokens for range "${detected.text}"`, {
+            position: `${detected.start}-${detected.end}`,
+            isoDate,
+            durationMinutes: detected.durationMinutes,
+          });
+
+          // Add dueDate token (start of range)
+          tokens.push({
+            type: "dueDate",
+            value: isoDate,
+            raw: detected.text,
+            start: detected.start,
+            end: detected.end,
+            isAutoDetected: true,
+            detectedDateIndex: activeIndex,
+            allDetectedDates: [isoDate],
+            autoDetectedType: "range",
+          });
+
+          // Add duration token (same position, will be rendered together)
+          // Convert minutes to appropriate format (days, hours, minutes)
+          const days = Math.floor(detected.durationMinutes / 1440);
+          const hours = Math.floor((detected.durationMinutes % 1440) / 60);
+          const mins = detected.durationMinutes % 60;
+
+          let durationStr = "";
+          if (days > 0) durationStr += `${days}d`;
+          if (hours > 0) durationStr += `${hours}h`;
+          if (mins > 0 || durationStr === "") durationStr += `${mins}m`;
+
+          tokens.push({
+            type: "duration",
+            value: durationStr,
+            raw: detected.text,
+            start: detected.start,
+            end: detected.end,
+            isAutoDetected: true,
+            autoDetectedType: "range",
+          });
+        } else {
+          console.log(`  ✅ Adding dueDate token for "${detected.text}"`, {
+            position: `${detected.start}-${detected.end}`,
+            isoDate,
+            activeIndex,
+          });
 
           tokens.push({
             type: "dueDate",
@@ -399,10 +547,14 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
             end: detected.end,
             isAutoDetected: true,
             detectedDateIndex: activeIndex,
-            allDetectedDates: [isoDate], // For now, just one date per detection
+            allDetectedDates: [isoDate],
+            autoDetectedType: "simple",
           });
         }
       }
+
+      console.log(`\n📦 [SmartInput] Final token count: ${tokens.length}`);
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
       tokens.sort((a, b) => a.start - b.start);
 
@@ -410,43 +562,123 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const colorMap: Record<string, string> = {};
       let colorIdx = 0;
       let plainText = "";
+      const processedIndices = new Set<number>();
 
-      for (const token of tokens) {
+      for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+
+        // Skip if we already processed this token as part of a co-located group
+        if (processedIndices.has(i)) {
+          continue;
+        }
+
         if (token.start > pos) {
           const textPart = text.slice(pos, token.start);
           fragment.append(document.createTextNode(textPart));
           plainText += textPart;
         }
 
-        const span = document.createElement("span");
+        // Collect all tokens at the same position (co-located tokens like dueDate + duration + recurring)
+        const coLocatedTokens = [token];
+        const coLocatedIndices = [i];
+        let j = i + 1;
+        while (j < tokens.length && tokens[j].start === token.start && tokens[j].end === token.end) {
+          coLocatedTokens.push(tokens[j]);
+          coLocatedIndices.push(j);
+          j++;
+        }
 
-        // For due dates, try to parse and show formatted date as preview
-        let displayText = token.raw;
-        if (token.type === "dueDate" && !token.isAutoDetected && dateTimeSettings && workHoursSettings) {
-          const parsed = parseDate(token.value, dateTimeSettings, workHoursSettings);
-          if (parsed) {
-            displayText = `~${parsed.formatted}`;
+        // Mark all co-located tokens as processed
+        coLocatedIndices.forEach((idx) => processedIndices.add(idx));
+
+        console.log(
+          `🎨 [Segments] Processing ${coLocatedTokens.length} co-located tokens:`,
+          coLocatedTokens.map((t) => t.type),
+        );
+
+        // For co-located tokens, create segments with different colors
+        // Priority for coverage: recurring > duration > dueDate
+        const segments: Array<{ start: number; end: number; type: string; color: string }> = [];
+
+        // Sort tokens by priority (recurring > duration > dueDate)
+        const sortedTokens = [...coLocatedTokens].sort((a, b) => {
+          const priority: Record<string, number> = { recurring: 3, duration: 2, dueDate: 1 };
+          return (priority[b.type] || 0) - (priority[a.type] || 0);
+        });
+
+        // For each token, determine its specific text range within the full text
+        sortedTokens.forEach((tok) => {
+          let segStart = token.start;
+          let segEnd = token.end;
+
+          console.log(`  Processing token type="${tok.type}", value="${tok.value}", raw="${tok.raw}"`);
+
+          // Try to identify the specific part of the text this token represents
+          if (tok.type === "recurring" && tok.value) {
+            // For recurring patterns with time (e.g., "every 2nd thursday at 5am to 7pm"),
+            // use the full token range since tok.value contains the complete pattern
+            segStart = token.start;
+            segEnd = token.end;
+            console.log(`    → Recurring segment: "${text.slice(segStart, segEnd)}" at ${segStart}-${segEnd}`);
+          } else if (tok.type === "duration" && tok.value) {
+            // Find time range pattern like "5am to 8pm" in the original text
+            const searchText = text.slice(token.start, token.end);
+            const timeMatch = searchText.match(/\d+\s*(?:am|pm)\s+(?:to|until|-)\s+\d+\s*(?:am|pm)/i);
+            if (timeMatch) {
+              segStart = token.start + timeMatch.index!;
+              segEnd = segStart + timeMatch[0].length;
+              console.log(`    → Duration segment: "${text.slice(segStart, segEnd)}" at ${segStart}-${segEnd}`);
+            }
+          }
+
+          // Get the color for this token type
+          let color = markerColors[tok.type];
+          if (tok.isAutoDetected && tok.autoDetectedType) {
+            if (tok.type === "recurring") {
+              color = markerColors["recurring"];
+            } else if (tok.type === "duration") {
+              color = markerColors["duration"];
+            } else if (tok.type === "dueDate") {
+              color = markerColors["dueDate"];
+            }
+          }
+
+          segments.push({ start: segStart, end: segEnd, type: tok.type, color });
+        });
+
+        // Remove overlaps - higher priority tokens win
+        const finalSegments: typeof segments = [];
+        for (const seg of segments) {
+          let hasOverlap = false;
+          for (const existing of finalSegments) {
+            if (!(seg.end <= existing.start || seg.start >= existing.end)) {
+              hasOverlap = true;
+              break;
+            }
+          }
+          if (!hasOverlap) {
+            finalSegments.push(seg);
           }
         }
 
-        span.textContent = displayText;
-        span.contentEditable = "false";
-        span.dataset.token = token.type;
+        // Sort segments by position
+        finalSegments.sort((a, b) => a.start - b.start);
 
-        // For auto-detected dates, add click handler to cycle/deactivate
+        // Create a wrapper for all segments
+        const wrapper = document.createElement("span");
+        wrapper.style.display = "inline-block";
+
+        // Add click handler to wrapper for deactivation
         if (token.isAutoDetected) {
-          span.dataset.autoDetected = "true";
-          span.dataset.position = `${token.start}-${token.end}`;
-          span.style.cursor = "pointer";
-          span.title = "Click to deactivate auto-detected date";
+          wrapper.dataset.autoDetected = "true";
+          wrapper.dataset.position = `${token.start}-${token.end}`;
+          wrapper.style.cursor = "pointer";
+          wrapper.title = "Click to deactivate auto-detected date";
 
-          // Add click handler
-          span.addEventListener("click", (e) => {
+          wrapper.addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
-
-            const posKey = span.dataset.position!;
-            // Deactivate by setting to -1 (useEffect will re-render)
+            const posKey = wrapper.dataset.position!;
             setActiveDateIndices((prev) => ({
               ...prev,
               [posKey]: -1,
@@ -454,57 +686,46 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           });
         }
 
-        // Determine background color - try to get entity-specific color first
-        let bgColor = colorMap[token.type];
+        // Render segments with appropriate colors
+        let lastPos = token.start;
+        for (const seg of finalSegments) {
+          // Add any text before this segment
+          if (seg.start > lastPos) {
+            const beforeSpan = document.createElement("span");
+            beforeSpan.textContent = text.slice(lastPos, seg.start);
+            beforeSpan.style.backgroundColor = markerColors["dueDate"] || "#fce4ec";
+            beforeSpan.style.padding = "2px 4px";
+            beforeSpan.style.borderRadius = "4px";
+            beforeSpan.style.opacity = "0.8";
+            wrapper.appendChild(beforeSpan);
+          }
 
-        // For assigned, source, or mentioned people, look up person's custom color
-        if ((token.type === "assigned" || token.type === "source" || token.type === "mentioned") && availablePeople) {
-          const person = availablePeople.find((p) => p.name === token.value || p.alternatives.includes(token.value));
-          if (person?.color) {
-            bgColor = person.color;
-          }
-        }
-        // For projects, look up project's custom color
-        else if (token.type === "project" && availableProjects) {
-          const project = availableProjects.find((p) => p.name === token.value || p.alternatives.includes(token.value));
-          if (project?.color) {
-            bgColor = project.color;
-          }
-        }
-        // For priorities, look up priority's custom color
-        else if (token.type === "priority" && availablePriorities) {
-          const priority = availablePriorities.find(
-            (p) => p.name === token.value || p.alternatives.includes(token.value),
-          );
-          if (priority?.color) {
-            bgColor = priority.color;
-          }
-        }
+          // Add the colored segment
+          const segSpan = document.createElement("span");
+          segSpan.textContent = text.slice(seg.start, seg.end);
+          segSpan.style.backgroundColor = seg.color;
+          segSpan.style.padding = "2px 4px";
+          segSpan.style.borderRadius = "4px";
+          segSpan.style.fontWeight = "normal";
+          segSpan.style.opacity = "0.8";
+          segSpan.style.textDecoration = "underline dotted";
+          wrapper.appendChild(segSpan);
 
-        // Fall back to marker color or default if no entity-specific color found
-        if (!bgColor) {
-          if (!colorMap[token.type]) {
-            colorMap[token.type] = markerColors[token.type] || defaultColors[colorIdx % defaultColors.length];
-            colorIdx++;
-          }
-          bgColor = colorMap[token.type];
+          lastPos = seg.end;
         }
 
-        // Auto-detected dates get a lighter, more subtle styling
-        const isAutoDetected = token.isAutoDetected;
-        Object.assign(span.style, {
-          display: "inline-block",
-          padding: "2px 6px",
-          margin: "0 2px",
-          borderRadius: "4px",
-          fontWeight: isAutoDetected ? "normal" : "bold",
-          backgroundColor: bgColor,
-          color: "#333",
-          opacity: isAutoDetected ? "0.8" : "1",
-          textDecoration: isAutoDetected ? "underline dotted" : "none",
-        });
+        // Add any remaining text
+        if (lastPos < token.end) {
+          const afterSpan = document.createElement("span");
+          afterSpan.textContent = text.slice(lastPos, token.end);
+          afterSpan.style.backgroundColor = markerColors["dueDate"] || "#fce4ec";
+          afterSpan.style.padding = "2px 4px";
+          afterSpan.style.borderRadius = "4px";
+          afterSpan.style.opacity = "0.8";
+          wrapper.appendChild(afterSpan);
+        }
 
-        fragment.appendChild(span);
+        fragment.appendChild(wrapper);
         pos = token.end;
       }
 
