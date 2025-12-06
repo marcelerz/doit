@@ -112,7 +112,6 @@ export async function autoBackupIfNeeded(): Promise<void> {
   if (await shouldCreateBackupToday()) {
     const success = await createBackup("auto");
     if (success) {
-      console.log("Auto-backup created successfully");
     }
   }
 }

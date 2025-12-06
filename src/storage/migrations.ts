@@ -139,13 +139,11 @@ export function migrateSettings(loadedSettings: any): Settings {
   if (loadedSettings.people && Array.isArray(loadedSettings.people)) {
     const migratedPeople = loadedSettings.people.map(migratePerson);
     saveToStorage(STORAGE_KEYS.PEOPLE, migratedPeople);
-    console.log(`Migrated ${migratedPeople.length} people to separate storage`);
   }
 
   if (loadedSettings.projects && Array.isArray(loadedSettings.projects)) {
     const migratedProjects = loadedSettings.projects.map(migrateProject);
     saveToStorage(STORAGE_KEYS.PROJECTS, migratedProjects);
-    console.log(`Migrated ${migratedProjects.length} projects to separate storage`);
   }
 
   // Handle nested structure migration (old: general.dateTime, new: dateTime at top level)
@@ -210,16 +208,10 @@ export function migrateTodos(loadedTodos: any[], settings: Settings): Todo[] {
     .filter((todo) => {
       // Remove todos that are marked as deleted
       if (todo.state === "deleted") {
-        console.log(`Removing deleted todo from storage: ${todo.id}`);
         return false;
       }
       // Remove todos that should be auto-deleted
       if (shouldDelete(todo, autoDelete.enabled, autoDelete.deleteDays)) {
-        console.log(
-          `Auto-deleting todo: ${todo.id} (completed ${Math.floor(
-            (Date.now() - (todo.completedAt || 0)) / (1000 * 60 * 60 * 24),
-          )} days ago)`,
-        );
         return false;
       }
       return true;

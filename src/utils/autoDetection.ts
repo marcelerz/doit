@@ -111,7 +111,6 @@ export interface DetectedDuration {
  * These should be prioritized over chrono's time detection
  */
 export function detectDurationPatterns(text: string): DetectedDuration[] {
-  console.log("⏱️ [Duration Patterns] Scanning text:", text);
   const results: DetectedDuration[] = [];
 
   // Duration pattern: number (optional decimal) followed by unit (m, h, d, w)
@@ -145,8 +144,6 @@ export function detectDurationPatterns(text: string): DetectedDuration[] {
     // Format the value (e.g., "1.5h", "46m")
     const value = Number.isInteger(number) ? `${number}${normalizedUnit}` : `${number}${normalizedUnit}`;
 
-    console.log(`  ✅ Found duration "${fullMatch}" at position ${start}-${end} → ${value}`);
-
     results.push({
       text: fullMatch,
       start,
@@ -155,7 +152,6 @@ export function detectDurationPatterns(text: string): DetectedDuration[] {
     });
   }
 
-  console.log(`⏱️ [Duration Patterns] Found ${results.length} duration patterns`);
   return results;
 }
 
@@ -164,7 +160,6 @@ export function detectDurationPatterns(text: string): DetectedDuration[] {
  * Returns pattern with first due date derived from the pattern
  */
 function detectRecurringPatterns(text: string, referenceDate: Date = new Date()): DetectedDate[] {
-  console.log("🔁 [Recurring Patterns] Scanning text:", text);
   const results: DetectedDate[] = [];
 
   // Pattern: "every <pattern>" where pattern can be:
@@ -189,12 +184,8 @@ function detectRecurringPatterns(text: string, referenceDate: Date = new Date())
     const pattern = parseRecurringPattern(`every ${patternText}`);
 
     if (pattern) {
-      console.log(`  ✅ Found recurring pattern "${fullMatch}" at position ${patternStart}-${patternEnd}`);
-      console.log(`     Pattern:`, pattern);
-
       // Calculate first occurrence from reference date
       const firstDate = calculateNextOccurrence(pattern, referenceDate);
-      console.log(`     First occurrence: ${firstDate.toLocaleString()}`);
 
       results.push({
         text: fullMatch,
@@ -205,11 +196,9 @@ function detectRecurringPatterns(text: string, referenceDate: Date = new Date())
         recurring: pattern,
       });
     } else {
-      console.log(`  ⚠️ Could not parse pattern: "${fullMatch}"`);
     }
   }
 
-  console.log(`🔁 [Recurring Patterns] Found ${results.length} recurring patterns`);
   return results;
 }
 
@@ -222,11 +211,9 @@ function detectCustomShorthands(
   workHoursSettings?: WorkHoursSettings,
 ): DetectedDate[] {
   if (!dateTimeSettings || !workHoursSettings) {
-    console.log("🔍 [Custom Shorthands] No settings provided, skipping custom detection");
     return [];
   }
 
-  console.log("🔍 [Custom Shorthands] Scanning text:", text);
   const results: DetectedDate[] = [];
   const lowerText = text.toLowerCase();
 
@@ -238,10 +225,6 @@ function detectCustomShorthands(
     while ((match = regex.exec(text)) !== null) {
       const parsed = parseShorthand(shorthand, dateTimeSettings, workHoursSettings);
       if (parsed) {
-        console.log(`  ✅ Found shorthand "${match[0]}" at position ${match.index}-${match.index + match[0].length}`, {
-          parsedDate: parsed.toISOString(),
-          localDate: parsed.toLocaleString(),
-        });
         results.push({
           text: match[0],
           start: match.index,
@@ -253,7 +236,6 @@ function detectCustomShorthands(
     }
   }
 
-  console.log(`🔍 [Custom Shorthands] Found ${results.length} custom dates`);
   return results;
 }
 
@@ -268,10 +250,6 @@ export function detectDatesInText(
   dateTimeSettings?: DateTimeSettings,
   workHoursSettings?: WorkHoursSettings,
 ): DetectedDate[] {
-  console.log("\n🔍 [detectDatesInText] Starting date detection");
-  console.log("📝 Input text:", text);
-  console.log("📅 Reference date:", referenceDate.toLocaleString());
-
   // FIRST: Detect duration patterns (like 46m, 2h, 1.5h)
   // These should NOT be interpreted as times by chrono
   const durationPatterns = detectDurationPatterns(text);
@@ -279,21 +257,6 @@ export function detectDatesInText(
 
   // Use chrono's casual parser for more flexible parsing
   const chronoResults = chrono.parse(text, referenceDate, { forwardDate: true });
-
-  console.log(`\n🤖 [Chrono] Found ${chronoResults.length} dates`);
-  if (chronoResults.length > 0) {
-    chronoResults.forEach((result, index) => {
-      console.log(`  ${index + 1}. "${result.text}" at position ${result.index}-${result.index + result.text.length}`);
-      console.log(`     → Date: ${result.start.date().toLocaleString()}`);
-      console.log(`     → ISO: ${result.start.date().toISOString()}`);
-      if (result.end) {
-        const durationMs = result.end.date().getTime() - result.start.date().getTime();
-        const durationMins = Math.floor(durationMs / 60000);
-        console.log(`     → End: ${result.end.date().toLocaleString()}`);
-        console.log(`     → Duration: ${durationMins} minutes`);
-      }
-    });
-  }
 
   // Filter out chrono results that overlap with duration patterns
   const filteredChronoResults = chronoResults.filter((result) => {
@@ -305,7 +268,6 @@ export function detectDatesInText(
     );
 
     if (overlapsWithDuration) {
-      console.log(`  ⚠️ Filtering out chrono result "${result.text}" - overlaps with duration pattern`);
       return false;
     }
     return true;
@@ -341,7 +303,6 @@ export function detectDatesInText(
   // This ensures "every monday" takes precedence over chrono's "monday" detection
   // BUT: If a recurring pattern overlaps with a chrono range (with time), merge the time info
   const allDates = [...recurringDates, ...customDates, ...chronoDates];
-  console.log(`\n🔄 [Merge] Total dates before deduplication: ${allDates.length}`);
 
   // Special handling: If a recurring pattern overlaps with a chrono range that has duration,
   // merge the time information into the recurring pattern
@@ -356,9 +317,6 @@ export function detectDatesInText(
       );
 
       if (overlappingChronoRange) {
-        console.log(
-          `  🔗 Merging time range from "${overlappingChronoRange.text}" into recurring pattern "${recurring.text}"`,
-        );
         // Copy the time information from chrono to the recurring pattern DetectedDate
         recurring.date = overlappingChronoRange.date;
         recurring.timestamp = overlappingChronoRange.timestamp;
@@ -375,15 +333,6 @@ export function detectDatesInText(
             recurring.recurring.endMinute = overlappingChronoRange.endDate.getMinutes();
           }
           recurring.recurring.durationMinutes = overlappingChronoRange.durationMinutes;
-          console.log(
-            `     Stored time in pattern: ${recurring.recurring.hour}:${recurring.recurring.minute
-              ?.toString()
-              .padStart(2, "0")}${
-              recurring.recurring.endHour !== undefined
-                ? ` to ${recurring.recurring.endHour}:${recurring.recurring.endMinute?.toString().padStart(2, "0")}`
-                : ""
-            }`,
-          );
         }
 
         // Extend the text range to cover both the recurring pattern and the time range
@@ -391,12 +340,9 @@ export function detectDatesInText(
         recurring.end = Math.max(recurring.end, overlappingChronoRange.end);
         recurring.text = text.slice(recurring.start, recurring.end);
 
-        console.log(`     Extended range to ${recurring.start}-${recurring.end}: "${recurring.text}"`);
-
         // Update the recurring pattern's raw field to include the full text with time
         if (recurring.recurring) {
           recurring.recurring.raw = recurring.text;
-          console.log(`     Updated pattern.raw to: "${recurring.recurring.raw}"`);
         }
       }
     }
@@ -408,24 +354,11 @@ export function detectDatesInText(
     const overlaps = deduped.some((existing) => !(date.end <= existing.start || date.start >= existing.end));
     if (!overlaps) {
       deduped.push(date);
-    } else {
-      console.log(
-        `  ⚠️ Skipping overlapping date: "${date.text}" at ${date.start}-${date.end} (type: ${
-          date.recurring ? "recurring" : date.durationMinutes ? "range" : "simple"
-        })`,
-      );
     }
   }
 
   // Sort by position in text
   const sorted = deduped.sort((a, b) => a.start - b.start);
-
-  console.log(`\n✅ [Final] Returning ${sorted.length} deduplicated dates:`);
-  sorted.forEach((date, index) => {
-    console.log(`  ${index + 1}. "${date.text}" at position ${date.start}-${date.end}`);
-    console.log(`     → ${date.date.toLocaleString()}`);
-  });
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
   return sorted;
 }
@@ -490,10 +423,6 @@ export function getDateAtPosition(position: number, dates: DetectedDate[]): Dete
  * Matches person names and their alternatives as whole words
  */
 export function detectMentionedPeople(text: string, availablePeople: Person[]): DetectedPerson[] {
-  console.log("\n👥 [detectMentionedPeople] Starting person detection");
-  console.log("📝 Input text:", text);
-  console.log(`👤 Available people: ${availablePeople.length}`);
-
   const results: DetectedPerson[] = [];
 
   // Blacklist common English words to avoid false positives
@@ -598,8 +527,6 @@ export function detectMentionedPeople(text: string, availablePeople: Person[]): 
     }
   }
 
-  console.log(`📋 Total searchable names: ${nameMap.size}`);
-
   // Sort names by length (longest first) to match longer names before shorter ones
   // This prevents "Marcel Erzberg" being detected as just "Marcel"
   const sortedNames = Array.from(nameMap.keys()).sort((a, b) => b.length - a.length);
@@ -623,7 +550,6 @@ export function detectMentionedPeople(text: string, availablePeople: Person[]): 
 
       if (!overlaps) {
         const canonicalName = nameMap.get(lowerName)!;
-        console.log(`  ✅ Found "${match[0]}" at position ${start}-${end} → ${canonicalName}`);
 
         results.push({
           text: match[0],
@@ -640,11 +566,7 @@ export function detectMentionedPeople(text: string, availablePeople: Person[]): 
   // Sort by position in text
   results.sort((a, b) => a.start - b.start);
 
-  console.log(`\n✅ [detectMentionedPeople] Found ${results.length} mentioned people`);
-  results.forEach((person, index) => {
-    console.log(`  ${index + 1}. "${person.text}" at position ${person.start}-${person.end} → ${person.personName}`);
-  });
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+  results.forEach((person, index) => {});
 
   return results;
 }
@@ -661,10 +583,6 @@ export function detectMentionedPeople(text: string, availablePeople: Person[]): 
  * - "for project <project name>"
  */
 export function detectMentionedProjects(text: string, availableProjects: Project[]): DetectedProject[] {
-  console.log("\n📁 [detectMentionedProjects] Starting project detection");
-  console.log("📝 Input text:", text);
-  console.log(`📂 Available projects: ${availableProjects.length}`);
-
   const results: DetectedProject[] = [];
 
   // Blacklist common words that might be project names
@@ -701,8 +619,6 @@ export function detectMentionedProjects(text: string, availableProjects: Project
       }
     }
   }
-
-  console.log(`📋 Total searchable project names: ${projectMap.size}`);
 
   // Sort names by length (longest first)
   const sortedNames = Array.from(projectMap.keys()).sort((a, b) => b.length - a.length);
@@ -743,7 +659,6 @@ export function detectMentionedProjects(text: string, availableProjects: Project
 
         if (!overlaps) {
           const canonicalName = projectMap.get(lowerName)!;
-          console.log(`  ✅ Found "${fullMatch}" at position ${start}-${end} → ${canonicalName}`);
 
           results.push({
             text: fullMatch,
@@ -761,14 +676,6 @@ export function detectMentionedProjects(text: string, availableProjects: Project
   // Sort by position in text
   results.sort((a, b) => a.start - b.start);
 
-  console.log(`\n✅ [detectMentionedProjects] Found ${results.length} mentioned projects`);
-  results.forEach((project, index) => {
-    console.log(
-      `  ${index + 1}. "${project.text}" at position ${project.start}-${project.end} → ${project.projectName}`,
-    );
-  });
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-
   return results;
 }
 
@@ -781,10 +688,6 @@ export function detectMentionedProjects(text: string, availableProjects: Project
  * - "per <person name>"
  */
 export function detectSourcePeople(text: string, availablePeople: Person[]): DetectedSourcePerson[] {
-  console.log("\n📤 [detectSourcePeople] Starting source person detection");
-  console.log("📝 Input text:", text);
-  console.log(`👤 Available people: ${availablePeople.length}`);
-
   const results: DetectedSourcePerson[] = [];
 
   // Blacklist common English words
@@ -887,8 +790,6 @@ export function detectSourcePeople(text: string, availablePeople: Person[]): Det
     }
   }
 
-  console.log(`📋 Total searchable names: ${nameMap.size}`);
-
   // Sort names by length (longest first)
   const sortedNames = Array.from(nameMap.keys()).sort((a, b) => b.length - a.length);
 
@@ -924,7 +825,6 @@ export function detectSourcePeople(text: string, availablePeople: Person[]): Det
 
         if (!overlaps) {
           const canonicalName = nameMap.get(lowerName)!;
-          console.log(`  ✅ Found "${fullMatch}" at position ${start}-${end} → ${canonicalName}`);
 
           results.push({
             text: fullMatch,
@@ -942,11 +842,7 @@ export function detectSourcePeople(text: string, availablePeople: Person[]): Det
   // Sort by position in text
   results.sort((a, b) => a.start - b.start);
 
-  console.log(`\n✅ [detectSourcePeople] Found ${results.length} source people`);
-  results.forEach((person, index) => {
-    console.log(`  ${index + 1}. "${person.text}" at position ${person.start}-${person.end} → ${person.personName}`);
-  });
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+  results.forEach((person, index) => {});
 
   return results;
 }
@@ -960,10 +856,6 @@ export function detectSourcePeople(text: string, availablePeople: Person[]): Det
  * Priority names are typically specific enough to detect without additional context
  */
 export function detectPriorities(text: string, availablePriorities: Priority[]): DetectedPriority[] {
-  console.log("\n⚡ [detectPriorities] Starting priority detection");
-  console.log("📝 Input text:", text);
-  console.log(`🎯 Available priorities: ${availablePriorities.length}`);
-
   const results: DetectedPriority[] = [];
 
   // No blacklist needed - priority names should be specific enough
@@ -977,8 +869,6 @@ export function detectPriorities(text: string, availablePriorities: Priority[]):
       priorityMap.set(alt.toLowerCase(), priority.name);
     }
   }
-
-  console.log(`📋 Total searchable priority names: ${priorityMap.size}`);
 
   // Sort names by length (longest first)
   const sortedNames = Array.from(priorityMap.keys()).sort((a, b) => b.length - a.length);
@@ -1008,7 +898,6 @@ export function detectPriorities(text: string, availablePriorities: Priority[]):
 
       if (!overlaps) {
         const canonicalName = priorityMap.get(lowerName)!;
-        console.log(`  ✅ Found "${fullMatch}" at position ${start}-${end} → ${canonicalName}`);
 
         results.push({
           text: fullMatch,
@@ -1041,7 +930,6 @@ export function detectPriorities(text: string, availablePriorities: Priority[]):
 
         if (!overlaps) {
           const canonicalName = priorityMap.get(lowerName)!;
-          console.log(`  ✅ Found "${fullMatch}" at position ${start}-${end} → ${canonicalName}`);
 
           results.push({
             text: fullMatch,
@@ -1058,14 +946,6 @@ export function detectPriorities(text: string, availablePriorities: Priority[]):
 
   // Sort by position in text
   results.sort((a, b) => a.start - b.start);
-
-  console.log(`\n✅ [detectPriorities] Found ${results.length} priorities`);
-  results.forEach((priority, index) => {
-    console.log(
-      `  ${index + 1}. "${priority.text}" at position ${priority.start}-${priority.end} → ${priority.priorityName}`,
-    );
-  });
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
   return results;
 }

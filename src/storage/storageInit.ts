@@ -83,7 +83,6 @@ function hasLocalStorageData(): boolean {
 
 // Migrate data from localStorage to IndexedDB
 async function migrateToIndexedDB(adapter: StorageAdapter): Promise<void> {
-  console.log("Migrating data from localStorage to IndexedDB...");
 
   try {
     const keys = Object.values(STORAGE_KEYS);
@@ -101,7 +100,6 @@ async function migrateToIndexedDB(adapter: StorageAdapter): Promise<void> {
       }
     }
 
-    console.log(`Successfully migrated ${migratedCount} items to IndexedDB`);
 
     // Set a flag to indicate migration is complete
     await adapter.setItem("doit-migrated-to-indexeddb", "true");
@@ -114,7 +112,6 @@ async function migrateToIndexedDB(adapter: StorageAdapter): Promise<void> {
         console.error(`Failed to clear localStorage key ${key}:`, error);
       }
     }
-    console.log("Cleared migrated data from localStorage");
   } catch (error) {
     console.error("Failed to migrate to IndexedDB:", error);
     throw error;
@@ -162,7 +159,6 @@ export async function initializeStorage(): Promise<{
   const indexedDBAvailable = await isIndexedDBAvailable();
 
   if (!indexedDBAvailable) {
-    console.log("IndexedDB not available, using localStorage");
     return {
       adapter: null as any, // Will use default LocalStorageAdapter
       usingIndexedDB: false,
@@ -171,7 +167,6 @@ export async function initializeStorage(): Promise<{
   }
 
   // IndexedDB is available
-  console.log("IndexedDB is available");
 
   try {
     const indexedDBAdapter = createIndexedDBAdapter();
@@ -182,7 +177,6 @@ export async function initializeStorage(): Promise<{
     if (hasLocalData && !alreadyMigrated) {
       // Migrate from localStorage to IndexedDB
       await migrateToIndexedDB(indexedDBAdapter);
-      console.log("Data migrated from localStorage to IndexedDB");
 
       setStorageAdapter(indexedDBAdapter);
       return {
@@ -231,12 +225,9 @@ export function initializeStorageClient(): void {
     initializationPromise = initializeStorage()
       .then((result) => {
         if (result.usingIndexedDB) {
-          console.log("✓ Using IndexedDB for storage");
           if (result.migrated) {
-            console.log("✓ Data migrated from localStorage");
           }
         } else {
-          console.log("✓ Using localStorage for storage");
         }
         isInitialized = true;
       })
