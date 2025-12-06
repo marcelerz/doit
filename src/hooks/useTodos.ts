@@ -505,6 +505,101 @@ export function useTodos() {
     );
   };
 
+  const reorderTodos = (orderedIds: string[]) => {
+    // Update sortOrder based on position in orderedIds array
+    setRawTodos((prev) => {
+      const orderMap = new Map(orderedIds.map((id, index) => [id, index]));
+      return prev.map((todo) => {
+        const newOrder = orderMap.get(todo.id);
+        if (newOrder !== undefined && newOrder !== todo.sortOrder) {
+          return { ...todo, sortOrder: newOrder, updatedAt: Date.now() };
+        }
+        return todo;
+      });
+    });
+  };
+
+  // Subtask management functions
+  const addSubtask = (todoId: string, text: string) => {
+    const now = Date.now();
+    setRawTodos((prev) =>
+      prev.map((todo) => {
+        if (todo.id === todoId) {
+          const newSubtask = {
+            id: `subtask-${now}`,
+            text,
+            completed: false,
+            createdAt: now,
+          };
+          return {
+            ...todo,
+            subtasks: [...(todo.subtasks || []), newSubtask],
+            updatedAt: now,
+          };
+        }
+        return todo;
+      }),
+    );
+  };
+
+  const toggleSubtask = (todoId: string, subtaskId: string) => {
+    const now = Date.now();
+    setRawTodos((prev) =>
+      prev.map((todo) => {
+        if (todo.id === todoId) {
+          return {
+            ...todo,
+            subtasks: (todo.subtasks || []).map((subtask) =>
+              subtask.id === subtaskId
+                ? {
+                    ...subtask,
+                    completed: !subtask.completed,
+                    completedAt: !subtask.completed ? now : undefined,
+                  }
+                : subtask,
+            ),
+            updatedAt: now,
+          };
+        }
+        return todo;
+      }),
+    );
+  };
+
+  const editSubtask = (todoId: string, subtaskId: string, text: string) => {
+    const now = Date.now();
+    setRawTodos((prev) =>
+      prev.map((todo) => {
+        if (todo.id === todoId) {
+          return {
+            ...todo,
+            subtasks: (todo.subtasks || []).map((subtask) =>
+              subtask.id === subtaskId ? { ...subtask, text } : subtask,
+            ),
+            updatedAt: now,
+          };
+        }
+        return todo;
+      }),
+    );
+  };
+
+  const deleteSubtask = (todoId: string, subtaskId: string) => {
+    const now = Date.now();
+    setRawTodos((prev) =>
+      prev.map((todo) => {
+        if (todo.id === todoId) {
+          return {
+            ...todo,
+            subtasks: (todo.subtasks || []).filter((subtask) => subtask.id !== subtaskId),
+            updatedAt: now,
+          };
+        }
+        return todo;
+      }),
+    );
+  };
+
   return {
     todos,
     addTodo,
@@ -517,6 +612,11 @@ export function useTodos() {
     addTodoComment,
     editTodoComment,
     deleteTodoComment,
+    reorderTodos,
+    addSubtask,
+    toggleSubtask,
+    editSubtask,
+    deleteSubtask,
     isLoaded,
     undoActions,
     fadingOutIds,

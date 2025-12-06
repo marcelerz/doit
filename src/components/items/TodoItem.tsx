@@ -42,6 +42,14 @@ interface TodoItemProps {
   isSelectionMode?: boolean;
   isSelected?: boolean;
   onSelectionChange?: (id: string, selected: boolean) => void;
+  // Drag and drop props
+  isDraggable?: boolean;
+  isDraggedOver?: boolean;
+  onDragStart?: (e: React.DragEvent, id: string) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent, id: string) => void;
+  onDragLeave?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent, id: string) => void;
 }
 
 export function TodoItem({
@@ -69,6 +77,13 @@ export function TodoItem({
   isSelectionMode = false,
   isSelected = false,
   onSelectionChange,
+  isDraggable = false,
+  isDraggedOver = false,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
 }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentTokens, setCurrentTokens] = useState<TokenMatch[]>([]);
@@ -372,16 +387,42 @@ export function TodoItem({
       <div
         className={`bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 group hover:shadow-md transition-all ${
           isSelected ? "ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-zinc-900" : ""
+        } ${isDraggedOver ? "border-blue-500 border-2 bg-blue-50 dark:bg-blue-900/20" : ""} ${
+          isDraggable ? "cursor-grab active:cursor-grabbing" : ""
         }`}
         style={{
           transform: `translateX(${swipeOffset}px)`,
           transition: touchStart ? "none" : "transform 0.2s ease-out",
+        }}
+        draggable={isDraggable && !isEditing}
+        onDragStart={(e) => isDraggable && onDragStart?.(e, todo.id)}
+        onDragEnd={(e) => isDraggable && onDragEnd?.(e)}
+        onDragOver={(e) => {
+          if (isDraggable) {
+            e.preventDefault();
+            onDragOver?.(e, todo.id);
+          }
+        }}
+        onDragLeave={(e) => isDraggable && onDragLeave?.(e)}
+        onDrop={(e) => {
+          if (isDraggable) {
+            e.preventDefault();
+            onDrop?.(e, todo.id);
+          }
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         <div className="flex items-start gap-3">
+          {/* Drag handle shown when draggable */}
+          {isDraggable && !isSelectionMode && (
+            <div className="flex-shrink-0 text-zinc-400 dark:text-zinc-500 cursor-grab active:cursor-grabbing mt-0.5">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm6-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
+              </svg>
+            </div>
+          )}
           {/* Selection checkbox shown in selection mode */}
           {isSelectionMode && (
             <input
@@ -418,6 +459,23 @@ export function TodoItem({
                 availablePriorities={availablePriorities}
               />
             </div>
+
+            {/* Subtask progress indicator */}
+            {todo.hasSubtasks && (
+              <div className="mt-1 flex items-center gap-2">
+                <div className="flex-1 max-w-[120px] h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      todo.allSubtasksCompleted ? "bg-green-500 dark:bg-green-600" : "bg-blue-500 dark:bg-blue-600"
+                    }`}
+                    style={{ width: `${todo.subtaskProgress}%` }}
+                  />
+                </div>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {todo.completedSubtaskCount}/{todo.subtaskCount}
+                </span>
+              </div>
+            )}
 
             {/* Expanded Details */}
             {isExpanded && (

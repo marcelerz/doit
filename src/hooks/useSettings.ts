@@ -164,6 +164,16 @@ export function useSettings() {
     }));
   };
 
+  const updateNotificationSettings = (notifications: Partial<Settings["notifications"]>) => {
+    setSettings((prev) => ({
+      ...prev,
+      notifications: {
+        ...prev.notifications,
+        ...notifications,
+      },
+    }));
+  };
+
   const addPriorityComment = (priorityId: string, content: string) => {
     setSettings((prev) => ({
       ...prev,
@@ -226,6 +236,7 @@ export function useSettings() {
     updateWorkHoursSettings,
     updateGantt,
     updateCalendar,
+    updateNotificationSettings,
     updateAutoAssignSettings,
     addPriorityComment,
     editPriorityComment,

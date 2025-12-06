@@ -6,6 +6,7 @@ import { MarkerColors, Settings, LinkPattern, Priority } from "@/types/settings"
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Activity } from "@/components/shared/Activity";
+import { Subtasks } from "@/components/shared/Subtasks";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Badge } from "@/components/shared/Badge";
 import { SearchableDropdown } from "@/components/shared/SearchableDropdown";
@@ -43,6 +44,11 @@ interface TodoDetailsOverlayProps {
   onAddProject?: (name: string) => void;
   onAddPriority?: (name: string) => void;
   onAddComment?: (todoId: string, content: string) => void;
+  // Subtask handlers
+  onAddSubtask?: (todoId: string, text: string) => void;
+  onToggleSubtask?: (todoId: string, subtaskId: string) => void;
+  onEditSubtask?: (todoId: string, subtaskId: string, text: string) => void;
+  onDeleteSubtask?: (todoId: string, subtaskId: string) => void;
 }
 
 export function TodoDetailsOverlay({
@@ -66,6 +72,10 @@ export function TodoDetailsOverlay({
   onAddProject,
   onAddPriority,
   onAddComment,
+  onAddSubtask,
+  onToggleSubtask,
+  onEditSubtask,
+  onDeleteSubtask,
 }: TodoDetailsOverlayProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTokens, setEditTokens] = useState<TokenMatch[]>([]);
@@ -1005,6 +1015,28 @@ export function TodoDetailsOverlay({
             archiveLabel="Archive todo"
             unarchiveLabel="Unarchive todo"
             deleteLabel="Delete todo"
+          />
+        </div>
+
+        {/* Subtasks Section */}
+        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+              ✅ Subtasks
+              {todo.hasSubtasks && (
+                <span className="ml-2 text-xs font-normal text-zinc-500 dark:text-zinc-500">
+                  ({todo.completedSubtaskCount}/{todo.subtaskCount} completed)
+                </span>
+              )}
+            </h4>
+          </div>
+          <Subtasks
+            subtasks={todo.subtasks}
+            onAdd={(text) => onAddSubtask?.(todo.id, text)}
+            onToggle={(subtaskId) => onToggleSubtask?.(todo.id, subtaskId)}
+            onEdit={(subtaskId, text) => onEditSubtask?.(todo.id, subtaskId, text)}
+            onDelete={(subtaskId) => onDeleteSubtask?.(todo.id, subtaskId)}
+            readOnly={!onAddSubtask}
           />
         </div>
 

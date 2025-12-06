@@ -64,6 +64,14 @@ export interface ActivityEntry {
 
 export type TodoState = "active" | "completed" | "archived" | "deleted";
 
+export interface Subtask {
+  id: string;
+  text: string;
+  completed: boolean;
+  createdAt: number;
+  completedAt?: number;
+}
+
 export interface Todo {
   id: string;
   text: string; // Full text with markers
@@ -74,7 +82,9 @@ export interface Todo {
   completedAt?: number; // Timestamp when task was marked as completed
   archivedAt?: number; // Timestamp when task was archived
   deletedAt?: number; // Timestamp when task was deleted
+  sortOrder?: number; // Manual sort order (lower = higher priority)
   metadata: TodoMetadata;
   comments: Comment[];
   activity: ActivityEntry[];
+  subtasks?: Subtask[]; // Optional nested subtasks
 }

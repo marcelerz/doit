@@ -604,6 +604,51 @@ export class TodoModel {
     return this.comments.length > 0;
   }
 
+  // ===== Subtask Properties =====
+
+  /**
+   * Get all subtasks
+   */
+  get subtasks() {
+    return this._todo.subtasks || [];
+  }
+
+  /**
+   * Check if this todo has subtasks
+   */
+  get hasSubtasks(): boolean {
+    return this.subtasks.length > 0;
+  }
+
+  /**
+   * Get the number of subtasks
+   */
+  get subtaskCount(): number {
+    return this.subtasks.length;
+  }
+
+  /**
+   * Get the number of completed subtasks
+   */
+  get completedSubtaskCount(): number {
+    return this.subtasks.filter((s) => s.completed).length;
+  }
+
+  /**
+   * Get subtask completion progress as a percentage (0-100)
+   */
+  get subtaskProgress(): number {
+    if (this.subtasks.length === 0) return 0;
+    return Math.round((this.completedSubtaskCount / this.subtaskCount) * 100);
+  }
+
+  /**
+   * Check if all subtasks are completed
+   */
+  get allSubtasksCompleted(): boolean {
+    return this.subtasks.length > 0 && this.completedSubtaskCount === this.subtaskCount;
+  }
+
   /**
    * Get number of activity entries
    */

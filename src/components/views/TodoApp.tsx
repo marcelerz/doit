@@ -58,6 +58,11 @@ export function TodoApp() {
     addTodoComment,
     editTodoComment,
     deleteTodoComment,
+    reorderTodos,
+    addSubtask,
+    toggleSubtask,
+    editSubtask,
+    deleteSubtask,
     isLoaded,
     undoActions,
     fadingOutIds,
@@ -227,6 +232,11 @@ export function TodoApp() {
   // Bulk selection state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedTodoIds, setSelectedTodoIds] = useState<Set<string>>(new Set());
+
+  // Drag and drop reordering state
+  const [isDragMode, setIsDragMode] = useState(false);
+  const [draggedTodoId, setDraggedTodoId] = useState<string | null>(null);
+  const [dragOverTodoId, setDragOverTodoId] = useState<string | null>(null);
 
   // Export dropdown state
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
@@ -476,6 +486,77 @@ export function TodoApp() {
     setSelectedTodoIds(new Set());
   }, [todos, selectedTodoIds, batchEditData, editTodo]);
 
+  // Drag and drop handlers
+  const toggleDragMode = useCallback(() => {
+    setIsDragMode((prev) => !prev);
+    setDraggedTodoId(null);
+    setDragOverTodoId(null);
+  }, []);
+
+  const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
+    setDraggedTodoId(id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedTodoId(null);
+    setDragOverTodoId(null);
+  }, []);
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent, id: string) => {
+      e.preventDefault();
+      if (draggedTodoId && draggedTodoId !== id) {
+        setDragOverTodoId(id);
+      }
+    },
+    [draggedTodoId],
+  );
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverTodoId(null);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent, targetId: string) => {
+      e.preventDefault();
+      const sourceId = draggedTodoId;
+
+      if (!sourceId || sourceId === targetId) {
+        setDraggedTodoId(null);
+        setDragOverTodoId(null);
+        return;
+      }
+
+      // Get current active todos in order (filtered by active state)
+      const activeTodosList = todos.filter((t) => t.isActive);
+      const activeTodoIds = activeTodosList.map((t) => t.id);
+
+      // Find positions
+      const sourceIndex = activeTodoIds.indexOf(sourceId);
+      const targetIndex = activeTodoIds.indexOf(targetId);
+
+      if (sourceIndex === -1 || targetIndex === -1) {
+        setDraggedTodoId(null);
+        setDragOverTodoId(null);
+        return;
+      }
+
+      // Create new order by moving source to target position
+      const newOrder = [...activeTodoIds];
+      newOrder.splice(sourceIndex, 1);
+      newOrder.splice(targetIndex, 0, sourceId);
+
+      // Apply new order
+      reorderTodos(newOrder);
+
+      setDraggedTodoId(null);
+      setDragOverTodoId(null);
+    },
+    [draggedTodoId, todos, reorderTodos],
+  );
+
   // Expanded todo detail state
   const [expandedTodoId, setExpandedTodoId] = useState<string | null>(null);
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<(typeof todos)[0] | null>(null);
@@ -500,7 +581,16 @@ export function TodoApp() {
   const [activePreset, setActivePreset] = useState<string>("custom");
 
   // Sorting and grouping types
-  type SortField = "dueDate" | "duration" | "assigned" | "source" | "mentioned" | "project" | "priority" | "created";
+  type SortField =
+    | "manual"
+    | "dueDate"
+    | "duration"
+    | "assigned"
+    | "source"
+    | "mentioned"
+    | "project"
+    | "priority"
+    | "created";
   type SortDirection = "asc" | "desc";
   type GroupBy = "none" | "dueDate";
 
@@ -1201,6 +1291,13 @@ export function TodoApp() {
       let comparison = 0;
 
       switch (sortField) {
+        case "manual":
+          // Sort by manual sortOrder (lower = higher priority)
+          const aManualOrder = a.raw.sortOrder ?? Number.MAX_SAFE_INTEGER;
+          const bManualOrder = b.raw.sortOrder ?? Number.MAX_SAFE_INTEGER;
+          comparison = aManualOrder - bManualOrder;
+          break;
+
         case "dueDate":
           const aDate = a.metadata.dueDate || "";
           const bDate = b.metadata.dueDate || "";
@@ -1686,27 +1783,46 @@ export function TodoApp() {
 
           {/* Selection Mode Toggle - Only show in list view */}
           {activeView === "list" && todos.length > 0 && (
-            <button
-              onClick={toggleSelectionMode}
-              className={`px-3 py-2 font-medium transition-colors rounded-lg text-sm ${
-                isSelectionMode
-                  ? "bg-blue-600 text-white"
-                  : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              }`}
-              title={isSelectionMode ? "Exit selection mode" : "Enter selection mode"}
-            >
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                  />
-                </svg>
-                <span className="hidden sm:inline">Select</span>
-              </div>
-            </button>
+            <>
+              <button
+                onClick={toggleSelectionMode}
+                className={`px-3 py-2 font-medium transition-colors rounded-lg text-sm ${
+                  isSelectionMode
+                    ? "bg-blue-600 text-white"
+                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                }`}
+                title={isSelectionMode ? "Exit selection mode" : "Enter selection mode"}
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">Select</span>
+                </div>
+              </button>
+              {/* Drag reorder button */}
+              <button
+                onClick={toggleDragMode}
+                className={`px-3 py-2 font-medium transition-colors rounded-lg text-sm ${
+                  isDragMode
+                    ? "bg-purple-600 text-white"
+                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                }`}
+                title={isDragMode ? "Exit reorder mode" : "Enter reorder mode"}
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm6-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
+                  </svg>
+                  <span className="hidden sm:inline">Reorder</span>
+                </div>
+              </button>
+            </>
           )}
         </div>
 
@@ -1796,6 +1912,7 @@ export function TodoApp() {
                   onChange={(e) => setSortField(e.target.value as SortField)}
                   className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
+                  <option value="manual">Manual</option>
                   <option value="created">Created</option>
                   <option value="dueDate">Due Date</option>
                   <option value="duration">Duration</option>
@@ -2513,6 +2630,13 @@ export function TodoApp() {
                                     isSelectionMode={isSelectionMode}
                                     isSelected={selectedTodoIds.has(todo.id)}
                                     onSelectionChange={handleSelectionChange}
+                                    isDraggable={isDragMode && todo.isActive}
+                                    isDraggedOver={dragOverTodoId === todo.id}
+                                    onDragStart={handleDragStart}
+                                    onDragEnd={handleDragEnd}
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
                                   />
                                 </li>
                               ))}
@@ -2572,6 +2696,7 @@ export function TodoApp() {
                               isSelectionMode={isSelectionMode}
                               isSelected={selectedTodoIds.has(todo.id)}
                               onSelectionChange={handleSelectionChange}
+                              isDraggable={false}
                             />
                           </li>
                         ))}
@@ -2628,6 +2753,7 @@ export function TodoApp() {
                               isSelectionMode={isSelectionMode}
                               isSelected={selectedTodoIds.has(todo.id)}
                               onSelectionChange={handleSelectionChange}
+                              isDraggable={false}
                             />
                           </li>
                         ))}
@@ -2824,6 +2950,10 @@ export function TodoApp() {
                     onAddProject={handleAddProject}
                     onAddPriority={handleAddPriority}
                     onAddComment={addTodoComment}
+                    onAddSubtask={addSubtask}
+                    onToggleSubtask={toggleSubtask}
+                    onEditSubtask={editSubtask}
+                    onDeleteSubtask={deleteSubtask}
                   />
                 );
               })()}

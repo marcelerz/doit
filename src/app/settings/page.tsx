@@ -16,6 +16,7 @@ import { CalendarTab } from "@/components/settings/CalendarTab";
 import { AutoAssignTab } from "@/components/settings/AutoAssignTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 import { StorageTab } from "@/components/settings/StorageTab";
+import { NotificationsTab } from "@/components/settings/NotificationsTab";
 
 const tabs = {
   General: "general",
@@ -24,6 +25,7 @@ const tabs = {
   Gantt: "gantt",
   Calendar: "calendar",
   "Auto-Assign": "autoassign",
+  Notifications: "notifications",
   Priorities: "priorities",
   Links: "links",
   Markers: "markers",
@@ -56,6 +58,7 @@ export default function SettingsPage() {
     updateWorkHoursSettings,
     updateGantt,
     updateCalendar,
+    updateNotificationSettings,
     updateAutoAssignSettings,
   } = useSettings();
 
@@ -232,6 +235,10 @@ export default function SettingsPage() {
                       priorities={settings.priorities}
                       onUpdate={updateAutoAssignSettings}
                     />
+                  );
+                case "notifications":
+                  return (
+                    <NotificationsTab notifications={settings.notifications} onUpdate={updateNotificationSettings} />
                   );
                 case "priorities":
                   return (

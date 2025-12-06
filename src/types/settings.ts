@@ -299,6 +299,25 @@ export const defaultAutoAssignSettings: AutoAssignSettings = {
   recurring: undefined,
 };
 
+// Notification Settings
+export interface NotificationSettings {
+  enabled: boolean;
+  notifyOverdue: boolean;
+  notifyDueToday: boolean;
+  notifyDueSoon: boolean;
+  dueSoonHours: number; // Hours before due date to notify
+  checkInterval: number; // Minutes between notification checks
+}
+
+export const defaultNotificationSettings: NotificationSettings = {
+  enabled: false, // Disabled by default until user enables
+  notifyOverdue: true,
+  notifyDueToday: true,
+  notifyDueSoon: true,
+  dueSoonHours: 2,
+  checkInterval: 15, // Check every 15 minutes
+};
+
 export interface Settings {
   // Priorities Tab
   priorities: Priority[];
@@ -318,6 +337,8 @@ export interface Settings {
   calendar: Calendar;
   // Auto-Assign Tab
   autoAssign: AutoAssignSettings;
+  // Notifications Tab
+  notifications: NotificationSettings;
 }
 
 export const defaultSettings: Settings = {
@@ -349,4 +370,5 @@ export const defaultSettings: Settings = {
   gantt: defaultGantt,
   calendar: defaultCalendar,
   autoAssign: defaultAutoAssignSettings,
+  notifications: defaultNotificationSettings,
 };
