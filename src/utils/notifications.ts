@@ -2,6 +2,144 @@ import { TodoModel } from "@/models/TodoModel";
 
 export type NotificationPermission = "default" | "granted" | "denied";
 
+// Audio context for playing sounds
+let audioContext: AudioContext | null = null;
+
+/**
+ * Get or create AudioContext (lazy initialization due to browser autoplay policies)
+ */
+function getAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+
+  if (!audioContext) {
+    try {
+      audioContext = new (window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    } catch (error) {
+      console.error("Failed to create AudioContext:", error);
+      return null;
+    }
+  }
+  return audioContext;
+}
+
+/**
+ * Play a notification sound using Web Audio API
+ * @param type - Type of sound: 'short-break', 'long-break', 'work-start', 'task-complete'
+ */
+export function playNotificationSound(
+  type: "short-break" | "long-break" | "work-start" | "task-complete" = "short-break",
+): void {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  // Resume context if suspended (required by browser autoplay policies)
+  if (ctx.state === "suspended") {
+    ctx.resume();
+  }
+
+  try {
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    // Different sound patterns for different notification types
+    switch (type) {
+      case "short-break":
+        // Two gentle high tones
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime); // A5
+        oscillator.frequency.setValueAtTime(1047, ctx.currentTime + 0.15); // C6
+        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.3);
+        break;
+
+      case "long-break":
+        // Three descending tones (more celebratory)
+        oscillator.frequency.setValueAtTime(1047, ctx.currentTime); // C6
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
+        oscillator.frequency.setValueAtTime(698, ctx.currentTime + 0.3); // F5
+        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.5);
+        break;
+
+      case "work-start":
+        // Single decisive tone
+        oscillator.frequency.setValueAtTime(523, ctx.currentTime); // C5
+        gainNode.gain.setValueAtTime(0.25, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.2);
+        break;
+
+      case "task-complete":
+        // Ascending two tones (success sound)
+        oscillator.frequency.setValueAtTime(523, ctx.currentTime); // C5
+        oscillator.frequency.setValueAtTime(659, ctx.currentTime + 0.1); // E5
+        gainNode.gain.setValueAtTime(0.25, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.25);
+        break;
+    }
+  } catch (error) {
+    console.error("Failed to play notification sound:", error);
+  }
+}
+
+/**
+ * Send Pomodoro break notification
+ */
+export function notifyPomodoroBreak(
+  breakType: "short" | "long",
+  breakDuration: number,
+  taskNumber: number,
+  playSound: boolean = true,
+): Notification | null {
+  const title = breakType === "long" ? `🍅 Time for a long break!` : `🍅 Time for a short break!`;
+
+  const body =
+    breakType === "long"
+      ? `Great work! You've completed ${taskNumber} tasks. Take a ${breakDuration} minute break.`
+      : `Task ${taskNumber} complete! Take a ${breakDuration} minute break.`;
+
+  if (playSound) {
+    playNotificationSound(breakType === "long" ? "long-break" : "short-break");
+  }
+
+  return sendNotification(title, {
+    body,
+    tag: `pomodoro-break-${Date.now()}`,
+    requireInteraction: false,
+    silent: true, // We play our own sound
+  });
+}
+
+/**
+ * Send Pomodoro work start notification
+ */
+export function notifyPomodoroWorkStart(
+  taskName: string,
+  taskNumber: number,
+  playSound: boolean = true,
+): Notification | null {
+  if (playSound) {
+    playNotificationSound("work-start");
+  }
+
+  return sendNotification(`🍅 Break over - back to work!`, {
+    body: `Starting task ${taskNumber}: ${taskName}`,
+    tag: `pomodoro-work-${Date.now()}`,
+    requireInteraction: false,
+    silent: true,
+  });
+}
+
 /**
  * Check if browser notifications are supported
  */

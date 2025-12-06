@@ -63,6 +63,7 @@
 - [x] Keep @ and $ markers in plainText for assigned and source people
 - [x] Swap markers: % for projects (was #), # for tags (was &), ^ for dueDate (was ~), ~ for recurring (was %)
 - [x] Remove explicit marker support for ^, \*, ~, > - these are now auto-detect only or set via fields
+- [x] Add Pomodoro-style planning to Gantt chart with short/long breaks and presets
 
 ## Project Details
 
@@ -277,6 +278,20 @@ The app now has three different views accessible via tabs:
 1. **List View** - Traditional todo list with filtering, sorting, grouping
 2. **Gantt View** - Timeline visualization showing todos with due dates on a horizontal timeline
 3. **Calendar View** - Monthly calendar with dots indicating tasks, click to see details
+
+### Gantt View Pomodoro Planning
+
+The Gantt view supports Pomodoro-style planning with configurable breaks:
+
+- **Short Breaks**: Between each task (default 5 minutes)
+- **Long Breaks**: After every N tasks (default 15 minutes after 4 tasks)
+- **Presets**: Quick-apply presets including "Pomodoro" (25m work, 5m short break, 15m long break)
+- **Visual Indicators**: Short breaks shown in blue, long breaks in green
+- **Toggle**: Can be enabled/disabled in Settings → Gantt → Pomodoro Settings
+- **Scheduling Impact**: Breaks affect when tasks are scheduled on the timeline
+- **Notifications**: Browser notifications when breaks start (requires permission)
+- **Sound Alerts**: Audio tones using Web Audio API - different sounds for short/long breaks
+- **Test Sounds**: Preview sounds in Settings → Gantt → Pomodoro Settings
 
 ## Auto-Detection Features
 

@@ -7,6 +7,13 @@ import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { getTextColor } from "@/utils/colors";
+import {
+  notifyPomodoroBreak,
+  notifyPomodoroWorkStart,
+  playNotificationSound,
+  getNotificationPermission,
+  requestNotificationPermission,
+} from "@/utils/notifications";
 
 interface GanttViewProps {
   todos: TodoModel[];
@@ -85,12 +92,21 @@ export function GanttView({
   const timelineRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Pomodoro state
+  const [pomodoroNotifiedBreaks, setPomodoroNotifiedBreaks] = useState<Set<string>>(new Set());
+  const [notificationPermission, setNotificationPermission] = useState<string>("default");
+
   // Update current time every minute for the now line
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 60000); // Update every minute
     return () => clearInterval(interval);
+  }, []);
+
+  // Check notification permission on mount
+  useEffect(() => {
+    setNotificationPermission(getNotificationPermission());
   }, []);
 
   // Update zoom level and persist to settings
@@ -122,6 +138,45 @@ export function GanttView({
       default:
         return value;
     }
+  };
+
+  // Calculate break duration based on Pomodoro settings or context switching time
+  const getBreakDuration = (taskIndex: number): number => {
+    const { pomodoroEnabled, pomodoroShortBreak, pomodoroLongBreak, pomodoroLongBreakInterval, contextSwitchingTime } =
+      settings.gantt;
+
+    if (!pomodoroEnabled) {
+      return contextSwitchingTime;
+    }
+
+    // Pomodoro is enabled - check if this is a long break position
+    // Long break after every N tasks (taskIndex is 0-indexed, so check if (taskIndex + 1) % N === 0)
+    const taskNumber = taskIndex + 1;
+    const tasksForLongBreak = pomodoroLongBreakInterval ?? 4;
+
+    if (taskNumber > 0 && taskNumber % tasksForLongBreak === 0) {
+      return pomodoroLongBreak ?? 15;
+    }
+
+    return pomodoroShortBreak ?? 5;
+  };
+
+  // Get break type label for display
+  const getBreakType = (taskIndex: number): "context" | "short" | "long" => {
+    const { pomodoroEnabled, pomodoroLongBreakInterval } = settings.gantt;
+
+    if (!pomodoroEnabled) {
+      return "context";
+    }
+
+    const taskNumber = taskIndex + 1;
+    const tasksForLongBreak = pomodoroLongBreakInterval ?? 4;
+
+    if (taskNumber > 0 && taskNumber % tasksForLongBreak === 0) {
+      return "long";
+    }
+
+    return "short";
   };
 
   // Get schedule for a specific date
@@ -285,6 +340,7 @@ export function GanttView({
       }
 
       const scheduledToday: string[] = [];
+      let dailyTaskIndex = 0; // Track task index for Pomodoro breaks
 
       for (const todo of remainingTodos) {
         // For active tasks, schedule ASAP
@@ -319,7 +375,10 @@ export function GanttView({
           const dateKey = currentDay.toISOString().split("T")[0];
           map.set(todo.id, dateKey);
           scheduledToday.push(todo.id);
-          currentTime = new Date(taskEnd.getTime() + settings.gantt.contextSwitchingTime * 60000);
+          // Use Pomodoro breaks if enabled, otherwise context switching time
+          const breakDuration = getBreakDuration(dailyTaskIndex);
+          currentTime = new Date(taskEnd.getTime() + breakDuration * 60000);
+          dailyTaskIndex++;
         } else {
           // Task doesn't fit - stop scheduling for this day, will try next day
           break;
@@ -337,7 +396,7 @@ export function GanttView({
     }
 
     return map;
-  }, [allActiveTodos, workHours]); // Get todos for selected date based on scheduling map
+  }, [allActiveTodos, workHours, settings.gantt]); // Get todos for selected date based on scheduling map
   const todosForDate = useMemo(() => {
     const dateKey = selectedDate.toISOString().split("T")[0];
     return allActiveTodos.filter((todo) => taskSchedulingMap.get(todo.id) === dateKey);
@@ -404,6 +463,8 @@ export function GanttView({
     if (isToday && now > dayStartTime && now < dayEndTime) {
       currentTime = new Date(now);
     }
+
+    let activeTaskIndex = 0; // Track active task index for Pomodoro breaks
 
     for (const todo of todosForDate) {
       // For completed/archived tasks, schedule based on their actual completion time
@@ -519,12 +580,14 @@ export function GanttView({
         isOverdue,
       });
 
-      // Add context switching time
-      currentTime = new Date(taskEnd.getTime() + settings.gantt.contextSwitchingTime * 60000);
+      // Add break time (Pomodoro or context switching)
+      const breakDuration = getBreakDuration(activeTaskIndex);
+      currentTime = new Date(taskEnd.getTime() + breakDuration * 60000);
+      activeTaskIndex++;
     }
 
     return tasks;
-  }, [todosForDate, dayStartTime, dayEndTime, breakBlocks, workHours, selectedDate]);
+  }, [todosForDate, dayStartTime, dayEndTime, breakBlocks, workHours, selectedDate, settings.gantt]);
 
   const unscheduledTasks = todosForDate.slice(scheduledTasks.length);
 
@@ -534,6 +597,71 @@ export function GanttView({
     const completed = scheduledTasks.filter((t) => t.todo.isCompleted || t.todo.isArchived);
     return { activeTasks: active, completedTasks: completed };
   }, [scheduledTasks]);
+
+  // Pomodoro break notification effect
+  useEffect(() => {
+    const {
+      pomodoroEnabled,
+      pomodoroNotifications,
+      pomodoroSound,
+      pomodoroShortBreak,
+      pomodoroLongBreak,
+      pomodoroLongBreakInterval,
+    } = settings.gantt;
+
+    // Only check if Pomodoro is enabled and today is selected
+    if (!pomodoroEnabled || selectedDate.toDateString() !== new Date().toDateString()) {
+      return;
+    }
+
+    // Check every 10 seconds for upcoming breaks
+    const checkBreaks = () => {
+      const now = new Date();
+
+      activeTasks.forEach((task, index) => {
+        // Check if task just ended (within the last minute)
+        const taskEndTime = task.endTime.getTime();
+        const timeSinceEnd = now.getTime() - taskEndTime;
+
+        // If task ended 0-60 seconds ago and we haven't notified for this task
+        if (timeSinceEnd >= 0 && timeSinceEnd < 60000) {
+          const breakKey = `${task.todo.id}-${task.endTime.toISOString()}`;
+
+          if (!pomodoroNotifiedBreaks.has(breakKey)) {
+            // Determine break type
+            const taskNumber = index + 1;
+            const isLongBreak = taskNumber > 0 && taskNumber % (pomodoroLongBreakInterval ?? 4) === 0;
+            const breakDuration = isLongBreak ? pomodoroLongBreak ?? 15 : pomodoroShortBreak ?? 5;
+            const breakType = isLongBreak ? "long" : "short";
+
+            // Only notify/sound if the next task exists (not the last task)
+            const hasNextTask = index < activeTasks.length - 1;
+
+            if (hasNextTask) {
+              // Play sound if enabled
+              if (pomodoroSound) {
+                playNotificationSound(isLongBreak ? "long-break" : "short-break");
+              }
+
+              // Show notification if enabled and permission granted
+              if (pomodoroNotifications && notificationPermission === "granted") {
+                notifyPomodoroBreak(breakType, breakDuration, taskNumber, false); // false = don't play sound (already played)
+              }
+
+              // Mark as notified
+              setPomodoroNotifiedBreaks((prev) => new Set(prev).add(breakKey));
+            }
+          }
+        }
+      });
+    };
+
+    // Run immediately and then every 10 seconds
+    checkBreaks();
+    const interval = setInterval(checkBreaks, 10000);
+
+    return () => clearInterval(interval);
+  }, [activeTasks, selectedDate, settings.gantt, pomodoroNotifiedBreaks, notificationPermission]);
 
   // Group tasks by project
   const tasksByProject = useMemo(() => {
@@ -892,6 +1020,8 @@ export function GanttView({
         currentTime = new Date(now);
       }
 
+      let weekTaskIndex = 0; // Track task index for Pomodoro breaks
+
       for (const todo of tasksForDay) {
         // For completed/archived tasks, schedule based on their actual completion time
         if ((todo.isCompleted || todo.isArchived) && todo.completedAt) {
@@ -956,12 +1086,15 @@ export function GanttView({
           color: getProjectColor(todo),
         });
 
-        currentTime = new Date(taskEnd.getTime() + settings.gantt.contextSwitchingTime * 60000);
+        // Add break time (Pomodoro or context switching)
+        const breakDuration = getBreakDuration(weekTaskIndex);
+        currentTime = new Date(taskEnd.getTime() + breakDuration * 60000);
+        weekTaskIndex++;
       }
 
       return { date, scheduled, dayStart, dayEnd, totalMinutes };
     });
-  }, [currentWeekDates, allActiveTodos, taskSchedulingMap, workHours]);
+  }, [currentWeekDates, allActiveTodos, taskSchedulingMap, workHours, settings.gantt]);
 
   const navigateWeek = (direction: number) => {
     const newDate = new Date(selectedDate);
@@ -1024,6 +1157,36 @@ export function GanttView({
                 Group
               </button>
             </div>
+
+            {/* Pomodoro Status */}
+            {settings.gantt.pomodoroEnabled && (
+              <div className="flex items-center gap-2 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-700">
+                <span
+                  className="text-sm text-red-500 dark:text-red-400 flex items-center gap-1"
+                  title="Pomodoro mode active"
+                >
+                  🍅
+                  <span className="hidden sm:inline text-xs">Pomodoro</span>
+                </span>
+                {settings.gantt.pomodoroNotifications && notificationPermission !== "granted" && (
+                  <button
+                    onClick={async () => {
+                      const permission = await requestNotificationPermission();
+                      setNotificationPermission(permission);
+                    }}
+                    className="px-2 py-1 text-xs rounded bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-colors flex items-center gap-1"
+                    title="Enable browser notifications for break reminders"
+                  >
+                    🔔 Enable Alerts
+                  </button>
+                )}
+                {settings.gantt.pomodoroNotifications && notificationPermission === "granted" && (
+                  <span className="text-xs text-green-600 dark:text-green-400" title="Notifications enabled">
+                    🔔
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -1549,17 +1712,18 @@ export function GanttView({
                                   const isSelected = selectedTaskIndex === globalIndex;
                                   const hasConflict = taskConflicts.has(task.todo.id);
 
-                                  // Check if there's a context switch buffer after this task
+                                  // Check if there's a break after this task
                                   const taskIndexInProject = projectTasks.indexOf(task);
                                   const nextTask =
                                     taskIndexInProject < projectTasks.length - 1
                                       ? projectTasks[taskIndexInProject + 1]
                                       : null;
-                                  const hasContextSwitch =
-                                    nextTask && settings.gantt.contextSwitchingTime > 0 && !isCompletedTask;
-                                  const contextSwitchStartPos = endPos;
-                                  const contextSwitchEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
-                                  const contextSwitchWidth = contextSwitchEndPos - contextSwitchStartPos;
+                                  const breakDuration = getBreakDuration(globalIndex);
+                                  const breakType = getBreakType(globalIndex);
+                                  const hasBreak = nextTask && breakDuration > 0 && !isCompletedTask;
+                                  const breakStartPos = endPos;
+                                  const breakEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
+                                  const breakWidth = breakEndPos - breakStartPos;
 
                                   const taskColor = getProjectColor(task.todo);
                                   const textColor = getTextColor(taskColor);
@@ -1583,7 +1747,7 @@ export function GanttView({
                                       className={`relative ${
                                         isSelected ? "ring-2 ring-blue-500 ring-offset-1 rounded-lg" : ""
                                       } ${hasConflict ? "animate-pulse" : ""}`}
-                                      style={{ marginBottom: hasContextSwitch ? "0" : "2px" }}
+                                      style={{ marginBottom: hasBreak ? "0" : "2px" }}
                                     >
                                       {/* Conflict indicator */}
                                       {hasConflict && (
@@ -1670,15 +1834,27 @@ export function GanttView({
                                         )}
                                       </div>
 
-                                      {/* Context switch buffer */}
-                                      {hasContextSwitch && contextSwitchWidth > 0 && (
+                                      {/* Break indicator (Pomodoro or context switch) */}
+                                      {hasBreak && breakWidth > 0 && (
                                         <div
-                                          className="h-2 bg-gradient-to-r from-zinc-200 to-zinc-100 dark:from-zinc-700 dark:to-zinc-800 rounded-b opacity-60"
+                                          className={`h-2 rounded-b opacity-60 ${
+                                            breakType === "long"
+                                              ? "bg-gradient-to-r from-green-300 to-green-200 dark:from-green-700 dark:to-green-800"
+                                              : breakType === "short"
+                                              ? "bg-gradient-to-r from-blue-200 to-blue-100 dark:from-blue-700 dark:to-blue-800"
+                                              : "bg-gradient-to-r from-zinc-200 to-zinc-100 dark:from-zinc-700 dark:to-zinc-800"
+                                          }`}
                                           style={{
-                                            marginLeft: `${contextSwitchStartPos}%`,
-                                            width: `${contextSwitchWidth}%`,
+                                            marginLeft: `${breakStartPos}%`,
+                                            width: `${breakWidth}%`,
                                           }}
-                                          title={`${settings.gantt.contextSwitchingTime}min context switch`}
+                                          title={
+                                            breakType === "long"
+                                              ? `🍅 ${breakDuration}min long break`
+                                              : breakType === "short"
+                                              ? `🍅 ${breakDuration}min short break`
+                                              : `${breakDuration}min context switch`
+                                          }
                                         />
                                       )}
                                     </div>
@@ -1697,13 +1873,14 @@ export function GanttView({
                           const isSelected = selectedTaskIndex === index;
                           const hasConflict = taskConflicts.has(task.todo.id);
 
-                          // Check if there's a context switch buffer after this task
+                          // Check if there's a break after this task
                           const nextTask = index < activeTasks.length - 1 ? activeTasks[index + 1] : null;
-                          const hasContextSwitch =
-                            nextTask && settings.gantt.contextSwitchingTime > 0 && !isCompletedTask;
-                          const contextSwitchStartPos = endPos;
-                          const contextSwitchEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
-                          const contextSwitchWidth = contextSwitchEndPos - contextSwitchStartPos;
+                          const breakDuration = getBreakDuration(index);
+                          const breakType = getBreakType(index);
+                          const hasBreak = nextTask && breakDuration > 0 && !isCompletedTask;
+                          const breakStartPos = endPos;
+                          const breakEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
+                          const breakWidth = breakEndPos - breakStartPos;
 
                           const taskColor = getProjectColor(task.todo);
                           const textColor = getTextColor(taskColor);
@@ -1727,7 +1904,7 @@ export function GanttView({
                               className={`relative ${
                                 isSelected ? "ring-2 ring-blue-500 ring-offset-1 rounded-lg" : ""
                               } ${hasConflict ? "animate-pulse" : ""}`}
-                              style={{ marginBottom: hasContextSwitch ? "0" : "2px" }}
+                              style={{ marginBottom: hasBreak ? "0" : "2px" }}
                             >
                               {/* Conflict indicator */}
                               {hasConflict && (
@@ -1950,28 +2127,55 @@ export function GanttView({
                                 )}
                               </div>
 
-                              {/* Context switching buffer - line with arrows */}
-                              {hasContextSwitch && contextSwitchWidth > 0 && (
+                              {/* Break indicator (Pomodoro or context switch) - line with arrows */}
+                              {hasBreak && breakWidth > 0 && (
                                 <div
                                   className="absolute flex items-center justify-center z-5"
                                   style={{
                                     top: "100%",
-                                    left: `${contextSwitchStartPos}%`,
-                                    width: `${contextSwitchWidth}%`,
+                                    left: `${breakStartPos}%`,
+                                    width: `${breakWidth}%`,
                                     height: "8px",
                                   }}
+                                  title={
+                                    breakType === "long"
+                                      ? `🍅 ${breakDuration}min long break`
+                                      : breakType === "short"
+                                      ? `🍅 ${breakDuration}min short break`
+                                      : `${breakDuration}min context switch`
+                                  }
                                 >
                                   <div className="flex items-center w-full">
                                     <svg
-                                      className="w-2 h-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
+                                      className={`w-2 h-2 flex-shrink-0 ${
+                                        breakType === "long"
+                                          ? "text-green-500 dark:text-green-400"
+                                          : breakType === "short"
+                                          ? "text-blue-500 dark:text-blue-400"
+                                          : "text-zinc-400 dark:text-zinc-500"
+                                      }`}
                                       fill="currentColor"
                                       viewBox="0 0 8 8"
                                     >
                                       <path d="M4 0 L0 4 L4 8 Z" />
                                     </svg>
-                                    <div className="flex-1 h-px bg-blue-500 dark:bg-blue-400" />
+                                    <div
+                                      className={`flex-1 h-px ${
+                                        breakType === "long"
+                                          ? "bg-green-500 dark:bg-green-400"
+                                          : breakType === "short"
+                                          ? "bg-blue-500 dark:bg-blue-400"
+                                          : "bg-zinc-400 dark:bg-zinc-500"
+                                      }`}
+                                    />
                                     <svg
-                                      className="w-2 h-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
+                                      className={`w-2 h-2 flex-shrink-0 ${
+                                        breakType === "long"
+                                          ? "text-green-500 dark:text-green-400"
+                                          : breakType === "short"
+                                          ? "text-blue-500 dark:text-blue-400"
+                                          : "text-zinc-400 dark:text-zinc-500"
+                                      }`}
                                       fill="currentColor"
                                       viewBox="0 0 8 8"
                                     >
