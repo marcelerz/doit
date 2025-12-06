@@ -154,6 +154,16 @@ export function useSettings() {
     }));
   };
 
+  const updateCalendar = (calendar: Partial<Settings["calendar"]>) => {
+    setSettings((prev) => ({
+      ...prev,
+      calendar: {
+        ...prev.calendar,
+        ...calendar,
+      },
+    }));
+  };
+
   const addPriorityComment = (priorityId: string, content: string) => {
     setSettings((prev) => ({
       ...prev,
@@ -215,6 +225,7 @@ export function useSettings() {
     updateDateTimeSettings,
     updateWorkHoursSettings,
     updateGantt,
+    updateCalendar,
     updateAutoAssignSettings,
     addPriorityComment,
     editPriorityComment,

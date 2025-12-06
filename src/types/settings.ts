@@ -220,6 +220,32 @@ export const defaultGantt: Gantt = {
   activePresetId: undefined,
 };
 
+// Calendar Tab Settings
+export type CalendarView = "month" | "week" | "agenda";
+export type CalendarDotColorBy = "state" | "priority" | "project";
+
+export interface Calendar {
+  weekStartDay: 0 | 1; // 0 = Sunday, 1 = Monday
+  defaultView: CalendarView;
+  showWeekNumbers: boolean;
+  taskDotLimit: number; // How many dots to show per day (1-10)
+  dotColorBy: CalendarDotColorBy;
+  showOverdueBadge: boolean; // Highlight overdue tasks
+  showRecurringIndicator: boolean; // Show indicator for recurring tasks
+  showTaskCount: boolean; // Show task count badge on days
+}
+
+export const defaultCalendar: Calendar = {
+  weekStartDay: 0, // Sunday
+  defaultView: "month",
+  showWeekNumbers: false,
+  taskDotLimit: 4,
+  dotColorBy: "state",
+  showOverdueBadge: true,
+  showRecurringIndicator: true,
+  showTaskCount: false,
+};
+
 export const defaultDateTimeSettings: DateTimeSettings = {
   morning: "08:00",
   noon: "12:00",
@@ -230,12 +256,15 @@ export const defaultDateTimeSettings: DateTimeSettings = {
 };
 
 // General Tab Settings
+export type ThemeMode = "light" | "dark" | "system";
+
 export interface GeneralSettings {
   archiveDays: number; // Number of days before completed tasks are archived
   autoDelete: {
     enabled: boolean; // Enable automatic deletion of old completed/archived tasks
     deleteDays: number; // Number of days after completion before tasks are deleted
   };
+  theme: ThemeMode; // Theme preference
 }
 
 export const defaultGeneralSettings: GeneralSettings = {
@@ -244,6 +273,7 @@ export const defaultGeneralSettings: GeneralSettings = {
     enabled: true,
     deleteDays: 90, // Delete after 90 days (3 months) by default
   },
+  theme: "system", // Default to system preference
 };
 
 // Auto-Assign Tab Settings
@@ -284,6 +314,8 @@ export interface Settings {
   workHours: WorkHoursSettings;
   // Gantt Tab
   gantt: Gantt;
+  // Calendar Tab
+  calendar: Calendar;
   // Auto-Assign Tab
   autoAssign: AutoAssignSettings;
 }
@@ -315,5 +347,6 @@ export const defaultSettings: Settings = {
   dateTime: defaultDateTimeSettings,
   workHours: defaultWorkHoursSettings,
   gantt: defaultGantt,
+  calendar: defaultCalendar,
   autoAssign: defaultAutoAssignSettings,
 };

@@ -9,9 +9,17 @@ interface PersonItemProps {
   onArchive?: (id: string) => void;
   onUnarchive?: (id: string) => void;
   onRequestDeleteConfirm: (id: string, name: string) => void;
+  taskCount?: number; // Number of tasks assigned to this person
 }
 
-export function PersonItem({ person, onClick, onArchive, onUnarchive, onRequestDeleteConfirm }: PersonItemProps) {
+export function PersonItem({
+  person,
+  onClick,
+  onArchive,
+  onUnarchive,
+  onRequestDeleteConfirm,
+  taskCount,
+}: PersonItemProps) {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     onRequestDeleteConfirm(person.id, person.name);
@@ -51,9 +59,22 @@ export function PersonItem({ person, onClick, onArchive, onUnarchive, onRequestD
           )}
 
           {/* Metadata */}
-          {person.hasComments && (
+          {(person.hasComments || (taskCount !== undefined && taskCount > 0)) && (
             <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-              <span className="flex items-center gap-1">💬 {person.commentCount}</span>
+              {taskCount !== undefined && taskCount > 0 && (
+                <span className="flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                  {taskCount} task{taskCount !== 1 ? "s" : ""}
+                </span>
+              )}
+              {person.hasComments && <span className="flex items-center gap-1">💬 {person.commentCount}</span>}
             </div>
           )}
         </div>

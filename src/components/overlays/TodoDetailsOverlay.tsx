@@ -29,6 +29,7 @@ interface TodoDetailsOverlayProps {
   onClose: () => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onDuplicate?: (id: string) => string | undefined;
   onEdit: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
   onArchive?: (id: string) => void;
   onUnarchive?: (id: string) => void;
@@ -51,6 +52,7 @@ export function TodoDetailsOverlay({
   onClose,
   onToggle,
   onDelete,
+  onDuplicate,
   onEdit,
   onArchive,
   onUnarchive,
@@ -969,6 +971,14 @@ export function TodoDetailsOverlay({
           {/* Action Buttons */}
           <ActionButtons
             isArchived={todo.state === "archived"}
+            onDuplicate={
+              onDuplicate
+                ? () => {
+                    onDuplicate(todo.id);
+                    onClose();
+                  }
+                : undefined
+            }
             onArchive={
               todo.state === "active" || todo.state === "completed"
                 ? () => {
@@ -991,6 +1001,7 @@ export function TodoDetailsOverlay({
               onDelete(todo.id);
               onClose();
             }}
+            duplicateLabel="Duplicate todo"
             archiveLabel="Archive todo"
             unarchiveLabel="Unarchive todo"
             deleteLabel="Delete todo"

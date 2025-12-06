@@ -1,6 +1,6 @@
 "use client";
 
-import { GeneralSettings } from "@/types/settings";
+import { GeneralSettings, ThemeMode } from "@/types/settings";
 
 interface GeneralTabProps {
   general: GeneralSettings;
@@ -34,6 +34,10 @@ export function GeneralTab({ general, onUpdate }: GeneralTabProps) {
     });
   };
 
+  const handleThemeChange = (theme: ThemeMode) => {
+    onUpdate({ theme });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -45,6 +49,74 @@ export function GeneralTab({ general, onUpdate }: GeneralTabProps) {
       </p>
 
       <div className="space-y-4">
+        {/* Theme Settings */}
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Theme</h3>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                Choose your preferred color scheme. System will automatically match your device settings.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => handleThemeChange("light")}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all ${
+                    general.theme === "light"
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20"
+                      : "border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
+                  </svg>
+                  Light
+                </button>
+                <button
+                  onClick={() => handleThemeChange("dark")}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all ${
+                    general.theme === "dark"
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20"
+                      : "border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                    />
+                  </svg>
+                  Dark
+                </button>
+                <button
+                  onClick={() => handleThemeChange("system")}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all ${
+                    general.theme === "system"
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20"
+                      : "border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                  System
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Archive Settings */}
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
           <div className="flex items-start justify-between gap-4">

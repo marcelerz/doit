@@ -3,8 +3,8 @@
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
-import { MarkerColors } from "@/types/settings";
-import { useState, useMemo } from "react";
+import { MarkerColors, CalendarView as CalendarViewType, Calendar } from "@/types/settings";
+import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import { TodoItem } from "@/components/items/TodoItem";
 import { Settings, Priority } from "@/types/settings";
 
@@ -27,6 +27,16 @@ interface CalendarViewProps {
   onAddComment: (todoId: string, content: string) => void;
   onEditComment: (todoId: string, commentId: number, content: string) => void;
   onDeleteComment: (todoId: string, commentId: number) => void;
+  onQuickAdd?: (dueDate: string) => void;
+}
+
+// Get week number for a date
+function getWeekNumber(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
 export function CalendarView({
@@ -48,23 +58,46 @@ export function CalendarView({
   onAddComment,
   onEditComment,
   onDeleteComment,
+  onQuickAdd,
 }: CalendarViewProps) {
+  const calendarSettings: Calendar = settings.calendar || {
+    weekStartDay: 0,
+    defaultView: "month",
+    showWeekNumbers: false,
+    taskDotLimit: 4,
+    dotColorBy: "state",
+    showOverdueBadge: true,
+    showRecurringIndicator: true,
+    showTaskCount: false,
+  };
+
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return today;
   });
+  const [viewMode, setViewMode] = useState<CalendarViewType>(calendarSettings.defaultView);
   const [sortField, setSortField] = useState<"priority" | "duration" | "created">("created");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(true);
+  const [focusedDateIndex, setFocusedDateIndex] = useState<number | null>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  // Get day headers based on week start
+  const dayHeaders = useMemo(() => {
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    if (calendarSettings.weekStartDay === 1) {
+      return [...days.slice(1), days[0]];
+    }
+    return days;
+  }, [calendarSettings.weekStartDay]);
 
   // Get todos by date
   const todosByDate = useMemo(() => {
     const map = new Map<string, TodoModel[]>();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    // Use local date for today key
     const year = today.getFullYear();
     const month = (today.getMonth() + 1).toString().padStart(2, "0");
     const day = today.getDate().toString().padStart(2, "0");
@@ -86,9 +119,7 @@ export function CalendarView({
           let dueDate: Date;
           const dueDateStr = todo.metadata.dueDate!;
 
-          // Try to parse various date formats
           if (dueDateStr.includes("T") || dueDateStr.includes("Z")) {
-            // ISO format with time - parse and extract date part
             const datePartMatch = dueDateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
             if (datePartMatch) {
               const [, year, month, day] = datePartMatch;
@@ -97,19 +128,14 @@ export function CalendarView({
               dueDate = new Date(dueDateStr);
             }
           } else if (dueDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            // YYYY-MM-DD format - parse as local date
             const [year, month, day] = dueDateStr.split("-").map(Number);
             dueDate = new Date(year, month - 1, day);
           } else {
-            // Try standard Date parsing
             dueDate = new Date(dueDateStr);
           }
 
-          if (isNaN(dueDate.getTime())) {
-            return; // Invalid date
-          }
+          if (isNaN(dueDate.getTime())) return;
 
-          // Create date key using local date components
           const dateYear = dueDate.getFullYear();
           const dateMonth = (dueDate.getMonth() + 1).toString().padStart(2, "0");
           const dateDay = dueDate.getDate().toString().padStart(2, "0");
@@ -138,15 +164,21 @@ export function CalendarView({
     const month = currentMonth.getMonth();
 
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+    // Adjust for week start day
+    let startDayOffset = firstDay.getDay();
+    if (calendarSettings.weekStartDay === 1) {
+      startDayOffset = startDayOffset === 0 ? 6 : startDayOffset - 1;
+    }
+    startDate.setDate(startDate.getDate() - startDayOffset);
 
     const days = [];
     const current = new Date(startDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < 42; i++) {
-      // Use local date components for date key
       const keyYear = current.getFullYear();
       const keyMonth = (current.getMonth() + 1).toString().padStart(2, "0");
       const keyDay = current.getDate().toString().padStart(2, "0");
@@ -154,19 +186,82 @@ export function CalendarView({
       const todosForDay = todosByDate.get(dateKey) || [];
       const isCurrentMonth = current.getMonth() === month;
 
+      // Check for overdue tasks
+      const currentDate = new Date(current);
+      currentDate.setHours(0, 0, 0, 0);
+      const overdueTasks = todosForDay.filter((todo) => todo.state === "active" && currentDate < today);
+
+      // Check for recurring tasks
+      const recurringTasks = todosForDay.filter((todo) => todo.metadata.recurring);
+
       days.push({
         date: new Date(current),
         dateKey,
         todos: todosForDay,
         isCurrentMonth,
-        isToday: current.toDateString() === new Date().toDateString(),
+        isToday: current.toDateString() === today.toDateString(),
+        weekNumber: getWeekNumber(current),
+        overdueTasks,
+        recurringTasks,
       });
 
       current.setDate(current.getDate() + 1);
     }
 
     return days;
-  }, [currentMonth, todosByDate]);
+  }, [currentMonth, todosByDate, calendarSettings.weekStartDay]);
+
+  // Get week days for week view
+  const weekDays = useMemo(() => {
+    if (!selectedDate) return [];
+
+    const startOfWeek = new Date(selectedDate);
+    const dayOfWeek = startOfWeek.getDay();
+    const diff = calendarSettings.weekStartDay === 1 ? (dayOfWeek === 0 ? -6 : 1 - dayOfWeek) : -dayOfWeek;
+    startOfWeek.setDate(startOfWeek.getDate() + diff);
+
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(date.getDate() + i);
+      const keyYear = date.getFullYear();
+      const keyMonth = (date.getMonth() + 1).toString().padStart(2, "0");
+      const keyDay = date.getDate().toString().padStart(2, "0");
+      const dateKey = `${keyYear}-${keyMonth}-${keyDay}`;
+      days.push({
+        date,
+        dateKey,
+        todos: todosByDate.get(dateKey) || [],
+        isToday: date.toDateString() === new Date().toDateString(),
+      });
+    }
+    return days;
+  }, [selectedDate, todosByDate, calendarSettings.weekStartDay]);
+
+  // Agenda view - upcoming tasks
+  const agendaTasks = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get next 14 days
+    const upcoming: { date: Date; dateKey: string; todos: TodoModel[] }[] = [];
+
+    for (let i = 0; i < 14; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() + i);
+      const keyYear = date.getFullYear();
+      const keyMonth = (date.getMonth() + 1).toString().padStart(2, "0");
+      const keyDay = date.getDate().toString().padStart(2, "0");
+      const dateKey = `${keyYear}-${keyMonth}-${keyDay}`;
+      const dayTodos = todosByDate.get(dateKey) || [];
+
+      if (dayTodos.length > 0 || i === 0) {
+        upcoming.push({ date, dateKey, todos: dayTodos });
+      }
+    }
+
+    return upcoming;
+  }, [todosByDate]);
 
   const navigateMonth = (delta: number) => {
     setCurrentMonth((prev) => {
@@ -176,21 +271,82 @@ export function CalendarView({
     });
   };
 
+  const goToToday = () => {
+    const today = new Date();
+    setCurrentMonth(today);
+    setSelectedDate(today);
+  };
+
   const handleDateClick = (date: Date) => {
     setSelectedDate(date.toDateString() === selectedDate?.toDateString() ? null : date);
   };
 
+  const handleQuickAdd = (date: Date) => {
+    if (onQuickAdd) {
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, "0");
+      const day = date.getDate().toString().padStart(2, "0");
+      onQuickAdd(`${year}-${month}-${day}`);
+    }
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!calendarRef.current?.contains(document.activeElement)) return;
+
+      const daysInView = viewMode === "week" ? 7 : 42;
+
+      switch (e.key) {
+        case "ArrowLeft":
+          e.preventDefault();
+          setFocusedDateIndex((prev) => (prev === null ? 0 : Math.max(0, prev - 1)));
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          setFocusedDateIndex((prev) => (prev === null ? 0 : Math.min(daysInView - 1, prev + 1)));
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setFocusedDateIndex((prev) => (prev === null ? 0 : Math.max(0, prev - 7)));
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          setFocusedDateIndex((prev) => (prev === null ? 0 : Math.min(daysInView - 1, prev + 7)));
+          break;
+        case "Enter":
+        case " ":
+          e.preventDefault();
+          if (focusedDateIndex !== null) {
+            const days = viewMode === "week" ? weekDays : calendarDays;
+            if (days[focusedDateIndex]) {
+              handleDateClick(days[focusedDateIndex].date);
+            }
+          }
+          break;
+        case "t":
+        case "T":
+          if (!e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            goToToday();
+          }
+          break;
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [focusedDateIndex, viewMode, calendarDays, weekDays]);
+
   // Get todos for selected date
   const selectedDateTodos = useMemo(() => {
     if (!selectedDate) return [];
-    // Use local date components for date key
     const year = selectedDate.getFullYear();
     const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
     const day = selectedDate.getDate().toString().padStart(2, "0");
     const dateKey = `${year}-${month}-${day}`;
     const dayTodos = todosByDate.get(dateKey) || [];
 
-    // Sort todos
     return [...dayTodos].sort((a, b) => {
       let comparison = 0;
 
@@ -215,23 +371,168 @@ export function CalendarView({
     return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   };
 
-  const getStateColor = (state: TodoModel["state"]) => {
-    switch (state) {
-      case "completed":
-        return "bg-green-500";
-      case "archived":
+  // Get dot color based on settings
+  const getDotColor = (todo: TodoModel) => {
+    switch (calendarSettings.dotColorBy) {
+      case "priority": {
+        const priority = todo.metadata.priority?.toLowerCase();
+        if (priority === "urgent" || priority === "1") return "bg-red-500";
+        if (priority === "high" || priority === "2") return "bg-orange-500";
+        if (priority === "medium" || priority === "3") return "bg-yellow-500";
+        if (priority === "low" || priority === "4") return "bg-green-500";
         return "bg-zinc-400";
-      case "active":
+      }
+      case "project": {
+        const projectName = todo.metadata.projects?.[0];
+        if (projectName) {
+          const project = availableProjects.find(
+            (p) => p.name === projectName || p.alternatives?.includes(projectName),
+          );
+          if (project?.color) {
+            return ""; // Will use style instead
+          }
+        }
+        return "bg-purple-500";
+      }
+      case "state":
       default:
-        return "bg-blue-500";
+        switch (todo.state) {
+          case "completed":
+            return "bg-green-500";
+          case "archived":
+            return "bg-zinc-400";
+          case "active":
+          default:
+            return "bg-blue-500";
+        }
     }
   };
 
+  const getProjectColor = (todo: TodoModel): string | undefined => {
+    if (calendarSettings.dotColorBy !== "project") return undefined;
+    const projectName = todo.metadata.projects?.[0];
+    if (projectName) {
+      const project = availableProjects.find((p) => p.name === projectName || p.alternatives?.includes(projectName));
+      return project?.color;
+    }
+    return undefined;
+  };
+
+  // Render a day cell
+  const renderDayCell = (day: (typeof calendarDays)[0], index: number) => {
+    const isFocused = focusedDateIndex === index;
+
+    return (
+      <button
+        key={day.dateKey}
+        onClick={() => handleDateClick(day.date)}
+        onDoubleClick={() => day.todos.length === 0 && handleQuickAdd(day.date)}
+        tabIndex={isFocused ? 0 : -1}
+        aria-label={`${day.date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}, ${
+          day.todos.length
+        } tasks`}
+        aria-selected={selectedDate?.toDateString() === day.date.toDateString()}
+        className={`h-12 p-0.5 rounded-lg border transition-colors relative ${
+          day.isCurrentMonth
+            ? "border-zinc-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-600"
+            : "border-transparent bg-zinc-50 dark:bg-zinc-800/50"
+        } ${day.isToday ? "ring-2 ring-blue-500" : ""} ${
+          selectedDate?.toDateString() === day.date.toDateString()
+            ? "bg-blue-100 dark:bg-blue-900/30 border-blue-500"
+            : day.todos.length > 0
+            ? "bg-white dark:bg-zinc-900"
+            : "bg-zinc-50 dark:bg-zinc-800/30"
+        } ${isFocused ? "ring-2 ring-offset-1 ring-blue-400" : ""} cursor-pointer group`}
+      >
+        {/* Day number in top right */}
+        <div className="absolute top-0.5 right-1 flex items-center gap-1">
+          {/* Task count badge */}
+          {calendarSettings.showTaskCount && day.todos.length > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[1rem] h-4 px-1 text-[10px] font-bold text-white bg-blue-600 rounded-full">
+              {day.todos.length}
+            </span>
+          )}
+          <span
+            className={`text-xs font-medium ${
+              day.isCurrentMonth ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"
+            }`}
+          >
+            {day.date.getDate()}
+          </span>
+        </div>
+
+        {/* Overdue badge */}
+        {calendarSettings.showOverdueBadge && day.overdueTasks.length > 0 && (
+          <div className="absolute top-0.5 left-0.5">
+            <span
+              className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-red-600 dark:text-red-400"
+              title={`${day.overdueTasks.length} overdue`}
+            >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </span>
+          </div>
+        )}
+
+        {/* Recurring indicator */}
+        {calendarSettings.showRecurringIndicator && day.recurringTasks.length > 0 && !day.overdueTasks.length && (
+          <div className="absolute top-0.5 left-0.5">
+            <span className="text-green-600 dark:text-green-400" title={`${day.recurringTasks.length} recurring`}>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </span>
+          </div>
+        )}
+
+        {/* Todo dots at bottom center */}
+        {day.todos.length > 0 && (
+          <div className="absolute bottom-0.5 left-0 right-0 flex justify-center gap-0.5">
+            {day.todos.slice(0, calendarSettings.taskDotLimit).map((todo, j) => {
+              const projectColor = getProjectColor(todo);
+              return (
+                <div
+                  key={todo.id}
+                  className={`w-1.5 h-1.5 rounded-full ${getDotColor(todo)}`}
+                  style={projectColor ? { backgroundColor: projectColor } : undefined}
+                  title={todo.plainText}
+                />
+              );
+            })}
+            {day.todos.length > calendarSettings.taskDotLimit && (
+              <div
+                className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600"
+                title={`+${day.todos.length - calendarSettings.taskDotLimit} more`}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Quick add hint on hover for empty days */}
+        {day.todos.length === 0 && onQuickAdd && (
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="text-zinc-400 dark:text-zinc-500 text-lg">+</span>
+          </div>
+        )}
+      </button>
+    );
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 print:space-y-2" ref={calendarRef} role="application" aria-label="Calendar">
       {/* Toggle for todos without dates */}
       {todosWithoutDates > 0 && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 print:hidden">
           <div className="flex items-center gap-3">
             <svg
               className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0"
@@ -256,19 +557,17 @@ export function CalendarView({
             </div>
             <button
               onClick={() => setShowTasksWithoutDates(!showTasksWithoutDates)}
-              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
-              style={{
-                backgroundColor: showTasksWithoutDates ? "rgb(37, 99, 235)" : "rgb(209, 213, 219)",
-              }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0 ${
+                showTasksWithoutDates ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-600"
+              }`}
               role="switch"
               aria-checked={showTasksWithoutDates}
               aria-label="Show tasks without dates for today"
             >
               <span
-                className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                style={{
-                  transform: showTasksWithoutDates ? "translateX(1.5rem)" : "translateX(0.25rem)",
-                }}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  showTasksWithoutDates ? "translate-x-6" : "translate-x-1"
+                }`}
               />
             </button>
             <span className="text-xs font-medium text-blue-900 dark:text-blue-100 whitespace-nowrap">
@@ -279,140 +578,311 @@ export function CalendarView({
       )}
 
       {/* Calendar */}
-      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
-        {/* Month navigation */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => navigateMonth(-1)}
-            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
-            <svg
-              className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{formatMonthYear(currentMonth)}</h3>
-          <button
-            onClick={() => navigateMonth(1)}
-            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
-            <svg
-              className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Day headers */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-            <div key={day} className="text-center text-sm font-medium text-zinc-600 dark:text-zinc-400 py-2">
-              {day}
-            </div>
-          ))}
-        </div>
-
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {calendarDays.map((day, i) => (
+      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 print:p-2 print:border-0">
+        {/* Header with navigation and controls */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 print:mb-2">
+          {/* Month navigation */}
+          <div className="flex items-center gap-2">
             <button
-              key={i}
-              onClick={() => handleDateClick(day.date)}
-              className={`h-10 p-0.5 rounded-lg border transition-colors relative ${
-                day.isCurrentMonth
-                  ? "border-zinc-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-600"
-                  : "border-transparent bg-zinc-50 dark:bg-zinc-800/50"
-              } ${day.isToday ? "ring-2 ring-blue-500" : ""} ${
-                selectedDate?.toDateString() === day.date.toDateString()
-                  ? "bg-blue-100 dark:bg-blue-900/30 border-blue-500"
-                  : day.todos.length > 0
-                  ? "bg-white dark:bg-zinc-900"
-                  : "bg-zinc-50 dark:bg-zinc-800/30"
-              } cursor-pointer`}
+              onClick={() => navigateMonth(-1)}
+              className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors print:hidden"
+              aria-label="Previous month"
             >
-              {/* Day number in top right */}
-              <div className="absolute top-0.5 right-0.5">
-                <span
-                  className={`text-xs font-medium ${
-                    day.isCurrentMonth ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"
+              <svg
+                className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 min-w-[180px] text-center">
+              {formatMonthYear(currentMonth)}
+            </h3>
+            <button
+              onClick={() => navigateMonth(1)}
+              className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors print:hidden"
+              aria-label="Next month"
+            >
+              <svg
+                className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center gap-2 print:hidden">
+            {/* Today button */}
+            <button
+              onClick={goToToday}
+              className="px-3 py-1.5 text-sm font-medium rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-colors"
+              title="Go to today (T)"
+            >
+              Today
+            </button>
+
+            {/* View mode toggle */}
+            <div
+              className="flex rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden"
+              role="group"
+              aria-label="View mode"
+            >
+              {(["month", "week", "agenda"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  aria-pressed={viewMode === mode}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                    viewMode === mode
+                      ? "bg-blue-600 text-white"
+                      : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700"
                   }`}
                 >
-                  {day.date.getDate()}
-                </span>
-              </div>
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </button>
+              ))}
+            </div>
 
-              {/* Todo dots at bottom center */}
-              {day.todos.length > 0 && (
-                <div className="absolute bottom-0.5 left-0 right-0 flex justify-center gap-0.5">
-                  {day.todos.slice(0, 4).map((todo, j) => (
+            {/* Print button */}
+            <button
+              onClick={() => window.print()}
+              className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors"
+              title="Print calendar"
+              aria-label="Print calendar"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Keyboard hint */}
+        <div className="text-xs text-zinc-400 dark:text-zinc-500 mb-2 print:hidden">
+          <span className="hidden md:inline">Use arrow keys to navigate, Enter to select, T for today</span>
+        </div>
+
+        {/* Month View */}
+        {viewMode === "month" && (
+          <>
+            {/* Day headers */}
+            <div className={`grid gap-1 mb-2 ${calendarSettings.showWeekNumbers ? "grid-cols-8" : "grid-cols-7"}`}>
+              {calendarSettings.showWeekNumbers && (
+                <div className="text-center text-xs font-medium text-zinc-400 dark:text-zinc-500 py-2">Wk</div>
+              )}
+              {dayHeaders.map((day) => (
+                <div key={day} className="text-center text-sm font-medium text-zinc-600 dark:text-zinc-400 py-2">
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar grid */}
+            <div
+              className={`grid gap-1 ${calendarSettings.showWeekNumbers ? "grid-cols-8" : "grid-cols-7"}`}
+              role="grid"
+            >
+              {calendarDays.map((day, i) => (
+                <Fragment key={day.dateKey}>
+                  {calendarSettings.showWeekNumbers && i % 7 === 0 && (
+                    <div className="flex items-center justify-center text-xs text-zinc-400 dark:text-zinc-500">
+                      {day.weekNumber}
+                    </div>
+                  )}
+                  {renderDayCell(day, i)}
+                </Fragment>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Week View */}
+        {viewMode === "week" && (
+          <div className="space-y-4">
+            {/* Week header */}
+            <div className="grid grid-cols-7 gap-2">
+              {weekDays.map((day, i) => (
+                <button
+                  key={day.dateKey}
+                  onClick={() => handleDateClick(day.date)}
+                  className={`p-3 rounded-lg border transition-colors ${day.isToday ? "ring-2 ring-blue-500" : ""} ${
+                    selectedDate?.toDateString() === day.date.toDateString()
+                      ? "bg-blue-100 dark:bg-blue-900/30 border-blue-500"
+                      : "border-zinc-200 dark:border-zinc-700 hover:border-blue-400"
+                  }`}
+                >
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {day.date.toLocaleDateString("en-US", { weekday: "short" })}
+                  </div>
+                  <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{day.date.getDate()}</div>
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">{day.todos.length} tasks</div>
+                </button>
+              ))}
+            </div>
+
+            {/* Week tasks list */}
+            <div className="grid grid-cols-7 gap-2">
+              {weekDays.map((day) => (
+                <div key={day.dateKey} className="space-y-1 min-h-[100px]">
+                  {day.todos.slice(0, 5).map((todo) => (
                     <div
-                      key={j}
-                      className={`w-1.5 h-1.5 rounded-full ${getStateColor(todo.state)}`}
+                      key={todo.id}
+                      className={`p-1.5 rounded text-xs truncate cursor-pointer hover:opacity-80 ${
+                        todo.state === "completed" ? "line-through opacity-60" : ""
+                      }`}
+                      style={{
+                        backgroundColor: getProjectColor(todo) || (todo.state === "active" ? "#dbeafe" : "#f3f4f6"),
+                        color: "#1f2937",
+                      }}
+                      onClick={() => {
+                        setSelectedDate(day.date);
+                      }}
                       title={todo.plainText}
-                    />
+                    >
+                      {todo.plainText}
+                    </div>
                   ))}
-                  {day.todos.length > 4 && (
-                    <div
-                      className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600"
-                      title={`+${day.todos.length - 4} more`}
-                    />
+                  {day.todos.length > 5 && (
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400 text-center">
+                      +{day.todos.length - 5} more
+                    </div>
                   )}
                 </div>
-              )}
-            </button>
-          ))}
-        </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Agenda View */}
+        {viewMode === "agenda" && (
+          <div className="space-y-4">
+            {agendaTasks.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-3">📋</div>
+                <p className="text-lg text-zinc-600 dark:text-zinc-400">No upcoming tasks</p>
+              </div>
+            ) : (
+              agendaTasks.map((day) => (
+                <div key={day.dateKey} className="border-b border-zinc-100 dark:border-zinc-800 pb-4 last:border-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div
+                      className={`text-sm font-medium ${
+                        day.date.toDateString() === new Date().toDateString()
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-zinc-600 dark:text-zinc-400"
+                      }`}
+                    >
+                      {day.date.toDateString() === new Date().toDateString()
+                        ? "Today"
+                        : day.date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                    </div>
+                    <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                      {day.todos.length} task{day.todos.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  {day.todos.length > 0 ? (
+                    <div className="space-y-2 ml-4">
+                      {day.todos.map((todo) => (
+                        <TodoItem
+                          key={todo.id}
+                          todo={todo}
+                          onToggle={onToggle}
+                          onDelete={onDelete}
+                          onArchive={onArchive}
+                          onUnarchive={onUnarchive}
+                          onEdit={onEdit}
+                          markerColors={markerColors}
+                          settings={settings}
+                          linkPatterns={linkPatterns}
+                          availablePeople={availablePeople}
+                          availableProjects={availableProjects}
+                          availablePriorities={availablePriorities}
+                          onAddPerson={onAddPerson}
+                          onAddProject={onAddProject}
+                          onAddPriority={onAddPriority}
+                          onMarkerClick={() => {}}
+                          isExpanded={false}
+                          onToggleExpand={() => {}}
+                          onAddComment={onAddComment}
+                          onEditComment={onEditComment}
+                          onDeleteComment={onDeleteComment}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-zinc-400 dark:text-zinc-500 ml-4">No tasks</p>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Selected date todos */}
-      {selectedDate && (
-        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
+      {/* Selected date todos (only in month view) */}
+      {viewMode === "month" && selectedDate && (
+        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 print:hidden">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               Tasks for {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             </h3>
 
-            {/* Sort controls - only show when there are tasks */}
-            {selectedDateTodos.length > 0 && (
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Sort:</label>
-                <select
-                  value={sortField}
-                  onChange={(e) => setSortField(e.target.value as any)}
-                  className="px-3 py-1 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="created">Created</option>
-                  <option value="priority">Priority</option>
-                  <option value="duration">Duration</option>
-                </select>
+            <div className="flex items-center gap-2">
+              {/* Quick add button */}
+              {onQuickAdd && (
                 <button
-                  onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
-                  className="p-1 rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                  title={sortDirection === "asc" ? "Ascending" : "Descending"}
+                  onClick={() => handleQuickAdd(selectedDate)}
+                  className="px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
                 >
-                  <svg
-                    className="w-4 h-4 text-zinc-700 dark:text-zinc-300"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    {sortDirection === "asc" ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    )}
-                  </svg>
+                  + Add Task
                 </button>
-              </div>
-            )}
+              )}
+
+              {/* Sort controls - only show when there are tasks */}
+              {selectedDateTodos.length > 0 && (
+                <>
+                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Sort:</label>
+                  <select
+                    value={sortField}
+                    onChange={(e) => setSortField(e.target.value as "priority" | "duration" | "created")}
+                    className="px-3 py-1 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="created">Created</option>
+                    <option value="priority">Priority</option>
+                    <option value="duration">Duration</option>
+                  </select>
+                  <button
+                    onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
+                    className="p-1 rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                    title={sortDirection === "asc" ? "Ascending" : "Descending"}
+                  >
+                    <svg
+                      className="w-4 h-4 text-zinc-700 dark:text-zinc-300"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      {sortDirection === "asc" ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      )}
+                    </svg>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           {selectedDateTodos.length > 0 ? (
@@ -448,6 +918,11 @@ export function CalendarView({
             <div className="text-center py-8">
               <div className="text-4xl mb-3">📅</div>
               <p className="text-lg text-zinc-600 dark:text-zinc-400">No tasks planned for this day</p>
+              {onQuickAdd && (
+                <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-2">
+                  Double-click on a day or click &quot;Add Task&quot; to create one
+                </p>
+              )}
             </div>
           )}
         </div>

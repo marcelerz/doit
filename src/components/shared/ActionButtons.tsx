@@ -4,9 +4,11 @@ interface ActionButtonsProps {
   isArchived: boolean;
   onArchive?: () => void;
   onUnarchive?: () => void;
+  onDuplicate?: () => void;
   onDelete: () => void;
   archiveLabel?: string;
   unarchiveLabel?: string;
+  duplicateLabel?: string;
   deleteLabel?: string;
 }
 
@@ -14,13 +16,34 @@ export function ActionButtons({
   isArchived,
   onArchive,
   onUnarchive,
+  onDuplicate,
   onDelete,
   archiveLabel = "Archive",
   unarchiveLabel = "Unarchive",
+  duplicateLabel = "Duplicate",
   deleteLabel = "Delete",
 }: ActionButtonsProps) {
   return (
     <div className="flex items-center justify-end gap-2">
+      {/* Duplicate button */}
+      {onDuplicate && (
+        <button
+          onClick={onDuplicate}
+          className="p-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-md transition-colors"
+          aria-label={duplicateLabel}
+          title={duplicateLabel}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+            />
+          </svg>
+        </button>
+      )}
+
       {/* Archive/Unarchive button */}
       {isArchived && onUnarchive ? (
         <button

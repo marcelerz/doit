@@ -1,0 +1,93 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { ThemeMode } from "@/types/settings";
+import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+
+    // Function to apply theme
+    const applyTheme = (theme: ThemeMode) => {
+      const root = document.documentElement;
+
+      if (theme === "system") {
+        // Listen to system preference
+        const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        if (systemDark) {
+          root.classList.add("dark");
+        } else {
+          root.classList.remove("dark");
+        }
+      } else if (theme === "dark") {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
+    };
+
+    // Load initial theme from settings
+    const loadTheme = () => {
+      try {
+        const settingsStr = getStorageAdapter().getItem(STORAGE_KEYS.SETTINGS);
+        if (settingsStr && typeof settingsStr === "string") {
+          const settings = JSON.parse(settingsStr);
+          const theme = settings.general?.theme || "system";
+          applyTheme(theme);
+          return theme;
+        }
+      } catch (e) {
+        console.error("Failed to load theme:", e);
+      }
+      applyTheme("system");
+      return "system";
+    };
+
+    const currentTheme = loadTheme();
+
+    // Listen for system preference changes when using system theme
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleSystemChange = () => {
+      // Re-check settings to get current theme
+      try {
+        const settingsStr = getStorageAdapter().getItem(STORAGE_KEYS.SETTINGS);
+        if (settingsStr && typeof settingsStr === "string") {
+          const settings = JSON.parse(settingsStr);
+          const theme = settings.general?.theme || "system";
+          if (theme === "system") {
+            applyTheme("system");
+          }
+        }
+      } catch (e) {
+        console.error("Failed to handle system change:", e);
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleSystemChange);
+
+    // Listen for storage changes (when settings are updated)
+    const handleStorageChange = () => {
+      loadTheme();
+    };
+
+    // Poll for settings changes (since we're using IndexedDB which doesn't trigger storage events)
+    const interval = setInterval(() => {
+      loadTheme();
+    }, 1000);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleSystemChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return <>{children}</>;
+  }
+
+  return <>{children}</>;
+}

@@ -12,6 +12,7 @@ import { GeneralTab } from "@/components/settings/GeneralTab";
 import { DateTimeTab } from "@/components/settings/DateTimeTab";
 import { WorkHoursTab } from "@/components/settings/WorkHoursTab";
 import { GanttTab } from "@/components/settings/GanttTab";
+import { CalendarTab } from "@/components/settings/CalendarTab";
 import { AutoAssignTab } from "@/components/settings/AutoAssignTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 import { StorageTab } from "@/components/settings/StorageTab";
@@ -21,6 +22,7 @@ const tabs = {
   "Date/Time": "datetime",
   "Work Hours": "workhours",
   Gantt: "gantt",
+  Calendar: "calendar",
   "Auto-Assign": "autoassign",
   Priorities: "priorities",
   Links: "links",
@@ -53,6 +55,7 @@ export default function SettingsPage() {
     updateDateTimeSettings,
     updateWorkHoursSettings,
     updateGantt,
+    updateCalendar,
     updateAutoAssignSettings,
   } = useSettings();
 
@@ -218,6 +221,8 @@ export default function SettingsPage() {
                   return <WorkHoursTab workHours={settings.workHours} onUpdate={updateWorkHoursSettings} />;
                 case "gantt":
                   return <GanttTab gantt={settings.gantt} onUpdate={updateGantt} />;
+                case "calendar":
+                  return <CalendarTab calendar={settings.calendar} onUpdate={updateCalendar} />;
                 case "autoassign":
                   return (
                     <AutoAssignTab

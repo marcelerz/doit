@@ -174,6 +174,30 @@ export function useTodos() {
     setRawTodos((prev) => [newTodo, ...prev]);
   };
 
+  const duplicateTodo = (id: string) => {
+    const todoToDuplicate = rawTodos.find((t) => t.id === id);
+    if (!todoToDuplicate) return;
+
+    const now = Date.now();
+    const duplicatedTodo: Todo = {
+      id: now.toString(),
+      text: todoToDuplicate.text,
+      plainText: todoToDuplicate.plainText,
+      state: "active",
+      createdAt: now,
+      updatedAt: now,
+      metadata: {
+        ...todoToDuplicate.metadata,
+        // Clear dependencies for the duplicate
+        dependencies: [],
+      },
+      comments: [], // Don't copy comments
+      activity: [createActivity("created", "Task duplicated from another task")],
+    };
+    setRawTodos((prev) => [duplicatedTodo, ...prev]);
+    return duplicatedTodo.id;
+  };
+
   const toggleTodo = (id: string) => {
     const todoToToggle = rawTodos.find((t) => t.id === id);
     if (!todoToToggle) return;
@@ -484,6 +508,7 @@ export function useTodos() {
   return {
     todos,
     addTodo,
+    duplicateTodo,
     toggleTodo,
     deleteTodo,
     archiveTodo,

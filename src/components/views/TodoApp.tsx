@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useTodos } from "@/hooks/useTodos";
 import { useSettings } from "@/hooks/useSettings";
@@ -10,6 +10,8 @@ import { TodoItem } from "@/components/items/TodoItem";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { GanttView } from "./GanttView";
 import { CalendarView } from "./CalendarView";
+import { StatisticsView } from "./StatisticsView";
+import { FocusView } from "./FocusView";
 import { MarkerReference } from "@/components/shared/MarkerReference";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { PersonDetailsOverlay } from "@/components/overlays/PersonDetailsOverlay";
@@ -25,6 +27,7 @@ import { parseTokensToMetadata } from "@/utils/tokenParser";
 import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
 import { getTextColor } from "@/utils/colors";
 import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
+import { exportTodos, ExportFormat } from "@/utils/export";
 
 interface TodoFilters {
   searchText: string;
@@ -40,12 +43,13 @@ interface TodoFilters {
   dependencies: Set<string>;
 }
 
-type ViewTab = "list" | "gantt" | "calendar" | "people" | "projects";
+type ViewTab = "list" | "gantt" | "calendar" | "people" | "projects" | "stats";
 
 export function TodoApp() {
   const {
     todos,
     addTodo,
+    duplicateTodo,
     toggleTodo,
     deleteTodo,
     archiveTodo,
@@ -91,6 +95,9 @@ export function TodoApp() {
   const [currentFullText, setCurrentFullText] = useState("");
   const [currentPlainText, setCurrentPlainText] = useState("");
   const smartInputRef = useRef<SmartEditableInputHandle>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const peopleSearchInputRef = useRef<HTMLInputElement>(null);
+  const projectsSearchInputRef = useRef<HTMLInputElement>(null);
   const [activeView, setActiveView] = useState<ViewTab>("list");
 
   // Derived state: show filters section only in list view
@@ -151,6 +158,41 @@ export function TodoApp() {
     return sortByUsage(projects, usageStats.projects);
   }, [projects, usageStats.projects]);
 
+  // Calculate task counts for people and projects (only active todos)
+  const taskCountsByPerson = useMemo(() => {
+    const counts = new Map<string, number>();
+    todos
+      .filter((t) => t.isActive)
+      .forEach((todo) => {
+        // Count assigned people
+        todo.metadata.assignedPeople.forEach((personName) => {
+          // Find matching person by name or alternatives
+          const person = people.find((p) => p.matchesAnyName([personName]));
+          if (person) {
+            counts.set(person.id, (counts.get(person.id) || 0) + 1);
+          }
+        });
+      });
+    return counts;
+  }, [todos, people]);
+
+  const taskCountsByProject = useMemo(() => {
+    const counts = new Map<string, number>();
+    todos
+      .filter((t) => t.isActive)
+      .forEach((todo) => {
+        // Count projects
+        todo.metadata.projects.forEach((projectName) => {
+          // Find matching project by name or alternatives
+          const project = projects.find((p) => p.matchesAnyName([projectName]));
+          if (project) {
+            counts.set(project.id, (counts.get(project.id) || 0) + 1);
+          }
+        });
+      });
+    return counts;
+  }, [todos, projects]);
+
   // Wrapper functions to convert name string to object format
   const handleAddPerson = (name: string) => {
     addPerson({
@@ -181,6 +223,258 @@ export function TodoApp() {
   const [activeExpanded, setActiveExpanded] = useState(true);
   const [completedExpanded, setCompletedExpanded] = useState(true);
   const [archivedExpanded, setArchivedExpanded] = useState(false);
+
+  // Bulk selection state
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedTodoIds, setSelectedTodoIds] = useState<Set<string>>(new Set());
+
+  // Export dropdown state
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  // Focus mode state
+  const [isFocusMode, setIsFocusMode] = useState(false);
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setIsExportMenuOpen(false);
+      }
+    };
+
+    if (isExportMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isExportMenuOpen]);
+
+  // Search state for People/Projects views
+  const [peopleSearch, setPeopleSearch] = useState("");
+  const [projectsSearch, setProjectsSearch] = useState("");
+  const [showArchivedPeople, setShowArchivedPeople] = useState(false);
+  const [showArchivedProjects, setShowArchivedProjects] = useState(false);
+
+  // Filtered people and projects based on search and archive filter
+  const filteredPeople = useMemo(() => {
+    return allPeople.filter((person) => {
+      // Filter by archived status
+      if (!showArchivedPeople && person.isArchived) return false;
+      // Filter by search term
+      if (peopleSearch.trim()) {
+        return person.matchesSearch(peopleSearch);
+      }
+      return true;
+    });
+  }, [allPeople, peopleSearch, showArchivedPeople]);
+
+  const filteredProjects = useMemo(() => {
+    return allProjects.filter((project) => {
+      // Filter by archived status
+      if (!showArchivedProjects && project.isArchived) return false;
+      // Filter by search term
+      if (projectsSearch.trim()) {
+        return project.matchesSearch(projectsSearch);
+      }
+      return true;
+    });
+  }, [allProjects, projectsSearch, showArchivedProjects]);
+
+  // Quick filter state
+  type QuickFilter = "all" | "today" | "overdue" | "thisWeek" | "noDueDate";
+  const [activeQuickFilter, setActiveQuickFilter] = useState<QuickFilter>("all");
+
+  // Helper to check if date is today
+  const isToday = useCallback((dateStr: string | undefined) => {
+    if (!dateStr) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const date = new Date(dateStr);
+    date.setHours(0, 0, 0, 0);
+    return date.getTime() === today.getTime();
+  }, []);
+
+  // Helper to check if date is overdue
+  const isOverdue = useCallback((dateStr: string | undefined) => {
+    if (!dateStr) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const date = new Date(dateStr);
+    date.setHours(0, 0, 0, 0);
+    return date.getTime() < today.getTime();
+  }, []);
+
+  // Helper to check if date is this week
+  const isThisWeek = useCallback((dateStr: string | undefined) => {
+    if (!dateStr) return false;
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+    const date = new Date(dateStr);
+    return date >= startOfWeek && date <= endOfWeek;
+  }, []);
+
+  // Quick filter counts
+  const quickFilterCounts = useMemo(() => {
+    const activeTodosAll = todos.filter((t) => t.isActive);
+    return {
+      all: activeTodosAll.length,
+      today: activeTodosAll.filter((t) => isToday(t.metadata.dueDate)).length,
+      overdue: activeTodosAll.filter((t) => isOverdue(t.metadata.dueDate)).length,
+      thisWeek: activeTodosAll.filter((t) => isThisWeek(t.metadata.dueDate)).length,
+      noDueDate: activeTodosAll.filter((t) => !t.metadata.dueDate).length,
+    };
+  }, [todos, isToday, isOverdue, isThisWeek]);
+
+  // Selection mode handlers
+  const toggleSelectionMode = useCallback(() => {
+    setIsSelectionMode((prev) => !prev);
+    setSelectedTodoIds(new Set()); // Clear selections when toggling mode
+  }, []);
+
+  const handleSelectionChange = useCallback((id: string, selected: boolean) => {
+    setSelectedTodoIds((prev) => {
+      const next = new Set(prev);
+      if (selected) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const selectAllInSection = useCallback((todoIds: string[]) => {
+    setSelectedTodoIds((prev) => {
+      const next = new Set(prev);
+      todoIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }, []);
+
+  const deselectAllInSection = useCallback((todoIds: string[]) => {
+    setSelectedTodoIds((prev) => {
+      const next = new Set(prev);
+      todoIds.forEach((id) => next.delete(id));
+      return next;
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    const allIds = todos.filter((t) => !t.isDeleted).map((t) => t.id);
+    setSelectedTodoIds(new Set(allIds));
+  }, [todos]);
+
+  const deselectAll = useCallback(() => {
+    setSelectedTodoIds(new Set());
+  }, []);
+
+  // Bulk action handlers
+  const bulkComplete = useCallback(() => {
+    const selectedActive = todos.filter((t) => t.isActive && selectedTodoIds.has(t.id));
+    selectedActive.forEach((todo) => toggleTodo(todo.id));
+    setSelectedTodoIds(new Set());
+  }, [todos, selectedTodoIds, toggleTodo]);
+
+  const bulkArchive = useCallback(() => {
+    const selectedCompleted = todos.filter((t) => t.isCompleted && selectedTodoIds.has(t.id));
+    selectedCompleted.forEach((todo) => archiveTodo(todo.id));
+    setSelectedTodoIds(new Set());
+  }, [todos, selectedTodoIds, archiveTodo]);
+
+  const bulkDelete = useCallback(() => {
+    const toDelete = todos.filter((t) => selectedTodoIds.has(t.id));
+    setConfirmDialog({
+      title: "Delete Selected Tasks",
+      message: `Are you sure you want to delete ${toDelete.length} task${
+        toDelete.length === 1 ? "" : "s"
+      }? This cannot be undone.`,
+      onConfirm: () => {
+        toDelete.forEach((todo) => deleteTodo(todo.id));
+        setSelectedTodoIds(new Set());
+        setConfirmDialog(null);
+      },
+    });
+  }, [todos, selectedTodoIds, deleteTodo]);
+
+  const bulkUnarchive = useCallback(() => {
+    const selectedArchived = todos.filter((t) => t.isArchived && selectedTodoIds.has(t.id));
+    selectedArchived.forEach((todo) => unarchiveTodo(todo.id));
+    setSelectedTodoIds(new Set());
+  }, [todos, selectedTodoIds, unarchiveTodo]);
+
+  // Batch edit state
+  const [isBatchEditOpen, setIsBatchEditOpen] = useState(false);
+  const [batchEditData, setBatchEditData] = useState<{
+    setPriority: boolean;
+    priority: string;
+    setProject: boolean;
+    project: string;
+    setAssignee: boolean;
+    assignee: string;
+  }>({
+    setPriority: false,
+    priority: "",
+    setProject: false,
+    project: "",
+    setAssignee: false,
+    assignee: "",
+  });
+
+  const openBatchEdit = useCallback(() => {
+    setBatchEditData({
+      setPriority: false,
+      priority: "",
+      setProject: false,
+      project: "",
+      setAssignee: false,
+      assignee: "",
+    });
+    setIsBatchEditOpen(true);
+  }, []);
+
+  const applyBatchEdit = useCallback(() => {
+    const selectedTodos = todos.filter((t) => selectedTodoIds.has(t.id));
+
+    selectedTodos.forEach((todo) => {
+      const newMetadata = { ...todo.metadata };
+
+      if (batchEditData.setPriority) {
+        newMetadata.priority = batchEditData.priority || undefined;
+      }
+      if (batchEditData.setProject) {
+        if (batchEditData.project) {
+          // Add project if not already present
+          if (!newMetadata.projects.includes(batchEditData.project)) {
+            newMetadata.projects = [...newMetadata.projects, batchEditData.project];
+          }
+        } else {
+          // Clear projects if empty
+          newMetadata.projects = [];
+        }
+      }
+      if (batchEditData.setAssignee) {
+        if (batchEditData.assignee) {
+          // Add assignee if not already present
+          if (!newMetadata.assignedPeople.includes(batchEditData.assignee)) {
+            newMetadata.assignedPeople = [...newMetadata.assignedPeople, batchEditData.assignee];
+          }
+        } else {
+          // Clear assignees if empty
+          newMetadata.assignedPeople = [];
+        }
+      }
+
+      editTodo(todo.id, todo.text, todo.plainText, newMetadata);
+    });
+
+    setIsBatchEditOpen(false);
+    setSelectedTodoIds(new Set());
+  }, [todos, selectedTodoIds, batchEditData, editTodo]);
 
   // Expanded todo detail state
   const [expandedTodoId, setExpandedTodoId] = useState<string | null>(null);
@@ -473,6 +767,149 @@ export function TodoApp() {
     }
   }, [isAddOverlayOpen]);
 
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input, textarea, or contenteditable
+      const target = e.target as HTMLElement;
+      const isInputFocused =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable ||
+        target.closest('[contenteditable="true"]');
+
+      // Allow Escape to work even when input is focused
+      if (e.key === "Escape") {
+        // Close overlays in order of priority
+        if (detailsOverlayTodo) {
+          setDetailsOverlayTodo(null);
+          return;
+        }
+        if (detailsOverlayPersonId) {
+          setDetailsOverlayPersonId(null);
+          return;
+        }
+        if (detailsOverlayProjectId) {
+          setDetailsOverlayProjectId(null);
+          return;
+        }
+        if (isAddOverlayOpen) {
+          setIsAddOverlayOpen(false);
+          return;
+        }
+        if (isAddPersonOverlayOpen) {
+          setIsAddPersonOverlayOpen(false);
+          return;
+        }
+        if (isAddProjectOverlayOpen) {
+          setIsAddProjectOverlayOpen(false);
+          return;
+        }
+        if (confirmDialog) {
+          setConfirmDialog(null);
+          return;
+        }
+        if (isSelectionMode) {
+          setIsSelectionMode(false);
+          setSelectedTodoIds(new Set());
+          return;
+        }
+        // Blur search input if focused
+        if (
+          document.activeElement === searchInputRef.current ||
+          document.activeElement === peopleSearchInputRef.current ||
+          document.activeElement === projectsSearchInputRef.current
+        ) {
+          (document.activeElement as HTMLElement).blur();
+          return;
+        }
+        return;
+      }
+
+      // Don't handle other shortcuts if user is typing
+      if (isInputFocused) return;
+
+      // 'n' - New task (open add overlay)
+      if (e.key === "n" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        if (activeView === "list" || activeView === "gantt" || activeView === "calendar") {
+          setIsAddOverlayOpen(true);
+        } else if (activeView === "people") {
+          setIsAddPersonOverlayOpen(true);
+        } else if (activeView === "projects") {
+          setIsAddProjectOverlayOpen(true);
+        }
+        return;
+      }
+
+      // '/' - Focus search
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        if (activeView === "list") {
+          searchInputRef.current?.focus();
+        } else if (activeView === "people") {
+          peopleSearchInputRef.current?.focus();
+        } else if (activeView === "projects") {
+          projectsSearchInputRef.current?.focus();
+        }
+        return;
+      }
+
+      // 'f' - Toggle filters (list view only)
+      if (e.key === "f" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        if (activeView === "list") {
+          setShowFilters((prev) => !prev);
+        }
+        return;
+      }
+
+      // 's' - Toggle selection mode (list view only)
+      if (e.key === "s" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        if (activeView === "list") {
+          setIsSelectionMode((prev) => !prev);
+          if (isSelectionMode) {
+            setSelectedTodoIds(new Set());
+          }
+        }
+        return;
+      }
+
+      // '1-6' - Switch view tabs
+      if (e.key >= "1" && e.key <= "6" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        const views: ViewTab[] = ["list", "gantt", "calendar", "people", "projects", "stats"];
+        const index = parseInt(e.key) - 1;
+        if (index < views.length) {
+          setActiveView(views[index]);
+        }
+        return;
+      }
+
+      // '?' - Show keyboard shortcuts help (can be expanded later)
+      if (e.key === "?" && e.shiftKey) {
+        e.preventDefault();
+        // For now, just log - could show a help modal later
+        console.log("Keyboard shortcuts: n=new, /=search, f=filters, s=select, 1-6=views, Esc=close");
+        return;
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [
+    activeView,
+    detailsOverlayTodo,
+    detailsOverlayPersonId,
+    detailsOverlayProjectId,
+    isAddOverlayOpen,
+    isAddPersonOverlayOpen,
+    isAddProjectOverlayOpen,
+    confirmDialog,
+    isSelectionMode,
+  ]);
+
   const handleTokensChange = (tokens: TokenMatch[], fullText: string, plainText: string) => {
     setCurrentTokens(tokens);
     setCurrentFullText(fullText);
@@ -670,6 +1107,24 @@ export function TodoApp() {
   // Apply filters to todos
   const applyFilters = (todoList: typeof todos) => {
     return todoList.filter((todo) => {
+      // Quick filter (only for active todos)
+      if (activeQuickFilter !== "all" && todo.isActive) {
+        switch (activeQuickFilter) {
+          case "today":
+            if (!isToday(todo.metadata.dueDate)) return false;
+            break;
+          case "overdue":
+            if (!isOverdue(todo.metadata.dueDate)) return false;
+            break;
+          case "thisWeek":
+            if (!isThisWeek(todo.metadata.dueDate)) return false;
+            break;
+          case "noDueDate":
+            if (todo.metadata.dueDate) return false;
+            break;
+        }
+      }
+
       // Text search using TodoModel method
       if (filters.searchText && !todo.matchesSearch(filters.searchText)) {
         return false;
@@ -946,6 +1401,18 @@ export function TodoApp() {
   const completedTodos = sortTodos(applyFilters(allCompletedTodos));
   const archivedTodos = sortTodos(applyFilters(allArchivedTodos));
 
+  // Export handler - exports filtered todos if filters active, otherwise all
+  const handleExport = useCallback(
+    (format: ExportFormat) => {
+      const todosToExport = hasActiveFilters ? [...activeTodos, ...completedTodos, ...archivedTodos] : todos;
+      const date = new Date().toISOString().split("T")[0];
+      const filename = `todos-${date}`;
+      exportTodos(todosToExport, format, filename);
+      setIsExportMenuOpen(false);
+    },
+    [hasActiveFilters, activeTodos, completedTodos, archivedTodos, todos],
+  );
+
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800">
@@ -961,6 +1428,30 @@ export function TodoApp() {
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-100">DoIt</h1>
             <div className="flex items-center gap-2">
+              {/* Focus Mode Button - only show if there are active todos */}
+              {todos.filter((t) => t.isActive).length > 0 && (
+                <button
+                  onClick={() => setIsFocusMode(true)}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
+                  title="Enter focus mode"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">Focus</span>
+                </button>
+              )}
               <button
                 onClick={() => setIsAddOverlayOpen(true)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
@@ -1094,6 +1585,129 @@ export function TodoApp() {
               Projects
             </div>
           </button>
+          <button
+            onClick={() => setActiveView("stats")}
+            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+              activeView === "stats"
+                ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+              Stats
+            </div>
+          </button>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Export Button - Only show in list view with todos */}
+          {activeView === "list" && todos.length > 0 && (
+            <div ref={exportMenuRef} className="relative">
+              <button
+                onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                className="px-3 py-2 font-medium transition-colors rounded-lg text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                title="Export todos"
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">Export</span>
+                </div>
+              </button>
+
+              {/* Export Dropdown Menu */}
+              {isExportMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
+                  <button
+                    onClick={() => handleExport("markdown")}
+                    className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    Markdown (.md)
+                  </button>
+                  <button
+                    onClick={() => handleExport("csv")}
+                    className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                    CSV (.csv)
+                  </button>
+                  <button
+                    onClick={() => handleExport("json")}
+                    className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                      />
+                    </svg>
+                    JSON (.json)
+                  </button>
+                  <div className="border-t border-zinc-200 dark:border-zinc-700 my-1" />
+                  <div className="px-4 py-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    {hasActiveFilters ? "Exports filtered todos" : "Exports all todos"}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Selection Mode Toggle - Only show in list view */}
+          {activeView === "list" && todos.length > 0 && (
+            <button
+              onClick={toggleSelectionMode}
+              className={`px-3 py-2 font-medium transition-colors rounded-lg text-sm ${
+                isSelectionMode
+                  ? "bg-blue-600 text-white"
+                  : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              }`}
+              title={isSelectionMode ? "Exit selection mode" : "Enter selection mode"}
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Select</span>
+              </div>
+            </button>
+          )}
         </div>
 
         {/* Filter Section - Only show in List view */}
@@ -1128,8 +1742,9 @@ export function TodoApp() {
             <div className="flex items-center gap-3">
               {/* Search Input */}
               <input
+                ref={searchInputRef}
                 type="text"
-                placeholder="Search tasks..."
+                placeholder="Search tasks... (press / to focus)"
                 value={filters.searchText}
                 onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
                 className="flex-1 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1430,11 +2045,11 @@ export function TodoApp() {
         {/* People View */}
         {activeView === "people" && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
               <div>
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">People</h2>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                  {allPeople.length} {allPeople.length === 1 ? "person" : "people"}
+                  {filteredPeople.length} of {allPeople.length} {allPeople.length === 1 ? "person" : "people"}
                 </p>
               </div>
               <button
@@ -1447,11 +2062,60 @@ export function TodoApp() {
                 Add Person
               </button>
             </div>
+
+            {/* Search and filter bar */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <input
+                  ref={peopleSearchInputRef}
+                  type="text"
+                  value={peopleSearch}
+                  onChange={(e) => setPeopleSearch(e.target.value)}
+                  placeholder="Search people... (press / to focus)"
+                  className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {peopleSearch && (
+                  <button
+                    onClick={() => setPeopleSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={showArchivedPeople}
+                  onChange={(e) => setShowArchivedPeople(e.target.checked)}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                Show archived
+              </label>
+            </div>
+
             {allPeople.length === 0 ? (
               <EmptyState emoji="👥" title="No People" message="No people yet. Add one to get started!" />
+            ) : filteredPeople.length === 0 ? (
+              <EmptyState emoji="🔍" title="No Results" message="No people match your search." />
             ) : (
               <ul className="space-y-2">
-                {allPeople.map((person) => (
+                {filteredPeople.map((person) => (
                   <li key={person.id}>
                     <PersonItem
                       person={person}
@@ -1469,6 +2133,7 @@ export function TodoApp() {
                           },
                         });
                       }}
+                      taskCount={taskCountsByPerson.get(person.id) || 0}
                     />
                   </li>
                 ))}
@@ -1480,11 +2145,11 @@ export function TodoApp() {
         {/* Projects View */}
         {activeView === "projects" && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
               <div>
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Projects</h2>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                  {allProjects.length} {allProjects.length === 1 ? "project" : "projects"}
+                  {filteredProjects.length} of {allProjects.length} {allProjects.length === 1 ? "project" : "projects"}
                 </p>
               </div>
               <button
@@ -1497,11 +2162,60 @@ export function TodoApp() {
                 Add Project
               </button>
             </div>
+
+            {/* Search and filter bar */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <input
+                  ref={projectsSearchInputRef}
+                  type="text"
+                  value={projectsSearch}
+                  onChange={(e) => setProjectsSearch(e.target.value)}
+                  placeholder="Search projects... (press / to focus)"
+                  className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {projectsSearch && (
+                  <button
+                    onClick={() => setProjectsSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={showArchivedProjects}
+                  onChange={(e) => setShowArchivedProjects(e.target.checked)}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                Show archived
+              </label>
+            </div>
+
             {allProjects.length === 0 ? (
               <EmptyState emoji="📁" title="No Projects" message="No projects yet. Add one to get started!" />
+            ) : filteredProjects.length === 0 ? (
+              <EmptyState emoji="🔍" title="No Results" message="No projects match your search." />
             ) : (
               <ul className="space-y-2">
-                {allProjects.map((project) => (
+                {filteredProjects.map((project) => (
                   <li key={project.id}>
                     <ProjectItem
                       project={project}
@@ -1519,6 +2233,7 @@ export function TodoApp() {
                           },
                         });
                       }}
+                      taskCount={taskCountsByProject.get(project.id) || 0}
                     />
                   </li>
                 ))}
@@ -1527,8 +2242,210 @@ export function TodoApp() {
           </div>
         )}
 
+        {/* Statistics View */}
+        {activeView === "stats" && <StatisticsView todos={todos} />}
+
         {activeView === "list" && (
           <>
+            {/* Bulk Action Toolbar */}
+            {isSelectionMode && (
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    {selectedTodoIds.size} selected
+                  </span>
+                  <button onClick={selectAll} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                    Select all
+                  </button>
+                  <button onClick={deselectAll} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                    Clear
+                  </button>
+                </div>
+                <div className="flex-1" />
+                <div className="flex flex-wrap gap-2">
+                  {/* Edit - always available when items selected */}
+                  {selectedTodoIds.size > 0 && (
+                    <button
+                      onClick={openBatchEdit}
+                      className="px-3 py-1.5 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center gap-1.5"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                      Edit
+                    </button>
+                  )}
+                  {/* Complete - only for active todos */}
+                  {todos.some((t) => t.isActive && selectedTodoIds.has(t.id)) && (
+                    <button
+                      onClick={bulkComplete}
+                      className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors flex items-center gap-1.5"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Complete
+                    </button>
+                  )}
+                  {/* Archive - only for completed todos */}
+                  {todos.some((t) => t.isCompleted && selectedTodoIds.has(t.id)) && (
+                    <button
+                      onClick={bulkArchive}
+                      className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-700 text-white rounded-md transition-colors flex items-center gap-1.5"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                        />
+                      </svg>
+                      Archive
+                    </button>
+                  )}
+                  {/* Unarchive - only for archived todos */}
+                  {todos.some((t) => t.isArchived && selectedTodoIds.has(t.id)) && (
+                    <button
+                      onClick={bulkUnarchive}
+                      className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center gap-1.5"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      Restore
+                    </button>
+                  )}
+                  {/* Delete - always available when items selected */}
+                  {selectedTodoIds.size > 0 && (
+                    <button
+                      onClick={bulkDelete}
+                      className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors flex items-center gap-1.5"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                      Delete
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={toggleSelectionMode}
+                  className="ml-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                  title="Exit selection mode"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {/* Quick Filters Bar */}
+            {todos.length > 0 && !isSelectionMode && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                <button
+                  onClick={() => setActiveQuickFilter("all")}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                    activeQuickFilter === "all"
+                      ? "bg-blue-600 text-white"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  }`}
+                >
+                  All ({quickFilterCounts.all})
+                </button>
+                <button
+                  onClick={() => setActiveQuickFilter("today")}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1.5 ${
+                    activeQuickFilter === "today"
+                      ? "bg-blue-600 text-white"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  Today ({quickFilterCounts.today})
+                </button>
+                {quickFilterCounts.overdue > 0 && (
+                  <button
+                    onClick={() => setActiveQuickFilter("overdue")}
+                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1.5 ${
+                      activeQuickFilter === "overdue"
+                        ? "bg-red-600 text-white"
+                        : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50"
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    Overdue ({quickFilterCounts.overdue})
+                  </button>
+                )}
+                <button
+                  onClick={() => setActiveQuickFilter("thisWeek")}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1.5 ${
+                    activeQuickFilter === "thisWeek"
+                      ? "bg-blue-600 text-white"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                  This Week ({quickFilterCounts.thisWeek})
+                </button>
+                <button
+                  onClick={() => setActiveQuickFilter("noDueDate")}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1.5 ${
+                    activeQuickFilter === "noDueDate"
+                      ? "bg-blue-600 text-white"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                    />
+                  </svg>
+                  No Due Date ({quickFilterCounts.noDueDate})
+                </button>
+              </div>
+            )}
+
             {todos.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-6xl mb-4">📝</div>
@@ -1593,6 +2510,9 @@ export function TodoApp() {
                                     onAddComment={addTodoComment}
                                     onEditComment={editTodoComment}
                                     onDeleteComment={deleteTodoComment}
+                                    isSelectionMode={isSelectionMode}
+                                    isSelected={selectedTodoIds.has(todo.id)}
+                                    onSelectionChange={handleSelectionChange}
                                   />
                                 </li>
                               ))}
@@ -1649,6 +2569,9 @@ export function TodoApp() {
                               onAddComment={addTodoComment}
                               onEditComment={editTodoComment}
                               onDeleteComment={deleteTodoComment}
+                              isSelectionMode={isSelectionMode}
+                              isSelected={selectedTodoIds.has(todo.id)}
+                              onSelectionChange={handleSelectionChange}
                             />
                           </li>
                         ))}
@@ -1702,6 +2625,9 @@ export function TodoApp() {
                               onAddComment={addTodoComment}
                               onEditComment={editTodoComment}
                               onDeleteComment={deleteTodoComment}
+                              isSelectionMode={isSelectionMode}
+                              isSelected={selectedTodoIds.has(todo.id)}
+                              onSelectionChange={handleSelectionChange}
                             />
                           </li>
                         ))}
@@ -1884,6 +2810,7 @@ export function TodoApp() {
                     onClose={() => setDetailsOverlayTodo(null)}
                     onToggle={toggleTodo}
                     onDelete={deleteTodo}
+                    onDuplicate={duplicateTodo}
                     onEdit={editTodo}
                     onArchive={archiveTodo}
                     onUnarchive={unarchiveTodo}
@@ -2216,6 +3143,130 @@ export function TodoApp() {
         )}
       </div>
 
+      {/* Batch Edit Modal */}
+      {isBatchEditOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsBatchEditOpen(false)} />
+          <div className="relative bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                Edit {selectedTodoIds.size} Task{selectedTodoIds.size === 1 ? "" : "s"}
+              </h2>
+              <button
+                onClick={() => setIsBatchEditOpen(false)}
+                className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Check the fields you want to update. Empty values will clear the field.
+            </p>
+
+            {/* Priority Field */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={batchEditData.setPriority}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setPriority: e.target.checked }))}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Set Priority</span>
+              </label>
+              {batchEditData.setPriority && (
+                <select
+                  value={batchEditData.priority}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, priority: e.target.value }))}
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">No Priority (Clear)</option>
+                  {sortedPriorities.map((p) => (
+                    <option key={p.name} value={p.name}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Project Field */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={batchEditData.setProject}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setProject: e.target.checked }))}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Add Project</span>
+              </label>
+              {batchEditData.setProject && (
+                <select
+                  value={batchEditData.project}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, project: e.target.value }))}
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Clear All Projects</option>
+                  {sortedProjects.map((p) => (
+                    <option key={p.id} value={p.name}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Assignee Field */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={batchEditData.setAssignee}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setAssignee: e.target.checked }))}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Add Assignee</span>
+              </label>
+              {batchEditData.setAssignee && (
+                <select
+                  value={batchEditData.assignee}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, assignee: e.target.value }))}
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Clear All Assignees</option>
+                  {sortedPeople.map((p) => (
+                    <option key={p.id} value={p.name}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+              <button
+                onClick={() => setIsBatchEditOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={applyBatchEdit}
+                disabled={!batchEditData.setPriority && !batchEditData.setProject && !batchEditData.setAssignee}
+                className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              >
+                Apply Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirm Dialog */}
       {confirmDialog && (
         <ConfirmDialog
@@ -2225,6 +3276,25 @@ export function TodoApp() {
           onCancel={() => setConfirmDialog(null)}
           confirmText="Delete"
           confirmVariant="danger"
+        />
+      )}
+
+      {/* Focus Mode */}
+      {isFocusMode && (
+        <FocusView
+          todos={todos}
+          onToggle={toggleTodo}
+          onDelete={deleteTodo}
+          onEdit={editTodo}
+          onArchive={archiveTodo}
+          markerColors={settings.markerColors}
+          settings={settings}
+          linkPatterns={settings.linkPatterns}
+          onOpenDetails={(todo) => {
+            setIsFocusMode(false);
+            setDetailsOverlayTodo(todo);
+          }}
+          onClose={() => setIsFocusMode(false)}
         />
       )}
     </div>
