@@ -778,19 +778,31 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       if (!div) return;
 
       const sel = window.getSelection();
-      const range = sel?.getRangeAt(0);
-      if (!range) return;
+      if (!sel || sel.rangeCount === 0) return;
 
-      const caretMarker = document.createElement("span");
-      caretMarker.id = "caret-marker";
-      caretMarker.textContent = "\u200B"; // Zero-width space
-      range.insertNode(caretMarker);
+      // Save the caret position as a character offset
+      const range = sel.getRangeAt(0);
 
-      const fullText = div.innerText.replace(/\n/g, " ").replace(/\s+/g, " ");
+      // Calculate character offset by walking the DOM
+      let caretOffset = 0;
+      const walkNodes = (node: Node): boolean => {
+        if (node === range.startContainer) {
+          caretOffset += range.startOffset;
+          return true; // Found it
+        }
+        if (node.nodeType === Node.TEXT_NODE) {
+          caretOffset += node.textContent?.length || 0;
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          for (const child of Array.from(node.childNodes)) {
+            if (walkNodes(child)) return true;
+          }
+        }
+        return false;
+      };
+      walkNodes(div);
 
-      // Find caret position
-      const caretPosition = fullText.indexOf("\u200B");
-      const textBeforeCaret = caretPosition >= 0 ? fullText.substring(0, caretPosition) : fullText;
+      // Get the raw text content
+      const fullText = div.textContent || "";
 
       // Look for marker symbols starting from the end backwards
       // Note: # (tag) is excluded from autocomplete since tags are freeform text
@@ -800,6 +812,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const allMarkers = [...peopleMarkers, projectMarker, priorityMarker];
 
       // Find the last marker before the caret
+      const textBeforeCaret = fullText.substring(0, caretOffset);
       let lastMarkerPos = -1;
       let lastMarker = "";
       for (const marker of allMarkers) {
@@ -861,9 +874,15 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       }
 
       if (shouldShowAutocomplete) {
-        // Get caret position for dropdown placement
-        const markerRect = caretMarker.getBoundingClientRect();
+        // Get caret position for dropdown placement using a temporary span
+        const tempRange = document.createRange();
+        tempRange.setStart(range.startContainer, range.startOffset);
+        tempRange.collapse(true);
+        const tempSpan = document.createElement("span");
+        tempRange.insertNode(tempSpan);
+        const rect = tempSpan.getBoundingClientRect();
         const divRect = div.getBoundingClientRect();
+        tempSpan.remove();
 
         // Show "Add new" option if there are no matches and search text is not empty
         const showAddNew = options.length === 0 && searchText.trim() !== "";
@@ -881,33 +900,68 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           searchText,
           showAddNew: showAddNew && !!canAddNew,
           position: {
-            top: markerRect.bottom - divRect.top + 5,
-            left: markerRect.left - divRect.left,
+            top: rect.bottom - divRect.top + 5,
+            left: rect.left - divRect.left,
           },
         });
       } else {
         setAutocomplete((prev) => ({ ...prev, show: false }));
       }
 
-      caretMarker.remove();
-
-      const { fragment, tokens, plainText } = renderTokensFromText(fullText.replace("\u200B", ""));
-      if (onTokensChange) onTokensChange(tokens, fullText.replace("\u200B", "").trim(), plainText);
-
-      fragment.appendChild(caretMarker);
+      // Re-render content with tokens
+      const { fragment, tokens, plainText } = renderTokensFromText(fullText);
+      if (onTokensChange) onTokensChange(tokens, fullText.trim(), plainText);
 
       div.innerHTML = "";
       div.appendChild(fragment);
 
-      const newMarker = document.getElementById("caret-marker");
-      if (newMarker) {
+      // Restore caret position by walking the new DOM
+      let currentOffset = 0;
+      let targetNode: Node | null = null;
+      let targetOffset = 0;
+
+      const findCaretPosition = (node: Node): boolean => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const len = node.textContent?.length || 0;
+          if (currentOffset + len >= caretOffset) {
+            targetNode = node;
+            targetOffset = caretOffset - currentOffset;
+            return true;
+          }
+          currentOffset += len;
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          for (const child of Array.from(node.childNodes)) {
+            if (findCaretPosition(child)) return true;
+          }
+        }
+        return false;
+      };
+
+      findCaretPosition(div);
+
+      if (targetNode) {
         const newRange = document.createRange();
         const newSel = window.getSelection();
-        newRange.setStartAfter(newMarker);
-        newRange.collapse(true);
+        try {
+          newRange.setStart(targetNode, targetOffset);
+          newRange.collapse(true);
+          newSel?.removeAllRanges();
+          newSel?.addRange(newRange);
+        } catch {
+          // If positioning fails, put cursor at end
+          newRange.selectNodeContents(div);
+          newRange.collapse(false);
+          newSel?.removeAllRanges();
+          newSel?.addRange(newRange);
+        }
+      } else {
+        // Fallback: put cursor at end
+        const newRange = document.createRange();
+        const newSel = window.getSelection();
+        newRange.selectNodeContents(div);
+        newRange.collapse(false);
         newSel?.removeAllRanges();
         newSel?.addRange(newRange);
-        newMarker.remove();
       }
 
       div.focus();
