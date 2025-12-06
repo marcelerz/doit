@@ -219,9 +219,53 @@ const SHORTHAND_PATTERNS: Record<
     return setTime(d, getBodEod(d, wh).bod);
   },
 
+  // Tonight/tonite - evening of today
+  tonight: (ref, dt) => setTime(ref, dt?.evening || "18:00"),
+  tonite: (ref, dt) => setTime(ref, dt?.evening || "18:00"),
+
+  // Urgency shorthands - map to today EOD
+  asap: (ref, dt, wh) => setTime(ref, getBodEod(ref, wh).eod),
+  urgent: (ref, dt, wh) => setTime(ref, getBodEod(ref, wh).eod),
+  immediately: (ref, dt, wh) => setTime(ref, getBodEod(ref, wh).eod),
+  now: (ref) => ref, // Current time
+
+  // Someday/later - maps to 3 months from now (far future but not too far)
+  someday: (ref) => {
+    const d = new Date(ref);
+    d.setMonth(d.getMonth() + 3);
+    return d;
+  },
+  later: (ref) => {
+    const d = new Date(ref);
+    d.setMonth(d.getMonth() + 1);
+    return d;
+  },
+  eventually: (ref) => {
+    const d = new Date(ref);
+    d.setMonth(d.getMonth() + 6);
+    return d;
+  },
+  whenever: (ref) => {
+    const d = new Date(ref);
+    d.setMonth(d.getMonth() + 3);
+    return d;
+  },
+
+  // Seasons (Northern hemisphere, approximate)
+  spring: (ref) => getNextSeason(ref, 3, 20), // March 20
+  summer: (ref) => getNextSeason(ref, 6, 21), // June 21
+  fall: (ref) => getNextSeason(ref, 9, 22), // September 22
+  autumn: (ref) => getNextSeason(ref, 9, 22), // September 22
+  winter: (ref) => getNextSeason(ref, 12, 21), // December 21
+
+  // Payday patterns (common: 15th and last day of month)
+  payday: (ref) => getNextPayday(ref),
+  nextpayday: (ref) => getNextPayday(ref),
+
   // Holidays (US-centric, but common)
   christmas: (ref) => getNextHoliday(ref, 12, 25),
   christmaseve: (ref) => getNextHoliday(ref, 12, 24),
+  xmas: (ref) => getNextHoliday(ref, 12, 25),
   newyears: (ref) => getNextHoliday(ref, 1, 1),
   newyearseve: (ref) => getNextHoliday(ref, 12, 31),
   newyearsday: (ref) => getNextHoliday(ref, 1, 1),
@@ -229,15 +273,26 @@ const SHORTHAND_PATTERNS: Record<
   valentinesday: (ref) => getNextHoliday(ref, 2, 14),
   stpatricks: (ref) => getNextHoliday(ref, 3, 17),
   stpatricksday: (ref) => getNextHoliday(ref, 3, 17),
+  easter: (ref) => getNextEaster(ref),
+  mothersday: (ref) => getNthWeekdayOfMonth(ref, 5, 0, 2), // Second Sunday of May
+  fathersday: (ref) => getNthWeekdayOfMonth(ref, 6, 0, 3), // Third Sunday of June
   halloween: (ref) => getNextHoliday(ref, 10, 31),
   independenceday: (ref) => getNextHoliday(ref, 7, 4),
   julyfourth: (ref) => getNextHoliday(ref, 7, 4),
   laborday: (ref) => getNthWeekdayOfMonth(ref, 9, 1, 1), // First Monday of September
   memorialday: (ref) => getLastWeekdayOfMonth(ref, 5, 1), // Last Monday of May
   thanksgiving: (ref) => getNthWeekdayOfMonth(ref, 11, 4, 4), // Fourth Thursday of November
+  blackfriday: (ref) => getBlackFriday(ref), // Day after Thanksgiving
+  cybermonday: (ref) => getCyberMonday(ref), // Monday after Thanksgiving
   mlkday: (ref) => getNthWeekdayOfMonth(ref, 1, 1, 3), // Third Monday of January
   presidentsday: (ref) => getNthWeekdayOfMonth(ref, 2, 1, 3), // Third Monday of February
   columbusday: (ref) => getNthWeekdayOfMonth(ref, 10, 1, 2), // Second Monday of October
+  veteransday: (ref) => getNextHoliday(ref, 11, 11),
+  taxday: (ref) => getNextHoliday(ref, 4, 15), // April 15 (US tax deadline)
+  electionday: (ref) => getElectionDay(ref), // First Tuesday after first Monday in November
+  groundhogday: (ref) => getNextHoliday(ref, 2, 2),
+  cincodemayo: (ref) => getNextHoliday(ref, 5, 5),
+  juneteenth: (ref) => getNextHoliday(ref, 6, 19),
 };
 
 // Helper functions
@@ -356,6 +411,117 @@ function getLastWeekdayOfMonth(ref: Date, month: number, weekday: number): Date 
   }
 
   return result;
+}
+
+/**
+ * Get the next occurrence of a season start date
+ */
+function getNextSeason(ref: Date, month: number, day: number): Date {
+  let year = ref.getFullYear();
+  const season = new Date(year, month - 1, day);
+  if (season <= ref) {
+    season.setFullYear(year + 1);
+  }
+  return season;
+}
+
+/**
+ * Get the next payday (15th or last day of month, whichever is next)
+ */
+function getNextPayday(ref: Date): Date {
+  const year = ref.getFullYear();
+  const month = ref.getMonth();
+  const day = ref.getDate();
+
+  // Check 15th of current month
+  const fifteenth = new Date(year, month, 15);
+  if (fifteenth > ref) {
+    return fifteenth;
+  }
+
+  // Check last day of current month
+  const lastDay = new Date(year, month + 1, 0);
+  if (lastDay > ref) {
+    return lastDay;
+  }
+
+  // Return 15th of next month
+  return new Date(year, month + 1, 15);
+}
+
+/**
+ * Calculate Easter Sunday (Western) using the Anonymous Gregorian algorithm
+ */
+function getNextEaster(ref: Date): Date {
+  const year = ref.getFullYear();
+  const easter = calculateEaster(year);
+  if (easter <= ref) {
+    return calculateEaster(year + 1);
+  }
+  return easter;
+}
+
+function calculateEaster(year: number): Date {
+  // Anonymous Gregorian algorithm
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * Get Black Friday (day after Thanksgiving)
+ */
+function getBlackFriday(ref: Date): Date {
+  const thanksgiving = getNthWeekdayOfMonth(ref, 11, 4, 4);
+  const blackFriday = new Date(thanksgiving);
+  blackFriday.setDate(blackFriday.getDate() + 1);
+  return blackFriday;
+}
+
+/**
+ * Get Cyber Monday (Monday after Thanksgiving)
+ */
+function getCyberMonday(ref: Date): Date {
+  const thanksgiving = getNthWeekdayOfMonth(ref, 11, 4, 4);
+  const cyberMonday = new Date(thanksgiving);
+  cyberMonday.setDate(cyberMonday.getDate() + 4); // Thursday + 4 = Monday
+  return cyberMonday;
+}
+
+/**
+ * Get Election Day (First Tuesday after first Monday in November)
+ */
+function getElectionDay(ref: Date): Date {
+  let year = ref.getFullYear();
+  const electionDay = calculateElectionDay(year);
+  if (electionDay <= ref) {
+    return calculateElectionDay(year + 1);
+  }
+  return electionDay;
+}
+
+function calculateElectionDay(year: number): Date {
+  // First Monday of November
+  const firstOfNov = new Date(year, 10, 1);
+  const dayOfWeek = firstOfNov.getDay();
+  const daysToMonday = (1 - dayOfWeek + 7) % 7;
+  const firstMonday = new Date(year, 10, 1 + daysToMonday);
+  // Election Day is the Tuesday after
+  const electionDay = new Date(firstMonday);
+  electionDay.setDate(electionDay.getDate() + 1);
+  return electionDay;
 }
 
 /**
@@ -669,6 +835,126 @@ function createBusinessDaysParser(): Parser {
 }
 
 /**
+ * Create an ordinal day parser (e.g., "the 15th", "the 1st", "on the 23rd")
+ * Assumes current month if date hasn't passed, next month otherwise
+ */
+function createOrdinalDayParser(): Parser {
+  return {
+    pattern: () => /\b(?:the|on\s+the)?\s*(\d{1,2})(?:st|nd|rd|th)\b/i,
+    extract: (context: ParsingContext, match: RegExpMatchArray) => {
+      const day = parseInt(match[1], 10);
+      if (day < 1 || day > 31) return null;
+
+      const refDate = context.refDate;
+      let resultDate = new Date(refDate.getFullYear(), refDate.getMonth(), day);
+
+      // If the day has passed this month, use next month
+      if (resultDate <= refDate) {
+        resultDate.setMonth(resultDate.getMonth() + 1);
+      }
+
+      // Validate the date is valid (e.g., Feb 30 becomes Mar 2)
+      if (resultDate.getDate() !== day) {
+        // Invalid date for that month, skip to next valid month
+        resultDate = new Date(refDate.getFullYear(), refDate.getMonth() + 2, day);
+      }
+
+      return context.createParsingComponents({
+        year: resultDate.getFullYear(),
+        month: resultDate.getMonth() + 1,
+        day: resultDate.getDate(),
+      });
+    },
+  };
+}
+
+/**
+ * Create a relative weekday parser (e.g., "2 mondays from now", "3 fridays from now")
+ */
+function createRelativeWeekdayParser(): Parser {
+  const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const weekdayPattern = weekdays.join("|");
+
+  return {
+    pattern: () => new RegExp(`\\b(\\d+)\\s+(${weekdayPattern})s?\\s+from\\s+now\\b`, "i"),
+    extract: (context: ParsingContext, match: RegExpMatchArray) => {
+      const count = parseInt(match[1], 10);
+      const targetWeekday = weekdays.indexOf(match[2].toLowerCase());
+      if (targetWeekday === -1) return null;
+
+      const refDate = context.refDate;
+      const currentWeekday = refDate.getDay();
+
+      // Calculate days to first occurrence of target weekday
+      let daysToFirst = (targetWeekday - currentWeekday + 7) % 7;
+      if (daysToFirst === 0) daysToFirst = 7; // If same day, go to next week
+
+      // Add weeks for remaining occurrences
+      const totalDays = daysToFirst + (count - 1) * 7;
+
+      const resultDate = new Date(refDate);
+      resultDate.setDate(resultDate.getDate() + totalDays);
+
+      return context.createParsingComponents({
+        year: resultDate.getFullYear(),
+        month: resultDate.getMonth() + 1,
+        day: resultDate.getDate(),
+      });
+    },
+  };
+}
+
+/**
+ * Create a sprint parser for agile teams (e.g., "sprint 1", "sprint 3")
+ * Assumes 2-week sprints starting from beginning of year
+ * Sprint 1 starts Jan 1 (or first Monday), Sprint 2 starts Jan 15, etc.
+ */
+function createSprintParser(): Parser {
+  return {
+    pattern: () => /\bsprint\s*(\d{1,2})\b/i,
+    extract: (context: ParsingContext, match: RegExpMatchArray) => {
+      const sprintNum = parseInt(match[1], 10);
+      if (sprintNum < 1 || sprintNum > 26) return null; // Max 26 sprints per year
+
+      const refDate = context.refDate;
+      const year = refDate.getFullYear();
+
+      // Find first Monday of the year
+      const jan1 = new Date(year, 0, 1);
+      const dayOfWeek = jan1.getDay();
+      const daysToMonday = dayOfWeek === 0 ? 1 : dayOfWeek === 1 ? 0 : 8 - dayOfWeek;
+      const firstMonday = new Date(year, 0, 1 + daysToMonday);
+
+      // Calculate sprint end date (each sprint is 2 weeks)
+      const sprintEndDate = new Date(firstMonday);
+      sprintEndDate.setDate(sprintEndDate.getDate() + sprintNum * 14 - 1); // End of sprint
+
+      // If sprint has passed, calculate for next year
+      if (sprintEndDate < refDate) {
+        const nextYear = year + 1;
+        const nextJan1 = new Date(nextYear, 0, 1);
+        const nextDayOfWeek = nextJan1.getDay();
+        const nextDaysToMonday = nextDayOfWeek === 0 ? 1 : nextDayOfWeek === 1 ? 0 : 8 - nextDayOfWeek;
+        const nextFirstMonday = new Date(nextYear, 0, 1 + nextDaysToMonday);
+        const nextSprintEnd = new Date(nextFirstMonday);
+        nextSprintEnd.setDate(nextSprintEnd.getDate() + sprintNum * 14 - 1);
+        return context.createParsingComponents({
+          year: nextSprintEnd.getFullYear(),
+          month: nextSprintEnd.getMonth() + 1,
+          day: nextSprintEnd.getDate(),
+        });
+      }
+
+      return context.createParsingComponents({
+        year: sprintEndDate.getFullYear(),
+        month: sprintEndDate.getMonth() + 1,
+        day: sprintEndDate.getDate(),
+      });
+    },
+  };
+}
+
+/**
  * Create a custom chrono instance with all our extensions
  */
 export function createCustomChrono(
@@ -683,6 +969,9 @@ export function createCustomChrono(
   custom.parsers.unshift(createRelativeDateParser());
   custom.parsers.unshift(createBusinessDaysParser());
   custom.parsers.unshift(createFiscalPeriodParser(workHoursSettings));
+  custom.parsers.unshift(createRelativeWeekdayParser());
+  custom.parsers.unshift(createOrdinalDayParser());
+  custom.parsers.unshift(createSprintParser());
   custom.parsers.push(createTimeOnlyParser()); // Lower priority than chrono's defaults
 
   // Add our custom refiners
