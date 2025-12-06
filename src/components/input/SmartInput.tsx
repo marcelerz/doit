@@ -8,7 +8,7 @@ import {
   detectSourcePeople,
   detectPriorities,
   detectDurationPatterns,
-} from "@/utils/chronoDateParser";
+} from "@/utils/autoDetection";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 

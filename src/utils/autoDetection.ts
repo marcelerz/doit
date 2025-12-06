@@ -1,13 +1,19 @@
 /**
- * Chrono-based date parser for natural language date detection
- * Detects dates in text without requiring markers
- * Augmented with custom shorthand dates (eod, morning, bow, etc.)
- * Also detects person mentions and project references without requiring markers
+ * Auto-detection utilities for SmartInput
+ *
+ * Detects various metadata in natural language text without requiring explicit markers:
+ * - Dates (using chrono-node + custom shorthands like eod, morning, bow)
+ * - Durations (patterns like 46m, 2h, 1.5h)
+ * - Recurring patterns ("every monday", "every 2 weeks")
+ * - People mentions (names from people list)
+ * - Project references ("on <project>", "for <project>")
+ * - Source people ("from <person>", "via <person>")
+ * - Priorities (direct match or "high priority" patterns)
  */
 
 import * as chrono from "chrono-node";
 import { DateTimeSettings, WorkHoursSettings, Person, Project, Priority } from "@/types/settings";
-import { parseShorthand } from "./dateParser";
+import { parseShorthand } from "./dateUtils";
 import { parseRecurringPattern, calculateNextOccurrence, RecurringPattern } from "./recurringParser";
 
 export interface DetectedDate {

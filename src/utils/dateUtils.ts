@@ -1,3 +1,15 @@
+/**
+ * Date Utilities
+ *
+ * Date formatting, parsing, and manipulation utilities:
+ * - formatDateTime: Format dates for display ("Wed, 5th Jan 2025 10:23am")
+ * - parseDate: Parse various date formats (ISO, US, European, natural language)
+ * - parseShorthand: Parse custom shorthand dates (eod, morning, bow, bom, eoq, etc.)
+ * - normalizeDateValue: Normalize shorthand values to ISO dates
+ * - convertToDateInputFormat/convertToTimeInputFormat: Convert for HTML inputs
+ * - getDateSuggestions: Generate autocomplete suggestions
+ */
+
 import { DateTimeSettings, WorkHoursSettings } from "@/types/settings";
 
 export interface ParsedDate {

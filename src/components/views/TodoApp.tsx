@@ -17,11 +17,11 @@ import { ProjectDetailsOverlay } from "@/components/overlays/ProjectDetailsOverl
 import { PersonItem } from "@/components/items/PersonItem";
 import { ProjectItem } from "@/components/items/ProjectItem";
 import { calculateUsageStats, sortByUsage, UsageStats } from "@/utils/usageStats";
-import { normalizeDateValue } from "@/utils/dateParser";
+import { normalizeDateValue } from "@/utils/dateUtils";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterSection } from "@/components/shared/FilterSection";
 import { ConfirmDialog } from "@/components/shared/Notification";
-import { parseTokensToMetadata } from "@/utils/metadataParser";
+import { parseTokensToMetadata } from "@/utils/tokenParser";
 import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
 import { getTextColor } from "@/utils/colors";
 import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";

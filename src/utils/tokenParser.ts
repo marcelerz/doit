@@ -1,9 +1,16 @@
+/**
+ * Token Parser
+ *
+ * Converts SmartInput tokens into structured TodoMetadata format.
+ * Handles all token types: assigned, source, mentioned, project, priority,
+ * dueDate, duration, recurring, dependency, and tag.
+ */
+
 import { TodoMetadata } from "@/types/todo";
 import { TokenMatch } from "@/components/input/SmartInput";
 
 /**
  * Parse tokens into TodoMetadata structure
- * Converts SmartInput tokens into the structured metadata format
  */
 export function parseTokensToMetadata(tokens: TokenMatch[]): TodoMetadata {
   const metadata: TodoMetadata = {

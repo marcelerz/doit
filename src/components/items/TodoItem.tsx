@@ -6,7 +6,7 @@ import { MarkerColors, Settings, LinkPattern, Priority } from "@/types/settings"
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Comments } from "@/components/shared/Comments";
-import { formatDateForDisplay, normalizeDateValue } from "@/utils/dateParser";
+import { formatDateForDisplay, normalizeDateValue } from "@/utils/dateUtils";
 import { findPersonColor, findProjectColor, findPriorityColor, getTextColor } from "@/utils/colors";
 import { DELAY_OPTIONS } from "@/utils/delayOptions";
 import { TodoModel } from "@/models/TodoModel";

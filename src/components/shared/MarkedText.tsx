@@ -7,7 +7,7 @@ import {
   detectMentionedProjects,
   detectSourcePeople,
   detectPriorities,
-} from "@/utils/chronoDateParser";
+} from "@/utils/autoDetection";
 
 interface MarkedTextProps {
   text: string;

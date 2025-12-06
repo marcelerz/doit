@@ -13,7 +13,7 @@ import { ActionButtons } from "@/components/shared/ActionButtons";
 import { MetadataSection } from "@/components/shared/MetadataSection";
 import { Modal } from "@/components/shared/Modal";
 import { getDurationSuggestions, filterRecurringSuggestions } from "@/utils/suggestions";
-import { normalizeDateValue, convertToDateInputFormat, convertToTimeInputFormat } from "@/utils/dateParser";
+import { normalizeDateValue, convertToDateInputFormat, convertToTimeInputFormat } from "@/utils/dateUtils";
 import { calculateUsageStats, sortStringsByUsage } from "@/utils/usageStats";
 import { findPersonColor, findProjectColor, findPriorityColor, getTextColor } from "@/utils/colors";
 import { DELAY_OPTIONS } from "@/utils/delayOptions";
