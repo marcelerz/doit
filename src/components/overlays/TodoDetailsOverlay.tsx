@@ -14,6 +14,8 @@ import { MetadataSection } from "@/components/shared/MetadataSection";
 import { getDurationSuggestions, filterRecurringSuggestions } from "@/utils/suggestions";
 import { normalizeDateValue, convertToDateInputFormat, convertToTimeInputFormat } from "@/utils/dateParser";
 import { calculateUsageStats, sortStringsByUsage } from "@/utils/usageStats";
+import { findPersonColor, findProjectColor, findPriorityColor, getTextColor } from "@/utils/colors";
+import { DELAY_OPTIONS } from "@/utils/delayOptions";
 import { useDropdownManager } from "@/hooks/useDropdownManager";
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
@@ -169,31 +171,17 @@ export function TodoDetailsOverlay({
     setEditingMetadata(newMetadata);
   };
 
-  // Helper functions for colors
+  // Helper functions for colors using centralized utilities
   const getPersonColor = (name: string) => {
-    const person = availablePeople.find((p) => p.name === name || p.alternatives.includes(name));
-    return person?.color || markerColors.assigned;
+    return findPersonColor(name, availablePeople, markerColors.assigned);
   };
 
   const getProjectColor = (name: string) => {
-    const project = availableProjects.find((p) => p.name === name || p.alternatives.includes(name));
-    return project?.color || markerColors.project;
+    return findProjectColor(name, availableProjects, markerColors.project);
   };
 
   const getPriorityColor = (priority: string) => {
-    const priorityObj = availablePriorities.find((p) => p.name === priority || p.alternatives.includes(priority));
-    return priorityObj?.color || markerColors.priority;
-  };
-
-  const getTextColor = (backgroundColor: string) => {
-    if (!backgroundColor) return "#000000";
-    const hex = backgroundColor.replace("#", "");
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    // Use dark text (#333) for light backgrounds, white for dark backgrounds
-    return luminance > 0.5 ? "#333333" : "#FFFFFF";
+    return findPriorityColor(priority, availablePriorities, markerColors.priority);
   };
 
   if (!isOpen) return null;
@@ -802,29 +790,7 @@ export function TodoDetailsOverlay({
                       <>
                         <div className="fixed inset-0 z-10" onClick={() => dropdown.closeDropdown()} />
                         <div className="absolute right-0 z-20 mt-1 w-48 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg py-1 max-h-64 overflow-y-auto">
-                          {[
-                            { label: "Today", value: "today" },
-                            { label: "Tomorrow", value: "tomorrow" },
-                            { label: "Next Week", value: "next week" },
-                            { label: "Next Month", value: "next month" },
-                            { label: "Next Monday", value: "next monday" },
-                            { label: "Next Tuesday", value: "next tuesday" },
-                            { label: "Next Wednesday", value: "next wednesday" },
-                            { label: "Next Thursday", value: "next thursday" },
-                            { label: "Next Friday", value: "next friday" },
-                            { label: "Next Saturday", value: "next saturday" },
-                            { label: "Next Sunday", value: "next sunday" },
-                            { label: "In 2 Days", value: "in 2 days" },
-                            { label: "In 3 Days", value: "in 3 days" },
-                            { label: "In 5 Days", value: "in 5 days" },
-                            { label: "In 1 Week", value: "in 1 week" },
-                            { label: "In 2 Weeks", value: "in 2 weeks" },
-                            { label: "In 3 Weeks", value: "in 3 weeks" },
-                            { label: "In 1 Month", value: "in 1 month" },
-                            { label: "In 2 Months", value: "in 2 months" },
-                            { label: "In 3 Months", value: "in 3 months" },
-                            { label: "In 6 Months", value: "in 6 months" },
-                          ].map((option) => (
+                          {DELAY_OPTIONS.map((option) => (
                             <button
                               key={option.value}
                               onClick={() => {

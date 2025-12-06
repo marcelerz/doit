@@ -7,6 +7,8 @@ import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/comp
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Comments } from "@/components/shared/Comments";
 import { formatDateForDisplay, normalizeDateValue } from "@/utils/dateParser";
+import { findPersonColor, findProjectColor, findPriorityColor, getTextColor } from "@/utils/colors";
+import { DELAY_OPTIONS } from "@/utils/delayOptions";
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
@@ -68,35 +70,17 @@ export function TodoItem({
   const [showDelayedDropdown, setShowDelayedDropdown] = useState(false);
   const smartInputRef = useRef<SmartEditableInputHandle>(null);
 
-  // Helper functions to get entity colors
-  const getPersonColor = (name: string): string => {
-    const person = availablePeople.find((p) => p.name === name || p.alternatives.includes(name));
-    return person?.color || markerColors.assigned;
+  // Helper functions to get entity colors using centralized utilities
+  const getPersonColorForName = (name: string): string => {
+    return findPersonColor(name, availablePeople, markerColors.assigned);
   };
 
-  const getProjectColor = (name: string): string => {
-    const project = availableProjects.find((p) => p.name === name || p.alternatives.includes(name));
-    return project?.color || markerColors.project;
+  const getProjectColorForName = (name: string): string => {
+    return findProjectColor(name, availableProjects, markerColors.project);
   };
 
-  const getPriorityColor = (name: string): string => {
-    const priority = availablePriorities.find((p) => p.name === name || p.alternatives.includes(name));
-    return priority?.color || markerColors.priority;
-  };
-
-  // Helper to determine if text should be white or black based on background color
-  const getTextColor = (bgColor: string): string => {
-    // Convert hex to RGB
-    const hex = bgColor.replace("#", "");
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-
-    // Calculate relative luminance
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-    // Return white for dark backgrounds, black for light backgrounds
-    return luminance > 0.5 ? "#000000" : "#FFFFFF";
+  const getPriorityColorForName = (name: string): string => {
+    return findPriorityColor(name, availablePriorities, markerColors.priority);
   };
 
   useEffect(() => {
@@ -320,7 +304,7 @@ export function TodoItem({
                   <div className="flex flex-wrap gap-1">
                     {todo.metadata.assignedPeople.length > 0 ? (
                       todo.metadata.assignedPeople.map((person, idx) => {
-                        const bgColor = getPersonColor(person);
+                        const bgColor = getPersonColorForName(person);
                         const textColor = getTextColor(bgColor);
                         return (
                           <button
@@ -348,7 +332,7 @@ export function TodoItem({
                   <div className="flex flex-wrap gap-1">
                     {todo.metadata.projects.length > 0 ? (
                       todo.metadata.projects.map((project, idx) => {
-                        const bgColor = getProjectColor(project);
+                        const bgColor = getProjectColorForName(project);
                         const textColor = getTextColor(bgColor);
                         return (
                           <button
@@ -376,7 +360,7 @@ export function TodoItem({
                   <div className="flex flex-wrap gap-1">
                     {todo.metadata.sourcePeople.length > 0 ? (
                       todo.metadata.sourcePeople.map((person, idx) => {
-                        const bgColor = getPersonColor(person);
+                        const bgColor = getPersonColorForName(person);
                         const textColor = getTextColor(bgColor);
                         return (
                           <button
@@ -404,7 +388,7 @@ export function TodoItem({
                   <div className="flex flex-wrap gap-1">
                     {todo.metadata.mentionedPeople.length > 0 ? (
                       todo.metadata.mentionedPeople.map((person, idx) => {
-                        const bgColor = getPersonColor(person);
+                        const bgColor = getPersonColorForName(person);
                         const textColor = getTextColor(bgColor);
                         return (
                           <button
@@ -431,7 +415,7 @@ export function TodoItem({
                   <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">🔥 Priority</h4>
                   {todo.metadata.priority ? (
                     (() => {
-                      const bgColor = getPriorityColor(todo.metadata.priority);
+                      const bgColor = getPriorityColorForName(todo.metadata.priority);
                       const textColor = getTextColor(bgColor);
                       return (
                         <button
@@ -532,29 +516,7 @@ export function TodoItem({
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setShowDelayedDropdown(false)} />
                   <div className="absolute right-0 z-20 mt-1 w-48 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded shadow-lg py-1 max-h-64 overflow-y-auto">
-                    {[
-                      { label: "Today", value: "today" },
-                      { label: "Tomorrow", value: "tomorrow" },
-                      { label: "Next Week", value: "next week" },
-                      { label: "Next Month", value: "next month" },
-                      { label: "Next Monday", value: "next monday" },
-                      { label: "Next Tuesday", value: "next tuesday" },
-                      { label: "Next Wednesday", value: "next wednesday" },
-                      { label: "Next Thursday", value: "next thursday" },
-                      { label: "Next Friday", value: "next friday" },
-                      { label: "Next Saturday", value: "next saturday" },
-                      { label: "Next Sunday", value: "next sunday" },
-                      { label: "In 2 Days", value: "in 2 days" },
-                      { label: "In 3 Days", value: "in 3 days" },
-                      { label: "In 5 Days", value: "in 5 days" },
-                      { label: "In 1 Week", value: "in 1 week" },
-                      { label: "In 2 Weeks", value: "in 2 weeks" },
-                      { label: "In 3 Weeks", value: "in 3 weeks" },
-                      { label: "In 1 Month", value: "in 1 month" },
-                      { label: "In 2 Months", value: "in 2 months" },
-                      { label: "In 3 Months", value: "in 3 months" },
-                      { label: "In 6 Months", value: "in 6 months" },
-                    ].map((option) => (
+                    {DELAY_OPTIONS.map((option) => (
                       <button
                         key={option.value}
                         onClick={(e) => {

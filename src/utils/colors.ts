@@ -24,6 +24,42 @@ export function getPriorityColor(color?: string): string {
 }
 
 /**
+ * Find person color by name from a list of people
+ */
+export function findPersonColor(
+  name: string,
+  people: Array<{ name: string; alternatives: string[]; color?: string }>,
+  fallbackColor: string,
+): string {
+  const person = people.find((p) => p.name === name || p.alternatives.includes(name));
+  return person?.color || fallbackColor;
+}
+
+/**
+ * Find project color by name from a list of projects
+ */
+export function findProjectColor(
+  name: string,
+  projects: Array<{ name: string; alternatives: string[]; color?: string }>,
+  fallbackColor: string,
+): string {
+  const project = projects.find((p) => p.name === name || p.alternatives.includes(name));
+  return project?.color || fallbackColor;
+}
+
+/**
+ * Find priority color by name from a list of priorities
+ */
+export function findPriorityColor(
+  name: string,
+  priorities: Array<{ name: string; alternatives: string[]; color?: string }>,
+  fallbackColor: string,
+): string {
+  const priority = priorities.find((p) => p.name === name || p.alternatives.includes(name));
+  return priority?.color || fallbackColor;
+}
+
+/**
  * Determine text color (black or white) based on background luminance
  */
 export function getTextColor(backgroundColor: string): string {

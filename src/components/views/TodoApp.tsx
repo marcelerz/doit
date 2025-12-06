@@ -23,6 +23,7 @@ import { FilterSection } from "@/components/shared/FilterSection";
 import { ConfirmDialog } from "@/components/shared/Notification";
 import { parseTokensToMetadata } from "@/utils/metadataParser";
 import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
+import { getTextColor } from "@/utils/colors";
 import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
 
 interface TodoFilters {
@@ -644,13 +645,8 @@ export function TodoApp() {
     const markerKey = markerColorMap[type];
     const bgColor = settings.markerColors[markerKey];
 
-    // Calculate text color based on background luminance
-    const hex = bgColor.replace("#", "");
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    const textColor = luminance > 0.5 ? "#000000" : "#FFFFFF";
+    // Use centralized getTextColor utility
+    const textColor = getTextColor(bgColor);
 
     return {
       backgroundColor: bgColor,
