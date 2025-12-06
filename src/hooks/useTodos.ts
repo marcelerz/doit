@@ -7,6 +7,7 @@ import { defaultSettings, Settings } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
 import { createActivity, generateMetadataActivities } from "@/utils/activityLogger";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
+import { waitForStorageInit } from "@/storage/storageInit";
 import { TodoModel, createTodoModels } from "@/models/TodoModel";
 
 export type UndoAction = {
@@ -31,29 +32,32 @@ export function useTodos() {
 
   // Load todos from storage on mount
   useEffect(() => {
-    // Check if migration is needed
-    const migrationNeeded = checkAndUpdateVersion();
+    // Wait for storage to be initialized before loading data
+    waitForStorageInit().then(() => {
+      // Check if migration is needed
+      const migrationNeeded = checkAndUpdateVersion();
 
-    // Load settings and todos asynchronously
-    Promise.all([
-      loadFromStorage(STORAGE_KEYS.SETTINGS, defaultSettings),
-      loadFromStorage<Todo[]>(STORAGE_KEYS.TODOS, []),
-    ]).then(([storedSettings, loadedTodos]) => {
-      const migratedSettings = migrateSettings(storedSettings);
-      setSettings(migratedSettings);
-      const migratedTodos = migrateTodos(loadedTodos, migratedSettings);
-      // Filter out any deleted todos
-      const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
-      setRawTodos(cleanedTodos);
+      // Load settings and todos asynchronously
+      return Promise.all([
+        loadFromStorage(STORAGE_KEYS.SETTINGS, defaultSettings),
+        loadFromStorage<Todo[]>(STORAGE_KEYS.TODOS, []),
+      ]).then(([storedSettings, loadedTodos]) => {
+        const migratedSettings = migrateSettings(storedSettings);
+        setSettings(migratedSettings);
+        const migratedTodos = migrateTodos(loadedTodos, migratedSettings);
+        // Filter out any deleted todos
+        const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
+        setRawTodos(cleanedTodos);
 
-      // If migration was needed or we removed deleted todos, save the cleaned data
-      if (migrationNeeded || cleanedTodos.length !== loadedTodos.length) {
-        saveToStorage(STORAGE_KEYS.TODOS, cleanedTodos).catch((error) => {
-          console.error("Failed to save todos:", error);
-        });
-      }
+        // If migration was needed or we removed deleted todos, save the cleaned data
+        if (migrationNeeded || cleanedTodos.length !== loadedTodos.length) {
+          saveToStorage(STORAGE_KEYS.TODOS, cleanedTodos).catch((error) => {
+            console.error("Failed to save todos:", error);
+          });
+        }
 
-      setIsLoaded(true);
+        setIsLoaded(true);
+      });
     });
   }, []);
 

@@ -229,16 +229,17 @@ export function exportBackupAsFile(backup: BackupData): void {
 /**
  * Export current data as downloadable JSON file
  */
-export function exportCurrentDataAsFile(): void {
-  const todosData = localStorage.getItem("doit-todos") || "[]";
-  const settingsData = localStorage.getItem("doit-settings") || "{}";
+export async function exportCurrentDataAsFile(): Promise<void> {
+  const adapter = getStorageAdapter();
+  const todosData = await adapter.getItem(STORAGE_KEYS.TODOS);
+  const settingsData = await adapter.getItem(STORAGE_KEYS.SETTINGS);
 
   const now = new Date();
   const backup: BackupData = {
     timestamp: now.getTime(),
     date: now.toISOString(),
-    todos: todosData,
-    settings: settingsData,
+    todos: typeof todosData === "string" ? todosData : JSON.stringify(todosData || []),
+    settings: typeof settingsData === "string" ? settingsData : JSON.stringify(settingsData || {}),
     source: "manual",
   };
 

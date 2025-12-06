@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { loadFromStorage, saveToStorage } from "@/storage/storage";
+import { waitForStorageInit } from "@/storage/storageInit";
 import { Comment, ActivityEntry } from "@/types/settings";
 
 /**
@@ -47,9 +48,12 @@ export function useEntityManager<T extends BaseEntity, M>(
 
   // Load entities from storage on mount
   useEffect(() => {
-    loadFromStorage<T[]>(config.storageKey, []).then((loaded) => {
-      setRawEntities(loaded);
-      setIsLoaded(true);
+    // Wait for storage to be initialized before loading data
+    waitForStorageInit().then(() => {
+      return loadFromStorage<T[]>(config.storageKey, []).then((loaded) => {
+        setRawEntities(loaded);
+        setIsLoaded(true);
+      });
     });
   }, [config.storageKey]);
 

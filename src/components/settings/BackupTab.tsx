@@ -149,8 +149,8 @@ export function BackupTab({ onRestore }: BackupTabProps) {
     exportBackupAsFile(backup);
   };
 
-  const handleExportCurrent = () => {
-    exportCurrentDataAsFile();
+  const handleExportCurrent = async () => {
+    await exportCurrentDataAsFile();
   };
 
   const handleImportClick = () => {
