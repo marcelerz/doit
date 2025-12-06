@@ -580,7 +580,11 @@ export function detectMentionedProjects(text: string, availableProjects: Project
   const contextPatterns = [
     { pattern: /\b(?:on|in|for|about)\s+project\s+/gi, prefix: true },
     { pattern: /\b(?:on|in|for|about)\s+/gi, prefix: true },
+    { pattern: /\bre:\s+/gi, prefix: true }, // "re: Project Name"
+    { pattern: /\b(?:regarding|related\s+to|concerning)\s+/gi, prefix: true },
+    { pattern: /\b(?:working\s+on|part\s+of)\s+/gi, prefix: true },
     { pattern: /\s+project\b/gi, prefix: false },
+    { pattern: /\s+initiative\b/gi, prefix: false },
   ];
 
   for (const lowerName of sortedNames) {
@@ -630,12 +634,208 @@ export function detectMentionedProjects(text: string, availableProjects: Project
 }
 
 /**
+ * Interface for detected assigned person
+ */
+export interface DetectedAssignedPerson {
+  text: string; // The text that was matched (e.g., "ask Marcel")
+  start: number; // Start index in the original text
+  end: number; // End index in the original text
+  personName: string; // The canonical person name
+}
+
+/**
+ * Detect assigned people in text using context patterns
+ * These patterns suggest the person should be assigned to the task
+ * Matches patterns like:
+ * - "ask <person name>"
+ * - "tell <person name>"
+ * - "cc <person name>"
+ * - "with <person name>"
+ * - "assign to <person name>"
+ * - "for <person name> to"
+ * - "have <person name>"
+ * - "get <person name> to"
+ * - "reminder for <person name>"
+ */
+export function detectAssignedPeople(text: string, availablePeople: Person[]): DetectedAssignedPerson[] {
+  const results: DetectedAssignedPerson[] = [];
+
+  // Blacklist common English words
+  const blacklist = new Set([
+    "me",
+    "i",
+    "a",
+    "an",
+    "the",
+    "and",
+    "or",
+    "but",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "of",
+    "with",
+    "by",
+    "from",
+    "up",
+    "about",
+    "into",
+    "through",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "between",
+    "under",
+    "again",
+    "further",
+    "then",
+    "once",
+    "here",
+    "there",
+    "when",
+    "where",
+    "why",
+    "how",
+    "all",
+    "both",
+    "each",
+    "few",
+    "more",
+    "most",
+    "other",
+    "some",
+    "such",
+    "no",
+    "nor",
+    "not",
+    "only",
+    "own",
+    "same",
+    "so",
+    "than",
+    "too",
+    "very",
+    "can",
+    "will",
+    "just",
+    "should",
+    "now",
+    "he",
+    "she",
+    "it",
+    "we",
+    "they",
+    "us",
+    "them",
+    "his",
+    "her",
+    "its",
+    "our",
+    "their",
+    "my",
+    "your",
+  ]);
+
+  // Build a list of all names (canonical + alternatives)
+  const nameMap = new Map<string, string>();
+
+  for (const person of availablePeople) {
+    const lowerName = person.name.toLowerCase();
+    if (!blacklist.has(lowerName)) {
+      nameMap.set(lowerName, person.name);
+    }
+
+    for (const alt of person.alternatives) {
+      const lowerAlt = alt.toLowerCase();
+      if (!blacklist.has(lowerAlt)) {
+        nameMap.set(lowerAlt, person.name);
+      }
+    }
+  }
+
+  // Sort names by length (longest first)
+  const sortedNames = Array.from(nameMap.keys()).sort((a, b) => b.length - a.length);
+
+  // Track processed ranges
+  const processedRanges: Array<{ start: number; end: number }> = [];
+
+  // Context patterns that suggest assignment
+  const contextPatterns = [
+    { pattern: /\b(?:ask|tell|ping|nudge|remind)\s+/gi, prefix: true },
+    { pattern: /\b(?:cc|copy)\s+/gi, prefix: true },
+    { pattern: /\b(?:with|involve)\s+/gi, prefix: true },
+    { pattern: /\bassign(?:ed)?\s+to\s+/gi, prefix: true },
+    { pattern: /\bfor\s+/gi, prefix: true, suffix: /\s+to\b/gi }, // "for Marcel to review"
+    { pattern: /\bhave\s+/gi, prefix: true },
+    { pattern: /\bget\s+/gi, prefix: true, suffix: /\s+to\b/gi }, // "get Marcel to help"
+    { pattern: /\breminder\s+for\s+/gi, prefix: true },
+    { pattern: /\bfollow\s*up\s+with\s+/gi, prefix: true },
+    { pattern: /\bcheck\s+with\s+/gi, prefix: true },
+    { pattern: /\bsync\s+with\s+/gi, prefix: true },
+    { pattern: /\bmeet(?:ing)?\s+with\s+/gi, prefix: true },
+  ];
+
+  for (const lowerName of sortedNames) {
+    const escapedName = lowerName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    for (const { pattern, prefix, suffix } of contextPatterns) {
+      let contextRegex: RegExp;
+
+      if (prefix && suffix) {
+        // Pattern with both prefix and suffix: "for Marcel to"
+        contextRegex = new RegExp(`(${pattern.source})${escapedName}(${suffix.source})`, "gi");
+      } else if (prefix) {
+        contextRegex = new RegExp(`(${pattern.source})${escapedName}\\b`, "gi");
+      } else {
+        contextRegex = new RegExp(`\\b${escapedName}(${pattern.source})`, "gi");
+      }
+
+      let match;
+      while ((match = contextRegex.exec(text)) !== null) {
+        const fullMatch = match[0];
+        const start = match.index;
+        const end = start + fullMatch.length;
+
+        // Check for overlaps
+        const overlaps = processedRanges.some((range) => !(end <= range.start || start >= range.end));
+
+        if (!overlaps) {
+          const canonicalName = nameMap.get(lowerName)!;
+
+          results.push({
+            text: fullMatch,
+            start,
+            end,
+            personName: canonicalName,
+          });
+
+          processedRanges.push({ start, end });
+        }
+      }
+    }
+  }
+
+  // Sort by position in text
+  results.sort((a, b) => a.start - b.start);
+
+  return results;
+}
+/**
  * Detect source people in text using context patterns
  * Matches patterns like:
  * - "from <person name>"
  * - "source <person name>"
  * - "via <person name>"
  * - "per <person name>"
+ * - "sent by <person name>"
+ * - "shared by <person name>"
+ * - "mentioned by <person name>"
+ * - "cc'd by <person name>"
+ * - "forwarded by <person name>"
  */
 export function detectSourcePeople(text: string, availablePeople: Person[]): DetectedSourcePerson[] {
   const results: DetectedSourcePerson[] = [];
@@ -750,6 +950,8 @@ export function detectSourcePeople(text: string, availablePeople: Person[]): Det
   const contextPatterns = [
     { pattern: /\b(?:from|via|per)\s+/gi, prefix: true },
     { pattern: /\bsource\s+/gi, prefix: true },
+    { pattern: /\b(?:sent|shared|forwarded|cc['']?d|mentioned|submitted|reported)\s+by\s+/gi, prefix: true },
+    { pattern: /\breceived\s+from\s+/gi, prefix: true },
   ];
 
   for (const lowerName of sortedNames) {
@@ -800,15 +1002,22 @@ export function detectSourcePeople(text: string, availablePeople: Person[]): Det
 /**
  * Detect priorities in text
  * Matches patterns like:
- * - "<priority name>" - direct match (e.g., "urgent", "high priority")
- * - "<priority name> priority" - with suffix
- * - "priority <priority name>" - with prefix
- * Priority names are typically specific enough to detect without additional context
+ * - "<priority name>" - direct match for specific words (e.g., "urgent", "critical", "asap")
+ * - "<priority name> priority" - with suffix (e.g., "high priority")
+ * - "priority <priority name>" - with prefix (e.g., "priority high")
+ * - "priority: <priority name>" - with colon
+ * - "p1", "p2", "p3" - shorthand priority levels
+ *
+ * Note: Common words like "high", "low", "medium", "normal" require "priority" context
+ * to avoid false positives. More specific words like "urgent", "critical", "asap" can
+ * be detected standalone.
  */
 export function detectPriorities(text: string, availablePriorities: Priority[]): DetectedPriority[] {
   const results: DetectedPriority[] = [];
 
-  // No blacklist needed - priority names should be specific enough
+  // Words that are too common to detect without context
+  const requiresContextWords = new Set(["high", "low", "medium", "normal", "none"]);
+
   // Build a list of all priority names (canonical + alternatives)
   const priorityMap = new Map<string, string>();
 
@@ -826,41 +1035,48 @@ export function detectPriorities(text: string, availablePriorities: Priority[]):
   // Track processed ranges
   const processedRanges: Array<{ start: number; end: number }> = [];
 
-  // Context patterns (optional - priorities can be detected standalone)
+  // Context patterns for words that need context
   const contextPatterns = [
-    { pattern: /\bpriority\s+/gi, prefix: true }, // "priority high"
+    { pattern: /\bpriority[:\s]+/gi, prefix: true }, // "priority high" or "priority: high"
     { pattern: /\s+priority\b/gi, prefix: false }, // "high priority"
+    { pattern: /\bprio[:\s]+/gi, prefix: true }, // "prio high" or "prio: high"
+    { pattern: /\bimportance[:\s]+/gi, prefix: true }, // "importance: high"
+    { pattern: /\s+importance\b/gi, prefix: false }, // "high importance"
   ];
 
   for (const lowerName of sortedNames) {
     const escapedName = lowerName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const needsContext = requiresContextWords.has(lowerName);
 
-    // First, try direct match (no context required)
-    const directRegex = new RegExp(`\\b${escapedName}\\b`, "gi");
     let match;
-    while ((match = directRegex.exec(text)) !== null) {
-      const fullMatch = match[0];
-      const start = match.index;
-      const end = start + fullMatch.length;
 
-      // Check for overlaps
-      const overlaps = processedRanges.some((range) => !(end <= range.start || start >= range.end));
+    if (!needsContext) {
+      // For specific priority words (urgent, critical, asap, etc.), allow direct match
+      const directRegex = new RegExp(`\\b${escapedName}\\b`, "gi");
+      while ((match = directRegex.exec(text)) !== null) {
+        const fullMatch = match[0];
+        const start = match.index;
+        const end = start + fullMatch.length;
 
-      if (!overlaps) {
-        const canonicalName = priorityMap.get(lowerName)!;
+        // Check for overlaps
+        const overlaps = processedRanges.some((range) => !(end <= range.start || start >= range.end));
 
-        results.push({
-          text: fullMatch,
-          start,
-          end,
-          priorityName: canonicalName,
-        });
+        if (!overlaps) {
+          const canonicalName = priorityMap.get(lowerName)!;
 
-        processedRanges.push({ start, end });
+          results.push({
+            text: fullMatch,
+            start,
+            end,
+            priorityName: canonicalName,
+          });
+
+          processedRanges.push({ start, end });
+        }
       }
     }
 
-    // Also try with "priority" context
+    // Always try with context patterns (for common words, this is the only way)
     for (const { pattern, prefix } of contextPatterns) {
       let contextRegex: RegExp;
 
@@ -892,6 +1108,56 @@ export function detectPriorities(text: string, availablePriorities: Priority[]):
         }
       }
     }
+  }
+
+  // Sort by position in text
+  results.sort((a, b) => a.start - b.start);
+
+  return results;
+}
+
+/**
+ * Interface for detected tag
+ */
+export interface DetectedTag {
+  text: string; // The text that was matched (e.g., "#important")
+  start: number; // Start index in the original text
+  end: number; // End index in the original text
+  tagName: string; // The tag name (without #)
+}
+
+/**
+ * Detect hashtags in text
+ * Matches patterns like:
+ * - "#important"
+ * - "#followup"
+ * - "#waiting-on"
+ *
+ * Note: This is for auto-detecting hashtags that aren't explicitly added via the # marker
+ * The explicit # marker is handled in SmartInput.tsx
+ */
+export function detectHashtags(text: string): DetectedTag[] {
+  const results: DetectedTag[] = [];
+
+  // Hashtag pattern: # followed by word characters (letters, numbers, dashes, underscores)
+  // Must not be preceded by a word character (to avoid matching mid-word)
+  const hashtagRegex = /(?:^|[^\w])#([\w-]+)/gi;
+
+  let match;
+  while ((match = hashtagRegex.exec(text)) !== null) {
+    const tagName = match[1];
+    const fullMatch = match[0];
+
+    // Calculate actual start (accounting for possible preceding character)
+    const start = match.index + (fullMatch.length - tagName.length - 1);
+    const end = match.index + fullMatch.length;
+
+    results.push({
+      text: fullMatch.trim(),
+      start,
+      end,
+      tagName,
+    });
   }
 
   // Sort by position in text
