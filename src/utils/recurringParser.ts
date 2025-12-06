@@ -44,16 +44,62 @@ function normalizeOrdinal(ordinal: string): string {
 export function parseRecurringPattern(pattern: string): RecurringPattern | null {
   const normalized = pattern.toLowerCase().trim();
 
-  // Workday pattern: workday or every workday
-  if (normalized === "workday" || normalized === "every workday") {
+  // Workday patterns: workday, every workday, each workday
+  if (/^(?:every\s+|each\s+)?workday$/.test(normalized)) {
     return {
       type: "workday",
       raw: pattern,
     };
   }
 
-  // Simple interval pattern: every day/week/month (no number)
-  const simpleIntervalMatch = normalized.match(/^every\s+(day|week|month|quarter|half|year)$/);
+  // Weekday (M-F) patterns: weekday, every weekday, weekdays
+  if (/^(?:every\s+|each\s+)?weekdays?$/.test(normalized)) {
+    return {
+      type: "workday", // Same as workday (M-F)
+      raw: pattern,
+    };
+  }
+
+  // Single-word shortcuts: daily, weekly, monthly, yearly, biweekly, bimonthly
+  const shortcutMap: Record<string, { interval: number; unit: RecurringPattern["unit"] }> = {
+    daily: { interval: 1, unit: "day" },
+    weekly: { interval: 1, unit: "week" },
+    biweekly: { interval: 2, unit: "week" },
+    fortnightly: { interval: 2, unit: "week" },
+    monthly: { interval: 1, unit: "month" },
+    bimonthly: { interval: 2, unit: "month" },
+    quarterly: { interval: 1, unit: "quarter" },
+    yearly: { interval: 1, unit: "year" },
+    annually: { interval: 1, unit: "year" },
+    semiannually: { interval: 1, unit: "half" },
+  };
+
+  if (shortcutMap[normalized]) {
+    const { interval, unit } = shortcutMap[normalized];
+    return {
+      type: "interval",
+      interval,
+      unit,
+      raw: pattern,
+    };
+  }
+
+  // "repeat" prefix: repeat daily, repeat weekly, etc.
+  const repeatShortcutMatch = normalized.match(
+    /^repeat\s+(daily|weekly|biweekly|fortnightly|monthly|bimonthly|quarterly|yearly|annually|semiannually)$/,
+  );
+  if (repeatShortcutMatch && shortcutMap[repeatShortcutMatch[1]]) {
+    const { interval, unit } = shortcutMap[repeatShortcutMatch[1]];
+    return {
+      type: "interval",
+      interval,
+      unit,
+      raw: pattern,
+    };
+  }
+
+  // Simple interval pattern: every/each day/week/month (no number)
+  const simpleIntervalMatch = normalized.match(/^(?:every|each|repeat)\s+(day|week|month|quarter|half|year)$/);
   if (simpleIntervalMatch) {
     const unit = simpleIntervalMatch[1] as "day" | "week" | "month" | "quarter" | "half" | "year";
     return {
@@ -64,8 +110,8 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
     };
   }
 
-  // Interval pattern: every X days/weeks/months/quarters/halfs/years
-  const intervalMatch = normalized.match(/^every\s+(\d+)\s+(day|week|month|quarter|half|year)s?$/);
+  // Interval pattern: every/each X days/weeks/months/quarters/halfs/years
+  const intervalMatch = normalized.match(/^(?:every|each|repeat)\s+(\d+)\s+(day|week|month|quarter|half|year)s?$/);
   if (intervalMatch) {
     const interval = parseInt(intervalMatch[1], 10);
     const unit = intervalMatch[2] as "day" | "week" | "month" | "quarter" | "half" | "year";
@@ -77,8 +123,20 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
     };
   }
 
-  // Monthly pattern with "every": every month on the 15th, every month on 15
-  const everyMonthMatch = normalized.match(/^every\s+month\s+on\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?$/);
+  // Other interval: every other day/week/month (= every 2)
+  const everyOtherMatch = normalized.match(/^every\s+other\s+(day|week|month|quarter|half|year)$/);
+  if (everyOtherMatch) {
+    const unit = everyOtherMatch[1] as "day" | "week" | "month" | "quarter" | "half" | "year";
+    return {
+      type: "interval",
+      interval: 2,
+      unit,
+      raw: pattern,
+    };
+  }
+
+  // Monthly pattern with "every/each": every month on the 15th, every month on 15
+  const everyMonthMatch = normalized.match(/^(?:every|each)\s+month\s+on\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?$/);
   if (everyMonthMatch) {
     const monthDay = parseInt(everyMonthMatch[1], 10);
     return {
@@ -88,8 +146,21 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
     };
   }
 
-  // Simple weekday pattern: every monday
-  const weekdayMatch = normalized.match(/^every\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/);
+  // Simple "on the Xth" pattern (implies monthly): on the 15th, on the 1st
+  const onTheDayMatch = normalized.match(/^on\s+the\s+(\d+)(?:st|nd|rd|th)$/);
+  if (onTheDayMatch) {
+    const monthDay = parseInt(onTheDayMatch[1], 10);
+    return {
+      type: "monthly",
+      monthDay,
+      raw: pattern,
+    };
+  }
+
+  // Simple weekday pattern: every/each monday
+  const weekdayMatch = normalized.match(
+    /^(?:every|each)\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/,
+  );
   if (weekdayMatch) {
     const weekday = WEEKDAYS.indexOf(weekdayMatch[1]);
     return {
@@ -99,10 +170,10 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
     };
   }
 
-  // Nth weekday pattern: every 1st monday, every 2nd friday, every last tuesday
+  // Nth weekday pattern: every/each 1st monday, every 2nd friday, every last tuesday
   // Also supports word forms: every first monday, every second friday
   const nthWeekdayMatch = normalized.match(
-    /^every\s+(1st|2nd|3rd|4th|5th|last|first|second|third|fourth|fifth)\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/,
+    /^(?:every|each)\s+(1st|2nd|3rd|4th|5th|last|first|second|third|fourth|fifth)\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/,
   );
   if (nthWeekdayMatch) {
     const normalizedOrdinal = normalizeOrdinal(nthWeekdayMatch[1]);
@@ -114,6 +185,28 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
       weekday,
       raw: pattern,
     };
+  }
+
+  // Multiple weekdays: every monday and wednesday, every tue and thu
+  const multiWeekdayMatch = normalized.match(
+    /^(?:every|each)\s+((?:sun|mon|tue|wed|thu|fri|sat)(?:day)?(?:\s*(?:,|and)\s*(?:sun|mon|tue|wed|thu|fri|sat)(?:day)?)+)$/,
+  );
+  if (multiWeekdayMatch) {
+    // Store as raw - this would need special handling for multiple weekdays
+    // For now, treat as first weekday mentioned
+    const daysStr = multiWeekdayMatch[1];
+    const dayMatches = daysStr.match(/sun|mon|tue|wed|thu|fri|sat/gi);
+    if (dayMatches && dayMatches.length > 0) {
+      const firstDay = dayMatches[0].toLowerCase();
+      const weekdayIndex = WEEKDAYS.findIndex((w) => w.startsWith(firstDay));
+      if (weekdayIndex !== -1) {
+        return {
+          type: "weekday",
+          weekday: weekdayIndex,
+          raw: pattern,
+        };
+      }
+    }
   }
 
   // Monthly pattern: %monthly on 15th
@@ -290,22 +383,42 @@ function getOrdinalSuffix(day: number): string {
 
 export function getRecurringSuggestions(): string[] {
   return [
+    // Simple shortcuts
+    "daily",
+    "weekly",
+    "biweekly",
+    "monthly",
+    "quarterly",
+    "yearly",
+    // Every patterns
     "every day",
     "every 2 days",
     "every week",
     "every 2 weeks",
+    "every other week",
     "every month",
     "every month on the 1st",
     "every month on the 15th",
+    "every other month",
+    "every quarter",
+    "every year",
+    // Workday patterns
     "every workday",
+    "every weekday",
+    // Weekday patterns
     "every monday",
     "every tuesday",
     "every wednesday",
     "every thursday",
     "every friday",
+    "every saturday",
+    "every sunday",
+    // Nth weekday patterns
     "every 1st monday",
     "every 2nd tuesday",
+    "every 3rd wednesday",
     "every last friday",
+    // Legacy/alternative
     "monthly on 1st",
     "monthly on 15th",
     "quarterly on 1st",

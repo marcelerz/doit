@@ -213,8 +213,24 @@ export function useTodos() {
     if (newState === "completed" && todoToToggle.metadata.recurring) {
       const recurringPattern = parseRecurringPattern(todoToToggle.metadata.recurring);
       if (recurringPattern) {
-        const nextDate = calculateNextOccurrence(recurringPattern, new Date());
-        const nextDateString = nextDate.toISOString().split("T")[0]; // YYYY-MM-DD format
+        // Calculate next occurrence from the current due date (if set) or today
+        // This ensures proper interval calculation (e.g., "every 2 weeks" from the due date)
+        const baseDate = todoToToggle.metadata.dueDate ? new Date(todoToToggle.metadata.dueDate) : new Date();
+        const nextDate = calculateNextOccurrence(recurringPattern, baseDate);
+
+        // Preserve time if the original due date had time, otherwise use the calculated time
+        let nextDateString: string;
+        const originalDueDate = todoToToggle.metadata.dueDate || "";
+        const hasTime = originalDueDate.includes("T");
+
+        if (hasTime) {
+          // Preserve the time component from original due date
+          const originalTime = originalDueDate.split("T")[1] || "";
+          nextDateString = `${nextDate.toISOString().split("T")[0]}T${originalTime}`;
+        } else {
+          // Date only format
+          nextDateString = nextDate.toISOString().split("T")[0];
+        }
 
         // Create new todo with updated due date
         const newRecurringTodo: Todo = {
@@ -231,19 +247,24 @@ export function useTodos() {
             dueDate: nextDateString,
           },
           comments: [], // New instance starts with no comments
-          activity: [createActivity("created", "Task created from recurring pattern")],
+          activity: [
+            createActivity("created", `Task created from recurring pattern: ${todoToToggle.metadata.recurring}`),
+          ],
         };
 
         // Reconstruct text with new due date
+        // Markers: @ = assigned, $ = source, % = projects, !! = priority, # = tags, ~ = recurring
+        // Note: dueDate and duration are auto-detected, no explicit markers needed in text
         const parts: string[] = [todoToToggle.plainText];
         newRecurringTodo.metadata.assignedPeople.forEach((p) => parts.push(`@${p}`));
         newRecurringTodo.metadata.sourcePeople.forEach((p) => parts.push(`$${p}`));
-        newRecurringTodo.metadata.mentionedPeople.forEach((p) => parts.push(p));
-        newRecurringTodo.metadata.projects.forEach((p) => parts.push(`#${p}`));
+        // Mentioned people don't need markers (they're auto-detected in text)
+        newRecurringTodo.metadata.projects.forEach((p) => parts.push(`%${p}`));
         if (newRecurringTodo.metadata.priority) parts.push(`!!${newRecurringTodo.metadata.priority}`);
-        if (newRecurringTodo.metadata.dueDate) parts.push(`~${newRecurringTodo.metadata.dueDate}`);
-        if (newRecurringTodo.metadata.duration) parts.push(`*${newRecurringTodo.metadata.duration}`);
-        if (newRecurringTodo.metadata.recurring) parts.push(`%${newRecurringTodo.metadata.recurring}`);
+        newRecurringTodo.metadata.tags.forEach((t) => parts.push(`#${t}`));
+        // Recurring pattern is kept with ~ marker
+        if (newRecurringTodo.metadata.recurring) parts.push(`~${newRecurringTodo.metadata.recurring}`);
+        // Note: dueDate will be auto-detected when the text is parsed
         newRecurringTodo.text = parts.join(" ");
 
         // Add the new recurring todo to the list

@@ -120,24 +120,45 @@ export function detectDurationPatterns(text: string): DetectedDuration[] {
 }
 
 /**
- * Detect recurring patterns in text starting with "every"
+ * Detect recurring patterns in text
+ * Supports multiple trigger words: every, each, repeat, daily, weekly, etc.
  * Returns pattern with first due date derived from the pattern
  */
 function detectRecurringPatterns(text: string, referenceDate: Date = new Date()): DetectedDate[] {
   const results: DetectedDate[] = [];
 
-  // Pattern: "every <pattern>" where pattern can be:
-  // - "day", "2 days", "week", "3 weeks", etc.
-  // - "monday", "tuesday", etc.
-  // - "first monday", "2nd tuesday", "last friday", etc.
-  // - "workday"
-  // - "month on the 15th", "month on 1"
+  // Patterns to match:
+  // 1. "every/each <pattern>" where pattern can be:
+  //    - "day", "2 days", "week", "3 weeks", etc.
+  //    - "monday", "tuesday", etc.
+  //    - "first monday", "2nd tuesday", "last friday", etc.
+  //    - "workday", "weekday"
+  //    - "month on the 15th", "month on 1"
+  //    - "other day/week/month" (= every 2)
+  // 2. Single-word shortcuts: daily, weekly, biweekly, monthly, quarterly, yearly
+  // 3. "repeat <pattern>"
 
-  const regex =
-    /\bevery\s+(?:(\d+)\s+)?(day|week|month|quarter|half|year|workday|sunday|monday|tuesday|wednesday|thursday|friday|saturday)s?\b|\bevery\s+(1st|2nd|3rd|4th|5th|last|first|second|third|fourth|fifth)\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b|\bevery\s+month\s+on\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?\b/gi;
+  // Build the actual regex from the pattern parts
+  const regexPattern = new RegExp(
+    // Single-word shortcuts (must be word boundaries)
+    "\\b(daily|weekly|biweekly|fortnightly|monthly|bimonthly|quarterly|yearly|annually|semiannually)\\b|" +
+      // Workday/weekday patterns
+      "\\b(?:every|each)\\s+(workday|weekday)s?\\b|" +
+      // Every other X patterns
+      "\\bevery\\s+other\\s+(day|week|month|quarter|half|year)\\b|" +
+      // Every X (number) unit patterns
+      "\\b(?:every|each|repeat)\\s+(?:(\\d+)\\s+)?(day|week|month|quarter|half|year)s?\\b|" +
+      // Every weekday patterns
+      "\\b(?:every|each)\\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\\b|" +
+      // Nth weekday patterns
+      "\\b(?:every|each)\\s+(1st|2nd|3rd|4th|5th|last|first|second|third|fourth|fifth)\\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\\b|" +
+      // Every month on the Xth
+      "\\b(?:every|each)\\s+month\\s+on\\s+(?:the\\s+)?(\\d+)(?:st|nd|rd|th)?\\b",
+    "gi",
+  );
 
   let match;
-  while ((match = regex.exec(text)) !== null) {
+  while ((match = regexPattern.exec(text)) !== null) {
     const fullMatch = match[0];
     const patternStart = match.index;
     const patternEnd = patternStart + fullMatch.length;
