@@ -192,6 +192,8 @@ export const STORAGE_KEYS = {
   VERSION: "doit-version",
   VIEW_PRESETS: "doit-view-presets",
   VIEW_OPTIONS: "doit-view-options",
+  GANTT_VIEW_OPTIONS: "doit-gantt-view-options",
+  CALENDAR_VIEW_OPTIONS: "doit-calendar-view-options",
   BACKUP_SETTINGS: "doit-backup-settings",
   TEMPLATES: "doit-templates",
   SEARCH_HISTORY: "doit-search-history",

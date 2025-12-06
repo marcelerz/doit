@@ -17,6 +17,23 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "DoIt",
   description: "A simple, extensible, local todo app",
+  icons: {
+    // Classic favicon
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    // Apple touch icon
+    apple: [
+      {
+        url: "/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+  },
+  manifest: "/site.webmanifest",
 };
 
 export const viewport: Viewport = {

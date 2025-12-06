@@ -111,7 +111,9 @@ Data is now organized into separate top-level storage keys:
 - `doit-settings` - Application settings (managed by `useSettings` hook)
 - `doit-version` - Data version for migrations
 - `doit-view-presets` - Saved view configurations
-- `doit-view-options` - Current view state (filters, sort, group)
+- `doit-view-options` - Current view state (filters, sort, group) for List view
+- `doit-gantt-view-options` - Gantt view state (schedulingMode, groupByProject, completedCollapsed, showTasksWithoutDates)
+- `doit-calendar-view-options` - Calendar view state (viewMode, sortField, sortDirection, showTasksWithoutDates)
 - `doit-backup-settings` - Backup configuration
 
 All keys are centralized in `STORAGE_KEYS` constant for easy management.

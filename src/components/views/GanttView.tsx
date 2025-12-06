@@ -4,6 +4,7 @@ import { TodoMetadata } from "@/types/todo";
 import { TodoModel } from "@/models/TodoModel";
 import { MarkerColors, WorkHoursSettings, GanttZoomLevel } from "@/types/settings";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
+import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { getTextColor } from "@/utils/colors";
@@ -79,13 +80,71 @@ export function GanttView({
     return today;
   });
   const [weekOffset, setWeekOffset] = useState(0); // 0 = current week, 1 = next week, -1 = previous week
-  const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(true);
-  const [schedulingMode, setSchedulingMode] = useState<"asap" | "dueDate">("asap");
-  const [groupByProject, setGroupByProject] = useState(false); // Group tasks by project
+
+  // Load persisted view options
+  const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const result = getStorageAdapter().getItem(STORAGE_KEYS.GANTT_VIEW_OPTIONS);
+        const saved = typeof result === "string" ? result : null;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.showTasksWithoutDates ?? true;
+        }
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return true;
+  });
+  const [schedulingMode, setSchedulingMode] = useState<"asap" | "dueDate">(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const result = getStorageAdapter().getItem(STORAGE_KEYS.GANTT_VIEW_OPTIONS);
+        const saved = typeof result === "string" ? result : null;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.schedulingMode ?? "asap";
+        }
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return "asap";
+  });
+  const [groupByProject, setGroupByProject] = useState(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const result = getStorageAdapter().getItem(STORAGE_KEYS.GANTT_VIEW_OPTIONS);
+        const saved = typeof result === "string" ? result : null;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.groupByProject ?? false;
+        }
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return false;
+  });
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<TodoModel | null>(null);
-  const [completedCollapsed, setCompletedCollapsed] = useState(settings.gantt.collapseCompleted ?? false);
+  const [completedCollapsed, setCompletedCollapsed] = useState(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const result = getStorageAdapter().getItem(STORAGE_KEYS.GANTT_VIEW_OPTIONS);
+        const saved = typeof result === "string" ? result : null;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.completedCollapsed ?? settings.gantt.collapseCompleted ?? false;
+        }
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return settings.gantt.collapseCompleted ?? false;
+  });
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedTaskIndex, setSelectedTaskIndex] = useState<number>(-1);
   const [showClickHint, setShowClickHint] = useState(true); // Shows "Click to edit" hint
@@ -108,6 +167,19 @@ export function GanttView({
   useEffect(() => {
     setNotificationPermission(getNotificationPermission());
   }, []);
+
+  // Persist Gantt view options to storage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const viewOptions = {
+        showTasksWithoutDates,
+        schedulingMode,
+        groupByProject,
+        completedCollapsed,
+      };
+      getStorageAdapter().setItem(STORAGE_KEYS.GANTT_VIEW_OPTIONS, JSON.stringify(viewOptions));
+    }
+  }, [showTasksWithoutDates, schedulingMode, groupByProject, completedCollapsed]);
 
   // Update zoom level and persist to settings
   const handleZoomChange = useCallback(
@@ -808,7 +880,7 @@ export function GanttView({
         case "C":
           e.preventDefault();
           // Toggle completed collapse
-          setCompletedCollapsed((prev) => !prev);
+          setCompletedCollapsed((prev: boolean) => !prev);
           break;
         case " ": // Space to toggle completion
           e.preventDefault();
