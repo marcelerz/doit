@@ -297,9 +297,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
 
       for (const detected of detectedDurations) {
         // Check if this position overlaps with any existing token
-        const overlapsExisting = tokens.some(
-          (t) => !(detected.end <= t.start || detected.start >= t.end),
-        );
+        const overlapsExisting = tokens.some((t) => !(detected.end <= t.start || detected.start >= t.end));
 
         if (!overlapsExisting) {
           tokens.push({

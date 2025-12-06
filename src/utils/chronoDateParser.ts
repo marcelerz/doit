@@ -111,7 +111,8 @@ export function detectDurationPatterns(text: string): DetectedDuration[] {
   // Duration pattern: number (optional decimal) followed by unit (m, h, d, w)
   // Must be standalone (word boundary) to avoid matching parts of other text
   // Excludes patterns that could be times (like "at 9am", "9:30pm")
-  const durationRegex = /\b(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|wk|wks|week|weeks)\b/gi;
+  const durationRegex =
+    /\b(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|wk|wks|week|weeks)\b/gi;
 
   let match;
   while ((match = durationRegex.exec(text)) !== null) {
@@ -298,9 +299,7 @@ export function detectDatesInText(
     );
 
     if (overlapsWithDuration) {
-      console.log(
-        `  ⚠️ Filtering out chrono result "${result.text}" - overlaps with duration pattern`,
-      );
+      console.log(`  ⚠️ Filtering out chrono result "${result.text}" - overlaps with duration pattern`);
       return false;
     }
     return true;
