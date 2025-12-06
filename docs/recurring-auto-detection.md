@@ -67,12 +67,12 @@ When detected, the pattern creates **two tokens**:
 
 The system runs in sequence:
 
-1. **Explicit markers** (`~dueDate`, `%recurring`) - Processed first
-2. **Chrono date detection** - Detects natural dates like "tomorrow", "next Friday"
-3. **Custom shorthands** - Detects "eod", "morning", "bow", etc.
-4. **Recurring patterns** - Detects "every" patterns
+1. **Chrono date detection** - Detects natural dates like "tomorrow", "next Friday"
+2. **Custom shorthands** - Detects "eod", "morning", "bow", etc.
+3. **Recurring patterns** - Detects "every" patterns
+4. **Explicit markers** (@, $, %, !!, #) - Assigned/source people, projects, priorities, tags
 
-Overlapping detections are removed, with explicit markers taking priority.
+Overlapping detections are removed, with more specific patterns taking priority.
 
 ## Implementation Details
 
@@ -150,14 +150,13 @@ Possible additions:
 - `every month on the 15th` - Specific day of month
 - `twice a week` - Frequency-based patterns
 
-## Comparison with Explicit `%` Marker
+## Visual Styling
 
-| Feature         | Explicit `%recurring`    | Auto-detected `every`     |
-| --------------- | ------------------------ | ------------------------- |
-| Syntax          | `%every 2 weeks`         | `every 2 weeks`           |
-| Visual          | Solid background         | Dotted underline          |
-| Priority        | Higher (processed first) | Lower (can be overridden) |
-| Deactivation    | Cannot deactivate        | Click to deactivate       |
-| Pattern Storage | Exact user input         | Normalized pattern        |
+| Feature         | Auto-detected recurring patterns |
+| --------------- | -------------------------------- |
+| Syntax          | `every 2 weeks`                  |
+| Visual          | Dotted underline                 |
+| Deactivation    | Click to deactivate              |
+| Pattern Storage | Normalized pattern               |
 
-Both methods create the same tokens and work identically once detected.
+Recurring patterns are auto-detected only. There is no explicit marker for recurring patterns.

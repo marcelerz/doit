@@ -2,25 +2,34 @@
 
 ## Overview
 
-The todo app now supports comprehensive due date functionality with natural language parsing and configurable time boundaries.
+The todo app supports comprehensive due date functionality with natural language parsing and configurable time boundaries.
 
 ## Usage
 
-### Marker Symbol
+### Automatic Detection
 
-Use the `~` symbol to specify due dates in your todos:
+Due dates are **automatically detected** from natural language in your todo text:
 
+```text
+Do the laundry tomorrow
+Review pull requests by eod
+Submit report by Jan 15, 2025
 ```
-~tomorrow Do the laundry
-~eod Review pull requests
-~2025-01-15 Submit report
-```
+
+### Setting Via Details Overlay
+
+You can also set or modify due dates through the Todo Details overlay:
+
+1. Click on a todo to open its details
+2. Find the "Due" section
+3. Use the date and time pickers
+4. Or use the "delay" button for quick presets (eod, tomorrow, next week, etc.)
 
 ### Supported Formats
 
 #### Shorthand Expressions
 
-The following shorthand expressions are automatically converted to actual date/times:
+The following shorthand expressions are automatically detected and converted:
 
 **Daily:**
 
@@ -61,122 +70,96 @@ The following shorthand expressions are automatically converted to actual date/t
 - `eoy`, `endofyear` - End of current year
 - `nextyear` - Beginning of next year
 
-#### Structured Formats
+#### Natural Language (via chrono-node)
 
-The parser also accepts standard date formats:
+Any natural language date expression is detected:
 
-- ISO format: `2025-01-15T10:30:00`
-- Date strings: `Jan 15, 2025`
-- Any format that JavaScript's `Date` can parse
-
-### Autocomplete
-
-When you type `~` in the todo input, an autocomplete dropdown appears with suggestions:
-
-1. Type `~` to see the most common options (today, tomorrow, eod, etc.)
-2. Start typing to filter suggestions (e.g., `~eod` shows "eod - End of day")
-3. Press Tab or Enter to select a suggestion
-4. The shorthand is automatically converted to the actual date/time when saved
-
-Example autocomplete flow:
-
-```
-Type: ~eod
-Shows: "eod - End of day"
-Saved as: "Wed, 25th Dec 2024 5:00pm" (based on your settings)
-```
+- "next Friday at 3pm"
+- "in 2 weeks"
+- "December 25"
+- "end of week"
 
 ## Configuration
 
 ### Date/Time Settings
 
-Configure time boundaries in **Settings → General → Date & Time Configuration**:
+Configure time boundaries in **Settings → Date & Time**:
 
-1. **Start of Day (BOD)**: Default time for "beginning of day" (default: 09:00)
-2. **End of Day (EOD)**: Default time for "end of day" (default: 17:00)
-3. **Work Week Start**: First day of your work week (default: Monday)
-4. **Fiscal Year Start**: First month of your fiscal year (default: January)
+1. **Morning**: Default time for "morning" (default: 08:00)
+2. **Noon**: Default time for "noon" (default: 12:00)
+3. **Afternoon**: Default time for "afternoon" (default: 15:00)
+4. **Evening**: Default time for "evening" (default: 19:00)
+5. **Work Week Start**: First day of your work week (default: Monday)
+6. **Fiscal Year Start**: First month of your fiscal year (default: January)
+
+### Work Hours Settings
+
+Configure work hours in **Settings → Work Hours**:
+
+1. **Start of Day (BOD)**: Default time for "beginning of day" (from work hours start)
+2. **End of Day (EOD)**: Default time for "end of day" (from work hours end)
 
 These settings affect how shorthand expressions are interpreted:
 
-- `~eod` → Uses your configured "End of Day" time
-- `~bow` → Calculates based on your configured "Work Week Start"
-- `~eoq` → Calculates quarters based on your fiscal year start
+- `eod` → Uses your configured work hours end time
+- `bow` → Calculates based on your configured work week start
+- `eoq` → Calculates quarters based on your fiscal year start
 
 ### Auto-Assignment
 
-You can set a default due date for all new todos in **Settings → General → Auto-Assign Metadata**:
+You can set a default due date for all new todos in **Settings → Auto-Assign**:
 
-1. Enable auto-assignment
-2. Set a default due date (e.g., "tomorrow", "eod", or a specific date)
-3. New todos without an explicit `~` marker will use this default
+1. Set a default due date (e.g., "today", "eod", or a specific date)
+2. New todos will use this default if no due date is detected
 
 ## Technical Details
 
 ### Date Storage Format
 
-All dates are stored in the format: `"DayOfWeek, DDth Month YYYY HH:MMam/pm"`
+Dates are stored in ISO format: `YYYY-MM-DDTHH:mm`
 
-Examples:
-
-- `"Wed, 25th Dec 2024 10:30am"`
-- `"Mon, 1st Jan 2025 5:00pm"`
-- `"Fri, 13th Dec 2024 11:45pm"`
-
-### Parsing Logic
-
-The date parser (`src/utils/dateParser.ts`) handles:
-
-1. **Shorthand parsing**: Converts expressions like "eod" to actual dates using your configured settings
-2. **Date calculation**: Computes relative dates (tomorrow, next week, etc.)
-3. **Time application**: Applies configured times (start/end of day) to dates
-4. **Format standardization**: Converts all dates to the standard display format
+Example: `2025-01-15T17:00`
 
 ### Components
 
-- **`src/utils/dateParser.ts`**: Core parsing and formatting utilities
-- **`src/components/SmartInput.tsx`**: Autocomplete dropdown for due date suggestions
-- **`src/components/settings/GeneralTab.tsx`**: Configuration UI for date/time settings
-- **`src/types/settings.ts`**: TypeScript types for DateTimeSettings
+- **`src/utils/dateUtils.ts`**: Date parsing and formatting utilities
+- **`src/utils/autoDetection.ts`**: Auto-detection using chrono-node
+- **`src/components/input/SmartInput.tsx`**: Input with auto-detection
+- **`src/components/overlays/TodoDetailsOverlay.tsx`**: Date/time pickers
 
 ## Examples
 
 ### Simple Todo with Due Date
 
-```
-~tomorrow Buy groceries #personal
+```text
+Buy groceries tomorrow
 ```
 
-Saved as: `~Thu, 26th Dec 2024 12:00pm Buy groceries #personal`
+Detected: dueDate = "2025-12-07T12:00"
 
 ### End of Day Deadline
 
-```
-~eod Complete code review @john #work
-```
-
-Saved as: `~Wed, 25th Dec 2024 5:00pm Complete code review @john #work`
-
-### Next Week Planning
-
-```
-~nextweek Start new project !!1 #work
+```text
+Complete code review by eod @john
 ```
 
-Saved as: `~Mon, 30th Dec 2024 9:00am Start new project !!1 #work`
+Detected: dueDate = "2025-12-06T17:00" (based on work hours)
 
-### End of Quarter Goal
+### Time Range (with Duration)
 
+```text
+Meeting tomorrow 9am to 11am
 ```
-~eoq Review annual goals !!2 @team
-```
 
-Saved as: `~Tue, 31st Mar 2025 5:00pm Review annual goals !!2 @team`
+Detected:
+
+- dueDate = "2025-12-07T09:00"
+- duration = "2h"
 
 ## Benefits
 
 1. **Natural Language**: Type dates the way you think about them
-2. **Consistency**: All dates are normalized to a standard format
-3. **Configurable**: Adapt to your work schedule and fiscal calendar
-4. **Fast Input**: Autocomplete makes adding due dates quick
-5. **Smart Parsing**: Multiple date format support for flexibility
+2. **Automatic Detection**: No markers needed, just type naturally
+3. **Configurable**: Adapt to your work schedule and calendar
+4. **Visual Feedback**: Detected dates are highlighted
+5. **Click to Disable**: Click to deactivate incorrect detections

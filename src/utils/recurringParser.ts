@@ -44,7 +44,7 @@ function normalizeOrdinal(ordinal: string): string {
 export function parseRecurringPattern(pattern: string): RecurringPattern | null {
   const normalized = pattern.toLowerCase().trim();
 
-  // Workday pattern: %workday or %every workday
+  // Workday pattern: workday or every workday
   if (normalized === "workday" || normalized === "every workday") {
     return {
       type: "workday",
@@ -52,7 +52,7 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
     };
   }
 
-  // Interval pattern: %every X days/weeks/months/quarters/halfs/years
+  // Interval pattern: every X days/weeks/months/quarters/halfs/years
   const intervalMatch = normalized.match(/^every\s+(\d+)\s+(day|week|month|quarter|half|year)s?$/);
   if (intervalMatch) {
     const interval = parseInt(intervalMatch[1], 10);
@@ -65,7 +65,7 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
     };
   }
 
-  // Simple weekday pattern: %every monday
+  // Simple weekday pattern: every monday
   const weekdayMatch = normalized.match(/^every\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/);
   if (weekdayMatch) {
     const weekday = WEEKDAYS.indexOf(weekdayMatch[1]);
@@ -76,7 +76,7 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
     };
   }
 
-  // Nth weekday pattern: %every 1st monday, %every 2nd friday, %every last tuesday
+  // Nth weekday pattern: every 1st monday, every 2nd friday, every last tuesday
   // Also supports word forms: every first monday, every second friday
   const nthWeekdayMatch = normalized.match(
     /^every\s+(1st|2nd|3rd|4th|5th|last|first|second|third|fourth|fifth)\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/,

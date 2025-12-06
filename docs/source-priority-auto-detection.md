@@ -141,8 +141,8 @@ The detection happens automatically in:
 
 When multiple detection systems overlap, the priority order is:
 
-1. **Dates** (highest priority)
-2. **Explicit markers** (@, $, #, !!, ~, \*, %, >, &)
+1. **Dates** (highest priority - auto-detected)
+2. **Explicit markers** (@, $, %, !!, #) - assigned/source people, projects, priorities, tags
 3. **Auto-detected people** (mentioned)
 4. **Auto-detected projects**
 5. **Auto-detected sources**
@@ -157,7 +157,7 @@ This ensures that explicit markers always take precedence and prevents false pos
 When you use auto-detection or explicit markers, the following are **removed from the final todo text**:
 
 - Auto-detected dates, durations, recurring patterns, dependencies
-- Explicit markers: `~`, `*`, `%`, `>`, `!!`, `#`, `&`
+- Explicit markers with values: `!!priority`, `%project`, `#tag`
 
 ### What Stays in Text
 
