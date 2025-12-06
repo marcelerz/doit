@@ -7,6 +7,7 @@ import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/comp
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Activity } from "@/components/shared/Activity";
 import { Subtasks } from "@/components/shared/Subtasks";
+import { TimeTracking } from "@/components/shared/TimeTracking";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Badge } from "@/components/shared/Badge";
 import { SearchableDropdown } from "@/components/shared/SearchableDropdown";
@@ -49,6 +50,13 @@ interface TodoDetailsOverlayProps {
   onToggleSubtask?: (todoId: string, subtaskId: string) => void;
   onEditSubtask?: (todoId: string, subtaskId: string, text: string) => void;
   onDeleteSubtask?: (todoId: string, subtaskId: string) => void;
+  // Time tracking handlers
+  onStartTimeTracking?: (todoId: string, note?: string) => void;
+  onStopTimeTracking?: (todoId: string) => void;
+  onAddManualTimeEntry?: (todoId: string, minutes: number, note?: string) => void;
+  onDeleteTimeEntry?: (todoId: string, entryId: string) => void;
+  // Template handler
+  onCreateTemplate?: (todoId: string) => void;
 }
 
 export function TodoDetailsOverlay({
@@ -76,6 +84,11 @@ export function TodoDetailsOverlay({
   onToggleSubtask,
   onEditSubtask,
   onDeleteSubtask,
+  onStartTimeTracking,
+  onStopTimeTracking,
+  onAddManualTimeEntry,
+  onDeleteTimeEntry,
+  onCreateTemplate,
 }: TodoDetailsOverlayProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTokens, setEditTokens] = useState<TokenMatch[]>([]);
@@ -978,6 +991,25 @@ export function TodoDetailsOverlay({
             );
           })()}
 
+          {/* Create Template Button */}
+          {onCreateTemplate && (
+            <button
+              onClick={() => onCreateTemplate(todo.id)}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+              title="Save as template"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                />
+              </svg>
+              Save as Template
+            </button>
+          )}
+
           {/* Action Buttons */}
           <ActionButtons
             isArchived={todo.state === "archived"}
@@ -1039,6 +1071,32 @@ export function TodoDetailsOverlay({
             readOnly={!onAddSubtask}
           />
         </div>
+
+        {/* Time Tracking Section */}
+        {onStartTimeTracking && (
+          <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+                ⏱️ Time Tracking
+                {todo.hasTimeTracking && (
+                  <span className="ml-2 text-xs font-normal text-zinc-500 dark:text-zinc-500">
+                    ({todo.totalTrackedTimeDisplay})
+                  </span>
+                )}
+              </h4>
+            </div>
+            <TimeTracking
+              entries={todo.timeTracking?.entries || []}
+              totalMinutes={todo.totalTrackedMinutes}
+              isTracking={todo.isTrackingTime}
+              activeEntry={todo.activeTimeEntry}
+              onStart={(note) => onStartTimeTracking(todo.id, note)}
+              onStop={() => onStopTimeTracking?.(todo.id)}
+              onAddManual={(minutes, note) => onAddManualTimeEntry?.(todo.id, minutes, note)}
+              onDelete={(entryId) => onDeleteTimeEntry?.(todo.id, entryId)}
+            />
+          </div>
+        )}
 
         {/* Activity (includes comments inline) */}
         <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-4">

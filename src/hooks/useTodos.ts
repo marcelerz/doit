@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Todo, TodoMetadata, ActivityEntry } from "@/types/todo";
+import { Todo, TodoMetadata, ActivityEntry, TimeEntry } from "@/types/todo";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/storage/migrations";
 import { defaultSettings, Settings } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
@@ -600,6 +600,111 @@ export function useTodos() {
     );
   };
 
+  // Time tracking functions
+  const startTimeTracking = (todoId: string, note?: string) => {
+    const now = Date.now();
+    setRawTodos((prev) =>
+      prev.map((todo) => {
+        if (todo.id === todoId) {
+          const newEntry: TimeEntry = {
+            id: `time-${now}`,
+            startTime: now,
+            note,
+          };
+          const currentTracking = todo.timeTracking || { entries: [], totalMinutes: 0 };
+          return {
+            ...todo,
+            timeTracking: {
+              ...currentTracking,
+              entries: [...currentTracking.entries, newEntry],
+            },
+            updatedAt: now,
+          };
+        }
+        return todo;
+      }),
+    );
+  };
+
+  const stopTimeTracking = (todoId: string) => {
+    const now = Date.now();
+    setRawTodos((prev) =>
+      prev.map((todo) => {
+        if (todo.id === todoId && todo.timeTracking) {
+          const entries = todo.timeTracking.entries.map((entry) => {
+            if (!entry.endTime) {
+              const duration = Math.round((now - entry.startTime) / 60000); // Convert to minutes
+              return { ...entry, endTime: now, duration };
+            }
+            return entry;
+          });
+          const totalMinutes = entries.reduce((sum, e) => sum + (e.duration || 0), 0);
+          return {
+            ...todo,
+            timeTracking: { entries, totalMinutes },
+            updatedAt: now,
+          };
+        }
+        return todo;
+      }),
+    );
+  };
+
+  const addManualTimeEntry = (todoId: string, minutes: number, note?: string) => {
+    const now = Date.now();
+    setRawTodos((prev) =>
+      prev.map((todo) => {
+        if (todo.id === todoId) {
+          const newEntry: TimeEntry = {
+            id: `time-${now}`,
+            startTime: now - minutes * 60000,
+            endTime: now,
+            duration: minutes,
+            note,
+          };
+          const currentTracking = todo.timeTracking || { entries: [], totalMinutes: 0 };
+          return {
+            ...todo,
+            timeTracking: {
+              entries: [...currentTracking.entries, newEntry],
+              totalMinutes: currentTracking.totalMinutes + minutes,
+            },
+            updatedAt: now,
+          };
+        }
+        return todo;
+      }),
+    );
+  };
+
+  const deleteTimeEntry = (todoId: string, entryId: string) => {
+    const now = Date.now();
+    setRawTodos((prev) =>
+      prev.map((todo) => {
+        if (todo.id === todoId && todo.timeTracking) {
+          const entries = todo.timeTracking.entries.filter((e) => e.id !== entryId);
+          const totalMinutes = entries.reduce((sum, e) => sum + (e.duration || 0), 0);
+          return {
+            ...todo,
+            timeTracking: { entries, totalMinutes },
+            updatedAt: now,
+          };
+        }
+        return todo;
+      }),
+    );
+  };
+
+  // Import todos from external source
+  const importTodos = (todosToImport: Array<Omit<Todo, "id">>) => {
+    const now = Date.now();
+    const newTodos = todosToImport.map((todo, index) => ({
+      ...todo,
+      id: `todo-${now}-${index}`,
+    }));
+    setRawTodos((prev) => [...prev, ...newTodos]);
+  };
+
   return {
     todos,
     addTodo,
@@ -617,6 +722,11 @@ export function useTodos() {
     toggleSubtask,
     editSubtask,
     deleteSubtask,
+    startTimeTracking,
+    stopTimeTracking,
+    addManualTimeEntry,
+    deleteTimeEntry,
+    importTodos,
     isLoaded,
     undoActions,
     fadingOutIds,

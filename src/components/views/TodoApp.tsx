@@ -6,6 +6,8 @@ import { useTodos } from "@/hooks/useTodos";
 import { useSettings } from "@/hooks/useSettings";
 import { usePeople } from "@/hooks/usePeople";
 import { useProjects } from "@/hooks/useProjects";
+import { useTemplates } from "@/hooks/useTemplates";
+import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { TodoItem } from "@/components/items/TodoItem";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { GanttView } from "./GanttView";
@@ -23,6 +25,9 @@ import { normalizeDateValue } from "@/utils/dateUtils";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterSection } from "@/components/shared/FilterSection";
 import { ConfirmDialog } from "@/components/shared/Notification";
+import { TemplatesManager, CreateTemplateModal, TemplateDropdown } from "@/components/shared/Templates";
+import { SearchHistoryDropdown } from "@/components/shared/SearchHistory";
+import { TaskTemplate } from "@/types/todo";
 import { parseTokensToMetadata } from "@/utils/tokenParser";
 import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
 import { getTextColor } from "@/utils/colors";
@@ -63,6 +68,10 @@ export function TodoApp() {
     toggleSubtask,
     editSubtask,
     deleteSubtask,
+    startTimeTracking,
+    stopTimeTracking,
+    addManualTimeEntry,
+    deleteTimeEntry,
     isLoaded,
     undoActions,
     fadingOutIds,
@@ -96,6 +105,16 @@ export function TodoApp() {
     deleteProjectComment,
   } = useProjects();
 
+  // Templates and search history hooks
+  const { templates, addTemplate, deleteTemplate, incrementUsage } = useTemplates();
+
+  const {
+    history: searchHistory,
+    addToHistory: addToSearchHistory,
+    removeFromHistory: removeFromSearchHistory,
+    clearHistory: clearSearchHistory,
+  } = useSearchHistory();
+
   const [currentTokens, setCurrentTokens] = useState<TokenMatch[]>([]);
   const [currentFullText, setCurrentFullText] = useState("");
   const [currentPlainText, setCurrentPlainText] = useState("");
@@ -104,6 +123,15 @@ export function TodoApp() {
   const peopleSearchInputRef = useRef<HTMLInputElement>(null);
   const projectsSearchInputRef = useRef<HTMLInputElement>(null);
   const [activeView, setActiveView] = useState<ViewTab>("list");
+
+  // Template state
+  const [showTemplatesManager, setShowTemplatesManager] = useState(false);
+  const [showCreateTemplate, setShowCreateTemplate] = useState(false);
+  const [templateTodoId, setTemplateTodoId] = useState<string | null>(null);
+  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
+
+  // Search history state
+  const [showSearchHistory, setShowSearchHistory] = useState(false);
 
   // Derived state: show filters section only in list view
   const showFiltersSection = activeView === "list";
@@ -222,6 +250,46 @@ export function TodoApp() {
       color: settings.markerColors.priority, // Use marker color from settings
       order: settings.priorities.length + 1,
     });
+  };
+
+  // Template handling
+  const handleCreateTemplate = (todoId: string) => {
+    setTemplateTodoId(todoId);
+    setShowCreateTemplate(true);
+  };
+
+  const handleSaveTemplate = (name: string, description?: string) => {
+    const todo = todos.find((t) => t.id === templateTodoId);
+    if (todo) {
+      addTemplate({
+        name,
+        description,
+        text: todo.text,
+        plainText: todo.plainText,
+        metadata: {
+          assignedPeople: [...todo.metadata.assignedPeople],
+          sourcePeople: [...todo.metadata.sourcePeople],
+          mentionedPeople: [...todo.metadata.mentionedPeople],
+          projects: [...todo.metadata.projects],
+          dependencies: [], // Don't copy dependencies
+          priority: todo.metadata.priority,
+          tags: [...todo.metadata.tags],
+          // Don't copy dueDate, duration, recurring as those are time-specific
+        },
+        subtasks: todo.subtasks?.map((s) => s.text),
+      });
+    }
+    setTemplateTodoId(null);
+    setShowCreateTemplate(false);
+  };
+
+  const handleApplyTemplate = (template: TaskTemplate) => {
+    incrementUsage(template.id);
+    // Set the smart input with template content
+    if (smartInputRef.current) {
+      smartInputRef.current.setValue(template.text);
+    }
+    setShowTemplateDropdown(false);
   };
 
   // Collapsible section states
@@ -1706,6 +1774,28 @@ export function TodoApp() {
           {/* Spacer */}
           <div className="flex-1" />
 
+          {/* Templates Button - Only show in list view */}
+          {activeView === "list" && templates.length > 0 && (
+            <button
+              onClick={() => setShowTemplatesManager(true)}
+              className="px-3 py-2 font-medium transition-colors rounded-lg text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              title="Manage templates"
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Templates</span>
+                <span className="text-xs px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded">{templates.length}</span>
+              </div>
+            </button>
+          )}
+
           {/* Export Button - Only show in list view with todos */}
           {activeView === "list" && todos.length > 0 && (
             <div ref={exportMenuRef} className="relative">
@@ -1856,15 +1946,46 @@ export function TodoApp() {
 
             {/* Top Row: Search + Show Filters Toggle + Group By + Sort By + Save */}
             <div className="flex items-center gap-3">
-              {/* Search Input */}
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search tasks... (press / to focus)"
-                value={filters.searchText}
-                onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
-                className="flex-1 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              {/* Search Input with History */}
+              <div className="relative flex-1">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search tasks... (press / to focus)"
+                  value={filters.searchText}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
+                  onFocus={() => {
+                    if (!filters.searchText && searchHistory.length > 0) {
+                      setShowSearchHistory(true);
+                    }
+                  }}
+                  onBlur={() => {
+                    // Delay hiding to allow click on history items
+                    setTimeout(() => setShowSearchHistory(false), 200);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && filters.searchText.trim()) {
+                      addToSearchHistory(filters.searchText.trim());
+                      setShowSearchHistory(false);
+                    } else if (e.key === "Escape") {
+                      setShowSearchHistory(false);
+                    }
+                  }}
+                  className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {/* Search History Dropdown */}
+                <SearchHistoryDropdown
+                  history={searchHistory}
+                  onSelect={(query) => {
+                    setFilters((prev) => ({ ...prev, searchText: query }));
+                    addToSearchHistory(query);
+                    setShowSearchHistory(false);
+                  }}
+                  onRemove={removeFromSearchHistory}
+                  onClear={clearSearchHistory}
+                  isVisible={showSearchHistory && !filters.searchText}
+                />
+              </div>
 
               {/* Show Filters Toggle */}
               <button
@@ -2954,6 +3075,11 @@ export function TodoApp() {
                     onToggleSubtask={toggleSubtask}
                     onEditSubtask={editSubtask}
                     onDeleteSubtask={deleteSubtask}
+                    onStartTimeTracking={startTimeTracking}
+                    onStopTimeTracking={stopTimeTracking}
+                    onAddManualTimeEntry={addManualTimeEntry}
+                    onDeleteTimeEntry={deleteTimeEntry}
+                    onCreateTemplate={handleCreateTemplate}
                   />
                 );
               })()}
@@ -3427,6 +3553,48 @@ export function TodoApp() {
           onClose={() => setIsFocusMode(false)}
         />
       )}
+
+      {/* Templates Manager */}
+      {showTemplatesManager && (
+        <TemplatesManager
+          templates={templates}
+          onApply={(template) => {
+            handleApplyTemplate(template);
+            setShowTemplatesManager(false);
+          }}
+          onDelete={deleteTemplate}
+          onClose={() => setShowTemplatesManager(false)}
+        />
+      )}
+
+      {/* Create Template Modal */}
+      {showCreateTemplate &&
+        templateTodoId &&
+        (() => {
+          const todo = todos.find((t) => t.id === templateTodoId);
+          if (!todo) return null;
+          return (
+            <CreateTemplateModal
+              initialText={todo.text}
+              initialPlainText={todo.plainText}
+              initialMetadata={{
+                assignedPeople: [...todo.metadata.assignedPeople],
+                sourcePeople: [...todo.metadata.sourcePeople],
+                mentionedPeople: [...todo.metadata.mentionedPeople],
+                projects: [...todo.metadata.projects],
+                dependencies: [],
+                priority: todo.metadata.priority,
+                tags: [...todo.metadata.tags],
+              }}
+              subtasks={todo.subtasks?.map((s) => s.text)}
+              onSave={handleSaveTemplate}
+              onClose={() => {
+                setShowCreateTemplate(false);
+                setTemplateTodoId(null);
+              }}
+            />
+          );
+        })()}
     </div>
   );
 }

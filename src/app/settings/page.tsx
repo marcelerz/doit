@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSettings } from "@/hooks/useSettings";
 import { usePeople } from "@/hooks/usePeople";
 import { useProjects } from "@/hooks/useProjects";
+import { useTodos } from "@/hooks/useTodos";
 import { PrioritiesTab } from "@/components/settings/PrioritiesTab";
 import { LinksTab } from "@/components/settings/LinksTab";
 import { MarkersTab } from "@/components/settings/MarkersTab";
@@ -17,6 +18,7 @@ import { AutoAssignTab } from "@/components/settings/AutoAssignTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 import { StorageTab } from "@/components/settings/StorageTab";
 import { NotificationsTab } from "@/components/settings/NotificationsTab";
+import { ImportTab } from "@/components/settings/ImportTab";
 
 const tabs = {
   General: "general",
@@ -30,6 +32,7 @@ const tabs = {
   Links: "links",
   Markers: "markers",
   Backup: "backup",
+  Import: "import",
   Storage: "storage",
 } as const;
 
@@ -66,7 +69,9 @@ export default function SettingsPage() {
 
   const { projects, isLoaded: projectsLoaded } = useProjects();
 
-  const isLoaded = settingsLoaded && peopleLoaded && projectsLoaded;
+  const { importTodos: importTodosToStore, isLoaded: todosLoaded } = useTodos();
+
+  const isLoaded = settingsLoaded && peopleLoaded && projectsLoaded && todosLoaded;
 
   // Check if scrolling is needed and which direction
   useEffect(() => {
@@ -262,6 +267,8 @@ export default function SettingsPage() {
                   return <MarkersTab markerColors={settings.markerColors} onUpdate={updateMarkerColors} />;
                 case "backup":
                   return <BackupTab />;
+                case "import":
+                  return <ImportTab onImport={importTodosToStore} existingProjects={projects.map((p) => p.name)} />;
                 case "storage":
                   return <StorageTab />;
                 default: {

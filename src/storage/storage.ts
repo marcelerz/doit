@@ -193,6 +193,8 @@ export const STORAGE_KEYS = {
   VIEW_PRESETS: "doit-view-presets",
   VIEW_OPTIONS: "doit-view-options",
   BACKUP_SETTINGS: "doit-backup-settings",
+  TEMPLATES: "doit-templates",
+  SEARCH_HISTORY: "doit-search-history",
 } as const;
 
 // Generic storage helpers that handle both sync and async adapters

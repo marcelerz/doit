@@ -87,4 +87,39 @@ export interface Todo {
   comments: Comment[];
   activity: ActivityEntry[];
   subtasks?: Subtask[]; // Optional nested subtasks
+  timeTracking?: TimeTracking; // Optional time tracking
+}
+
+// Time tracking for tasks
+export interface TimeEntry {
+  id: string;
+  startTime: number;
+  endTime?: number; // undefined if currently tracking
+  duration?: number; // in minutes, calculated when stopped
+  note?: string;
+}
+
+export interface TimeTracking {
+  entries: TimeEntry[];
+  totalMinutes: number; // Cached total for performance
+}
+
+// Task templates for recurring patterns
+export interface TaskTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  text: string;
+  plainText: string;
+  metadata: Partial<TodoMetadata>;
+  subtasks?: string[]; // Subtask texts to create
+  createdAt: number;
+  usageCount: number;
+}
+
+// Search history
+export interface SearchHistoryEntry {
+  id: string;
+  query: string;
+  timestamp: number;
 }

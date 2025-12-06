@@ -649,6 +649,59 @@ export class TodoModel {
     return this.subtasks.length > 0 && this.completedSubtaskCount === this.subtaskCount;
   }
 
+  // ===== Time Tracking Properties =====
+
+  /**
+   * Get time tracking data
+   */
+  get timeTracking() {
+    return this._todo.timeTracking;
+  }
+
+  /**
+   * Check if time tracking is enabled for this todo
+   */
+  get hasTimeTracking(): boolean {
+    return !!this._todo.timeTracking && this._todo.timeTracking.entries.length > 0;
+  }
+
+  /**
+   * Check if currently tracking time
+   */
+  get isTrackingTime(): boolean {
+    if (!this._todo.timeTracking) return false;
+    return this._todo.timeTracking.entries.some((e) => !e.endTime);
+  }
+
+  /**
+   * Get total tracked time in minutes
+   */
+  get totalTrackedMinutes(): number {
+    if (!this._todo.timeTracking) return 0;
+    return this._todo.timeTracking.totalMinutes;
+  }
+
+  /**
+   * Get formatted total tracked time (e.g., "2h 30m")
+   */
+  get totalTrackedTimeDisplay(): string {
+    const minutes = this.totalTrackedMinutes;
+    if (minutes === 0) return "0m";
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours === 0) return `${mins}m`;
+    if (mins === 0) return `${hours}h`;
+    return `${hours}h ${mins}m`;
+  }
+
+  /**
+   * Get the currently active time entry (if tracking)
+   */
+  get activeTimeEntry() {
+    if (!this._todo.timeTracking) return undefined;
+    return this._todo.timeTracking.entries.find((e) => !e.endTime);
+  }
+
   /**
    * Get number of activity entries
    */

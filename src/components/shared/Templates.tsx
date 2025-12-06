@@ -1,0 +1,331 @@
+"use client";
+
+import { useState } from "react";
+import { TaskTemplate } from "@/types/todo";
+import { Modal } from "./Modal";
+import { Badge } from "./Badge";
+
+interface TemplatesManagerProps {
+  templates: TaskTemplate[];
+  onApply: (template: TaskTemplate) => void;
+  onDelete: (templateId: string) => void;
+  onClose: () => void;
+}
+
+export function TemplatesManager({
+  templates,
+  onApply,
+  onDelete,
+  onClose,
+}: TemplatesManagerProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredTemplates = templates.filter(
+    (t) =>
+      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.text.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <Modal isOpen={true} onClose={onClose} maxWidth="lg">
+      <div className="w-full max-w-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            Task Templates
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-1 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Search templates..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full px-3 py-2 mb-4 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500"
+        />
+
+        {/* Templates list */}
+        {filteredTemplates.length === 0 ? (
+          <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
+            {searchQuery ? (
+              <p>No templates match your search</p>
+            ) : (
+              <div>
+                <p className="text-2xl mb-2">📝</p>
+                <p>No templates yet</p>
+                <p className="text-sm mt-1">
+                  Create a template from any todo using the menu
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <ul className="space-y-2 max-h-96 overflow-y-auto">
+            {filteredTemplates.map((template) => (
+              <li
+                key={template.id}
+                className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                      {template.name}
+                    </h3>
+                    {template.description && (
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
+                        {template.description}
+                      </p>
+                    )}
+                    <p className="text-sm text-zinc-600 dark:text-zinc-300 mt-1 line-clamp-2">
+                      {template.plainText}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {(template.metadata.assignedPeople?.length ?? 0) > 0 && (
+                        <Badge variant="blue" size="sm">
+                          @{template.metadata.assignedPeople!.length}
+                        </Badge>
+                      )}
+                      {(template.metadata.projects?.length ?? 0) > 0 && (
+                        <Badge variant="purple" size="sm">
+                          %{template.metadata.projects!.length}
+                        </Badge>
+                      )}
+                      {(template.metadata.tags?.length ?? 0) > 0 && (
+                        <Badge variant="zinc" size="sm">
+                          #{template.metadata.tags!.length}
+                        </Badge>
+                      )}
+                      {template.metadata.priority && (
+                        <Badge variant="red" size="sm">
+                          {template.metadata.priority}
+                        </Badge>
+                      )}
+                      {(template.subtasks?.length ?? 0) > 0 && (
+                        <Badge variant="green" size="sm">
+                          {template.subtasks!.length} subtasks
+                        </Badge>
+                      )}
+                      <span className="text-xs text-zinc-400">
+                        Used {template.usageCount} time{template.usageCount !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => onApply(template)}
+                      className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                    >
+                      Use
+                    </button>
+                    <button
+                      onClick={() => onDelete(template.id)}
+                      className="p-1.5 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      title="Delete template"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+interface CreateTemplateModalProps {
+  initialText: string;
+  initialPlainText: string;
+  initialMetadata: TaskTemplate["metadata"];
+  subtasks?: TaskTemplate["subtasks"];
+  onSave: (name: string, description?: string) => void;
+  onClose: () => void;
+}
+
+export function CreateTemplateModal({
+  initialText,
+  initialPlainText,
+  initialMetadata,
+  subtasks,
+  onSave,
+  onClose,
+}: CreateTemplateModalProps) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+
+  const handleSave = () => {
+    if (name.trim()) {
+      onSave(name.trim(), description.trim() || undefined);
+      onClose();
+    }
+  };
+
+  return (
+    <Modal isOpen={true} onClose={onClose} maxWidth="md">
+      <div className="w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+          Create Template
+        </h2>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              Template Name *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., Weekly Report, Bug Fix, Meeting Notes"
+              className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              Description (optional)
+            </label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What is this template for?"
+              className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              Task Preview
+            </label>
+            <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-sm text-zinc-700 dark:text-zinc-300">
+              {initialPlainText || <span className="text-zinc-400">Empty task</span>}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              Included Metadata
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {(initialMetadata.assignedPeople?.length ?? 0) > 0 && (
+                <Badge variant="blue">
+                  {initialMetadata.assignedPeople!.length} assigned
+                </Badge>
+              )}
+              {(initialMetadata.projects?.length ?? 0) > 0 && (
+                <Badge variant="purple">
+                  {initialMetadata.projects!.length} project{initialMetadata.projects!.length !== 1 ? "s" : ""}
+                </Badge>
+              )}
+              {(initialMetadata.tags?.length ?? 0) > 0 && (
+                <Badge variant="zinc">
+                  {initialMetadata.tags!.length} tag{initialMetadata.tags!.length !== 1 ? "s" : ""}
+                </Badge>
+              )}
+              {initialMetadata.priority && (
+                <Badge variant="red">{initialMetadata.priority}</Badge>
+              )}
+              {(subtasks?.length ?? 0) > 0 && (
+                <Badge variant="green">
+                  {subtasks!.length} subtask{subtasks!.length !== 1 ? "s" : ""}
+                </Badge>
+              )}
+              {!initialMetadata.assignedPeople?.length &&
+                !initialMetadata.projects?.length &&
+                !initialMetadata.tags?.length &&
+                !initialMetadata.priority &&
+                !(subtasks?.length) && (
+                  <span className="text-sm text-zinc-400">No metadata</span>
+                )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!name.trim()}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Create Template
+            </button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+interface TemplateDropdownProps {
+  templates: TaskTemplate[];
+  onSelect: (template: TaskTemplate) => void;
+  onManage: () => void;
+}
+
+export function TemplateDropdown({
+  templates,
+  onSelect,
+  onManage,
+}: TemplateDropdownProps) {
+  const recentTemplates = templates.slice(0, 5);
+
+  return (
+    <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg z-50">
+      {recentTemplates.length > 0 ? (
+        <>
+          <ul className="py-1">
+            {recentTemplates.map((template) => (
+              <li key={template.id}>
+                <button
+                  onClick={() => onSelect(template)}
+                  className="w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  <span className="font-medium text-zinc-900 dark:text-zinc-100 text-sm">
+                    {template.name}
+                  </span>
+                  {template.description && (
+                    <span className="block text-xs text-zinc-500 truncate">
+                      {template.description}
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="border-t border-zinc-200 dark:border-zinc-700">
+            <button
+              onClick={onManage}
+              className="w-full px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-left"
+            >
+              Manage all templates...
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="px-3 py-4 text-center text-sm text-zinc-500">
+          No templates yet
+        </div>
+      )}
+    </div>
+  );
+}
