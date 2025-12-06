@@ -1,14 +1,12 @@
 /**
  * Recurring pattern parser for todo tasks
+ * Patterns are auto-detected (no explicit marker needed).
  * Supports patterns like:
- * - %every 2 days
- * - %every 3 weeks
- * - %every monday
- * - %every 1st monday
- * - %every workday
- * - %monthly on 15th
- * - %quarterly on 1st
- * - %yearly on jan 15
+ * - every 2 days
+ * - every 3 weeks
+ * - every monday
+ * - every 1st monday
+ * - every workday
  */
 
 export interface RecurringPattern {

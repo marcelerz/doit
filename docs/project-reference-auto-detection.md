@@ -2,7 +2,7 @@
 
 ## Overview
 
-The app now automatically detects project references in text when they appear with specific context words, without requiring the `#` marker. Projects are recognized when mentioned with patterns like "on <project>", "in <project>", or "<project> project".
+The app now automatically detects project references in text when they appear with specific context words, without requiring the `%` marker. Projects are recognized when mentioned with patterns like "on <project>", "in <project>", or "<project> project".
 
 ## How It Works
 
@@ -47,7 +47,7 @@ Common words are blacklisted to prevent false positives:
 
 When detecting projects, the system follows these priorities:
 
-1. **Explicit # markers take precedence**: Always override auto-detection
+1. **Explicit % markers take precedence**: Always override auto-detection
 2. **Dates take precedence**: Auto-detected dates prevent project detection at the same location
 3. **People take precedence**: Auto-detected people mentions prevent project detection
 4. **Longest match wins**: "Website Redesign" is detected before "Website"
@@ -127,8 +127,8 @@ Input: "Focus on Marketing this week"
 ❌ **Avoids conflicts with explicit markers**
 
 ```
-"#Website and in Marketing"
-→ #Website = project (explicit)
+"%Website and in Marketing"
+→ %Website = project (explicit)
 → Marketing = NOT detected (different mechanism)
 ```
 
@@ -153,7 +153,7 @@ Mentioned projects are highlighted with:
 
 - **Custom color**: Uses the project's custom color if set
 - **Fallback color**: Uses `markerColors.project` (purple) if no custom color
-- **Same styling**: Appears as a badge, just like `#` markers
+- **Same styling**: Appears as a badge, just like `%` markers
 - **Full context included**: Shows "on Website Redesign" not just "Website Redesign"
 
 ## Usage Examples
@@ -175,10 +175,10 @@ Result: projects: ["Marketing Campaign", "API Development"]
 ### Mixed with Explicit Markers
 
 ```
-Input: "Focus on Website and #Backend tasks"
+Input: "Focus on Website and %Backend tasks"
 Result:
   - projects: ["Website Redesign"] (auto-detected)
-  - projects: ["Backend"] (explicit # marker)
+  - projects: ["Backend"] (explicit % marker)
 ```
 
 ### Using Alternatives
@@ -294,7 +294,7 @@ Input: "Focus on project Website for Marketing"
 ### Common Words as Project Names
 
 If a project is named "Work" or "Time" (blacklisted words), it won't be auto-detected.
-Solution: Use explicit `#Work` or `#Time` markers, or rename the project.
+Solution: Use explicit `%Work` or `%Time` markers, or rename the project.
 
 ## Testing
 
@@ -318,7 +318,7 @@ Tests cover:
 
 | Feature              | Person Detection       | Project Detection            |
 | -------------------- | ---------------------- | ---------------------------- |
-| **Marker removed**   | ^                      | (none - # still required)    |
+| **Marker**           | @ (assigned), $ (src)  | % (explicit)                 |
 | **Context required** | No                     | Yes (on/in/for/project)      |
 | **Reason**           | Names are proper nouns | Names are often common words |
 | **Blacklist**        | Common pronouns/words  | Common words                 |
@@ -328,19 +328,19 @@ Tests cover:
 ## Migration Notes
 
 - **No migration required** - Existing data continues to work
-- **Backward compatible** - Explicit `#` markers continue to work
+- **Backward compatible** - Explicit `%` markers continue to work
 - **New capability** - Projects can now be referenced naturally with context
 - **Settings preserved** - `markerColors.project` still exists and works
 - **Documentation updated** - copilot-instructions.md reflects new behavior
 
 ## Benefits
 
-1. **More natural writing** - "working on Website" vs. "working on #Website"
-2. **Less cognitive load** - Don't need to remember to add # markers
+1. **More natural writing** - "working on Website" vs. "working on %Website"
+2. **Less cognitive load** - Don't need to remember to add % markers
 3. **Better readability** - Text reads more naturally
 4. **Fewer errors** - No forgetting to add markers
 5. **Smart detection** - Context words prevent false positives
-6. **Flexible** - Both auto-detection and explicit # markers work
+6. **Flexible** - Both auto-detection and explicit % markers work
 
 ## Future Enhancements
 

@@ -114,7 +114,7 @@ project.getMetadataSummary(todoCount);
 project.matchesSearch("website");
 // Searches: name, alternatives, context, comments
 
-// Check if matches any given names (for #project mentions)
+// Check if matches any given names (for %project mentions)
 project.matchesAnyName(["website", "redesign"]);
 // Returns: true
 ```

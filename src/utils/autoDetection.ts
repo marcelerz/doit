@@ -572,7 +572,7 @@ export function detectMentionedPeople(text: string, availablePeople: Person[]): 
 }
 
 /**
- * Detect project references in text without requiring # marker
+ * Detect project references in text without requiring % marker
  * Matches patterns like:
  * - "on <project name>"
  * - "in <project name>"

@@ -69,13 +69,13 @@ export interface MarkerColors extends Record<string, string> {
   assigned: string; // @
   source: string; // $
   mentioned: string; // (auto-detected)
-  project: string; // #
+  project: string; // %
   priority: string; // !!
-  dueDate: string; // ~
-  duration: string; // *
-  recurring: string; // %
-  dependency: string; // >
-  tag: string; // &
+  dueDate: string; // (auto-detected)
+  duration: string; // (auto-detected)
+  recurring: string; // ~ (auto-detected)
+  dependency: string; // (via field)
+  tag: string; // #
 }
 
 export const defaultMarkerColors: MarkerColors = {

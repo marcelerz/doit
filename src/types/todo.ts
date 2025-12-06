@@ -1,15 +1,15 @@
 export interface TodoMetadata {
   assignedPeople: string[]; // @ marker
   sourcePeople: string[]; // $ marker
-  mentionedPeople: string[]; // ^ marker
-  projects: string[]; // # marker
+  mentionedPeople: string[]; // auto-detected (no marker)
+  projects: string[]; // % marker
   priority?: string; // !! marker
-  dueDate?: string; // ~ marker
-  duration?: string; // * marker
-  recurring?: string; // % marker
-  dependencies: string[]; // > marker - array of todo IDs
+  dueDate?: string; // auto-detected or via field
+  duration?: string; // auto-detected or via field
+  recurring?: string; // auto-detected or via field (~ pattern)
+  dependencies: string[]; // via field (no marker)
   context?: string; // Rich text context
-  tags: string[]; // & marker - free-form tags
+  tags: string[]; // # marker - free-form tags
 }
 
 export interface Comment {

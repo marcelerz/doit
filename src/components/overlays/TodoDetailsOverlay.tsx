@@ -293,22 +293,16 @@ export function TodoDetailsOverlay({
                                 <span className="text-zinc-600 dark:text-zinc-400">Assign</span>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <code className="bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded font-mono">
-                                  #proj
-                                </code>
-                                <span className="text-zinc-600 dark:text-zinc-400">Project</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
                                 <code className="bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded font-mono">
                                   $name
                                 </code>
                                 <span className="text-zinc-600 dark:text-zinc-400">Source</span>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <code className="bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 px-1.5 py-0.5 rounded font-mono">
-                                  ^name
+                                <code className="bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded font-mono">
+                                  %proj
                                 </code>
-                                <span className="text-zinc-600 dark:text-zinc-400">Mention</span>
+                                <span className="text-zinc-600 dark:text-zinc-400">Project</span>
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <code className="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 px-1.5 py-0.5 rounded font-mono">
@@ -317,34 +311,34 @@ export function TodoDetailsOverlay({
                                 <span className="text-zinc-600 dark:text-zinc-400">Priority</span>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <code className="bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 px-1.5 py-0.5 rounded font-mono">
-                                  ^date
-                                </code>
-                                <span className="text-zinc-600 dark:text-zinc-400">Due</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <code className="bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-mono">
-                                  *2h
-                                </code>
-                                <span className="text-zinc-600 dark:text-zinc-400">Duration</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <code className="bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded font-mono">
-                                  %daily
-                                </code>
-                                <span className="text-zinc-600 dark:text-zinc-400">Recurring</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <code className="bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-mono">
-                                  &gt;task
-                                </code>
-                                <span className="text-zinc-600 dark:text-zinc-400">Depends</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
                                 <code className="bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded font-mono">
                                   #tag
                                 </code>
                                 <span className="text-zinc-600 dark:text-zinc-400">Tag</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <code className="bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 px-1.5 py-0.5 rounded font-mono italic">
+                                  tomorrow
+                                </code>
+                                <span className="text-zinc-600 dark:text-zinc-400">Due (auto)</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <code className="bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-mono italic">
+                                  2h, 30m
+                                </code>
+                                <span className="text-zinc-600 dark:text-zinc-400">Duration (auto)</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <code className="bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded font-mono italic">
+                                  every mon
+                                </code>
+                                <span className="text-zinc-600 dark:text-zinc-400">Recurring (auto)</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <code className="bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 px-1.5 py-0.5 rounded font-mono italic">
+                                  John
+                                </code>
+                                <span className="text-zinc-600 dark:text-zinc-400">Mention (auto)</span>
                               </div>
                             </div>
                           </div>
