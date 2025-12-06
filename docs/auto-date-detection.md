@@ -95,7 +95,7 @@ Saved: dueDate = "2025-12-08T17:00" (EOW)
 
 ## Supported Date Formats
 
-Chrono-node supports a wide variety of natural language date formats:
+Chrono-node supports a wide variety of natural language date formats, enhanced with custom parsers:
 
 ### Relative Dates
 
@@ -103,6 +103,7 @@ Chrono-node supports a wide variety of natural language date formats:
 - next week, next month, next year
 - in 2 days, in 3 weeks, 5 days from now
 - 2 weeks ago, last Friday
+- **in 3 business days**, **in 5 working days** (skips weekends)
 
 ### Absolute Dates
 
@@ -116,6 +117,7 @@ Chrono-node supports a wide variety of natural language date formats:
 - at 3pm, at 15:00
 - tomorrow at 9am
 - Friday from 2-4pm
+- **2pm**, **3:30pm** (time-only, defaults to today or tomorrow)
 
 ### Contextual
 
@@ -123,6 +125,96 @@ Chrono-node supports a wide variety of natural language date formats:
 - beginning of week, start of month
 - this Friday, this weekend
 - next Monday morning
+
+### Custom Shorthands
+
+**Time of Day:**
+
+- **morning** - configured morning time (default 9am)
+- **noon**, **midday** - configured noon time (default 12pm)
+- **afternoon** - configured afternoon time (default 2pm)
+- **evening** - configured evening time (default 6pm)
+- **midnight** - 00:00
+
+**Day Boundaries:**
+
+- **bod**, **startofday**, **beginningofday**, **beginningoftheday** - beginning of day (from work hours)
+- **eod**, **endofday**, **endoftheday**, **startoftheday** - end of day (from work hours)
+
+**Week Boundaries:**
+
+- **bow**, **startofweek**, **beginningofweek**, **beginningoftheweek** - start of work week
+- **eow**, **endofweek**, **endoftheweek**, **startoftheweek** - end of work week
+- **nextweek** - start of next work week
+- **weekend** - next Saturday
+
+**Month Boundaries:**
+
+- **bom**, **startofmonth**, **beginningofmonth**, **beginningofthemonth** - first of month
+- **eom**, **endofmonth**, **endofthemonth**, **startofthemonth** - last of month
+- **nextmonth** - first of next month
+
+**Quarter Boundaries:**
+
+- **boq**, **startofquarter**, **beginningofquarter**, **beginningofthequarter** - start of quarter
+- **eoq**, **endofquarter**, **endofthequarter**, **startofthequarter** - end of quarter
+- **nextquarter** - first of next quarter
+
+**Half-Year Boundaries:**
+
+- **boh**, **startofhalf** - start of current half (Jan 1 or Jul 1)
+- **eoh**, **endofhalf** - end of current half (Jun 30 or Dec 31)
+- **nexthalf** - start of next half
+
+**Year Boundaries:**
+
+- **boy**, **startofyear**, **beginningofyear**, **beginningoftheyear** - January 1
+- **eoy**, **endofyear**, **endoftheyear**, **startoftheyear** - December 31
+- **nextyear** - January 1 of next year
+
+### Fiscal Periods (default to END of period)
+
+**Quarters:**
+
+- **Q1** - March 31 (end of Q1)
+- **Q2** - June 30 (end of Q2)
+- **Q3** - September 30 (end of Q3)
+- **Q4** - December 31 (end of Q4)
+- **Q1 2025** - March 31, 2025 (explicit year)
+
+**Half Years:**
+
+- **H1** - June 30 (end of first half)
+- **H2** - December 31 (end of second half)
+
+**Fiscal Years:**
+
+- **FY2025** - December 31, 2025
+- **FY25** - December 31, 2025 (short form)
+
+### Holidays (US-centric)
+
+**Fixed-Date Holidays:**
+
+- **christmas** - December 25
+- **christmaseve** - December 24
+- **newyears**, **newyearsday** - January 1
+- **newyearseve** - December 31
+- **valentines**, **valentinesday** - February 14
+- **stpatricks**, **stpatricksday** - March 17
+- **halloween** - October 31
+- **independenceday**, **julyfourth** - July 4
+
+**Floating Holidays:**
+
+- **laborday** - 1st Monday of September
+- **memorialday** - Last Monday of May
+- **thanksgiving** - 4th Thursday of November
+- **mlkday** - 3rd Monday of January
+- **presidentsday** - 3rd Monday of February
+- **columbusday** - 2nd Monday of October
+
+_Note: All holiday patterns return the next occurrence from the reference date._
 
 ## Technical Details
 
