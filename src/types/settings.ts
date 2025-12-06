@@ -151,16 +151,73 @@ export const defaultWorkHoursSettings: WorkHoursSettings = {
 };
 
 // Gantt Tab Settings
+export type GanttZoomLevel = "15min" | "30min" | "1hour" | "2hour";
+
+export interface GanttPreset {
+  id: string;
+  name: string;
+  contextSwitchingTime: number;
+  defaultTaskDuration: number;
+  durationMultiplier: number;
+}
+
 export interface Gantt {
+  // Planning Settings
   contextSwitchingTime: number; // Minutes between tasks for context switching
   defaultTaskDuration: number; // Default duration in minutes when not specified
   durationMultiplier: number; // Multiplier for task durations during scheduling
+
+  // View Settings
+  zoomLevel: GanttZoomLevel; // Timeline zoom level
+  showWeekends: boolean; // Show weekend days in week view
+  showDependencies: boolean; // Show dependency arrows between tasks
+  taskRowHeight: "compact" | "normal" | "comfortable"; // Height of task rows
+  showBufferZones: boolean; // Show buffer/overdue indicators
+  showNowLine: boolean; // Show current time indicator
+  collapseCompleted: boolean; // Collapse completed tasks section
+
+  // Presets
+  presets: GanttPreset[];
+  activePresetId?: string; // Currently active preset
 }
+
+export const defaultGanttPresets: GanttPreset[] = [
+  {
+    id: "focus",
+    name: "Focus Mode",
+    contextSwitchingTime: 5,
+    defaultTaskDuration: 25,
+    durationMultiplier: 1.0,
+  },
+  {
+    id: "planning",
+    name: "Planning Mode",
+    contextSwitchingTime: 15,
+    defaultTaskDuration: 45,
+    durationMultiplier: 1.5,
+  },
+  {
+    id: "realistic",
+    name: "Realistic Mode",
+    contextSwitchingTime: 20,
+    defaultTaskDuration: 60,
+    durationMultiplier: 2.0,
+  },
+];
 
 export const defaultGantt: Gantt = {
   contextSwitchingTime: 15, // 15 minutes between tasks
   defaultTaskDuration: 30, // 30 minutes default
   durationMultiplier: 1.0, // 1.0 = no adjustment
+  zoomLevel: "1hour",
+  showWeekends: true,
+  showDependencies: true,
+  taskRowHeight: "normal",
+  showBufferZones: true,
+  showNowLine: true,
+  collapseCompleted: false,
+  presets: defaultGanttPresets,
+  activePresetId: undefined,
 };
 
 export const defaultDateTimeSettings: DateTimeSettings = {

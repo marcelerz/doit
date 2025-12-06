@@ -2,8 +2,8 @@
 
 import { TodoMetadata } from "@/types/todo";
 import { TodoModel } from "@/models/TodoModel";
-import { MarkerColors, WorkHoursSettings } from "@/types/settings";
-import { useMemo, useState, useRef } from "react";
+import { MarkerColors, WorkHoursSettings, GanttZoomLevel } from "@/types/settings";
+import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { getTextColor } from "@/utils/colors";
@@ -26,6 +26,7 @@ interface GanttViewProps {
   onAddProject: (project: string) => void;
   onAddPriority: (priority: string) => void;
   onAddComment?: (todoId: string, content: string) => void;
+  onUpdateGanttSettings?: (gantt: import("@/types/settings").Gantt) => void;
 }
 
 interface ScheduledTask {
@@ -63,6 +64,7 @@ export function GanttView({
   onAddProject,
   onAddPriority,
   onAddComment,
+  onUpdateGanttSettings,
 }: GanttViewProps) {
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
@@ -74,6 +76,30 @@ export function GanttView({
   const [schedulingMode, setSchedulingMode] = useState<"asap" | "dueDate">("asap");
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<TodoModel | null>(null);
+  const [completedCollapsed, setCompletedCollapsed] = useState(settings.gantt.collapseCompleted ?? false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [selectedTaskIndex, setSelectedTaskIndex] = useState<number>(-1);
+  const [showClickHint, setShowClickHint] = useState(true); // Shows "Click to edit" hint
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Update current time every minute for the now line
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  // Update zoom level and persist to settings
+  const handleZoomChange = useCallback(
+    (level: GanttZoomLevel) => {
+      if (onUpdateGanttSettings) {
+        onUpdateGanttSettings({ ...settings.gantt, zoomLevel: level });
+      }
+    },
+    [onUpdateGanttSettings, settings.gantt],
+  );
 
   // Parse duration string to minutes
   const parseDuration = (duration: string | undefined): number => {
@@ -500,6 +526,88 @@ export function GanttView({
 
   const unscheduledTasks = todosForDate.slice(scheduledTasks.length);
 
+  // Separate active and completed tasks for collapsible section
+  const { activeTasks, completedTasks } = useMemo(() => {
+    const active = scheduledTasks.filter((t) => !t.todo.isCompleted && !t.todo.isArchived);
+    const completed = scheduledTasks.filter((t) => t.todo.isCompleted || t.todo.isArchived);
+    return { activeTasks: active, completedTasks: completed };
+  }, [scheduledTasks]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle if overlay is open or user is typing
+      if (detailsOverlayTodo || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      const visibleTasks = completedCollapsed ? activeTasks : scheduledTasks;
+
+      switch (e.key) {
+        case "ArrowDown":
+        case "j":
+          e.preventDefault();
+          setSelectedTaskIndex((prev) => Math.min(prev + 1, visibleTasks.length - 1));
+          break;
+        case "ArrowUp":
+        case "k":
+          e.preventDefault();
+          setSelectedTaskIndex((prev) => Math.max(prev - 1, 0));
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (selectedTaskIndex >= 0 && selectedTaskIndex < visibleTasks.length) {
+            setDetailsOverlayTodo(visibleTasks[selectedTaskIndex].todo);
+          }
+          break;
+        case "Escape":
+          e.preventDefault();
+          setSelectedTaskIndex(-1);
+          break;
+        case "ArrowLeft":
+          if (!e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            navigateDate(-1);
+          }
+          break;
+        case "ArrowRight":
+          if (!e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            navigateDate(1);
+          }
+          break;
+        case "t":
+        case "T":
+          e.preventDefault();
+          // Go to today
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          setSelectedDate(today);
+          break;
+        case "c":
+        case "C":
+          e.preventDefault();
+          // Toggle completed collapse
+          setCompletedCollapsed((prev) => !prev);
+          break;
+        case " ": // Space to toggle completion
+          e.preventDefault();
+          if (selectedTaskIndex >= 0 && selectedTaskIndex < visibleTasks.length) {
+            onToggle(visibleTasks[selectedTaskIndex].todo.id);
+          }
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [detailsOverlayTodo, selectedTaskIndex, scheduledTasks, activeTasks, completedCollapsed, onToggle]);
+
+  // Reset selection when date changes
+  useEffect(() => {
+    setSelectedTaskIndex(-1);
+  }, [selectedDate]);
+
   const navigateDate = (delta: number) => {
     setSelectedDate((prev) => {
       const newDate = new Date(prev);
@@ -530,7 +638,7 @@ export function GanttView({
     return (minutes / totalDayMinutes) * 100;
   };
 
-  const getPriorityColor = (priority?: string) => {
+  const getPriorityColor = useCallback((priority?: string) => {
     if (!priority) return "bg-zinc-400";
     const p = priority.toLowerCase();
     if (["0", "urgent", "asap", "critical"].includes(p)) return "bg-red-500";
@@ -538,48 +646,99 @@ export function GanttView({
     if (["2", "medium", "med", "normal"].includes(p)) return "bg-yellow-500";
     if (["3", "low"].includes(p)) return "bg-green-500";
     return "bg-blue-500";
-  };
+  }, []);
 
-  const getProjectColor = (todo: TodoModel): string => {
-    // Use gray for completed, light yellow for archived
-    if (todo.isCompleted) return "#9ca3af"; // gray-400
-    if (todo.isArchived) return "#fef08a"; // yellow-200
-
-    // If todo has a project, look up the project entity and use its custom color
-    if (todo.metadata.projects && todo.metadata.projects.length > 0) {
-      const projectName = todo.metadata.projects[0];
-      const project = availableProjects.find((p) => p.name === projectName || p.alternatives.includes(projectName));
-      if (project?.color) {
-        return project.color;
+  // Memoized project color lookup
+  const projectColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    availableProjects.forEach((p) => {
+      if (p.color) {
+        map.set(p.name, p.color);
+        p.alternatives.forEach((alt) => map.set(alt, p.color!));
       }
-    }
-    // Fall back to project marker color
-    return markerColors.project;
-  };
+    });
+    return map;
+  }, [availableProjects]);
 
-  // Generate hour markers
+  const getProjectColor = useCallback(
+    (todo: TodoModel): string => {
+      // Use gray for completed, light yellow for archived
+      if (todo.isCompleted) return "#9ca3af"; // gray-400
+      if (todo.isArchived) return "#fef08a"; // yellow-200
+
+      // If todo has a project, look up the project entity and use its custom color
+      if (todo.metadata.projects && todo.metadata.projects.length > 0) {
+        const projectName = todo.metadata.projects[0];
+        const color = projectColorMap.get(projectName);
+        if (color) return color;
+      }
+      // Fall back to project marker color
+      return markerColors.project;
+    },
+    [projectColorMap, markerColors.project],
+  );
+
+  // Calculate zoom scale factor - determines how wide the timeline is
+  const zoomScale = useMemo(() => {
+    const zoomLevel = settings.gantt.zoomLevel || "1hour";
+    switch (zoomLevel) {
+      case "15min":
+        return 4; // 4x wider than default
+      case "30min":
+        return 2; // 2x wider than default
+      case "2hour":
+        return 0.5; // Half as wide
+      case "1hour":
+      default:
+        return 1; // Default width
+    }
+  }, [settings.gantt.zoomLevel]);
+
+  // Generate hour markers based on zoom level
   const hourMarkers = useMemo(() => {
     const markers = [];
+    const zoomLevel = settings.gantt.zoomLevel || "1hour";
 
-    // Start from the first hour of the day start time
+    // Determine interval based on zoom level
+    let intervalMinutes: number;
+    switch (zoomLevel) {
+      case "15min":
+        intervalMinutes = 15;
+        break;
+      case "30min":
+        intervalMinutes = 30;
+        break;
+      case "2hour":
+        intervalMinutes = 120;
+        break;
+      case "1hour":
+      default:
+        intervalMinutes = 60;
+        break;
+    }
+
+    // Start from the first marker point after day start
     const startMarker = new Date(dayStartTime);
-    startMarker.setMinutes(0, 0, 0);
+    const startMinutes = startMarker.getMinutes();
+    const nextInterval = Math.ceil(startMinutes / intervalMinutes) * intervalMinutes;
+    startMarker.setMinutes(nextInterval, 0, 0);
 
     let currentMarker = new Date(startMarker);
 
-    // Generate markers for each hour until we exceed the end time
+    // Generate markers at the specified interval until we exceed the end time
     while (currentMarker <= dayEndTime) {
       if (currentMarker >= dayStartTime) {
         markers.push({
           time: new Date(currentMarker),
           position: getTimePosition(currentMarker),
+          isHour: currentMarker.getMinutes() === 0,
         });
       }
-      currentMarker.setHours(currentMarker.getHours() + 1);
+      currentMarker.setMinutes(currentMarker.getMinutes() + intervalMinutes);
     }
 
     return markers;
-  }, [dayStartTime, dayEndTime]);
+  }, [dayStartTime, dayEndTime, settings.gantt.zoomLevel]);
 
   // Get week's dates based on selected date (Monday to Sunday)
   const currentWeekDates = useMemo(() => {
@@ -721,36 +880,54 @@ export function GanttView({
   return (
     <div className="space-y-4">
       {/* Scheduling Mode Toggle */}
-      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 print:hidden">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Scheduling Mode:</span>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSchedulingMode("asap")}
+                className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
+                  schedulingMode === "asap"
+                    ? "bg-blue-600 text-white"
+                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                }`}
+              >
+                Priority
+              </button>
+              <button
+                onClick={() => setSchedulingMode("dueDate")}
+                className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
+                  schedulingMode === "dueDate"
+                    ? "bg-blue-600 text-white"
+                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                }`}
+              >
+                Due Date
+              </button>
+            </div>
+
+            {/* Print Button */}
             <button
-              onClick={() => setSchedulingMode("asap")}
-              className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
-                schedulingMode === "asap"
-                  ? "bg-blue-600 text-white"
-                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-              }`}
+              onClick={() => window.print()}
+              className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors"
+              title="Print schedule (Ctrl+P)"
             >
-              Priority
-            </button>
-            <button
-              onClick={() => setSchedulingMode("dueDate")}
-              className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
-                schedulingMode === "dueDate"
-                  ? "bg-blue-600 text-white"
-                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-              }`}
-            >
-              Due Date
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                />
+              </svg>
             </button>
           </div>
         </div>
       </div>
 
       {/* Mini Week Overview */}
-      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4 print:hidden">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             Week of {currentWeekDates[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -943,12 +1120,16 @@ export function GanttView({
         </div>
       )}
 
-      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
+      <div
+        ref={containerRef}
+        className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 print:border-0 print:shadow-none"
+      >
         {/* Date Navigation */}
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => navigateDate(-1)}
-            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors print:hidden"
+            title="Previous day (←)"
           >
             <svg
               className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
@@ -963,14 +1144,24 @@ export function GanttView({
           <div className="text-center">
             <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{formatDate(selectedDate)}</h3>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-              {schedule.startTime} - {schedule.endTime} • {scheduledTasks.length} scheduled • {unscheduledTasks.length}{" "}
-              can't fit
+              {schedule.startTime} - {schedule.endTime} • {activeTasks.length} active • {completedTasks.length}{" "}
+              completed • {unscheduledTasks.length} overflow
+            </p>
+            {/* Keyboard shortcuts hint */}
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 print:hidden">
+              <span className="inline-flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 text-[10px] bg-zinc-100 dark:bg-zinc-800 rounded">↑↓</kbd> navigate
+                <kbd className="px-1.5 py-0.5 text-[10px] bg-zinc-100 dark:bg-zinc-800 rounded ml-2">Enter</kbd> open
+                <kbd className="px-1.5 py-0.5 text-[10px] bg-zinc-100 dark:bg-zinc-800 rounded ml-2">Space</kbd> toggle
+                <kbd className="px-1.5 py-0.5 text-[10px] bg-zinc-100 dark:bg-zinc-800 rounded ml-2">T</kbd> today
+              </span>
             </p>
           </div>
 
           <button
             onClick={() => navigateDate(1)}
-            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors print:hidden"
+            title="Next day (→)"
           >
             <svg
               className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
@@ -992,206 +1183,601 @@ export function GanttView({
           <div className="space-y-6">
             {/* Timeline View */}
             <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                Timeline
-              </h4>
-
-              {/* Time markers */}
-              <div className="relative h-6 bg-zinc-50 dark:bg-zinc-800 rounded mx-4" style={{ overflow: "visible" }}>
-                {hourMarkers.map((marker, i) => (
-                  <div
-                    key={i}
-                    className="absolute top-0 bottom-0 flex flex-col items-center -translate-x-1/2"
-                    style={{ left: `${marker.position}%` }}
-                  >
-                    <div className="w-px h-2 bg-zinc-300 dark:bg-zinc-600" />
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 whitespace-nowrap">
-                      {formatTime(marker.time)}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h4 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+                    Timeline
+                  </h4>
+                  {/* Click hint for first-time users */}
+                  {showClickHint && activeTasks.length > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
+                        />
+                      </svg>
+                      Click tasks to edit
                     </span>
-                  </div>
-                ))}
+                  )}
+                </div>
+                {/* Zoom controls */}
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 mr-2">Zoom:</span>
+                  {(["15min", "30min", "1hour", "2hour"] as GanttZoomLevel[]).map((level) => (
+                    <button
+                      key={level}
+                      onClick={() => handleZoomChange(level)}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        (settings.gantt.zoomLevel || "1hour") === level
+                          ? "bg-blue-600 text-white"
+                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                      }`}
+                      title={
+                        level === "15min"
+                          ? "15 minutes"
+                          : level === "30min"
+                          ? "30 minutes"
+                          : level === "1hour"
+                          ? "1 hour"
+                          : "2 hours"
+                      }
+                    >
+                      {level === "15min" ? "15m" : level === "30min" ? "30m" : level === "1hour" ? "1h" : "2h"}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Tasks timeline */}
-              <div className="relative space-y-0 mx-4" style={{ overflow: "visible" }}>
-                {scheduledTasks.map((task, index) => {
-                  // Now all tasks use the same positioning since timeline is dynamically expanded
-                  const isCompletedTask = task.todo.isCompleted || task.todo.isArchived;
-                  const startPos = getTimePosition(task.startTime);
-                  const endPos = getTimePosition(task.endTime);
-                  const width = endPos - startPos;
-                  const targetPos = getTimePosition(task.targetDate);
+              {/* Scrollable timeline container with zoom */}
+              <div className="overflow-x-auto" style={{ maxWidth: "100%" }}>
+                <div style={{ minWidth: `${100 * zoomScale}%`, width: `${100 * zoomScale}%` }}>
+                  {/* Time markers */}
+                  <div
+                    ref={timelineRef}
+                    className="relative h-6 bg-zinc-50 dark:bg-zinc-800 rounded mx-4"
+                    style={{ overflow: "visible" }}
+                  >
+                    {hourMarkers.map((marker, i) => (
+                      <div
+                        key={i}
+                        className="absolute top-0 bottom-0 flex flex-col items-center -translate-x-1/2"
+                        style={{ left: `${marker.position}%` }}
+                      >
+                        <div
+                          className={`w-px ${
+                            marker.isHour ? "h-3 bg-zinc-400 dark:bg-zinc-500" : "h-2 bg-zinc-300 dark:bg-zinc-600"
+                          }`}
+                        />
+                        <span
+                          className={`mt-1 whitespace-nowrap ${
+                            marker.isHour
+                              ? "text-xs text-zinc-600 dark:text-zinc-300 font-medium"
+                              : "text-[10px] text-zinc-400 dark:text-zinc-500"
+                          }`}
+                        >
+                          {formatTime(marker.time)}
+                        </span>
+                      </div>
+                    ))}
 
-                  // Check if there's a context switch buffer after this task
-                  const nextTask = index < scheduledTasks.length - 1 ? scheduledTasks[index + 1] : null;
-                  const hasContextSwitch = nextTask && settings.gantt.contextSwitchingTime > 0 && !isCompletedTask;
-                  const contextSwitchStartPos = endPos;
-                  const contextSwitchEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
-                  const contextSwitchWidth = contextSwitchEndPos - contextSwitchStartPos;
-
-                  const taskColor = getProjectColor(task.todo);
-                  const textColor = getTextColor(taskColor);
-
-                  return (
-                    <div
-                      key={task.todo.id}
-                      className="relative"
-                      style={{ marginBottom: hasContextSwitch ? "0" : "2px" }}
-                    >
-                      {/* Task row */}
-                      <div className="relative h-10 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
-                        {/* Break blocks */}
-                        {breakBlocks.map((breakBlock, bi) => {
-                          const breakStart = getTimePosition(breakBlock.startTime);
-                          const breakEnd = getTimePosition(breakBlock.endTime);
+                    {/* Prominent Now Line in time markers */}
+                    {settings.gantt.showNowLine !== false &&
+                      selectedDate.toDateString() === new Date().toDateString() &&
+                      (() => {
+                        const nowPos = getTimePosition(currentTime);
+                        if (nowPos >= 0 && nowPos <= 100) {
                           return (
                             <div
-                              key={bi}
-                              className="absolute top-0 bottom-0 bg-zinc-300 dark:bg-zinc-700 opacity-50"
-                              style={{
-                                left: `${breakStart}%`,
-                                width: `${breakEnd - breakStart}%`,
-                              }}
-                            />
+                              className="absolute top-0 bottom-0 z-20 pointer-events-none"
+                              style={{ left: `${nowPos}%` }}
+                            >
+                              <div className="w-0.5 h-full bg-red-500" />
+                              <div className="absolute -top-1 -translate-x-1/2 w-2 h-2 bg-red-500 rounded-full" />
+                            </div>
                           );
-                        })}
+                        }
+                        return null;
+                      })()}
+                  </div>
 
-                        {/* Task bar */}
-                        <div
-                          className="absolute top-0.5 bottom-0.5 shadow-md flex items-center justify-between px-2 overflow-hidden cursor-pointer hover:shadow-lg transition-shadow z-10"
-                          style={{
-                            left: `${Math.max(0, startPos)}%`,
-                            width: `${Math.min(width, 100 - Math.max(0, startPos))}%`,
-                            backgroundColor: taskColor,
-                            color: textColor,
-                            borderRadius:
-                              startPos < 0
-                                ? "0 0.375rem 0.375rem 0"
-                                : endPos > 100
-                                ? "0.375rem 0 0 0.375rem"
-                                : "0.375rem",
-                            clipPath:
-                              endPos > 100
-                                ? "polygon(0 0, calc(100% - 8px) 0, 100% 10%, 100% 30%, calc(100% - 8px) 50%, 100% 70%, 100% 90%, calc(100% - 8px) 100%, 0 100%)"
-                                : "none",
-                          }}
-                          onMouseEnter={() => setHoveredTaskId(task.todo.id)}
-                          onMouseLeave={() => setHoveredTaskId(null)}
-                          onClick={() => {
-                            setDetailsOverlayTodo(task.todo);
-                          }}
-                        >
-                          <span className="text-xs font-medium truncate">{task.todo.plainText}</span>
-                          <span className="text-xs opacity-80 ml-2 whitespace-nowrap">
-                            {formatDuration(task.durationMinutes)}
-                          </span>
-                        </div>
-
-                        {/* Buffer indicator (green dotted line to the right) */}
-                        {task.hasBuffer && (
-                          <>
+                  {/* Tasks timeline */}
+                  <div className="relative space-y-0 mx-4 mt-4" style={{ overflow: "visible" }}>
+                    {/* Now line across all tasks */}
+                    {settings.gantt.showNowLine !== false &&
+                      selectedDate.toDateString() === new Date().toDateString() &&
+                      (() => {
+                        const nowPos = getTimePosition(currentTime);
+                        if (nowPos >= 0 && nowPos <= 100) {
+                          return (
                             <div
-                              className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-green-500"
-                              style={{
-                                left: `${endPos}%`,
-                                width: `${Math.min(targetPos - endPos, 100 - endPos)}%`,
-                              }}
-                            />
-                            <div
-                              className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-green-600 dark:text-green-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
-                              style={{
-                                // If not enough space on right (< 15%), position on left of task
-                                left:
-                                  100 - endPos < 15 ? `${startPos}%` : `${(endPos + Math.min(targetPos, 100)) / 2}%`,
-                                transform: 100 - endPos < 15 ? "translate(-100%, -50%)" : "translate(-50%, -50%)",
-                              }}
+                              className="absolute top-0 bottom-0 z-30 pointer-events-none"
+                              style={{ left: `${nowPos}%` }}
                             >
-                              +{formatDuration(task.bufferMinutes)} buffer
+                              <div className="w-0.5 h-full bg-red-500 opacity-50" />
                             </div>
-                          </>
-                        )}
+                          );
+                        }
+                        return null;
+                      })()}
 
-                        {/* Overdue indicator (red dotted line to the left) */}
-                        {task.isOverdue && (
-                          <>
-                            <div
-                              className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-red-500"
-                              style={{
-                                left: `${Math.max(targetPos, 0)}%`,
-                                width: `${Math.min(endPos - targetPos, endPos)}%`,
-                              }}
-                            />
-                            <div
-                              className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-red-600 dark:text-red-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
-                              style={{
-                                // If not enough space on left (< 15%), position on right of task
-                                left: startPos < 15 ? `${endPos}%` : `${(Math.max(targetPos, 0) + startPos) / 2}%`,
-                                transform: startPos < 15 ? "translate(0%, -50%)" : "translate(-50%, -50%)",
-                              }}
-                            >
-                              -{formatDuration(task.bufferMinutes)} overdue
-                            </div>
-                          </>
-                        )}
+                    {/* Active tasks */}
+                    {activeTasks.map((task, index) => {
+                      const isCompletedTask = task.todo.isCompleted || task.todo.isArchived;
+                      const startPos = getTimePosition(task.startTime);
+                      const endPos = getTimePosition(task.endTime);
+                      const width = endPos - startPos;
+                      const targetPos = getTimePosition(task.targetDate);
+                      const isSelected = selectedTaskIndex === index;
 
-                        {/* Target marker */}
-                        {targetPos >= 0 && targetPos <= 100 && (
-                          <div
-                            className={`absolute top-0 bottom-0 w-0.5 ${
-                              task.isOverdue ? "bg-red-500" : "bg-green-500"
-                            } z-10`}
-                            style={{ left: `${targetPos}%` }}
-                            title={task.isOverdue ? "Overdue point" : "Target time"}
-                          />
-                        )}
-                      </div>
+                      // Check if there's a context switch buffer after this task
+                      const nextTask = index < activeTasks.length - 1 ? activeTasks[index + 1] : null;
+                      const hasContextSwitch = nextTask && settings.gantt.contextSwitchingTime > 0 && !isCompletedTask;
+                      const contextSwitchStartPos = endPos;
+                      const contextSwitchEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
+                      const contextSwitchWidth = contextSwitchEndPos - contextSwitchStartPos;
 
-                      {/* Context switching buffer - line with arrows */}
-                      {hasContextSwitch && contextSwitchWidth > 0 && (
+                      const taskColor = getProjectColor(task.todo);
+                      const textColor = getTextColor(taskColor);
+
+                      // Task row height based on settings
+                      const rowHeight =
+                        settings.gantt.taskRowHeight === "compact"
+                          ? "h-8"
+                          : settings.gantt.taskRowHeight === "comfortable"
+                          ? "h-12"
+                          : "h-10";
+                      const showBufferZones = settings.gantt.showBufferZones !== false;
+
+                      return (
                         <div
-                          className="absolute flex items-center justify-center z-5"
-                          style={{
-                            top: "100%",
-                            left: `${contextSwitchStartPos}%`,
-                            width: `${contextSwitchWidth}%`,
-                            height: "8px",
-                          }}
+                          key={task.todo.id}
+                          className={`relative ${isSelected ? "ring-2 ring-blue-500 ring-offset-1 rounded-lg" : ""}`}
+                          style={{ marginBottom: hasContextSwitch ? "0" : "2px" }}
                         >
-                          <div className="flex items-center w-full">
-                            <svg
-                              className="w-2 h-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
-                              fill="currentColor"
-                              viewBox="0 0 8 8"
+                          {/* Task row */}
+                          <div className={`relative ${rowHeight} bg-zinc-50 dark:bg-zinc-800 rounded-lg`}>
+                            {/* Break blocks */}
+                            {breakBlocks.map((breakBlock, bi) => {
+                              const breakStart = getTimePosition(breakBlock.startTime);
+                              const breakEnd = getTimePosition(breakBlock.endTime);
+                              return (
+                                <div
+                                  key={bi}
+                                  className="absolute top-0 bottom-0 bg-zinc-300 dark:bg-zinc-700 opacity-50"
+                                  style={{
+                                    left: `${breakStart}%`,
+                                    width: `${breakEnd - breakStart}%`,
+                                  }}
+                                />
+                              );
+                            })}
+
+                            {/* Task bar */}
+                            <div
+                              className={`absolute top-0.5 bottom-0.5 shadow-md flex items-center justify-between px-2 overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:z-20 transition-all duration-150 z-10 ${
+                                isSelected ? "ring-2 ring-blue-500" : ""
+                              }`}
+                              style={{
+                                left: `${Math.max(0, startPos)}%`,
+                                width: `${Math.min(width, 100 - Math.max(0, startPos))}%`,
+                                backgroundColor: taskColor,
+                                color: textColor,
+                                borderRadius:
+                                  startPos < 0
+                                    ? "0 0.375rem 0.375rem 0"
+                                    : endPos > 100
+                                    ? "0.375rem 0 0 0.375rem"
+                                    : "0.375rem",
+                                clipPath:
+                                  endPos > 100
+                                    ? "polygon(0 0, calc(100% - 8px) 0, 100% 10%, 100% 30%, calc(100% - 8px) 50%, 100% 70%, 100% 90%, calc(100% - 8px) 100%, 0 100%)"
+                                    : "none",
+                              }}
+                              onMouseEnter={() => {
+                                setHoveredTaskId(task.todo.id);
+                              }}
+                              onMouseLeave={() => setHoveredTaskId(null)}
+                              onClick={() => {
+                                setShowClickHint(false);
+                                setDetailsOverlayTodo(task.todo);
+                              }}
+                              title="Click to view details"
                             >
-                              <path d="M4 0 L0 4 L4 8 Z" />
-                            </svg>
-                            <div className="flex-1 h-px bg-blue-500 dark:bg-blue-400" />
-                            <svg
-                              className="w-2 h-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
-                              fill="currentColor"
-                              viewBox="0 0 8 8"
-                            >
-                              <path d="M4 0 L8 4 L4 8 Z" />
-                            </svg>
+                              <span className="text-xs font-medium truncate">{task.todo.plainText}</span>
+                              <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                                {/* Comment/activity indicators */}
+                                {(task.todo.hasComments || task.todo.hasActivity) && (
+                                  <div className="flex items-center gap-0.5 opacity-70">
+                                    {task.todo.hasComments && (
+                                      <span
+                                        className="flex items-center text-[10px]"
+                                        title={`${task.todo.commentCount} comment${
+                                          task.todo.commentCount !== 1 ? "s" : ""
+                                        }`}
+                                      >
+                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                          <path
+                                            fillRule="evenodd"
+                                            d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
+                                            clipRule="evenodd"
+                                          />
+                                        </svg>
+                                        {task.todo.commentCount > 1 && <span>{task.todo.commentCount}</span>}
+                                      </span>
+                                    )}
+                                    {task.todo.hasActivity && (
+                                      <span
+                                        className="flex items-center text-[10px]"
+                                        title={`${task.todo.activityCount} activity entries`}
+                                      >
+                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                          <path
+                                            fillRule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                            clipRule="evenodd"
+                                          />
+                                        </svg>
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                {/* Recurring indicator */}
+                                {task.todo.metadata.recurring && (
+                                  <span
+                                    className="text-[10px] opacity-70"
+                                    title={`Recurring: ${task.todo.metadata.recurring}`}
+                                  >
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  </span>
+                                )}
+                                {/* Dependencies indicator */}
+                                {task.todo.metadata.dependencies && task.todo.metadata.dependencies.length > 0 && (
+                                  <span
+                                    className="text-[10px] opacity-70"
+                                    title={`Has ${task.todo.metadata.dependencies.length} dependency(ies)`}
+                                  >
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  </span>
+                                )}
+                                <span className="text-xs opacity-80 whitespace-nowrap">
+                                  {formatDuration(task.durationMinutes)}
+                                </span>
+                                {/* Edit icon on hover */}
+                                {hoveredTaskId === task.todo.id && (
+                                  <svg
+                                    className="w-3 h-3 opacity-70"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Buffer indicator (green dotted line to the right) */}
+                            {showBufferZones && task.hasBuffer && (
+                              <>
+                                <div
+                                  className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-green-500"
+                                  style={{
+                                    left: `${endPos}%`,
+                                    width: `${Math.min(targetPos - endPos, 100 - endPos)}%`,
+                                  }}
+                                />
+                                <div
+                                  className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-green-600 dark:text-green-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
+                                  style={{
+                                    // If not enough space on right (< 15%), position on left of task
+                                    left:
+                                      100 - endPos < 15
+                                        ? `${startPos}%`
+                                        : `${(endPos + Math.min(targetPos, 100)) / 2}%`,
+                                    transform: 100 - endPos < 15 ? "translate(-100%, -50%)" : "translate(-50%, -50%)",
+                                  }}
+                                >
+                                  +{formatDuration(task.bufferMinutes)} buffer
+                                </div>
+                              </>
+                            )}
+
+                            {/* Overdue indicator (red dotted line to the left) */}
+                            {showBufferZones && task.isOverdue && (
+                              <>
+                                <div
+                                  className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-red-500"
+                                  style={{
+                                    left: `${Math.max(targetPos, 0)}%`,
+                                    width: `${Math.min(endPos - targetPos, endPos)}%`,
+                                  }}
+                                />
+                                <div
+                                  className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-red-600 dark:text-red-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
+                                  style={{
+                                    // If not enough space on left (< 15%), position on right of task
+                                    left: startPos < 15 ? `${endPos}%` : `${(Math.max(targetPos, 0) + startPos) / 2}%`,
+                                    transform: startPos < 15 ? "translate(0%, -50%)" : "translate(-50%, -50%)",
+                                  }}
+                                >
+                                  -{formatDuration(task.bufferMinutes)} overdue
+                                </div>
+                              </>
+                            )}
+
+                            {/* Target marker */}
+                            {targetPos >= 0 && targetPos <= 100 && (
+                              <div
+                                className={`absolute top-0 bottom-0 w-0.5 ${
+                                  task.isOverdue ? "bg-red-500" : "bg-green-500"
+                                } z-10`}
+                                style={{ left: `${targetPos}%` }}
+                                title={task.isOverdue ? "Overdue point" : "Target time"}
+                              />
+                            )}
                           </div>
-                        </div>
-                      )}
 
-                      {/* Hover tooltip - positioned outside task bar */}
-                      {hoveredTaskId === task.todo.id && (
-                        <div className="absolute left-4 top-full mt-2 z-50 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-3 min-w-[300px] max-w-[500px] pointer-events-none">
-                          <MarkedText
-                            text={task.todo.text}
-                            markerColors={markerColors}
-                            availablePeople={availablePeople}
-                            availableProjects={availableProjects}
-                            availablePriorities={availablePriorities}
-                          />
+                          {/* Context switching buffer - line with arrows */}
+                          {hasContextSwitch && contextSwitchWidth > 0 && (
+                            <div
+                              className="absolute flex items-center justify-center z-5"
+                              style={{
+                                top: "100%",
+                                left: `${contextSwitchStartPos}%`,
+                                width: `${contextSwitchWidth}%`,
+                                height: "8px",
+                              }}
+                            >
+                              <div className="flex items-center w-full">
+                                <svg
+                                  className="w-2 h-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
+                                  fill="currentColor"
+                                  viewBox="0 0 8 8"
+                                >
+                                  <path d="M4 0 L0 4 L4 8 Z" />
+                                </svg>
+                                <div className="flex-1 h-px bg-blue-500 dark:bg-blue-400" />
+                                <svg
+                                  className="w-2 h-2 text-blue-500 dark:text-blue-400 flex-shrink-0"
+                                  fill="currentColor"
+                                  viewBox="0 0 8 8"
+                                >
+                                  <path d="M4 0 L8 4 L4 8 Z" />
+                                </svg>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Hover tooltip - positioned outside task bar */}
+                          {hoveredTaskId === task.todo.id && (
+                            <div className="absolute left-4 top-full mt-2 z-50 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-3 min-w-[300px] max-w-[500px] pointer-events-none">
+                              <MarkedText
+                                text={task.todo.text}
+                                markerColors={markerColors}
+                                availablePeople={availablePeople}
+                                availableProjects={availableProjects}
+                                availablePriorities={availablePriorities}
+                              />
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+
+                    {/* Completed Tasks - Collapsible Section */}
+                    {completedTasks.length > 0 && (
+                      <div className="mt-4">
+                        <button
+                          onClick={() => setCompletedCollapsed(!completedCollapsed)}
+                          className="flex items-center gap-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors mb-2"
+                        >
+                          <svg
+                            className={`w-4 h-4 transition-transform ${completedCollapsed ? "" : "rotate-90"}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                          <span>Completed ({completedTasks.length})</span>
+                          <span className="text-xs text-zinc-400 dark:text-zinc-500">(Press C to toggle)</span>
+                        </button>
+
+                        {!completedCollapsed &&
+                          completedTasks.map((task, index) => {
+                            const globalIndex = activeTasks.length + index;
+                            const startPos = getTimePosition(task.startTime);
+                            const endPos = getTimePosition(task.endTime);
+                            const width = endPos - startPos;
+                            const isSelected = selectedTaskIndex === globalIndex;
+                            const taskColor = getProjectColor(task.todo);
+                            const textColor = getTextColor(taskColor);
+                            const rowHeight =
+                              settings.gantt.taskRowHeight === "compact"
+                                ? "h-8"
+                                : settings.gantt.taskRowHeight === "comfortable"
+                                ? "h-12"
+                                : "h-10";
+
+                            return (
+                              <div
+                                key={task.todo.id}
+                                className={`relative opacity-60 ${
+                                  isSelected ? "ring-2 ring-blue-500 ring-offset-1 rounded-lg" : ""
+                                }`}
+                                style={{ marginBottom: "2px" }}
+                              >
+                                <div className={`relative ${rowHeight} bg-zinc-50 dark:bg-zinc-800 rounded-lg`}>
+                                  {breakBlocks.map((breakBlock, bi) => {
+                                    const breakStart = getTimePosition(breakBlock.startTime);
+                                    const breakEnd = getTimePosition(breakBlock.endTime);
+                                    return (
+                                      <div
+                                        key={bi}
+                                        className="absolute top-0 bottom-0 bg-zinc-300 dark:bg-zinc-700 opacity-50"
+                                        style={{
+                                          left: `${breakStart}%`,
+                                          width: `${breakEnd - breakStart}%`,
+                                        }}
+                                      />
+                                    );
+                                  })}
+                                  <div
+                                    className={`absolute top-0.5 bottom-0.5 shadow-md flex items-center justify-between px-2 overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:z-20 transition-all duration-150 z-10 ${
+                                      isSelected ? "ring-2 ring-blue-500" : ""
+                                    }`}
+                                    style={{
+                                      left: `${Math.max(0, startPos)}%`,
+                                      width: `${Math.min(width, 100 - Math.max(0, startPos))}%`,
+                                      backgroundColor: taskColor,
+                                      color: textColor,
+                                      borderRadius: "0.375rem",
+                                    }}
+                                    onMouseEnter={() => setHoveredTaskId(task.todo.id)}
+                                    onMouseLeave={() => setHoveredTaskId(null)}
+                                    onClick={() => setDetailsOverlayTodo(task.todo)}
+                                    title="Click to view details"
+                                  >
+                                    <span className="text-xs font-medium truncate line-through">
+                                      {task.todo.plainText}
+                                    </span>
+                                    <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                                      {/* Comment/activity indicators */}
+                                      {(task.todo.hasComments || task.todo.hasActivity) && (
+                                        <div className="flex items-center gap-0.5 opacity-70">
+                                          {task.todo.hasComments && (
+                                            <span
+                                              className="flex items-center text-[10px]"
+                                              title={`${task.todo.commentCount} comment${
+                                                task.todo.commentCount !== 1 ? "s" : ""
+                                              }`}
+                                            >
+                                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                <path
+                                                  fillRule="evenodd"
+                                                  d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
+                                                  clipRule="evenodd"
+                                                />
+                                              </svg>
+                                              {task.todo.commentCount > 1 && <span>{task.todo.commentCount}</span>}
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                      <span className="text-xs opacity-80 whitespace-nowrap">
+                                        ✓ {formatDuration(task.durationMinutes)}
+                                      </span>
+                                      {hoveredTaskId === task.todo.id && (
+                                        <svg
+                                          className="w-3 h-3 opacity-70"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                                          />
+                                        </svg>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                {hoveredTaskId === task.todo.id && (
+                                  <div className="absolute left-4 top-full mt-2 z-50 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-3 min-w-[300px] max-w-[500px] pointer-events-none">
+                                    <MarkedText
+                                      text={task.todo.text}
+                                      markerColors={markerColors}
+                                      availablePeople={availablePeople}
+                                      availableProjects={availableProjects}
+                                      availablePriorities={availablePriorities}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Dependency arrows overlay */}
+                  {settings.gantt.showDependencies !== false && (
+                    <svg className="absolute inset-0 pointer-events-none z-20 mx-4" style={{ overflow: "visible" }}>
+                      <defs>
+                        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                          <polygon
+                            points="0 0, 8 3, 0 6"
+                            fill="currentColor"
+                            className="text-orange-500 dark:text-orange-400"
+                          />
+                        </marker>
+                      </defs>
+                      {activeTasks.map((task, taskIndex) => {
+                        const deps = task.todo.metadata.dependencies || [];
+                        return deps.map((depId) => {
+                          const depTaskIndex = activeTasks.findIndex((t) => t.todo.id === depId);
+                          if (depTaskIndex === -1) return null;
+
+                          const depTask = activeTasks[depTaskIndex];
+                          const depEndPos = getTimePosition(depTask.endTime);
+                          const taskStartPos = getTimePosition(task.startTime);
+
+                          // Calculate row heights
+                          const rowHeightPx =
+                            settings.gantt.taskRowHeight === "compact"
+                              ? 32
+                              : settings.gantt.taskRowHeight === "comfortable"
+                              ? 48
+                              : 40;
+                          const depY = depTaskIndex * (rowHeightPx + 2) + rowHeightPx / 2;
+                          const taskY = taskIndex * (rowHeightPx + 2) + rowHeightPx / 2;
+
+                          // Only draw if the dependency ends before this task starts
+                          if (depEndPos < taskStartPos) {
+                            return (
+                              <path
+                                key={`${depId}-${task.todo.id}`}
+                                d={`M ${depEndPos}% ${depY} C ${(depEndPos + taskStartPos) / 2}% ${depY}, ${
+                                  (depEndPos + taskStartPos) / 2
+                                }% ${taskY}, ${taskStartPos}% ${taskY}`}
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeDasharray="4 2"
+                                markerEnd="url(#arrowhead)"
+                                className="text-orange-500 dark:text-orange-400 opacity-60"
+                              />
+                            );
+                          }
+                          return null;
+                        });
+                      })}
+                    </svg>
+                  )}
+                </div>
               </div>
             </div>
 

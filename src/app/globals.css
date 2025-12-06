@@ -95,3 +95,30 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
 }
+
+/* Print styles for Gantt View */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Ensure task bars print with colors */
+  [style*="backgroundColor"] {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 1cm;
+    size: landscape;
+  }
+
+  /* Keep content together */
+  .space-y-6 > div {
+    page-break-inside: avoid;
+  }
+}

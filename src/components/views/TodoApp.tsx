@@ -61,7 +61,7 @@ export function TodoApp() {
     undo,
     dismissUndo,
   } = useTodos();
-  const { settings, addPriority } = useSettings();
+  const { settings, addPriority, updateGantt } = useSettings();
 
   const {
     people,
@@ -1400,6 +1400,7 @@ export function TodoApp() {
             settings={settings}
             linkPatterns={settings.linkPatterns}
             onAddComment={addTodoComment}
+            onUpdateGanttSettings={updateGantt}
           />
         )}
 
