@@ -25,8 +25,6 @@ interface GanttViewProps {
   onAddProject: (project: string) => void;
   onAddPriority: (priority: string) => void;
   onAddComment?: (todoId: string, content: string) => void;
-  onEditComment?: (todoId: string, commentId: number, content: string) => void;
-  onDeleteComment?: (todoId: string, commentId: number) => void;
 }
 
 interface ScheduledTask {
@@ -64,8 +62,6 @@ export function GanttView({
   onAddProject,
   onAddPriority,
   onAddComment,
-  onEditComment,
-  onDeleteComment,
 }: GanttViewProps) {
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
@@ -1199,8 +1195,6 @@ export function GanttView({
                             availablePeople={availablePeople}
                             availableProjects={availableProjects}
                             availablePriorities={availablePriorities}
-                            dateTimeSettings={settings.dateTime}
-                            workHoursSettings={settings.workHours}
                           />
                         </div>
                       )}
@@ -1289,8 +1283,6 @@ export function GanttView({
               onAddProject={onAddProject}
               onAddPriority={onAddPriority}
               onAddComment={onAddComment}
-              onEditComment={onEditComment}
-              onDeleteComment={onDeleteComment}
             />
           );
         })()}

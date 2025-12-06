@@ -39,8 +39,6 @@ interface TodoDetailsOverlayProps {
   onAddProject?: (name: string) => void;
   onAddPriority?: (name: string) => void;
   onAddComment?: (todoId: string, content: string) => void;
-  onEditComment?: (todoId: string, commentId: number, content: string) => void;
-  onDeleteComment?: (todoId: string, commentId: number) => void;
 }
 
 export function TodoDetailsOverlay({
@@ -112,19 +110,6 @@ export function TodoDetailsOverlay({
     });
   }, [todo, settings.dateTime, settings.workHours]);
 
-  const markers = {
-    assigned: "@",
-    source: "$",
-    mentioned: "", // Auto-detected, no marker
-    project: "#",
-    priority: "!!",
-    dueDate: "~",
-    duration: "*",
-    recurring: "%",
-    dependency: ">",
-    tag: "&",
-  };
-
   useEffect(() => {
     if (isEditing && smartInputRef.current) {
       setTimeout(() => {
@@ -171,10 +156,6 @@ export function TodoDetailsOverlay({
   };
 
   const handleMetadataChange = (newMetadata: TodoMetadata) => {
-    console.log("=== TodoDetailsOverlay handleMetadataChange ===");
-    console.log("Old metadata:", todo.metadata);
-    console.log("New metadata:", newMetadata);
-
     const parts: string[] = [todo.plainText];
 
     newMetadata.assignedPeople.forEach((p) => parts.push(`@${p}`));
@@ -260,7 +241,6 @@ export function TodoDetailsOverlay({
                   <div className="space-y-2">
                     <SmartEditableInput
                       ref={smartInputRef}
-                      markers={markers}
                       markerColors={markerColors}
                       availablePeople={availablePeople}
                       availableProjects={availableProjects}
@@ -403,21 +383,12 @@ export function TodoDetailsOverlay({
                       availablePeople={availablePeople}
                       availableProjects={availableProjects}
                       availablePriorities={availablePriorities}
-                      dateTimeSettings={settings.dateTime}
-                      workHoursSettings={settings.workHours}
                     />
                   </h2>
                 )}
               </div>
             </div>
           </div>
-
-          {/* Metadata Summary */}
-          {todo.hasMetadata && (
-            <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">{todo.metadataSummary}</p>
-            </div>
-          )}
 
           {/* Timestamps */}
           <div className="pb-4 border-b border-zinc-200 dark:border-zinc-800 mb-4">

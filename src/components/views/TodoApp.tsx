@@ -1404,8 +1404,6 @@ export function TodoApp() {
             settings={settings}
             linkPatterns={settings.linkPatterns}
             onAddComment={addTodoComment}
-            onEditComment={editTodoComment}
-            onDeleteComment={deleteTodoComment}
           />
         )}
 
@@ -1590,7 +1588,6 @@ export function TodoApp() {
                                     availablePeople={sortedPeople}
                                     availableProjects={sortedProjects}
                                     availablePriorities={sortedPriorities}
-                                    availableTodos={todos}
                                     onAddPerson={handleAddPerson}
                                     onAddProject={handleAddProject}
                                     onAddPriority={handleAddPriority}
@@ -1647,7 +1644,6 @@ export function TodoApp() {
                               availablePeople={sortedPeople}
                               availableProjects={sortedProjects}
                               availablePriorities={sortedPriorities}
-                              availableTodos={todos}
                               onAddPerson={handleAddPerson}
                               onAddProject={handleAddProject}
                               onAddPriority={handleAddPriority}
@@ -1701,7 +1697,6 @@ export function TodoApp() {
                               availablePeople={sortedPeople}
                               availableProjects={sortedProjects}
                               availablePriorities={sortedPriorities}
-                              availableTodos={todos}
                               onAddPerson={handleAddPerson}
                               onAddProject={handleAddProject}
                               onAddPriority={handleAddPriority}
@@ -1905,8 +1900,6 @@ export function TodoApp() {
                     onAddProject={handleAddProject}
                     onAddPriority={handleAddPriority}
                     onAddComment={addTodoComment}
-                    onEditComment={editTodoComment}
-                    onDeleteComment={deleteTodoComment}
                   />
                 );
               })()}
@@ -1987,12 +1980,10 @@ export function TodoApp() {
                   <div className="mb-4">
                     <SmartEditableInput
                       ref={smartInputRef}
-                      markers={markers}
                       markerColors={settings.markerColors}
                       availablePeople={sortedPeople}
                       availableProjects={sortedProjects}
                       availablePriorities={sortedPriorities}
-                      availableTodos={todos}
                       dateTimeSettings={settings.dateTime}
                       workHoursSettings={settings.workHours}
                       onAddPerson={handleAddPerson}

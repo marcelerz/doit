@@ -25,11 +25,9 @@ export interface TokenMatch {
 }
 
 export interface SmartEditableInputProps {
-  markers: Record<string, string>; // e.g. { assignee: "@", project: "#", priority: "!!" }
   markerColors?: Record<string, string>; // e.g. { assigned: "#cce5ff", project: "#e2ccff" }
   onTokensChange?: (tokens: TokenMatch[], rawText: string, plainText: string) => void;
   placeholder?: string;
-  initialValue?: string;
   onEnterPress?: () => void;
   availablePeople?: PersonModel[]; // List of valid people with alternatives
   availableProjects?: ProjectModel[]; // List of valid projects with alternatives
@@ -50,11 +48,9 @@ export interface SmartEditableInputHandle {
 const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInputProps>(
   (
     {
-      markers,
       markerColors = {},
       onTokensChange,
       placeholder,
-      initialValue,
       onEnterPress,
       availablePeople = [],
       availableProjects = [],
@@ -90,6 +86,20 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       position: { top: 0, left: 0 },
     });
 
+    // Close autocomplete when clicking outside
+    useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        // Check if click is outside the component
+        if (editableRef.current && !editableRef.current.contains(target) && !target.closest(".autocomplete-dropdown")) {
+          setAutocomplete((prev) => ({ ...prev, show: false }));
+        }
+      };
+
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     useImperativeHandle(
       ref,
       () => ({
@@ -118,7 +128,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         },
       }),
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      [],
+      [availablePeople, availableProjects, availablePriorities, dateTimeSettings, workHoursSettings, activeDateIndices],
     );
 
     // Re-render content ONLY when activeDateIndices change (for date deactivation)
@@ -525,16 +535,6 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           continue;
         }
 
-        // Skip if this position overlaps with any date token (dates take precedence)
-        const overlapsDate = tokens.some(
-          (t) =>
-            (t.type === "dueDate" || t.type === "recurring") && !(detected.end <= t.start || detected.start >= t.end),
-        );
-
-        if (overlapsDate) {
-          continue;
-        }
-
         // Skip if this position overlaps with any existing token (dates, people, projects take precedence)
         const overlapsExisting = tokens.some((t) => !(detected.end <= t.start || detected.start >= t.end));
 
@@ -771,11 +771,11 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       const textBeforeCaret = caretPosition >= 0 ? fullText.substring(0, caretPosition) : fullText;
 
       // Look for marker symbols starting from the end backwards
+      // Note: # (tag) is excluded from autocomplete since tags are freeform text
       const peopleMarkers = ["@", "$"];
       const projectMarker = "%";
-      const tagMarker = "#";
       const priorityMarker = "!!";
-      const allMarkers = [...peopleMarkers, projectMarker, tagMarker, priorityMarker];
+      const allMarkers = [...peopleMarkers, projectMarker, priorityMarker];
 
       // Find the last marker before the caret
       let lastMarkerPos = -1;
@@ -947,8 +947,8 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
 
       const fullText = div.innerText.replace(/\n/g, " ");
 
-      // Find the last marker position
-      const allMarkers = ["@", "$", "%", "#", "!!"];
+      // Find the last marker position (same markers as autocomplete triggers, excluding # for tags)
+      const allMarkers = ["@", "$", "%", "!!"];
       let lastMarkerPos = -1;
       let lastMarker = "";
 
@@ -1028,7 +1028,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         {/* Autocomplete Dropdown */}
         {autocomplete.show && (
           <div
-            className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+            className="autocomplete-dropdown absolute z-50 mt-1 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-lg max-h-60 overflow-y-auto"
             style={{
               top: `${autocomplete.position.top}px`,
               left: `${autocomplete.position.left}px`,

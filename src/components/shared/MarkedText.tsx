@@ -1,8 +1,7 @@
 import React from "react";
-import { MarkerColors, LinkPattern, Priority, DateTimeSettings, WorkHoursSettings } from "@/types/settings";
+import { MarkerColors, LinkPattern, Priority } from "@/types/settings";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
-import { parseDate } from "@/utils/dateParser";
 import {
   detectMentionedPeople,
   detectMentionedProjects,
@@ -18,8 +17,6 @@ interface MarkedTextProps {
   availablePeople?: PersonModel[];
   availableProjects?: ProjectModel[];
   availablePriorities?: Priority[];
-  dateTimeSettings?: DateTimeSettings;
-  workHoursSettings?: WorkHoursSettings;
 }
 
 export function MarkedText({
@@ -30,8 +27,6 @@ export function MarkedText({
   availablePeople = [],
   availableProjects = [],
   availablePriorities = [],
-  dateTimeSettings,
-  workHoursSettings,
 }: MarkedTextProps) {
   // Parse the text and create elements with markers highlighted
   const parts: React.ReactNode[] = [];

@@ -68,18 +68,6 @@ export function TodoItem({
   const [showDelayedDropdown, setShowDelayedDropdown] = useState(false);
   const smartInputRef = useRef<SmartEditableInputHandle>(null);
 
-  const markers = {
-    assigned: "@",
-    source: "$",
-    mentioned: "", // Auto-detected, no marker
-    project: "#",
-    priority: "!!",
-    dueDate: "~",
-    duration: "*",
-    recurring: "%",
-    dependency: ">",
-  };
-
   // Helper functions to get entity colors
   const getPersonColor = (name: string): string => {
     const person = availablePeople.find((p) => p.name === name || p.alternatives.includes(name));
@@ -128,12 +116,6 @@ export function TodoItem({
     e.preventDefault();
     if (!currentPlainText.trim()) return;
 
-    console.log("=== TodoItem handleSubmit ===");
-    console.log("currentTokens:", currentTokens);
-    console.log("existing dueDate:", todo.metadata.dueDate);
-    console.log("existing duration:", todo.metadata.duration);
-    console.log("existing recurring:", todo.metadata.recurring);
-
     // Start with existing metadata as the source of truth (additive approach - never remove, only add from tokens)
     const metadata: TodoMetadata = {
       assignedPeople: [...todo.metadata.assignedPeople],
@@ -147,12 +129,6 @@ export function TodoItem({
       duration: todo.metadata.duration,
       recurring: todo.metadata.recurring,
     };
-
-    console.log("metadata after init:", {
-      dueDate: metadata.dueDate,
-      duration: metadata.duration,
-      recurring: metadata.recurring,
-    });
 
     // Parse tokens from the edited text and ADD/UPDATE items (only update when found, never clear)
     currentTokens.forEach((token) => {
@@ -210,13 +186,6 @@ export function TodoItem({
       }
     });
 
-    console.log("metadata after token processing:", {
-      dueDate: metadata.dueDate,
-      duration: metadata.duration,
-      recurring: metadata.recurring,
-      priority: metadata.priority,
-    });
-
     // Apply auto-assignment defaults only for empty fields (never overwrite existing values)
     if (settings.autoAssign.enabled) {
       const autoAssign = settings.autoAssign;
@@ -237,12 +206,6 @@ export function TodoItem({
         metadata.priority = autoAssign.priority;
       }
     }
-    console.log("metadata before save:", {
-      dueDate: metadata.dueDate,
-      duration: metadata.duration,
-      recurring: metadata.recurring,
-      priority: metadata.priority,
-    });
     onEdit(todo.id, currentFullText, currentPlainText, metadata);
     setIsEditing(false);
   };
@@ -260,7 +223,6 @@ export function TodoItem({
         <form onSubmit={handleSubmit} className="flex flex-col gap-2">
           <SmartEditableInput
             ref={smartInputRef}
-            markers={markers}
             markerColors={markerColors}
             availablePeople={availablePeople}
             availableProjects={availableProjects}
@@ -317,8 +279,6 @@ export function TodoItem({
               availablePeople={availablePeople}
               availableProjects={availableProjects}
               availablePriorities={availablePriorities}
-              dateTimeSettings={settings.dateTime}
-              workHoursSettings={settings.workHours}
             />
           </div>
 
