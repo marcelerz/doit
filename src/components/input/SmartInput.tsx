@@ -7,6 +7,7 @@ import {
   detectMentionedProjects,
   detectSourcePeople,
   detectPriorities,
+  detectDurationPatterns,
 } from "@/utils/chronoDateParser";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
@@ -290,7 +291,30 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         }
       }
 
-      // Second, detect dates using chrono-node (auto-detection only, no explicit markers)
+      // Second, detect standalone duration patterns BEFORE chrono dates
+      // This prevents patterns like "46m" from being interpreted as times
+      const detectedDurations = detectDurationPatterns(text);
+
+      for (const detected of detectedDurations) {
+        // Check if this position overlaps with any existing token
+        const overlapsExisting = tokens.some(
+          (t) => !(detected.end <= t.start || detected.start >= t.end),
+        );
+
+        if (!overlapsExisting) {
+          tokens.push({
+            type: "duration",
+            value: detected.value,
+            raw: detected.text,
+            start: detected.start,
+            end: detected.end,
+            isAutoDetected: true,
+          });
+        }
+      }
+
+      // Third, detect dates using chrono-node (auto-detection only, no explicit markers)
+      // Note: Duration patterns are already filtered out in detectDatesInText
       const detectedDates = detectDatesInText(text, new Date(), dateTimeSettings, workHoursSettings);
 
       for (const detected of detectedDates) {

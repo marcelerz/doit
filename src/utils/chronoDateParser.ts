@@ -90,6 +90,69 @@ const CUSTOM_SHORTHANDS = [
 ];
 
 /**
+ * Interface for detected duration patterns
+ */
+export interface DetectedDuration {
+  text: string; // The text that was matched (e.g., "46m", "2h", "1.5h")
+  start: number; // Start index in the original text
+  end: number; // End index in the original text
+  value: string; // Normalized duration value
+}
+
+/**
+ * Detect duration patterns in text
+ * Patterns like: 15m, 30m, 46m, 1h, 2h, 1.5h, 2d, 1w, etc.
+ * These should be prioritized over chrono's time detection
+ */
+export function detectDurationPatterns(text: string): DetectedDuration[] {
+  console.log("⏱️ [Duration Patterns] Scanning text:", text);
+  const results: DetectedDuration[] = [];
+
+  // Duration pattern: number (optional decimal) followed by unit (m, h, d, w)
+  // Must be standalone (word boundary) to avoid matching parts of other text
+  // Excludes patterns that could be times (like "at 9am", "9:30pm")
+  const durationRegex = /\b(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|wk|wks|week|weeks)\b/gi;
+
+  let match;
+  while ((match = durationRegex.exec(text)) !== null) {
+    const fullMatch = match[0];
+    const start = match.index;
+    const end = start + fullMatch.length;
+    const number = parseFloat(match[1]);
+    const unit = match[2].toLowerCase();
+
+    // Normalize the unit
+    let normalizedUnit: string;
+    if (unit.startsWith("m")) {
+      normalizedUnit = "m";
+    } else if (unit.startsWith("h")) {
+      normalizedUnit = "h";
+    } else if (unit.startsWith("d")) {
+      normalizedUnit = "d";
+    } else if (unit.startsWith("w")) {
+      normalizedUnit = "w";
+    } else {
+      continue;
+    }
+
+    // Format the value (e.g., "1.5h", "46m")
+    const value = Number.isInteger(number) ? `${number}${normalizedUnit}` : `${number}${normalizedUnit}`;
+
+    console.log(`  ✅ Found duration "${fullMatch}" at position ${start}-${end} → ${value}`);
+
+    results.push({
+      text: fullMatch,
+      start,
+      end,
+      value,
+    });
+  }
+
+  console.log(`⏱️ [Duration Patterns] Found ${results.length} duration patterns`);
+  return results;
+}
+
+/**
  * Detect recurring patterns in text starting with "every"
  * Returns pattern with first due date derived from the pattern
  */
@@ -190,6 +253,7 @@ function detectCustomShorthands(
 /**
  * Detect all dates in a text string using chrono-node + custom shorthands
  * Returns dates sorted by position in text
+ * Duration patterns (like 46m, 2h) are detected first and excluded from chrono processing
  */
 export function detectDatesInText(
   text: string,
@@ -200,6 +264,11 @@ export function detectDatesInText(
   console.log("\n🔍 [detectDatesInText] Starting date detection");
   console.log("📝 Input text:", text);
   console.log("📅 Reference date:", referenceDate.toLocaleString());
+
+  // FIRST: Detect duration patterns (like 46m, 2h, 1.5h)
+  // These should NOT be interpreted as times by chrono
+  const durationPatterns = detectDurationPatterns(text);
+  const durationRanges = durationPatterns.map((d) => ({ start: d.start, end: d.end }));
 
   // Use chrono's casual parser for more flexible parsing
   const chronoResults = chrono.parse(text, referenceDate, { forwardDate: true });
@@ -219,7 +288,25 @@ export function detectDatesInText(
     });
   }
 
-  const chronoDates: DetectedDate[] = chronoResults.map((result) => {
+  // Filter out chrono results that overlap with duration patterns
+  const filteredChronoResults = chronoResults.filter((result) => {
+    const resultStart = result.index;
+    const resultEnd = result.index + result.text.length;
+
+    const overlapsWithDuration = durationRanges.some(
+      (range) => !(resultEnd <= range.start || resultStart >= range.end),
+    );
+
+    if (overlapsWithDuration) {
+      console.log(
+        `  ⚠️ Filtering out chrono result "${result.text}" - overlaps with duration pattern`,
+      );
+      return false;
+    }
+    return true;
+  });
+
+  const chronoDates: DetectedDate[] = filteredChronoResults.map((result) => {
     const detected: DetectedDate = {
       text: result.text,
       start: result.index,
