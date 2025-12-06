@@ -52,6 +52,18 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
     };
   }
 
+  // Simple interval pattern: every day/week/month (no number)
+  const simpleIntervalMatch = normalized.match(/^every\s+(day|week|month|quarter|half|year)$/);
+  if (simpleIntervalMatch) {
+    const unit = simpleIntervalMatch[1] as "day" | "week" | "month" | "quarter" | "half" | "year";
+    return {
+      type: "interval",
+      interval: 1,
+      unit,
+      raw: pattern,
+    };
+  }
+
   // Interval pattern: every X days/weeks/months/quarters/halfs/years
   const intervalMatch = normalized.match(/^every\s+(\d+)\s+(day|week|month|quarter|half|year)s?$/);
   if (intervalMatch) {
@@ -61,6 +73,17 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
       type: "interval",
       interval,
       unit,
+      raw: pattern,
+    };
+  }
+
+  // Monthly pattern with "every": every month on the 15th, every month on 15
+  const everyMonthMatch = normalized.match(/^every\s+month\s+on\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?$/);
+  if (everyMonthMatch) {
+    const monthDay = parseInt(everyMonthMatch[1], 10);
+    return {
+      type: "monthly",
+      monthDay,
       raw: pattern,
     };
   }
@@ -272,6 +295,8 @@ export function getRecurringSuggestions(): string[] {
     "every week",
     "every 2 weeks",
     "every month",
+    "every month on the 1st",
+    "every month on the 15th",
     "every workday",
     "every monday",
     "every tuesday",

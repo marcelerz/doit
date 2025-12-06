@@ -96,6 +96,120 @@ const CUSTOM_SHORTHANDS = [
 ];
 
 /**
+ * Detect standalone time patterns (e.g., "2pm", "3:30pm", "14:00")
+ * These default to today's date
+ */
+export interface DetectedTime {
+  text: string;
+  start: number;
+  end: number;
+  hours: number;
+  minutes: number;
+}
+
+export function detectTimePatterns(text: string): DetectedTime[] {
+  const results: DetectedTime[] = [];
+
+  // Pattern 1: 12-hour format with am/pm (e.g., "2pm", "3:30pm", "11:45am")
+  const time12Regex = /\b(1[0-2]|[1-9])(?::([0-5][0-9]))?\s*(am|pm)\b/gi;
+
+  let match;
+  while ((match = time12Regex.exec(text)) !== null) {
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2] ? parseInt(match[2], 10) : 0;
+    const meridiem = match[3].toLowerCase();
+
+    // Convert to 24-hour format
+    if (meridiem === "pm" && hours !== 12) {
+      hours += 12;
+    } else if (meridiem === "am" && hours === 12) {
+      hours = 0;
+    }
+
+    results.push({
+      text: match[0],
+      start: match.index,
+      end: match.index + match[0].length,
+      hours,
+      minutes,
+    });
+  }
+
+  // Pattern 2: 24-hour format (e.g., "14:00", "09:30") - must have colon
+  const time24Regex = /\b([01]?[0-9]|2[0-3]):([0-5][0-9])\b/g;
+
+  while ((match = time24Regex.exec(text)) !== null) {
+    // Skip if already matched by 12-hour pattern
+    const overlaps = results.some((r) => !(match!.index + match![0].length <= r.start || match!.index >= r.end));
+    if (overlaps) continue;
+
+    const hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+
+    results.push({
+      text: match[0],
+      start: match.index,
+      end: match.index + match[0].length,
+      hours,
+      minutes,
+    });
+  }
+
+  return results.sort((a, b) => a.start - b.start);
+}
+
+/**
+ * Detect relative day patterns (e.g., "in 3 days", "in 2 weeks")
+ * These are patterns chrono might miss or misinterpret
+ */
+export interface DetectedRelativeDate {
+  text: string;
+  start: number;
+  end: number;
+  date: Date;
+  timestamp: number;
+}
+
+export function detectRelativeDayPatterns(text: string, referenceDate: Date = new Date()): DetectedRelativeDate[] {
+  const results: DetectedRelativeDate[] = [];
+
+  // Pattern: "in X days/weeks/months/years"
+  const relativeRegex = /\bin\s+(\d+)\s+(day|week|month|year)s?\b/gi;
+
+  let match;
+  while ((match = relativeRegex.exec(text)) !== null) {
+    const amount = parseInt(match[1], 10);
+    const unit = match[2].toLowerCase();
+    const date = new Date(referenceDate);
+
+    switch (unit) {
+      case "day":
+        date.setDate(date.getDate() + amount);
+        break;
+      case "week":
+        date.setDate(date.getDate() + amount * 7);
+        break;
+      case "month":
+        date.setMonth(date.getMonth() + amount);
+        break;
+      case "year":
+        date.setFullYear(date.getFullYear() + amount);
+        break;
+    }
+
+    results.push({
+      text: match[0],
+      start: match.index,
+      end: match.index + match[0].length,
+      date,
+      timestamp: date.getTime(),
+    });
+  }
+
+  return results;
+}
+
+/**
  * Interface for detected duration patterns
  */
 export interface DetectedDuration {
@@ -167,9 +281,10 @@ function detectRecurringPatterns(text: string, referenceDate: Date = new Date())
   // - "monday", "tuesday", etc.
   // - "first monday", "2nd tuesday", "last friday", etc.
   // - "workday"
+  // - "month on the 15th", "month on 1"
 
   const regex =
-    /\bevery\s+(?:(\d+)\s+)?(day|week|month|quarter|half|year|workday|sunday|monday|tuesday|wednesday|thursday|friday|saturday)s?\b|\bevery\s+(1st|2nd|3rd|4th|5th|last|first|second|third|fourth|fifth)\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/gi;
+    /\bevery\s+(?:(\d+)\s+)?(day|week|month|quarter|half|year|workday|sunday|monday|tuesday|wednesday|thursday|friday|saturday)s?\b|\bevery\s+(1st|2nd|3rd|4th|5th|last|first|second|third|fourth|fifth)\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b|\bevery\s+month\s+on\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?\b/gi;
 
   let match;
   while ((match = regex.exec(text)) !== null) {
@@ -177,11 +292,8 @@ function detectRecurringPatterns(text: string, referenceDate: Date = new Date())
     const patternStart = match.index;
     const patternEnd = patternStart + fullMatch.length;
 
-    // Extract just the pattern part (remove "every ")
-    const patternText = fullMatch.replace(/^every\s+/i, "");
-
-    // Try to parse it
-    const pattern = parseRecurringPattern(`every ${patternText}`);
+    // Try to parse the full match
+    const pattern = parseRecurringPattern(fullMatch);
 
     if (pattern) {
       // Calculate first occurrence from reference date
@@ -195,7 +307,6 @@ function detectRecurringPatterns(text: string, referenceDate: Date = new Date())
         timestamp: firstDate.getTime(),
         recurring: pattern,
       });
-    } else {
     }
   }
 
@@ -298,11 +409,44 @@ export function detectDatesInText(
   // Add recurring patterns
   const recurringDates = detectRecurringPatterns(text, referenceDate);
 
+  // Add relative date patterns (e.g., "in 3 days")
+  const relativeDates = detectRelativeDayPatterns(text, referenceDate);
+  const relativeDetectedDates: DetectedDate[] = relativeDates.map((rd) => ({
+    text: rd.text,
+    start: rd.start,
+    end: rd.end,
+    date: rd.date,
+    timestamp: rd.timestamp,
+  }));
+
+  // Add standalone time patterns (e.g., "2pm", "3:30pm") - default to today
+  const timePatterns = detectTimePatterns(text);
+  const timeDetectedDates: DetectedDate[] = [];
+  for (const tp of timePatterns) {
+    // Check if this time is not already part of a chrono date detection
+    const overlapsWithChrono = chronoDates.some((cd) => !(tp.end <= cd.start || tp.start >= cd.end));
+    if (!overlapsWithChrono) {
+      const dateWithTime = new Date(referenceDate);
+      dateWithTime.setHours(tp.hours, tp.minutes, 0, 0);
+      // If the time is in the past today, assume tomorrow
+      if (dateWithTime < referenceDate) {
+        dateWithTime.setDate(dateWithTime.getDate() + 1);
+      }
+      timeDetectedDates.push({
+        text: tp.text,
+        start: tp.start,
+        end: tp.end,
+        date: dateWithTime,
+        timestamp: dateWithTime.getTime(),
+      });
+    }
+  }
+
   // Combine and deduplicate
-  // Priority order: recurring patterns > custom shorthands > chrono dates
+  // Priority order: recurring patterns > relative dates > custom shorthands > time patterns > chrono dates
   // This ensures "every monday" takes precedence over chrono's "monday" detection
   // BUT: If a recurring pattern overlaps with a chrono range (with time), merge the time info
-  const allDates = [...recurringDates, ...customDates, ...chronoDates];
+  const allDates = [...recurringDates, ...relativeDetectedDates, ...customDates, ...timeDetectedDates, ...chronoDates];
 
   // Special handling: If a recurring pattern overlaps with a chrono range that has duration,
   // merge the time information into the recurring pattern
@@ -628,8 +772,8 @@ export function detectMentionedProjects(text: string, availableProjects: Project
 
   // Context patterns that indicate a project reference
   const contextPatterns = [
-    { pattern: /\b(?:on|in|for)\s+project\s+/gi, prefix: true },
-    { pattern: /\b(?:on|in|for)\s+/gi, prefix: true },
+    { pattern: /\b(?:on|in|for|about)\s+project\s+/gi, prefix: true },
+    { pattern: /\b(?:on|in|for|about)\s+/gi, prefix: true },
     { pattern: /\s+project\b/gi, prefix: false },
   ];
 
