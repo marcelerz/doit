@@ -16,6 +16,7 @@ import {
   type BackupData,
 } from "@/storage/backup";
 import { Notification, ConfirmDialog, type NotificationType } from "@/components/shared/Notification";
+import { IconButton } from "@/components/shared/IconButton";
 
 interface BackupTabProps {
   onRestore?: () => void; // Callback to refresh data after restore
@@ -386,12 +387,7 @@ export function BackupTab({ onRestore }: BackupTabProps) {
                     >
                       Export
                     </button>
-                    <button
-                      onClick={() => handleDeleteBackup(backup.timestamp)}
-                      className="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
-                    >
-                      Delete
-                    </button>
+                    <IconButton icon="delete" onClick={() => handleDeleteBackup(backup.timestamp)} />
                   </div>
                 </div>
               </div>

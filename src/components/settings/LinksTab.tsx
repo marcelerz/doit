@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LinkPattern } from "@/types/settings";
+import { IconButton } from "@/components/shared/IconButton";
 
 interface LinksTabProps {
   linkPatterns: LinkPattern[];
@@ -181,18 +182,8 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
                 )}
               </div>
               <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(pattern)}
-                  className="px-3 py-1 text-sm bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-md transition-colors"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => onDelete(pattern.id)}
-                  className="px-3 py-1 text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
-                >
-                  Delete
-                </button>
+                <IconButton icon="edit" onClick={() => handleEdit(pattern)} />
+                <IconButton icon="delete" onClick={() => onDelete(pattern.id)} />
               </div>
             </div>
           ))

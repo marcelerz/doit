@@ -10,6 +10,7 @@ import {
   defaultKanbanViews,
 } from "@/types/settings";
 import { useState } from "react";
+import { IconButton } from "@/components/shared/IconButton";
 
 interface KanbanTabProps {
   kanban: KanbanSettings;
@@ -361,15 +362,8 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
                 {/* Actions */}
                 {!state.isSystem && (
                   <>
-                    <button onClick={() => setEditingState(state)} className="p-1 text-zinc-400 hover:text-zinc-600">
-                      ✏️
-                    </button>
-                    <button
-                      onClick={() => handleDeleteState(state.id)}
-                      className="p-1 text-zinc-400 hover:text-red-600"
-                    >
-                      🗑️
-                    </button>
+                    <IconButton icon="edit" onClick={() => setEditingState(state)} size="sm" />
+                    <IconButton icon="delete" onClick={() => handleDeleteState(state.id)} size="sm" />
                   </>
                 )}
               </div>
@@ -619,16 +613,9 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
                         Set as Default
                       </button>
                     )}
-                    <button onClick={() => setEditingView(view)} className="p-1 text-zinc-400 hover:text-zinc-600">
-                      ✏️
-                    </button>
+                    <IconButton icon="edit" onClick={() => setEditingView(view)} size="sm" />
                     {kanban.views.length > 1 && (
-                      <button
-                        onClick={() => handleDeleteView(view.id)}
-                        className="p-1 text-zinc-400 hover:text-red-600"
-                      >
-                        🗑️
-                      </button>
+                      <IconButton icon="delete" onClick={() => handleDeleteView(view.id)} size="sm" />
                     )}
                   </div>
                 </div>

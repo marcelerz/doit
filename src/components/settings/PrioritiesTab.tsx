@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Priority } from "@/types/settings";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { AlternativesInput } from "@/components/shared/AlternativesInput";
+import { IconButton } from "@/components/shared/IconButton";
 
 interface PrioritiesTabProps {
   priorities: Priority[];
@@ -156,18 +157,8 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => handleStartEdit(priority)}
-                    className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-md transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => onDelete(priority.id)}
-                    className="px-3 py-1 text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 rounded-md transition-colors"
-                  >
-                    Delete
-                  </button>
+                  <IconButton icon="edit" onClick={() => handleStartEdit(priority)} />
+                  <IconButton icon="delete" onClick={() => onDelete(priority.id)} />
                 </div>
               </div>
             )}

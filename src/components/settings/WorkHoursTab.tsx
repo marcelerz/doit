@@ -3,6 +3,7 @@
 import { WorkHoursSettings, DaySchedule, BreakPeriod, DEFAULT_BLOCK_TYPES, TimeBlockType } from "@/types/settings";
 import { useState } from "react";
 import { getTextColor } from "@/utils/colors";
+import { IconButton } from "@/components/shared/IconButton";
 
 interface WorkHoursTabProps {
   workHours: WorkHoursSettings;
@@ -213,20 +214,12 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                             placeholder="Block name"
                           />
 
-                          <button
+                          <IconButton
+                            icon="remove"
                             onClick={() => removeBreak(type, breakPeriod.id)}
-                            className="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                            size="sm"
                             title="Remove block"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
+                          />
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -492,25 +485,17 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                                       placeholder="Block name"
                                     />
 
-                                    <button
+                                    <IconButton
+                                      icon="remove"
                                       onClick={() => {
                                         const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
                                         updateCustomSchedule(day, {
                                           breaks: existing.breaks.filter((b) => b.id !== breakPeriod.id),
                                         });
                                       }}
-                                      className="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                      size="sm"
                                       title="Remove block"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M6 18L18 6M6 6l12 12"
-                                        />
-                                      </svg>
-                                    </button>
+                                    />
                                   </div>
 
                                   <div className="flex items-center gap-3">

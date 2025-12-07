@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Person } from "@/types/settings";
+import { IconButton } from "@/components/shared/IconButton";
 
 interface PeopleTabProps {
   people: Person[];
@@ -182,18 +183,8 @@ export function PeopleTab({ people, onAdd, onUpdate, onDelete }: PeopleTabProps)
                 )}
               </div>
               <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(person)}
-                  className="px-3 py-1 text-sm bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-md transition-colors"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => onDelete(person.id)}
-                  className="px-3 py-1 text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
-                >
-                  Delete
-                </button>
+                <IconButton icon="edit" onClick={() => handleEdit(person)} />
+                <IconButton icon="delete" onClick={() => onDelete(person.id)} />
               </div>
             </div>
           ))
