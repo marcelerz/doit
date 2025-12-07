@@ -16,7 +16,7 @@ import { CalendarView } from "./CalendarView";
 import { KanbanView } from "./KanbanView";
 import { StatisticsView } from "./StatisticsView";
 import { FocusView } from "./FocusView";
-import { TimeReportsView } from "./TimeReportsView";
+import TimeReportsView from "./TimeReportsView";
 import { MarkerReference } from "@/components/shared/MarkerReference";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { PersonDetailsOverlay } from "@/components/overlays/PersonDetailsOverlay";
@@ -2182,7 +2182,7 @@ export function TodoApp() {
           <div className="flex gap-1 sm:gap-2 border-b border-zinc-200 dark:border-zinc-800 min-w-max">
             <button
               onClick={() => setActiveView("list")}
-              className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
+              className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                 activeView === "list"
                   ? "text-blue-600 dark:text-blue-400 border-blue-600"
                   : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -2199,7 +2199,7 @@ export function TodoApp() {
             {features?.kanbanView && (
               <button
                 onClick={() => setActiveView("kanban")}
-                className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
+                className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                   activeView === "kanban"
                     ? "text-blue-600 dark:text-blue-400 border-blue-600"
                     : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -2222,7 +2222,7 @@ export function TodoApp() {
             {features?.ganttView && (
               <button
                 onClick={() => setActiveView("gantt")}
-                className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
+                className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                   activeView === "gantt"
                     ? "text-blue-600 dark:text-blue-400 border-blue-600"
                     : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -2241,7 +2241,7 @@ export function TodoApp() {
             {features?.calendarView && (
               <button
                 onClick={() => setActiveView("calendar")}
-                className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
+                className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                   activeView === "calendar"
                     ? "text-blue-600 dark:text-blue-400 border-blue-600"
                     : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -2263,7 +2263,7 @@ export function TodoApp() {
             )}
             <button
               onClick={() => setActiveView("people")}
-              className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
+              className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                 activeView === "people"
                   ? "text-blue-600 dark:text-blue-400 border-blue-600"
                   : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -2284,7 +2284,7 @@ export function TodoApp() {
             </button>
             <button
               onClick={() => setActiveView("projects")}
-              className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
+              className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                 activeView === "projects"
                   ? "text-blue-600 dark:text-blue-400 border-blue-600"
                   : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -2306,7 +2306,7 @@ export function TodoApp() {
             {features?.sprintsView && (
               <button
                 onClick={() => setActiveView("sprints")}
-                className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
+                className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                   activeView === "sprints"
                     ? "text-blue-600 dark:text-blue-400 border-blue-600"
                     : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -2327,7 +2327,7 @@ export function TodoApp() {
             {features?.statsView && (
               <button
                 onClick={() => setActiveView("stats")}
-                className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
+                className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                   activeView === "stats"
                     ? "text-blue-600 dark:text-blue-400 border-blue-600"
                     : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -2350,7 +2350,7 @@ export function TodoApp() {
             {features?.timeTracking && (
               <button
                 onClick={() => setActiveView("timereports")}
-                className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
+                className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                   activeView === "timereports"
                     ? "text-blue-600 dark:text-blue-400 border-blue-600"
                     : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -3382,7 +3382,7 @@ export function TodoApp() {
 
         {/* Time Reports View */}
         {activeView === "timereports" && (
-          <TimeReportsView todos={todos} people={people} projects={projects} categories={settings.categories} />
+          <TimeReportsView todos={todos} people={people} projects={projects} settings={settings} sprints={sprints} />
         )}
 
         {/* Sprints View */}

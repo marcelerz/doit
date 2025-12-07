@@ -678,11 +678,22 @@ export class TodoModel {
   }
 
   /**
-   * Get total tracked time in minutes
+   * Get total tracked time in minutes (includes active tracking)
    */
   get totalTrackedMinutes(): number {
     if (!this._todo.timeTracking) return 0;
-    return this._todo.timeTracking.totalMinutes;
+
+    // Start with cached total (completed entries)
+    let total = this._todo.timeTracking.totalMinutes;
+
+    // Add elapsed time for any active entry
+    const activeEntry = this._todo.timeTracking.entries.find((e) => !e.endTime);
+    if (activeEntry) {
+      const elapsedMinutes = Math.round((Date.now() - activeEntry.startTime) / (1000 * 60));
+      total += elapsedMinutes;
+    }
+
+    return total;
   }
 
   /**
