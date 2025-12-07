@@ -64,6 +64,7 @@
 - [x] Swap markers: % for projects (was #), # for tags (was &), ^ for dueDate (was ~), ~ for recurring (was %)
 - [x] Remove explicit marker support for ^, \*, ~, > - these are now auto-detect only or set via fields
 - [x] Add Pomodoro-style planning to Gantt chart with short/long breaks and presets
+- [x] Add customizable time blocks with types and colors (meeting, focus, lunch, break, commute, personal)
 
 ## Project Details
 
@@ -294,6 +295,18 @@ The Gantt view supports Pomodoro-style planning with configurable breaks:
 - **Notifications**: Browser notifications when breaks start (requires permission)
 - **Sound Alerts**: Audio tones using Web Audio API - different sounds for short/long breaks
 - **Test Sounds**: Preview sounds in Settings → Gantt → Pomodoro Settings
+
+### Customizable Time Blocks
+
+The Gantt view supports customizable time blocks for blocking out parts of the day:
+
+- **Block Types**: Pre-defined types with icons - Break ☕, Lunch 🍴, Meeting 👥, Focus Time 🎯, Commute 🚗, Personal 🏠
+- **Colors**: Each block type has a default color, but can be customized with any color
+- **Visual Display**: Blocks appear on the Gantt timeline with their assigned color (70% opacity)
+- **Tooltips**: Hover to see block icon and name
+- **Settings**: Configure in Settings → Work Hours → Time Blocks
+- **Per-Schedule**: Different blocks can be set for common schedule, weekday/weekend, or individual days
+- **Task Scheduling**: Tasks are automatically scheduled around time blocks
 
 ## Auto-Detection Features
 

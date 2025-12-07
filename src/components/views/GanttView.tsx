@@ -2,7 +2,7 @@
 
 import { TodoMetadata } from "@/types/todo";
 import { TodoModel } from "@/models/TodoModel";
-import { MarkerColors, WorkHoursSettings, GanttZoomLevel } from "@/types/settings";
+import { MarkerColors, WorkHoursSettings, GanttZoomLevel, DEFAULT_BLOCK_TYPES, TimeBlockType } from "@/types/settings";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
 import { MarkedText } from "@/components/shared/MarkedText";
@@ -52,6 +52,24 @@ interface BreakBlock {
   name: string;
   startTime: Date;
   endTime: Date;
+  color: string;
+  blockType?: TimeBlockType | string;
+  icon?: string;
+}
+
+// Helper to get color for a block
+function getBlockColor(block: { blockType?: TimeBlockType | string; color?: string }): string {
+  // Use custom color if set
+  if (block.color) return block.color;
+  // Otherwise look up the block type color
+  const blockTypeConfig = DEFAULT_BLOCK_TYPES.find((t) => t.id === block.blockType);
+  return blockTypeConfig?.color || DEFAULT_BLOCK_TYPES[0].color;
+}
+
+// Helper to get icon for a block type
+function getBlockIcon(blockType?: TimeBlockType | string): string {
+  const config = DEFAULT_BLOCK_TYPES.find((t) => t.id === blockType);
+  return config?.icon || "📅";
 }
 
 export function GanttView({
@@ -521,6 +539,9 @@ export function GanttView({
       name: b.name,
       startTime: parseTime(b.startTime, selectedDate),
       endTime: parseTime(b.endTime, selectedDate),
+      color: getBlockColor(b),
+      blockType: b.blockType,
+      icon: getBlockIcon(b.blockType),
     }));
   }, [schedule, selectedDate]);
 
@@ -1849,11 +1870,13 @@ export function GanttView({
                                           return (
                                             <div
                                               key={bi}
-                                              className="absolute top-0 bottom-0 bg-zinc-300 dark:bg-zinc-700 opacity-50"
+                                              className="absolute top-0 bottom-0 opacity-70"
                                               style={{
                                                 left: `${breakStart}%`,
                                                 width: `${breakEnd - breakStart}%`,
+                                                backgroundColor: breakBlock.color,
                                               }}
+                                              title={`${breakBlock.icon} ${breakBlock.name}`}
                                             />
                                           );
                                         })}
@@ -2006,11 +2029,13 @@ export function GanttView({
                                   return (
                                     <div
                                       key={bi}
-                                      className="absolute top-0 bottom-0 bg-zinc-300 dark:bg-zinc-700 opacity-50"
+                                      className="absolute top-0 bottom-0 opacity-70"
                                       style={{
                                         left: `${breakStart}%`,
                                         width: `${breakEnd - breakStart}%`,
+                                        backgroundColor: breakBlock.color,
                                       }}
+                                      title={`${breakBlock.icon} ${breakBlock.name}`}
                                     />
                                   );
                                 })}
@@ -2323,11 +2348,13 @@ export function GanttView({
                                     return (
                                       <div
                                         key={bi}
-                                        className="absolute top-0 bottom-0 bg-zinc-300 dark:bg-zinc-700 opacity-50"
+                                        className="absolute top-0 bottom-0 opacity-70"
                                         style={{
                                           left: `${breakStart}%`,
                                           width: `${breakEnd - breakStart}%`,
+                                          backgroundColor: breakBlock.color,
                                         }}
+                                        title={`${breakBlock.icon} ${breakBlock.name}`}
                                       />
                                     );
                                   })}

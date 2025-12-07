@@ -100,11 +100,31 @@ export interface DateTimeSettings {
   fiscalYearStart: number; // Month (1-12) when fiscal year starts
 }
 
+export type TimeBlockType = "break" | "meeting" | "focus" | "lunch" | "commute" | "personal" | "custom";
+
+export interface TimeBlockTypeConfig {
+  id: TimeBlockType | string;
+  name: string;
+  color: string;
+  icon?: string; // emoji or icon identifier
+}
+
+export const DEFAULT_BLOCK_TYPES: TimeBlockTypeConfig[] = [
+  { id: "break", name: "Break", color: "#94a3b8", icon: "☕" }, // slate-400
+  { id: "lunch", name: "Lunch", color: "#fb923c", icon: "🍴" }, // orange-400
+  { id: "meeting", name: "Meeting", color: "#a78bfa", icon: "👥" }, // violet-400
+  { id: "focus", name: "Focus Time", color: "#4ade80", icon: "🎯" }, // green-400
+  { id: "commute", name: "Commute", color: "#60a5fa", icon: "🚗" }, // blue-400
+  { id: "personal", name: "Personal", color: "#f472b6", icon: "🏠" }, // pink-400
+];
+
 export interface BreakPeriod {
   id: string;
   name: string;
   startTime: string; // e.g., "12:00"
   endTime: string; // e.g., "13:00"
+  blockType?: TimeBlockType | string; // Type of block (break, meeting, focus, etc.)
+  color?: string; // Custom color override (if not set, uses blockType color)
 }
 
 export interface DaySchedule {
@@ -135,12 +155,12 @@ export const defaultWorkHoursSettings: WorkHoursSettings = {
   commonSchedule: {
     startTime: "09:00",
     endTime: "17:00",
-    breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+    breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00", blockType: "lunch" }],
   },
   weekdaySchedule: {
     startTime: "09:00",
     endTime: "17:00",
-    breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+    breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00", blockType: "lunch" }],
   },
   weekendSchedule: {
     startTime: "10:00",

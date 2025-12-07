@@ -1,7 +1,8 @@
 "use client";
 
-import { WorkHoursSettings, DaySchedule, BreakPeriod } from "@/types/settings";
+import { WorkHoursSettings, DaySchedule, BreakPeriod, DEFAULT_BLOCK_TYPES, TimeBlockType } from "@/types/settings";
 import { useState } from "react";
+import { getTextColor } from "@/utils/colors";
 
 interface WorkHoursTabProps {
   workHours: WorkHoursSettings;
@@ -18,6 +19,21 @@ const WEEKDAY_LABELS: Record<(typeof WEEKDAYS)[number], string> = {
   saturday: "Saturday",
   sunday: "Sunday",
 };
+
+// Helper to get color for a block
+function getBlockColor(block: BreakPeriod): string {
+  // Use custom color if set
+  if (block.color) return block.color;
+  // Otherwise look up the block type color
+  const blockTypeConfig = DEFAULT_BLOCK_TYPES.find((t) => t.id === block.blockType);
+  return blockTypeConfig?.color || DEFAULT_BLOCK_TYPES[0].color;
+}
+
+// Helper to get icon for a block type
+function getBlockIcon(blockType?: TimeBlockType | string): string {
+  const config = DEFAULT_BLOCK_TYPES.find((t) => t.id === blockType);
+  return config?.icon || "📅";
+}
 
 export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
   const [useCustomSchedules, setUseCustomSchedules] = useState(false);
@@ -47,10 +63,11 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
       type === "common" ? "commonSchedule" : type === "weekday" ? "weekdaySchedule" : "weekendSchedule";
     const schedule = workHours[scheduleKey];
     const newBreak: BreakPeriod = {
-      id: `break-${Date.now()}`,
+      id: `block-${Date.now()}`,
       name: "Break",
       startTime: "12:00",
       endTime: "13:00",
+      blockType: "break",
     };
     onUpdate({
       ...workHours,
@@ -133,58 +150,136 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Break Periods</label>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Time Blocks</label>
                 <button
                   onClick={() => addBreak(type)}
                   className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  + Add Break
+                  + Add Block
                 </button>
               </div>
               {schedule.breaks.length === 0 ? (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">No breaks configured</p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">No time blocks configured</p>
               ) : (
-                <div className="space-y-2">
-                  {schedule.breaks.map((breakPeriod) => (
-                    <div key={breakPeriod.id} className="bg-white dark:bg-zinc-900 rounded p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <input
-                          type="text"
-                          value={breakPeriod.name}
-                          onChange={(e) => updateBreak(type, breakPeriod.id, { name: e.target.value })}
-                          className="flex-1 px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          placeholder="Break name"
-                        />
-                        <button
-                          onClick={() => removeBreak(type, breakPeriod.id)}
-                          className="ml-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
+                <div className="space-y-3">
+                  {schedule.breaks.map((breakPeriod) => {
+                    const blockColor = getBlockColor(breakPeriod);
+                    const textColor = getTextColor(blockColor);
+                    return (
+                      <div
+                        key={breakPeriod.id}
+                        className="bg-white dark:bg-zinc-900 rounded-lg p-3 space-y-3 border-l-4"
+                        style={{ borderLeftColor: blockColor }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          {/* Block Type Selector */}
+                          <div className="flex items-center gap-2 flex-1">
+                            <span
+                              className="text-lg"
+                              title={`${
+                                DEFAULT_BLOCK_TYPES.find((t) => t.id === breakPeriod.blockType)?.name || "Block"
+                              }`}
+                            >
+                              {getBlockIcon(breakPeriod.blockType)}
+                            </span>
+                            <select
+                              value={breakPeriod.blockType || "break"}
+                              onChange={(e) => {
+                                const newType = e.target.value as TimeBlockType;
+                                const typeConfig = DEFAULT_BLOCK_TYPES.find((t) => t.id === newType);
+                                updateBreak(type, breakPeriod.id, {
+                                  blockType: newType,
+                                  name: typeConfig?.name || breakPeriod.name,
+                                  // Clear custom color when changing type
+                                  color: undefined,
+                                });
+                              }}
+                              className="flex-1 px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            >
+                              {DEFAULT_BLOCK_TYPES.map((blockType) => (
+                                <option key={blockType.id} value={blockType.id}>
+                                  {blockType.icon} {blockType.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Custom Name Input */}
+                          <input
+                            type="text"
+                            value={breakPeriod.name}
+                            onChange={(e) => updateBreak(type, breakPeriod.id, { name: e.target.value })}
+                            className="flex-1 px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            placeholder="Block name"
+                          />
+
+                          <button
+                            onClick={() => removeBreak(type, breakPeriod.id)}
+                            className="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                            title="Remove block"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {/* Time Range */}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="time"
+                              value={breakPeriod.startTime}
+                              onChange={(e) => updateBreak(type, breakPeriod.id, { startTime: e.target.value })}
+                              className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                             />
-                          </svg>
-                        </button>
+                            <span className="text-zinc-400">→</span>
+                            <input
+                              type="time"
+                              value={breakPeriod.endTime}
+                              onChange={(e) => updateBreak(type, breakPeriod.id, { endTime: e.target.value })}
+                              className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+
+                          {/* Color Picker */}
+                          <div className="flex items-center gap-2 ml-auto">
+                            <label className="text-xs text-zinc-500 dark:text-zinc-400">Color:</label>
+                            <input
+                              type="color"
+                              value={breakPeriod.color || getBlockColor(breakPeriod)}
+                              onChange={(e) => updateBreak(type, breakPeriod.id, { color: e.target.value })}
+                              className="w-8 h-6 rounded border border-zinc-300 dark:border-zinc-700 cursor-pointer"
+                              title="Custom color"
+                            />
+                            {breakPeriod.color && (
+                              <button
+                                onClick={() => updateBreak(type, breakPeriod.id, { color: undefined })}
+                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                                title="Reset to default color"
+                              >
+                                Reset
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Preview */}
+                        <div
+                          className="px-2 py-1 rounded text-xs font-medium text-center"
+                          style={{ backgroundColor: blockColor, color: textColor }}
+                        >
+                          {getBlockIcon(breakPeriod.blockType)} {breakPeriod.name} ({breakPeriod.startTime} -{" "}
+                          {breakPeriod.endTime})
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="time"
-                          value={breakPeriod.startTime}
-                          onChange={(e) => updateBreak(type, breakPeriod.id, { startTime: e.target.value })}
-                          className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                        <input
-                          type="time"
-                          value={breakPeriod.endTime}
-                          onChange={(e) => updateBreak(type, breakPeriod.id, { endTime: e.target.value })}
-                          className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -306,16 +401,17 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                            Break Periods
+                            Time Blocks
                           </label>
                           <button
                             onClick={() => {
                               const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
                               const newBreak: BreakPeriod = {
-                                id: `break-${Date.now()}`,
+                                id: `block-${Date.now()}`,
                                 name: "Break",
                                 startTime: "12:00",
                                 endTime: "13:00",
+                                blockType: "break",
                               };
                               updateCustomSchedule(day, {
                                 breaks: [...existing.breaks, newBreak],
@@ -323,79 +419,180 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                             }}
                             className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                           >
-                            + Add Break
+                            + Add Block
                           </button>
                         </div>
                         {schedule.breaks.length === 0 ? (
-                          <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">No breaks configured</p>
+                          <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">No time blocks configured</p>
                         ) : (
-                          <div className="space-y-2">
-                            {schedule.breaks.map((breakPeriod) => (
-                              <div key={breakPeriod.id} className="bg-white dark:bg-zinc-900 rounded p-3 space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <input
-                                    type="text"
-                                    value={breakPeriod.name}
-                                    onChange={(e) => {
-                                      const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
-                                      updateCustomSchedule(day, {
-                                        breaks: existing.breaks.map((b) =>
-                                          b.id === breakPeriod.id ? { ...b, name: e.target.value } : b,
-                                        ),
-                                      });
-                                    }}
-                                    className="flex-1 px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                    placeholder="Break name"
-                                  />
-                                  <button
-                                    onClick={() => {
-                                      const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
-                                      updateCustomSchedule(day, {
-                                        breaks: existing.breaks.filter((b) => b.id !== breakPeriod.id),
-                                      });
-                                    }}
-                                    className="ml-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
+                          <div className="space-y-3">
+                            {schedule.breaks.map((breakPeriod) => {
+                              const blockColor = getBlockColor(breakPeriod);
+                              const textColor = getTextColor(blockColor);
+                              return (
+                                <div
+                                  key={breakPeriod.id}
+                                  className="bg-white dark:bg-zinc-900 rounded-lg p-3 space-y-3 border-l-4"
+                                  style={{ borderLeftColor: blockColor }}
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    {/* Block Type Selector */}
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <span
+                                        className="text-lg"
+                                        title={`${
+                                          DEFAULT_BLOCK_TYPES.find((t) => t.id === breakPeriod.blockType)?.name ||
+                                          "Block"
+                                        }`}
+                                      >
+                                        {getBlockIcon(breakPeriod.blockType)}
+                                      </span>
+                                      <select
+                                        value={breakPeriod.blockType || "break"}
+                                        onChange={(e) => {
+                                          const newType = e.target.value as TimeBlockType;
+                                          const typeConfig = DEFAULT_BLOCK_TYPES.find((t) => t.id === newType);
+                                          const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
+                                          updateCustomSchedule(day, {
+                                            breaks: existing.breaks.map((b) =>
+                                              b.id === breakPeriod.id
+                                                ? {
+                                                    ...b,
+                                                    blockType: newType,
+                                                    name: typeConfig?.name || b.name,
+                                                    color: undefined,
+                                                  }
+                                                : b,
+                                            ),
+                                          });
+                                        }}
+                                        className="flex-1 px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      >
+                                        {DEFAULT_BLOCK_TYPES.map((blockType) => (
+                                          <option key={blockType.id} value={blockType.id}>
+                                            {blockType.icon} {blockType.name}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+
+                                    {/* Custom Name Input */}
+                                    <input
+                                      type="text"
+                                      value={breakPeriod.name}
+                                      onChange={(e) => {
+                                        const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
+                                        updateCustomSchedule(day, {
+                                          breaks: existing.breaks.map((b) =>
+                                            b.id === breakPeriod.id ? { ...b, name: e.target.value } : b,
+                                          ),
+                                        });
+                                      }}
+                                      className="flex-1 px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      placeholder="Block name"
+                                    />
+
+                                    <button
+                                      onClick={() => {
+                                        const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
+                                        updateCustomSchedule(day, {
+                                          breaks: existing.breaks.filter((b) => b.id !== breakPeriod.id),
+                                        });
+                                      }}
+                                      className="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                      title="Remove block"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M6 18L18 6M6 6l12 12"
+                                        />
+                                      </svg>
+                                    </button>
+                                  </div>
+
+                                  <div className="flex items-center gap-3">
+                                    {/* Time Range */}
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="time"
+                                        value={breakPeriod.startTime}
+                                        onChange={(e) => {
+                                          const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
+                                          updateCustomSchedule(day, {
+                                            breaks: existing.breaks.map((b) =>
+                                              b.id === breakPeriod.id ? { ...b, startTime: e.target.value } : b,
+                                            ),
+                                          });
+                                        }}
+                                        className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                       />
-                                    </svg>
-                                  </button>
+                                      <span className="text-zinc-400">→</span>
+                                      <input
+                                        type="time"
+                                        value={breakPeriod.endTime}
+                                        onChange={(e) => {
+                                          const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
+                                          updateCustomSchedule(day, {
+                                            breaks: existing.breaks.map((b) =>
+                                              b.id === breakPeriod.id ? { ...b, endTime: e.target.value } : b,
+                                            ),
+                                          });
+                                        }}
+                                        className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      />
+                                    </div>
+
+                                    {/* Color Picker */}
+                                    <div className="flex items-center gap-2 ml-auto">
+                                      <label className="text-xs text-zinc-500 dark:text-zinc-400">Color:</label>
+                                      <input
+                                        type="color"
+                                        value={breakPeriod.color || getBlockColor(breakPeriod)}
+                                        onChange={(e) => {
+                                          const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
+                                          updateCustomSchedule(day, {
+                                            breaks: existing.breaks.map((b) =>
+                                              b.id === breakPeriod.id ? { ...b, color: e.target.value } : b,
+                                            ),
+                                          });
+                                        }}
+                                        className="w-8 h-6 rounded border border-zinc-300 dark:border-zinc-700 cursor-pointer"
+                                        title="Custom color"
+                                      />
+                                      {breakPeriod.color && (
+                                        <button
+                                          onClick={() => {
+                                            const existing =
+                                              workHours.customSchedules[day] || workHours.weekdaySchedule;
+                                            updateCustomSchedule(day, {
+                                              breaks: existing.breaks.map((b) =>
+                                                b.id === breakPeriod.id ? { ...b, color: undefined } : b,
+                                              ),
+                                            });
+                                          }}
+                                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                                          title="Reset to default color"
+                                        >
+                                          Reset
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Preview */}
+                                  <div
+                                    className="px-2 py-1 rounded text-xs font-medium text-center"
+                                    style={{ backgroundColor: blockColor, color: textColor }}
+                                  >
+                                    {getBlockIcon(breakPeriod.blockType)} {breakPeriod.name} ({breakPeriod.startTime} -{" "}
+                                    {breakPeriod.endTime})
+                                  </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <input
-                                    type="time"
-                                    value={breakPeriod.startTime}
-                                    onChange={(e) => {
-                                      const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
-                                      updateCustomSchedule(day, {
-                                        breaks: existing.breaks.map((b) =>
-                                          b.id === breakPeriod.id ? { ...b, startTime: e.target.value } : b,
-                                        ),
-                                      });
-                                    }}
-                                    className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                  />
-                                  <input
-                                    type="time"
-                                    value={breakPeriod.endTime}
-                                    onChange={(e) => {
-                                      const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
-                                      updateCustomSchedule(day, {
-                                        breaks: existing.breaks.map((b) =>
-                                          b.id === breakPeriod.id ? { ...b, endTime: e.target.value } : b,
-                                        ),
-                                      });
-                                    }}
-                                    className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                  />
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>
