@@ -6,6 +6,7 @@ import { ProjectModel } from "@/models/ProjectModel";
 import { MarkerColors, CalendarView as CalendarViewType, Calendar } from "@/types/settings";
 import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import { TodoItem } from "@/components/items/TodoItem";
+import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { Settings, Priority } from "@/types/settings";
 import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
 
@@ -29,6 +30,20 @@ interface CalendarViewProps {
   onEditComment: (todoId: string, commentId: number, content: string) => void;
   onDeleteComment: (todoId: string, commentId: number) => void;
   onQuickAdd?: (dueDate: string) => void;
+  // Subtask handlers
+  onAddSubtask?: (todoId: string, text: string) => void;
+  onToggleSubtask?: (todoId: string, subtaskId: string) => void;
+  onEditSubtask?: (todoId: string, subtaskId: string, text: string) => void;
+  onDeleteSubtask?: (todoId: string, subtaskId: string) => void;
+  // Time tracking handlers
+  onStartTimeTracking?: (todoId: string, note?: string) => void;
+  onStopTimeTracking?: (todoId: string) => void;
+  onAddManualTimeEntry?: (todoId: string, minutes: number, note?: string) => void;
+  onDeleteTimeEntry?: (todoId: string, entryId: string) => void;
+  // Template handler
+  onCreateTemplate?: (todoId: string) => void;
+  // Duplicate handler
+  onDuplicate?: (id: string) => string | undefined;
 }
 
 // Get week number for a date
@@ -60,6 +75,16 @@ export function CalendarView({
   onEditComment,
   onDeleteComment,
   onQuickAdd,
+  onAddSubtask,
+  onToggleSubtask,
+  onEditSubtask,
+  onDeleteSubtask,
+  onStartTimeTracking,
+  onStopTimeTracking,
+  onAddManualTimeEntry,
+  onDeleteTimeEntry,
+  onCreateTemplate,
+  onDuplicate,
 }: CalendarViewProps) {
   const calendarSettings: Calendar = settings.calendar || {
     weekStartDay: 0,
@@ -78,6 +103,7 @@ export function CalendarView({
     today.setHours(0, 0, 0, 0);
     return today;
   });
+  const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<TodoModel | null>(null);
 
   // Load persisted view options
   const [viewMode, setViewMode] = useState<CalendarViewType>(() => {
@@ -978,30 +1004,31 @@ export function CalendarView({
           {selectedDateTodos.length > 0 ? (
             <div className="space-y-2">
               {selectedDateTodos.map((todo) => (
-                <TodoItem
-                  key={todo.id}
-                  todo={todo}
-                  onToggle={onToggle}
-                  onDelete={onDelete}
-                  onArchive={onArchive}
-                  onUnarchive={onUnarchive}
-                  onEdit={onEdit}
-                  markerColors={markerColors}
-                  settings={settings}
-                  linkPatterns={linkPatterns}
-                  availablePeople={availablePeople}
-                  availableProjects={availableProjects}
-                  availablePriorities={availablePriorities}
-                  onAddPerson={onAddPerson}
-                  onAddProject={onAddProject}
-                  onAddPriority={onAddPriority}
-                  onMarkerClick={() => {}}
-                  isExpanded={false}
-                  onToggleExpand={() => {}}
-                  onAddComment={onAddComment}
-                  onEditComment={onEditComment}
-                  onDeleteComment={onDeleteComment}
-                />
+                <div key={todo.id} onClick={() => setDetailsOverlayTodo(todo)} className="cursor-pointer">
+                  <TodoItem
+                    todo={todo}
+                    onToggle={onToggle}
+                    onDelete={onDelete}
+                    onArchive={onArchive}
+                    onUnarchive={onUnarchive}
+                    onEdit={onEdit}
+                    markerColors={markerColors}
+                    settings={settings}
+                    linkPatterns={linkPatterns}
+                    availablePeople={availablePeople}
+                    availableProjects={availableProjects}
+                    availablePriorities={availablePriorities}
+                    onAddPerson={onAddPerson}
+                    onAddProject={onAddProject}
+                    onAddPriority={onAddPriority}
+                    onMarkerClick={() => {}}
+                    isExpanded={false}
+                    onToggleExpand={() => setDetailsOverlayTodo(todo)}
+                    onAddComment={onAddComment}
+                    onEditComment={onEditComment}
+                    onDeleteComment={onDeleteComment}
+                  />
+                </div>
               ))}
             </div>
           ) : (
@@ -1017,6 +1044,47 @@ export function CalendarView({
           )}
         </div>
       )}
+
+      {/* Todo Details Overlay */}
+      {detailsOverlayTodo &&
+        (() => {
+          const currentTodo = todos.find((t) => t.id === detailsOverlayTodo.id);
+          if (!currentTodo) return null;
+
+          return (
+            <TodoDetailsOverlay
+              todo={currentTodo}
+              todos={todos}
+              isOpen={true}
+              onClose={() => setDetailsOverlayTodo(null)}
+              onToggle={onToggle}
+              onDelete={onDelete}
+              onDuplicate={onDuplicate}
+              onEdit={onEdit}
+              onArchive={onArchive}
+              onUnarchive={onUnarchive}
+              markerColors={markerColors}
+              settings={settings}
+              linkPatterns={linkPatterns}
+              availablePeople={availablePeople}
+              availableProjects={availableProjects}
+              availablePriorities={availablePriorities}
+              onAddPerson={onAddPerson}
+              onAddProject={onAddProject}
+              onAddPriority={onAddPriority}
+              onAddComment={onAddComment}
+              onAddSubtask={onAddSubtask}
+              onToggleSubtask={onToggleSubtask}
+              onEditSubtask={onEditSubtask}
+              onDeleteSubtask={onDeleteSubtask}
+              onStartTimeTracking={onStartTimeTracking}
+              onStopTimeTracking={onStopTimeTracking}
+              onAddManualTimeEntry={onAddManualTimeEntry}
+              onDeleteTimeEntry={onDeleteTimeEntry}
+              onCreateTemplate={onCreateTemplate}
+            />
+          );
+        })()}
     </div>
   );
 }

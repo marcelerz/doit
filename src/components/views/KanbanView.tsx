@@ -4,7 +4,7 @@ import { TodoMetadata } from "@/types/todo";
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
-import { KanbanSettings, KanbanState, MarkerColors, Priority, LinkPattern, Settings } from "@/types/settings";
+import { KanbanSettings, KanbanState, MarkerColors, Priority, LinkPattern, Settings, Sprint } from "@/types/settings";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
 import { MarkedText } from "@/components/shared/MarkedText";
@@ -56,12 +56,14 @@ interface KanbanViewOptions {
   activeViewId: string;
   sortField: "createdAt" | "updatedAt" | "dueDate" | "priority" | "title";
   sortDirection: "asc" | "desc";
+  sprintId: string | null; // null = all, "backlog" = no sprint, or sprint ID
 }
 
 const defaultViewOptions: KanbanViewOptions = {
   activeViewId: "all",
   sortField: "createdAt",
   sortDirection: "desc",
+  sprintId: null,
 };
 
 export function KanbanView({
@@ -149,6 +151,10 @@ export function KanbanView({
     return sortedStates.filter((state) => activeView.stateIds.includes(state.id));
   }, [sortedStates, activeView]);
 
+  // Get available sprints from settings
+  const sprints: Sprint[] = settings.sprints?.sprints || [];
+  const activeSprint = sprints.find((s) => s.id === settings.sprints?.activeSprintId);
+
   // Group todos by workflow state
   const todosByState = useMemo(() => {
     const grouped: Record<string, TodoModel[]> = {};
@@ -158,10 +164,21 @@ export function KanbanView({
       grouped[state.id] = [];
     });
 
-    // Assign todos to states
+    // Filter and assign todos to states
     todos.forEach((todo) => {
       // Skip deleted todos
       if (todo.state === "deleted") return;
+
+      // Apply sprint filter
+      if (viewOptions.sprintId !== null) {
+        if (viewOptions.sprintId === "backlog") {
+          // Show only todos without a sprint
+          if (todo.raw.metadata?.sprint) return;
+        } else {
+          // Show only todos matching the selected sprint
+          if (todo.raw.metadata?.sprint !== viewOptions.sprintId) return;
+        }
+      }
 
       // Determine which state the todo belongs to
       let stateId = todo.workflowState;
@@ -224,7 +241,14 @@ export function KanbanView({
     });
 
     return grouped;
-  }, [todos, sortedStates, viewOptions.sortField, viewOptions.sortDirection, availablePriorities]);
+  }, [
+    todos,
+    sortedStates,
+    viewOptions.sortField,
+    viewOptions.sortDirection,
+    viewOptions.sprintId,
+    availablePriorities,
+  ]);
 
   // Find selected todo
   const selectedTodo = useMemo(() => {
@@ -345,8 +369,8 @@ export function KanbanView({
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex-shrink-0">
-        {/* View selector */}
-        <div className="flex items-center gap-2">
+        {/* View and Sprint selectors */}
+        <div className="flex items-center gap-2 flex-wrap">
           <label className="text-sm text-zinc-600 dark:text-zinc-400 hidden sm:inline">View:</label>
           <select
             value={viewOptions.activeViewId}
@@ -360,6 +384,43 @@ export function KanbanView({
               </option>
             ))}
           </select>
+
+          {/* Sprint filter */}
+          {sprints.length > 0 && (
+            <>
+              <span className="text-zinc-300 dark:text-zinc-600 hidden sm:inline">|</span>
+              <label className="text-sm text-zinc-600 dark:text-zinc-400 hidden sm:inline">Sprint:</label>
+              <select
+                value={viewOptions.sprintId ?? "all"}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setViewOptions((prev) => ({
+                    ...prev,
+                    sprintId: value === "all" ? null : value,
+                  }));
+                }}
+                className="flex-1 sm:flex-none px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-base sm:text-sm"
+                title="Filter by sprint"
+              >
+                <option value="all">All Sprints</option>
+                <option value="backlog">📋 Backlog (No Sprint)</option>
+                {activeSprint && <option value={activeSprint.id}>🏃 {activeSprint.name} (Active)</option>}
+                {sprints
+                  .filter((s) => s.id !== activeSprint?.id)
+                  .sort((a, b) => {
+                    // Sort by status: planning first, then others
+                    const statusOrder = { planning: 0, active: 1, completed: 2, cancelled: 3 };
+                    return statusOrder[a.status] - statusOrder[b.status];
+                  })
+                  .map((sprint) => (
+                    <option key={sprint.id} value={sprint.id}>
+                      {sprint.status === "planning" ? "📝" : sprint.status === "completed" ? "✅" : "🚫"} {sprint.name}
+                    </option>
+                  ))}
+              </select>
+            </>
+          )}
+
           {activeView?.description && (
             <span className="text-sm text-zinc-500 dark:text-zinc-400 italic hidden md:inline">
               {activeView.description}
@@ -528,6 +589,18 @@ export function KanbanView({
                               ☑️ {todo.raw.subtasks.filter((s) => s.completed).length}/{todo.raw.subtasks.length}
                             </span>
                           )}
+
+                          {/* Sprint indicator */}
+                          {todo.raw.metadata?.sprint &&
+                            (() => {
+                              const sprint = sprints.find((s) => s.id === todo.raw.metadata?.sprint);
+                              if (!sprint) return null;
+                              return (
+                                <span className="px-1.5 py-0.5 text-xs rounded bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">
+                                  🏃 {sprint.name}
+                                </span>
+                              );
+                            })()}
 
                           {/* Time tracking indicator */}
                           {todo.hasTimeTracking && (

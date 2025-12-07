@@ -414,6 +414,14 @@ export function useSettings() {
     }));
   };
 
+  // Sprint methods
+  const updateSprintSettings = (sprints: Settings["sprints"]) => {
+    setSettings((prev) => ({
+      ...prev,
+      sprints,
+    }));
+  };
+
   return {
     settings,
     isLoaded,
@@ -450,5 +458,7 @@ export function useSettings() {
     addCategory,
     updateCategory,
     deleteCategory,
+    // Sprint methods
+    updateSprintSettings,
   };
 }

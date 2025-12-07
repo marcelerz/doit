@@ -2568,6 +2568,16 @@ export function TodoApp() {
             onAddComment={addTodoComment}
             onEditComment={editTodoComment}
             onDeleteComment={deleteTodoComment}
+            onAddSubtask={addSubtask}
+            onToggleSubtask={toggleSubtask}
+            onEditSubtask={editSubtask}
+            onDeleteSubtask={deleteSubtask}
+            onStartTimeTracking={startTimeTracking}
+            onStopTimeTracking={stopTimeTracking}
+            onAddManualTimeEntry={addManualTimeEntry}
+            onDeleteTimeEntry={deleteTimeEntry}
+            onCreateTemplate={handleCreateTemplate}
+            onDuplicate={duplicateTodo}
           />
         )}
 

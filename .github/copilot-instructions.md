@@ -66,6 +66,7 @@
 - [x] Add Pomodoro-style planning to Gantt chart with short/long breaks and presets
 - [x] Add customizable time blocks with types and colors (meeting, focus, lunch, break, commute, personal)
 - [x] Add Kanban board view with workflow states, drag-and-drop, state transitions, and multiple views
+- [x] Add Sprint/Scrum feature with sprint planning, assignment, and Kanban filtering
 
 ## Project Details
 
@@ -116,7 +117,7 @@ Data is now organized into separate top-level storage keys:
 - `doit-view-options` - Current view state (filters, sort, group) for List view
 - `doit-gantt-view-options` - Gantt view state (schedulingMode, groupByProject, completedCollapsed, showTasksWithoutDates)
 - `doit-calendar-view-options` - Calendar view state (viewMode, sortField, sortDirection, showTasksWithoutDates)
-- `doit-kanban-view-options` - Kanban view state (activeViewId, sortField, sortDirection)
+- `doit-kanban-view-options` - Kanban view state (activeViewId, sortField, sortDirection, sprintId)
 - `doit-backup-settings` - Backup configuration
 
 All keys are centralized in `STORAGE_KEYS` constant for easy management.
@@ -276,6 +277,7 @@ Settings are organized by tabs and no longer include people/projects:
 - `workHours` - Work Hours Tab (schedules, BOD/EOD computation)
 - `gantt` - Gantt Tab (scheduling settings, Pomodoro configuration)
 - `kanban` - Kanban Tab (workflow states, transitions, views, display options)
+- `sprints` - Sprints Tab (sprint management, active sprint, default duration)
 - `autoAssign` - Auto-Assign Tab (default metadata for new todos)
 
 ## Views
@@ -296,7 +298,8 @@ The Kanban view provides a visual board for managing todos through workflow stat
 - **State Transitions**: Configurable rules for which states can transition to others
 - **System States**: Completed and Archived states are protected (cannot be deleted) and sync with TodoState
 - **Multiple Views**: Create custom views showing different combinations of states (e.g., "Active Work", "Intake", "Done & Archived")
-- **Card Display**: Shows task title, due date, assigned people, project, priority, comments, and subtasks
+- **Sprint Filtering**: Filter board by sprint - All, Backlog (no sprint), or specific sprints
+- **Card Display**: Shows task title, due date, assigned people, project, priority, comments, subtasks, and sprint
 - **Sorting**: Sort tasks within columns by created date, updated date, due date, priority, or title
 - **Settings**: Configure in Settings → Kanban (states, transitions, views, display options)
 
@@ -310,6 +313,30 @@ The Kanban view provides a visual board for managing todos through workflow stat
 
 - Show/hide empty columns
 - Show/hide task count in column headers
+
+### Sprint/Scrum Planning
+
+The app supports Scrum-style sprint planning for agile workflows:
+
+- **Sprint Management**: Create, edit, and manage sprints in Settings → Sprints
+- **Sprint Status**: Each sprint has a status - Planning, Active, Completed, or Cancelled
+- **Active Sprint**: Mark one sprint as active (shown prominently in filters)
+- **Sprint Assignment**: Assign todos to sprints via the todo detail overlay
+- **Sprint Filtering**: Filter Kanban board by sprint (All, Backlog, or specific sprint)
+- **Sprint Metadata**: Name, goal, start/end dates, status
+
+**Sprint Settings:**
+
+- **Default Duration**: Set default sprint length (default: 14 days)
+- **Show Backlog in Sprint**: Option to include backlog items in sprint views
+
+**Sprint Workflow:**
+
+1. Create sprints in Settings → Sprints
+2. Assign todos to sprints via todo detail overlay (Sprint field)
+3. Mark a sprint as Active to start working on it
+4. Filter Kanban board by sprint to focus on current work
+5. Complete sprint when done
 
 ### Gantt View Pomodoro Planning
 

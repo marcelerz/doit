@@ -831,6 +831,27 @@ export function TodoItem({
                       <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
                     )}
                   </div>
+
+                  {/* Sprint */}
+                  {settings.sprints?.sprints && settings.sprints.sprints.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">🏃 Sprint</h4>
+                      {todo.metadata.sprint ? (
+                        (() => {
+                          const sprint = settings.sprints.sprints.find((s) => s.id === todo.metadata.sprint);
+                          return sprint ? (
+                            <span className="px-2 py-0.5 text-xs rounded bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">
+                              {sprint.name}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-zinc-400 dark:text-zinc-500">Unknown</span>
+                          );
+                        })()
+                      ) : (
+                        <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Comments Section */}

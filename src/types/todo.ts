@@ -10,6 +10,7 @@ export interface TodoMetadata {
   dependencies: string[]; // via field (no marker)
   context?: string; // Rich text context
   tags: string[]; // # marker - free-form tags
+  sprint?: string; // Sprint ID for scrum planning
 }
 
 export interface Comment {

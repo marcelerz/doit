@@ -15,6 +15,7 @@ import { WorkHoursTab } from "@/components/settings/WorkHoursTab";
 import { GanttTab } from "@/components/settings/GanttTab";
 import { CalendarTab } from "@/components/settings/CalendarTab";
 import { KanbanTab } from "@/components/settings/KanbanTab";
+import { SprintsTab } from "@/components/settings/SprintsTab";
 import { AutoAssignTab } from "@/components/settings/AutoAssignTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 import { StorageTab } from "@/components/settings/StorageTab";
@@ -28,6 +29,7 @@ const tabs = {
   "Work Hours": "workhours",
   Gantt: "gantt",
   Kanban: "kanban",
+  Sprints: "sprints",
   Calendar: "calendar",
   Categories: "categories",
   "Auto-Assign": "autoassign",
@@ -65,6 +67,7 @@ export default function SettingsPage() {
     updateWorkHoursSettings,
     updateGantt,
     updateKanbanSettings,
+    updateSprintSettings,
     updateCalendar,
     updateNotificationSettings,
     updateAutoAssignSettings,
@@ -239,6 +242,8 @@ export default function SettingsPage() {
                   return <GanttTab gantt={settings.gantt} onUpdate={updateGantt} />;
                 case "kanban":
                   return <KanbanTab kanban={settings.kanban} onUpdate={updateKanbanSettings} />;
+                case "sprints":
+                  return <SprintsTab sprints={settings.sprints} onUpdate={updateSprintSettings} />;
                 case "calendar":
                   return <CalendarTab calendar={settings.calendar} onUpdate={updateCalendar} />;
                 case "categories":

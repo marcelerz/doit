@@ -394,6 +394,34 @@ export const defaultNotificationSettings: NotificationSettings = {
   checkInterval: 15, // Check every 15 minutes
 };
 
+// Sprint Settings for Scrum planning
+export type SprintStatus = "planning" | "active" | "completed" | "cancelled";
+
+export interface Sprint {
+  id: string;
+  name: string;
+  goal?: string; // Sprint goal description
+  startDate?: string; // ISO date string
+  endDate?: string; // ISO date string
+  status: SprintStatus;
+  createdAt: number;
+  completedAt?: number;
+}
+
+export interface SprintSettings {
+  sprints: Sprint[];
+  activeSprintId?: string; // Currently active sprint
+  defaultSprintDuration: number; // Default sprint duration in days (typically 14)
+  showBacklogInSprint: boolean; // Show backlog items in sprint view
+}
+
+export const defaultSprintSettings: SprintSettings = {
+  sprints: [],
+  activeSprintId: undefined,
+  defaultSprintDuration: 14, // 2 weeks
+  showBacklogInSprint: false,
+};
+
 // Kanban Tab Settings
 export interface KanbanState {
   id: string;
@@ -540,6 +568,8 @@ export interface Settings {
   notifications: NotificationSettings;
   // Kanban Tab
   kanban: KanbanSettings;
+  // Sprints Tab - Scrum sprint planning
+  sprints: SprintSettings;
   // Categories Tab - Project categories for organizing work types
   categories: ProjectCategory[];
 }
@@ -581,5 +611,6 @@ export const defaultSettings: Settings = {
   autoAssign: defaultAutoAssignSettings,
   notifications: defaultNotificationSettings,
   kanban: defaultKanbanSettings,
+  sprints: defaultSprintSettings,
   categories: defaultCategories,
 };

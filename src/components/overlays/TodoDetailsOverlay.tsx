@@ -116,6 +116,7 @@ export function TodoDetailsOverlay({
     duration: undefined,
     recurring: undefined,
     tags: [],
+    sprint: undefined,
   });
 
   // Initialize metadata when overlay opens
@@ -135,6 +136,7 @@ export function TodoDetailsOverlay({
       recurring: todo.metadata.recurring,
       context: todo.metadata.context,
       tags: todo.metadata.tags || [],
+      sprint: todo.metadata.sprint,
     });
   }, [todo, settings.dateTime, settings.workHours]);
 
@@ -932,6 +934,57 @@ export function TodoDetailsOverlay({
               )}
             </div>
           </div>
+
+          {/* Sprint */}
+          {settings.sprints?.sprints && settings.sprints.sprints.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🏃 Sprint</h4>
+              <div className="flex flex-wrap gap-1.5">
+                {editingMetadata.sprint ? (
+                  <Badge
+                    variant="blue"
+                    onRemove={() => {
+                      handleMetadataChange({
+                        ...editingMetadata,
+                        sprint: undefined,
+                      });
+                    }}
+                  >
+                    {settings.sprints.sprints.find((s) => s.id === editingMetadata.sprint)?.name ||
+                      editingMetadata.sprint}
+                  </Badge>
+                ) : (
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        handleMetadataChange({
+                          ...editingMetadata,
+                          sprint: e.target.value,
+                        });
+                      }
+                    }}
+                    className="text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                  >
+                    <option value="">Select sprint...</option>
+                    {settings.sprints.activeSprintId && (
+                      <option value={settings.sprints.activeSprintId}>
+                        🏃 {settings.sprints.sprints.find((s) => s.id === settings.sprints.activeSprintId)?.name}{" "}
+                        (Active)
+                      </option>
+                    )}
+                    {settings.sprints.sprints
+                      .filter((s) => s.id !== settings.sprints.activeSprintId && s.status === "planning")
+                      .map((sprint) => (
+                        <option key={sprint.id} value={sprint.id}>
+                          📝 {sprint.name}
+                        </option>
+                      ))}
+                  </select>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Links */}
           {(() => {

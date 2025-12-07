@@ -186,6 +186,23 @@ export function migrateSettings(loadedSettings: any): Settings {
       ...defaultSettings.gantt,
       ...gantt,
     },
+    kanban: {
+      ...defaultSettings.kanban,
+      ...(loadedSettings.kanban || {}),
+    },
+    sprints: {
+      ...defaultSettings.sprints,
+      ...(loadedSettings.sprints || {}),
+    },
+    calendar: {
+      ...defaultSettings.calendar,
+      ...(loadedSettings.calendar || {}),
+    },
+    categories: loadedSettings.categories || defaultSettings.categories,
+    notifications: {
+      ...defaultSettings.notifications,
+      ...(loadedSettings.notifications || {}),
+    },
     autoAssign: {
       ...defaultSettings.autoAssign,
       ...autoAssign,
