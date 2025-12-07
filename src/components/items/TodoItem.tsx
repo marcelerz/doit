@@ -460,6 +460,117 @@ export function TodoItem({
               />
             </div>
 
+            {/* Compact metadata row (shown when not expanded) */}
+            {!isExpanded && (
+              <div className="mt-1.5 grid grid-cols-[auto_1fr_auto_auto] sm:grid-cols-[60px_minmax(80px,1fr)_minmax(80px,1fr)_auto_auto] gap-x-2 gap-y-1 items-center text-[10px]">
+                {/* Status badge - column 1 */}
+                <span
+                  className={`px-1.5 py-0.5 rounded font-medium text-center ${
+                    todo.isArchived
+                      ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
+                      : todo.isCompleted
+                      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                      : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                  }`}
+                >
+                  {todo.isArchived ? "Archived" : todo.isCompleted ? "Done" : "Active"}
+                </span>
+
+                {/* Assigned + Project - column 2 (combined on mobile, separate on desktop) */}
+                <div className="flex items-center gap-1 overflow-hidden">
+                  {todo.metadata.assignedPeople.length > 0 && (
+                    <span
+                      className="px-1.5 py-0.5 rounded truncate"
+                      style={{
+                        backgroundColor: getPersonColorForName(todo.metadata.assignedPeople[0]),
+                        color: getTextColor(getPersonColorForName(todo.metadata.assignedPeople[0])),
+                      }}
+                      title={todo.metadata.assignedPeople.join(", ")}
+                    >
+                      @{todo.metadata.assignedPeople[0]}
+                      {todo.metadata.assignedPeople.length > 1 && ` +${todo.metadata.assignedPeople.length - 1}`}
+                    </span>
+                  )}
+                  {/* Project shown inline on mobile */}
+                  <span className="sm:hidden">
+                    {todo.metadata.projects.length > 0 && (
+                      <span
+                        className="px-1.5 py-0.5 rounded truncate"
+                        style={{
+                          backgroundColor: getProjectColorForName(todo.metadata.projects[0]),
+                          color: getTextColor(getProjectColorForName(todo.metadata.projects[0])),
+                        }}
+                        title={todo.metadata.projects.join(", ")}
+                      >
+                        #{todo.metadata.projects[0]}
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Project - column 3 (desktop only) */}
+                <div className="hidden sm:flex items-center overflow-hidden">
+                  {todo.metadata.projects.length > 0 ? (
+                    <span
+                      className="px-1.5 py-0.5 rounded truncate"
+                      style={{
+                        backgroundColor: getProjectColorForName(todo.metadata.projects[0]),
+                        color: getTextColor(getProjectColorForName(todo.metadata.projects[0])),
+                      }}
+                      title={todo.metadata.projects.join(", ")}
+                    >
+                      #{todo.metadata.projects[0]}
+                      {todo.metadata.projects.length > 1 && ` +${todo.metadata.projects.length - 1}`}
+                    </span>
+                  ) : (
+                    <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                  )}
+                </div>
+
+                {/* Due date + Duration - column 4 (time-related fields together) */}
+                <div className="flex items-center gap-1 justify-end sm:justify-start">
+                  {todo.metadata.dueDate ? (
+                    <span
+                      className={`px-1.5 py-0.5 rounded whitespace-nowrap ${
+                        todo.isOverdue
+                          ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                          : todo.isDueToday
+                          ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                      }`}
+                      title={todo.metadata.dueDate}
+                    >
+                      {todo.dueDateDisplay}
+                    </span>
+                  ) : (
+                    <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">—</span>
+                  )}
+                  {todo.metadata.duration && (
+                    <span className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
+                      {todo.durationDisplay}
+                    </span>
+                  )}
+                </div>
+
+                {/* Priority - column 5 (rightmost) */}
+                <div className="flex items-center justify-end">
+                  {todo.metadata.priority ? (
+                    <span
+                      className="px-1.5 py-0.5 rounded font-medium"
+                      style={{
+                        backgroundColor: getPriorityColorForName(todo.metadata.priority),
+                        color: getTextColor(getPriorityColorForName(todo.metadata.priority)),
+                      }}
+                    >
+                      {todo.metadata.priority}
+                    </span>
+                  ) : (
+                    <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">—</span>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Subtask progress indicator and time tracking */}
             {(todo.hasSubtasks || todo.hasTimeTracking) && (
               <div className="mt-1 flex items-center gap-3 flex-wrap">

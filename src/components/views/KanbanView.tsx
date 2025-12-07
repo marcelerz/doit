@@ -295,10 +295,26 @@ export function KanbanView({
   };
 
   // Get priority color
-  const getPriorityColor = (priorityName: string | undefined): string | undefined => {
-    if (!priorityName) return undefined;
-    const priority = availablePriorities.find((p) => p.name === priorityName);
-    return priority?.color;
+  const getPriorityColor = (priorityName: string | undefined): string => {
+    if (!priorityName) return markerColors.priority;
+    const priority = availablePriorities.find(
+      (p) =>
+        p.name.toLowerCase() === priorityName.toLowerCase() ||
+        p.alternatives.some((a) => a.toLowerCase() === priorityName.toLowerCase()),
+    );
+    return priority?.color || markerColors.priority;
+  };
+
+  // Get person color
+  const getPersonColor = (personName: string): string => {
+    const person = availablePeople.find((p) => p.matchesAnyName([personName]));
+    return person?.raw.color || markerColors.assigned;
+  };
+
+  // Get project color
+  const getProjectColor = (projectName: string): string => {
+    const project = availableProjects.find((p) => p.matchesAnyName([projectName]));
+    return project?.raw.color || markerColors.project;
   };
 
   return (

@@ -2589,24 +2589,148 @@ export function GanttView({
       {hoveredTaskId &&
         tooltipPosition &&
         typeof document !== "undefined" &&
-        createPortal(
-          <div
-            className="fixed z-[9999] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-3 min-w-[300px] max-w-[500px] pointer-events-none"
-            style={{
-              left: Math.min(tooltipPosition.x, window.innerWidth - 520),
-              top: Math.min(tooltipPosition.y, window.innerHeight - 200),
-            }}
-          >
-            <MarkedText
-              text={todos.find((t) => t.id === hoveredTaskId)?.text || ""}
-              markerColors={markerColors}
-              availablePeople={availablePeople}
-              availableProjects={availableProjects}
-              availablePriorities={availablePriorities}
-            />
-          </div>,
-          document.body,
-        )}
+        (() => {
+          const hoveredTodo = todos.find((t) => t.id === hoveredTaskId);
+          if (!hoveredTodo) return null;
+
+          // Helper to get colors
+          const getPriorityColor = (priority: string) => {
+            const p = availablePriorities.find(
+              (pr) =>
+                pr.name.toLowerCase() === priority.toLowerCase() ||
+                pr.alternatives.some((a) => a.toLowerCase() === priority.toLowerCase()),
+            );
+            return p?.color || markerColors.priority;
+          };
+          const getPersonColor = (person: string) => {
+            const p = availablePeople.find((pr) => pr.matchesAnyName([person]));
+            return p?.raw.color || markerColors.assigned;
+          };
+          const getProjectColorForTooltip = (project: string) => {
+            const p = availableProjects.find((pr) => pr.matchesAnyName([project]));
+            return p?.raw.color || markerColors.project;
+          };
+
+          return createPortal(
+            <div
+              className="fixed z-[9999] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-3 min-w-[320px] max-w-[500px] pointer-events-none"
+              style={{
+                left: Math.min(tooltipPosition.x, window.innerWidth - 520),
+                top: Math.min(tooltipPosition.y, window.innerHeight - 250),
+              }}
+            >
+              {/* Task text */}
+              <MarkedText
+                text={hoveredTodo.text}
+                markerColors={markerColors}
+                availablePeople={availablePeople}
+                availableProjects={availableProjects}
+                availablePriorities={availablePriorities}
+              />
+
+              {/* Structured metadata grid */}
+              <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-700 grid grid-cols-[70px_1fr] gap-x-3 gap-y-1.5 text-[10px]">
+                {/* Status row */}
+                <span className="text-zinc-500 dark:text-zinc-400">Status</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded font-medium w-fit ${
+                    hoveredTodo.isArchived
+                      ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
+                      : hoveredTodo.isCompleted
+                      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                      : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                  }`}
+                >
+                  {hoveredTodo.isArchived ? "Archived" : hoveredTodo.isCompleted ? "Completed" : "Active"}
+                </span>
+
+                {/* Assigned row */}
+                <span className="text-zinc-500 dark:text-zinc-400">Assigned</span>
+                {hoveredTodo.metadata.assignedPeople.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {hoveredTodo.metadata.assignedPeople.map((person, idx) => {
+                      const bgColor = getPersonColor(person);
+                      return (
+                        <span
+                          key={idx}
+                          className="px-1.5 py-0.5 rounded"
+                          style={{ backgroundColor: bgColor, color: getTextColor(bgColor) }}
+                        >
+                          @{person}
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                )}
+
+                {/* Project row */}
+                <span className="text-zinc-500 dark:text-zinc-400">Project</span>
+                {hoveredTodo.metadata.projects.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {hoveredTodo.metadata.projects.map((project, idx) => {
+                      const bgColor = getProjectColorForTooltip(project);
+                      return (
+                        <span
+                          key={idx}
+                          className="px-1.5 py-0.5 rounded"
+                          style={{ backgroundColor: bgColor, color: getTextColor(bgColor) }}
+                        >
+                          #{project}
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                )}
+
+                {/* Due date + Duration row (time-related fields together) */}
+                <span className="text-zinc-500 dark:text-zinc-400">Due</span>
+                <div className="flex items-center gap-2">
+                  {hoveredTodo.metadata.dueDate ? (
+                    <span
+                      className={`px-1.5 py-0.5 rounded ${
+                        hoveredTodo.isOverdue
+                          ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                          : hoveredTodo.isDueToday
+                          ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                      }`}
+                    >
+                      {hoveredTodo.dueDateDisplay}
+                    </span>
+                  ) : (
+                    <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                  )}
+                  {hoveredTodo.metadata.duration && (
+                    <span className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                      ({hoveredTodo.durationDisplay})
+                    </span>
+                  )}
+                </div>
+
+                {/* Priority row */}
+                <span className="text-zinc-500 dark:text-zinc-400">Priority</span>
+                {hoveredTodo.metadata.priority ? (
+                  <span
+                    className="px-1.5 py-0.5 rounded font-medium w-fit"
+                    style={{
+                      backgroundColor: getPriorityColor(hoveredTodo.metadata.priority),
+                      color: getTextColor(getPriorityColor(hoveredTodo.metadata.priority)),
+                    }}
+                  >
+                    {hoveredTodo.metadata.priority}
+                  </span>
+                ) : (
+                  <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                )}
+              </div>
+            </div>,
+            document.body,
+          );
+        })()}
     </div>
   );
 }
