@@ -41,6 +41,7 @@ interface TodoFilters {
   sourcePeople: Set<string>;
   mentionedPeople: Set<string>;
   projects: Set<string>;
+  categories: Set<string>;
   priorities: Set<string>;
   dueDates: Set<string>;
   durations: Set<string>;
@@ -362,7 +363,21 @@ export function TodoApp() {
 
   // Quick filter state
   type QuickFilter = "all" | "today" | "overdue" | "thisWeek" | "noDueDate";
-  const [activeQuickFilter, setActiveQuickFilter] = useState<QuickFilter>("all");
+  const [activeQuickFilter, setActiveQuickFilter] = useState<QuickFilter>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
+        const saved = typeof result === "string" ? result : null;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return (parsed.quickFilter as QuickFilter) || "all";
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load quick filter from localStorage:", e);
+    }
+    return "all";
+  });
 
   // Helper to check if date is today
   const isToday = useCallback((dateStr: string | undefined) => {
@@ -660,9 +675,10 @@ export function TodoApp() {
     | "mentioned"
     | "project"
     | "priority"
+    | "timeSpent"
     | "created";
   type SortDirection = "asc" | "desc";
-  type GroupBy = "none" | "dueDate";
+  type GroupBy = "none" | "dueDate" | "priority" | "project" | "category" | "assigned";
 
   interface ViewPreset {
     name: string;
@@ -672,6 +688,7 @@ export function TodoApp() {
       sourcePeople: string[];
       mentionedPeople: string[];
       projects: string[];
+      categories: string[];
       priorities: string[];
       dueDates: string[];
       durations: string[];
@@ -721,6 +738,7 @@ export function TodoApp() {
             sourcePeople: new Set(parsed.filters?.sourcePeople || []),
             mentionedPeople: new Set(parsed.filters?.mentionedPeople || []),
             projects: new Set(parsed.filters?.projects || []),
+            categories: new Set(parsed.filters?.categories || []),
             priorities: new Set(parsed.filters?.priorities || []),
             dueDates: new Set(parsed.filters?.dueDates || []),
             durations: new Set(parsed.filters?.durations || []),
@@ -739,6 +757,7 @@ export function TodoApp() {
       sourcePeople: new Set(),
       mentionedPeople: new Set(),
       projects: new Set(),
+      categories: new Set(),
       priorities: new Set(),
       dueDates: new Set(),
       durations: new Set(),
@@ -807,6 +826,7 @@ export function TodoApp() {
         sourcePeople: Array.from(filters.sourcePeople),
         mentionedPeople: Array.from(filters.mentionedPeople),
         projects: Array.from(filters.projects),
+        categories: Array.from(filters.categories),
         priorities: Array.from(filters.priorities),
         dueDates: Array.from(filters.dueDates),
         durations: Array.from(filters.durations),
@@ -817,6 +837,7 @@ export function TodoApp() {
       sortField,
       sortDirection,
       groupBy,
+      quickFilter: activeQuickFilter,
     };
     if (typeof window !== "undefined") {
       getStorageAdapter().setItem(STORAGE_KEYS.VIEW_OPTIONS, JSON.stringify(viewOptions));
@@ -840,7 +861,7 @@ export function TodoApp() {
     });
 
     setActivePreset(matchingPreset ? matchingPreset.name : "custom");
-  }, [filters, sortField, sortDirection, groupBy, viewPresets]);
+  }, [filters, sortField, sortDirection, groupBy, activeQuickFilter, viewPresets]);
 
   // Helper function to compare arrays
   const arraysEqual = (a: string[], b: string[]) => {
@@ -858,6 +879,7 @@ export function TodoApp() {
       sourcePeople: new Set(preset.filters.sourcePeople),
       mentionedPeople: new Set(preset.filters.mentionedPeople),
       projects: new Set(preset.filters.projects),
+      categories: new Set(preset.filters.categories || []),
       priorities: new Set(preset.filters.priorities),
       dueDates: new Set(preset.filters.dueDates),
       durations: new Set(preset.filters.durations),
@@ -881,6 +903,7 @@ export function TodoApp() {
         sourcePeople: Array.from(filters.sourcePeople),
         mentionedPeople: Array.from(filters.mentionedPeople),
         projects: Array.from(filters.projects),
+        categories: Array.from(filters.categories),
         priorities: Array.from(filters.priorities),
         dueDates: Array.from(filters.dueDates),
         durations: Array.from(filters.durations),
@@ -1135,7 +1158,7 @@ export function TodoApp() {
     const assignedPeople = new Set<string>();
     const sourcePeople = new Set<string>();
     const mentionedPeople = new Set<string>();
-    const projects = new Set<string>();
+    const projectNames = new Set<string>();
     const priorities = new Set<string>();
     const dueDates = new Set<string>();
     const durations = new Set<string>();
@@ -1143,11 +1166,20 @@ export function TodoApp() {
     const recurring = new Set<string>();
     const dependencies = new Set<string>();
 
+    const usedCategoryIds = new Set<string>();
+
     todos.forEach((todo) => {
       todo.metadata.assignedPeople.forEach((p) => assignedPeople.add(p));
       todo.metadata.sourcePeople.forEach((p) => sourcePeople.add(p));
       todo.metadata.mentionedPeople.forEach((p) => mentionedPeople.add(p));
-      todo.metadata.projects.forEach((p) => projects.add(p));
+      todo.metadata.projects.forEach((projectName) => {
+        projectNames.add(projectName);
+        // Find the project and add its category if it has one
+        const project = projects.find((p) => p.matchesAnyName([projectName]));
+        if (project?.raw.category) {
+          usedCategoryIds.add(project.raw.category);
+        }
+      });
       if (todo.metadata.priority) priorities.add(todo.metadata.priority);
       if (todo.metadata.dueDate) dueDates.add(todo.metadata.dueDate);
       if (todo.metadata.duration) durations.add(todo.metadata.duration);
@@ -1156,11 +1188,15 @@ export function TodoApp() {
       todo.metadata.dependencies.forEach((d) => dependencies.add(d));
     });
 
+    // Categories: only show categories that are actually used by projects in todos
+    const categoriesInUse = Array.from(usedCategoryIds);
+
     return {
       assignedPeople: setToSortedArray(assignedPeople),
       sourcePeople: setToSortedArray(sourcePeople),
       mentionedPeople: setToSortedArray(mentionedPeople),
-      projects: setToSortedArray(projects),
+      projects: setToSortedArray(projectNames),
+      categories: categoriesInUse,
       priorities: setToSortedArray(priorities),
       dueDates: setToSortedArray(dueDates),
       durations: setToSortedArray(durations),
@@ -1168,7 +1204,7 @@ export function TodoApp() {
       recurring: setToSortedArray(recurring),
       dependencies: setToSortedArray(dependencies),
     };
-  }, [todos]);
+  }, [todos, projects, settings.categories]);
 
   // Filter handler functions
   const handleFilterClick = (type: keyof Omit<TodoFilters, "searchText">, value: string) => {
@@ -1200,6 +1236,7 @@ export function TodoApp() {
       sourcePeople: new Set(),
       mentionedPeople: new Set(),
       projects: new Set(),
+      categories: new Set(),
       priorities: new Set(),
       dueDates: new Set(),
       durations: new Set(),
@@ -1229,6 +1266,7 @@ export function TodoApp() {
     const markerColorMap: Record<string, keyof typeof settings.markerColors> = {
       assignedPeople: "assigned",
       projects: "project",
+      categories: "project", // Categories use project color
       sourcePeople: "source",
       mentionedPeople: "mentioned",
       priorities: "priority",
@@ -1257,6 +1295,7 @@ export function TodoApp() {
     filters.sourcePeople.size > 0 ||
     filters.mentionedPeople.size > 0 ||
     filters.projects.size > 0 ||
+    filters.categories.size > 0 ||
     filters.priorities.size > 0 ||
     filters.dueDates.size > 0 ||
     filters.durations.size > 0 ||
@@ -1311,6 +1350,20 @@ export function TodoApp() {
 
       if (filters.projects.size > 0) {
         if (!arrayHasAnyFromSet(todo.metadata.projects, filters.projects)) {
+          return false;
+        }
+      }
+
+      // Category filter - check if any of the todo's projects belong to selected categories
+      if (filters.categories.size > 0) {
+        const todoCategories = todo.metadata.projects
+          .map((projectName) => {
+            const project = projects.find((p) => p.matchesAnyName([projectName]));
+            return project?.raw.category;
+          })
+          .filter((c): c is string => !!c);
+
+        if (!arrayHasAnyFromSet(todoCategories, filters.categories)) {
           return false;
         }
       }
@@ -1424,6 +1477,15 @@ export function TodoApp() {
           comparison = aOrder - bOrder;
           break;
 
+        case "timeSpent":
+          const aTimeSpent = a.totalTrackedMinutes;
+          const bTimeSpent = b.totalTrackedMinutes;
+          comparison = aTimeSpent - bTimeSpent;
+          // Put items with no time at the end
+          if (aTimeSpent === 0 && bTimeSpent > 0) return 1;
+          if (aTimeSpent > 0 && bTimeSpent === 0) return -1;
+          break;
+
         case "created":
         default:
           comparison = b.createdAt - a.createdAt; // Newest first by default
@@ -1509,6 +1571,130 @@ export function TodoApp() {
         if (grouped[key]) {
           sortedGroups[key] = grouped[key];
         }
+      });
+
+      return sortedGroups;
+    }
+
+    if (groupBy === "priority") {
+      const grouped: Record<string, typeof todos> = {};
+
+      todoList.forEach((todo) => {
+        const groupKey = todo.metadata.priority || "No Priority";
+        if (!grouped[groupKey]) {
+          grouped[groupKey] = [];
+        }
+        grouped[groupKey].push(todo);
+      });
+
+      // Sort groups by priority order
+      const priorityOrder: Record<string, number> = {};
+      settings.priorities.forEach((p) => {
+        priorityOrder[p.name.toLowerCase()] = p.order;
+        p.alternatives.forEach((alt) => {
+          priorityOrder[alt.toLowerCase()] = p.order;
+        });
+      });
+
+      const sortedKeys = Object.keys(grouped).sort((a, b) => {
+        if (a === "No Priority") return 1;
+        if (b === "No Priority") return -1;
+        const aOrder = priorityOrder[a.toLowerCase()] ?? 999;
+        const bOrder = priorityOrder[b.toLowerCase()] ?? 999;
+        return aOrder - bOrder;
+      });
+
+      const sortedGroups: Record<string, typeof todos> = {};
+      sortedKeys.forEach((key) => {
+        sortedGroups[key] = grouped[key];
+      });
+
+      return sortedGroups;
+    }
+
+    if (groupBy === "project") {
+      const grouped: Record<string, typeof todos> = {};
+
+      todoList.forEach((todo) => {
+        const projectName = todo.metadata.projects[0] || "No Project";
+        if (!grouped[projectName]) {
+          grouped[projectName] = [];
+        }
+        grouped[projectName].push(todo);
+      });
+
+      // Sort groups alphabetically, with "No Project" at the end
+      const sortedKeys = Object.keys(grouped).sort((a, b) => {
+        if (a === "No Project") return 1;
+        if (b === "No Project") return -1;
+        return a.localeCompare(b);
+      });
+
+      const sortedGroups: Record<string, typeof todos> = {};
+      sortedKeys.forEach((key) => {
+        sortedGroups[key] = grouped[key];
+      });
+
+      return sortedGroups;
+    }
+
+    if (groupBy === "category") {
+      const grouped: Record<string, typeof todos> = {};
+
+      todoList.forEach((todo) => {
+        // Find category from first project
+        let categoryName = "No Category";
+        if (todo.metadata.projects.length > 0) {
+          const projectName = todo.metadata.projects[0];
+          const project = projects.find((p) => p.matchesAnyName([projectName]));
+          if (project?.raw.category) {
+            const category = settings.categories.find((c) => c.id === project.raw.category);
+            categoryName = category?.name || "No Category";
+          }
+        }
+
+        if (!grouped[categoryName]) {
+          grouped[categoryName] = [];
+        }
+        grouped[categoryName].push(todo);
+      });
+
+      // Sort groups alphabetically, with "No Category" at the end
+      const sortedKeys = Object.keys(grouped).sort((a, b) => {
+        if (a === "No Category") return 1;
+        if (b === "No Category") return -1;
+        return a.localeCompare(b);
+      });
+
+      const sortedGroups: Record<string, typeof todos> = {};
+      sortedKeys.forEach((key) => {
+        sortedGroups[key] = grouped[key];
+      });
+
+      return sortedGroups;
+    }
+
+    if (groupBy === "assigned") {
+      const grouped: Record<string, typeof todos> = {};
+
+      todoList.forEach((todo) => {
+        const assignedName = todo.metadata.assignedPeople[0] || "Unassigned";
+        if (!grouped[assignedName]) {
+          grouped[assignedName] = [];
+        }
+        grouped[assignedName].push(todo);
+      });
+
+      // Sort groups alphabetically, with "Unassigned" at the end
+      const sortedKeys = Object.keys(grouped).sort((a, b) => {
+        if (a === "Unassigned") return 1;
+        if (b === "Unassigned") return -1;
+        return a.localeCompare(b);
+      });
+
+      const sortedGroups: Record<string, typeof todos> = {};
+      sortedKeys.forEach((key) => {
+        sortedGroups[key] = grouped[key];
       });
 
       return sortedGroups;
@@ -2044,6 +2230,10 @@ export function TodoApp() {
                 >
                   <option value="none">None</option>
                   <option value="dueDate">Due Date</option>
+                  <option value="priority">Priority</option>
+                  <option value="project">Project</option>
+                  <option value="category">Category</option>
+                  <option value="assigned">Assigned</option>
                 </select>
               </div>
 
@@ -2059,11 +2249,12 @@ export function TodoApp() {
                   <option value="created">Created</option>
                   <option value="dueDate">Due Date</option>
                   <option value="duration">Duration</option>
+                  <option value="priority">Priority</option>
                   <option value="assigned">Assigned</option>
                   <option value="source">Source</option>
                   <option value="mentioned">Mentioned</option>
                   <option value="project">Project</option>
-                  <option value="priority">Priority</option>
+                  <option value="timeSpent">Time Spent</option>
                 </select>
                 <button
                   onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
@@ -2097,18 +2288,6 @@ export function TodoApp() {
               </button>
             </div>
 
-            {/* Filter Badges Row */}
-            {hasActiveFilters && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  onClick={handleClearAllFilters}
-                  className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
-                >
-                  Clear All
-                </button>
-              </div>
-            )}
-
             {showFilters && (
               <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 space-y-2">
                 {/* Assigned People Filter */}
@@ -2137,6 +2316,32 @@ export function TodoApp() {
                   getButtonColor={(value, isSelected) => getFilterButtonColor("projects", value, isSelected)}
                   getButtonStyle={(value, isSelected) => getFilterButtonStyle("projects", value, isSelected)}
                   formatLabel={(value) => `#${value}`}
+                />
+
+                {/* Categories Filter */}
+                <FilterSection
+                  label="Categories"
+                  activeCount={filters.categories.size}
+                  options={filterOptions.categories}
+                  selectedValues={filters.categories}
+                  onToggle={(value) => handleFilterClick("categories", value)}
+                  onSelectAll={() => handleSelectAll("categories")}
+                  onClear={() => handleClearAll("categories")}
+                  getButtonColor={(value, isSelected) => getFilterButtonColor("categories", value, isSelected)}
+                  getButtonStyle={(value, isSelected) => {
+                    if (!isSelected) return undefined;
+                    // Use category's own color
+                    const category = settings.categories.find((c) => c.id === value);
+                    const bgColor = category?.color || settings.markerColors.project;
+                    return {
+                      backgroundColor: bgColor,
+                      color: getTextColor(bgColor),
+                    };
+                  }}
+                  formatLabel={(value) => {
+                    const category = settings.categories.find((c) => c.id === value);
+                    return category?.name || value;
+                  }}
                 />
 
                 {/* Source People Filter */}
@@ -2250,6 +2455,18 @@ export function TodoApp() {
                   getButtonStyle={(value, isSelected) => getFilterButtonStyle("dependencies", value, isSelected)}
                   formatLabel={(value) => `>${value}`}
                 />
+
+                {/* Clear All Filters Button */}
+                {hasActiveFilters && (
+                  <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                    <button
+                      onClick={handleClearAllFilters}
+                      className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
+                    >
+                      Clear All Filters
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2527,7 +2744,9 @@ export function TodoApp() {
         )}
 
         {/* Statistics View */}
-        {activeView === "stats" && <StatisticsView todos={todos} />}
+        {activeView === "stats" && (
+          <StatisticsView todos={todos} projects={projects} categories={settings.categories} />
+        )}
 
         {activeView === "list" && (
           <>
@@ -3166,6 +3385,7 @@ export function TodoApp() {
                 onAddComment={addProjectComment}
                 onEditComment={editProjectComment}
                 onDeleteComment={deleteProjectComment}
+                categories={settings.categories}
               />
             ) : null;
           })()}

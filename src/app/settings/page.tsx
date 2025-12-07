@@ -19,6 +19,7 @@ import { AutoAssignTab } from "@/components/settings/AutoAssignTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 import { StorageTab } from "@/components/settings/StorageTab";
 import { NotificationsTab } from "@/components/settings/NotificationsTab";
+import { CategoriesTab } from "@/components/settings/CategoriesTab";
 import { ImportTab } from "@/components/settings/ImportTab";
 
 const tabs = {
@@ -28,6 +29,7 @@ const tabs = {
   Gantt: "gantt",
   Kanban: "kanban",
   Calendar: "calendar",
+  Categories: "categories",
   "Auto-Assign": "autoassign",
   Notifications: "notifications",
   Priorities: "priorities",
@@ -66,6 +68,9 @@ export default function SettingsPage() {
     updateCalendar,
     updateNotificationSettings,
     updateAutoAssignSettings,
+    addCategory,
+    updateCategory,
+    deleteCategory,
   } = useSettings();
 
   const { people, isLoaded: peopleLoaded } = usePeople();
@@ -236,6 +241,15 @@ export default function SettingsPage() {
                   return <KanbanTab kanban={settings.kanban} onUpdate={updateKanbanSettings} />;
                 case "calendar":
                   return <CalendarTab calendar={settings.calendar} onUpdate={updateCalendar} />;
+                case "categories":
+                  return (
+                    <CategoriesTab
+                      categories={settings.categories}
+                      onAdd={addCategory}
+                      onUpdate={updateCategory}
+                      onDelete={deleteCategory}
+                    />
+                  );
                 case "autoassign":
                   return (
                     <AutoAssignTab

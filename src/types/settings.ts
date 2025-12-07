@@ -9,6 +9,14 @@ export interface Person {
   archived?: boolean;
 }
 
+// Project categories for organizing work types (e.g., "Office", "Private", "Client A")
+export interface ProjectCategory {
+  id: string;
+  name: string;
+  color: string;
+  description?: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -18,6 +26,7 @@ export interface Project {
   comments: Comment[];
   activity: ActivityEntry[];
   archived?: boolean;
+  category?: string; // Category ID - links to ProjectCategory
 }
 
 export interface Priority {
@@ -125,6 +134,7 @@ export interface BreakPeriod {
   endTime: string; // e.g., "13:00"
   blockType?: TimeBlockType | string; // Type of block (break, meeting, focus, etc.)
   color?: string; // Custom color override (if not set, uses blockType color)
+  allowedCategories?: string[]; // Category IDs - only schedule tasks from these categories during this block
 }
 
 export interface DaySchedule {
@@ -530,7 +540,15 @@ export interface Settings {
   notifications: NotificationSettings;
   // Kanban Tab
   kanban: KanbanSettings;
+  // Categories Tab - Project categories for organizing work types
+  categories: ProjectCategory[];
 }
+
+// Default project categories
+export const defaultCategories: ProjectCategory[] = [
+  { id: "work", name: "Work", color: "#3b82f6", description: "Office and work-related tasks" },
+  { id: "personal", name: "Personal", color: "#22c55e", description: "Personal and home tasks" },
+];
 
 export const defaultSettings: Settings = {
   priorities: [
@@ -563,4 +581,5 @@ export const defaultSettings: Settings = {
   autoAssign: defaultAutoAssignSettings,
   notifications: defaultNotificationSettings,
   kanban: defaultKanbanSettings,
+  categories: defaultCategories,
 };

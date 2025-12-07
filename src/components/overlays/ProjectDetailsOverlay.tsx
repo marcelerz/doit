@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ProjectModel } from "@/models/ProjectModel";
-import { Project } from "@/types/settings";
+import { Project, ProjectCategory } from "@/types/settings";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
 import { ColorPicker } from "@/components/shared/ColorPicker";
@@ -20,6 +20,7 @@ interface ProjectDetailsOverlayProps {
   onAddComment: (projectId: string, content: string) => void;
   onEditComment: (projectId: string, commentId: number, content: string) => void;
   onDeleteComment: (projectId: string, commentId: number) => void;
+  categories?: ProjectCategory[];
 }
 
 export function ProjectDetailsOverlay({
@@ -32,11 +33,13 @@ export function ProjectDetailsOverlay({
   onAddComment,
   onEditComment,
   onDeleteComment,
+  categories = [],
 }: ProjectDetailsOverlayProps) {
   const [editingName, setEditingName] = useState(project.name);
   const [editingAlternatives, setEditingAlternatives] = useState(project.alternatives);
   const [editingColor, setEditingColor] = useState(project.color);
   const [editingContext, setEditingContext] = useState(project.context || "");
+  const [editingCategory, setEditingCategory] = useState(project.raw.category || "");
   const [newComment, setNewComment] = useState("");
 
   // Sync local state when project changes (after updates)
@@ -45,6 +48,7 @@ export function ProjectDetailsOverlay({
     setEditingAlternatives(project.alternatives);
     setEditingColor(project.color);
     setEditingContext(project.context || "");
+    setEditingCategory(project.raw.category || "");
   }, [project]);
 
   // Auto-save when fields change
@@ -54,19 +58,21 @@ export function ProjectDetailsOverlay({
         editingName.trim() !== project.name ||
         JSON.stringify(editingAlternatives) !== JSON.stringify(project.alternatives) ||
         editingColor !== project.color ||
-        (editingContext.trim() || undefined) !== project.context
+        (editingContext.trim() || undefined) !== project.context ||
+        (editingCategory || undefined) !== project.raw.category
       ) {
         onUpdate(project.id, {
           name: editingName.trim(),
           alternatives: editingAlternatives,
           color: editingColor,
           context: editingContext.trim() || undefined,
+          category: editingCategory || undefined,
         });
       }
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [editingName, editingAlternatives, editingColor, editingContext, project, onUpdate]);
+  }, [editingName, editingAlternatives, editingColor, editingContext, editingCategory, project, onUpdate]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -146,6 +152,41 @@ export function ProjectDetailsOverlay({
 
             {/* Color Field */}
             <ColorPicker value={editingColor} onChange={setEditingColor} defaultColor="#e2ccff" />
+
+            {/* Category Field */}
+            {categories.length > 0 && (
+              <div>
+                <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📂 Category</label>
+                <select
+                  value={editingCategory}
+                  onChange={(e) => setEditingCategory(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">No category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+                {editingCategory && (
+                  <div className="mt-2 flex items-center gap-2">
+                    {(() => {
+                      const selectedCategory = categories.find((c) => c.id === editingCategory);
+                      if (!selectedCategory) return null;
+                      return (
+                        <>
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedCategory.color }} />
+                          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {selectedCategory.description || selectedCategory.name}
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Context */}

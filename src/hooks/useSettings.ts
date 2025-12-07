@@ -10,6 +10,7 @@ import {
   KanbanState,
   KanbanView,
   KanbanTransition,
+  ProjectCategory,
 } from "@/types/settings";
 import { migrateSettings } from "@/storage/migrations";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
@@ -386,6 +387,33 @@ export function useSettings() {
     }));
   };
 
+  // Category methods
+  const addCategory = (category: Omit<ProjectCategory, "id">) => {
+    const newCategory: ProjectCategory = {
+      ...category,
+      id: `cat-${Date.now()}`,
+    };
+    setSettings((prev) => ({
+      ...prev,
+      categories: [...prev.categories, newCategory],
+    }));
+    return newCategory.id;
+  };
+
+  const updateCategory = (id: string, updates: Partial<ProjectCategory>) => {
+    setSettings((prev) => ({
+      ...prev,
+      categories: prev.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+    }));
+  };
+
+  const deleteCategory = (id: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      categories: prev.categories.filter((c) => c.id !== id),
+    }));
+  };
+
   return {
     settings,
     isLoaded,
@@ -418,5 +446,9 @@ export function useSettings() {
     updateKanbanView,
     deleteKanbanView,
     setActiveKanbanView,
+    // Category methods
+    addCategory,
+    updateCategory,
+    deleteCategory,
   };
 }

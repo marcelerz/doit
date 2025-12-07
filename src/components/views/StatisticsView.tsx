@@ -2,12 +2,16 @@
 
 import { useMemo } from "react";
 import { TodoModel } from "@/models/TodoModel";
+import { ProjectModel } from "@/models/ProjectModel";
+import { ProjectCategory } from "@/types/settings";
 
 interface StatisticsViewProps {
   todos: TodoModel[];
+  projects?: ProjectModel[];
+  categories?: ProjectCategory[];
 }
 
-export function StatisticsView({ todos }: StatisticsViewProps) {
+export function StatisticsView({ todos, projects = [], categories = [] }: StatisticsViewProps) {
   const stats = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -58,10 +62,39 @@ export function StatisticsView({ todos }: StatisticsViewProps) {
     // Time by project
     const timeByProject: Record<string, number> = {};
     todosWithTracking.forEach((t) => {
-      const projects = t.projects.length > 0 ? t.projects : ["No Project"];
-      projects.forEach((project) => {
+      const todoProjects = t.projects.length > 0 ? t.projects : ["No Project"];
+      todoProjects.forEach((project) => {
         timeByProject[project] = (timeByProject[project] || 0) + t.totalTrackedMinutes;
       });
+    });
+
+    // Time by category (derived from project categories)
+    const timeByCategory: Record<string, { minutes: number; color: string }> = {};
+    todosWithTracking.forEach((t) => {
+      const todoProjects = t.projects;
+      if (todoProjects.length === 0) {
+        // No project = uncategorized
+        const key = "Uncategorized";
+        if (!timeByCategory[key]) {
+          timeByCategory[key] = { minutes: 0, color: "#9ca3af" };
+        }
+        timeByCategory[key].minutes += t.totalTrackedMinutes;
+      } else {
+        todoProjects.forEach((projectName) => {
+          // Find the project and its category
+          const project = projects.find((p) => p.name === projectName || p.alternatives.includes(projectName));
+          const categoryId = project?.raw.category;
+          const category = categoryId ? categories.find((c) => c.id === categoryId) : null;
+
+          const key = category ? category.name : "Uncategorized";
+          const color = category ? category.color : "#9ca3af";
+
+          if (!timeByCategory[key]) {
+            timeByCategory[key] = { minutes: 0, color };
+          }
+          timeByCategory[key].minutes += t.totalTrackedMinutes;
+        });
+      }
     });
 
     // Completed this week
@@ -198,8 +231,9 @@ export function StatisticsView({ todos }: StatisticsViewProps) {
       currentlyTracking: currentlyTracking.length,
       tasksWithTracking: todosWithTracking.length,
       timeByProject,
+      timeByCategory,
     };
-  }, [todos]);
+  }, [todos, projects, categories]);
 
   // Format duration in days/hours
   const formatDuration = (ms: number) => {
@@ -370,6 +404,39 @@ export function StatisticsView({ todos }: StatisticsViewProps) {
                   ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Time by Category */}
+      {Object.keys(stats.timeByCategory).length > 0 && (
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">📂 Time by Category</h3>
+          <div className="space-y-2">
+            {Object.entries(stats.timeByCategory)
+              .sort((a, b) => b[1].minutes - a[1].minutes)
+              .map(([categoryName, data]) => (
+                <div key={categoryName} className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: data.color }} />
+                    <span className="text-sm text-zinc-600 dark:text-zinc-400 truncate">{categoryName}</span>
+                  </div>
+                  <div className="flex-1 h-4 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        backgroundColor: data.color,
+                        width: `${
+                          (data.minutes / Math.max(...Object.values(stats.timeByCategory).map((d) => d.minutes))) * 100
+                        }%`,
+                      }}
+                    />
+                  </div>
+                  <div className="w-16 text-right text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                    {formatMinutes(data.minutes)}
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
       )}
