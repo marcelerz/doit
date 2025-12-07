@@ -22,7 +22,6 @@ import { StorageTab } from "@/components/settings/StorageTab";
 import { NotificationsTab } from "@/components/settings/NotificationsTab";
 import { CategoriesTab } from "@/components/settings/CategoriesTab";
 import { ImportTab } from "@/components/settings/ImportTab";
-import { HelpTab } from "@/components/settings/HelpTab";
 
 const tabs = {
   General: "general",
@@ -41,7 +40,6 @@ const tabs = {
   Backup: "backup",
   Import: "import",
   Storage: "storage",
-  Help: "help",
 } as const;
 
 type Tab = (typeof tabs)[keyof typeof tabs];
@@ -322,8 +320,6 @@ export default function SettingsPage() {
                   return <ImportTab onImport={importTodosToStore} existingProjects={projects.map((p) => p.name)} />;
                 case "storage":
                   return <StorageTab />;
-                case "help":
-                  return <HelpTab />;
                 default: {
                   // Exhaustiveness check
                   const _exhaustiveCheck: never = activeTab;

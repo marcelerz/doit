@@ -21,6 +21,7 @@ import { MarkerReference } from "@/components/shared/MarkerReference";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { PersonDetailsOverlay } from "@/components/overlays/PersonDetailsOverlay";
 import { ProjectDetailsOverlay } from "@/components/overlays/ProjectDetailsOverlay";
+import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { PersonItem } from "@/components/items/PersonItem";
 import { ProjectItem } from "@/components/items/ProjectItem";
 import { calculateUsageStats, sortByUsage, UsageStats } from "@/utils/usageStats";
@@ -816,6 +817,7 @@ export function TodoApp() {
   const [isAddOverlayOpen, setIsAddOverlayOpen] = useState(false);
   const [isAddPersonOverlayOpen, setIsAddPersonOverlayOpen] = useState(false);
   const [isAddProjectOverlayOpen, setIsAddProjectOverlayOpen] = useState(false);
+  const [isHelpOverlayOpen, setIsHelpOverlayOpen] = useState(false);
 
   // Confirm dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -1281,8 +1283,7 @@ export function TodoApp() {
       // '?' - Show keyboard shortcuts help (can be expanded later)
       if (e.key === "?" && e.shiftKey) {
         e.preventDefault();
-        // For now, just log - could show a help modal later
-        console.log("Keyboard shortcuts: n=new, /=search, f=filters, s=select, 1-8=views, Esc=close");
+        setIsHelpOverlayOpen(true);
         return;
       }
     };
@@ -2077,6 +2078,21 @@ export function TodoApp() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 <span className="hidden sm:inline">Add</span>
+              </button>
+              <button
+                onClick={() => setIsHelpOverlayOpen(true)}
+                className="px-2 sm:px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
+                title="Help (Shift+?)"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Help</span>
               </button>
               <Link
                 href="/settings"
@@ -4654,6 +4670,9 @@ export function TodoApp() {
             />
           );
         })()}
+
+      {/* Help Overlay */}
+      <HelpOverlay isOpen={isHelpOverlayOpen} onClose={() => setIsHelpOverlayOpen(false)} />
     </div>
   );
 }
