@@ -415,10 +415,8 @@ export function TodoApp() {
 
   // Load UI options from storage (includes active tab and show archived states)
   useEffect(() => {
-    console.log("[UI_OPTIONS] Waiting for storage init...");
     waitForStorageInit()
       .then(() => {
-        console.log("[UI_OPTIONS] Loading from storage...");
         return loadFromStorage<{
           activeTab?: ViewTab;
           showArchivedPeople?: boolean;
@@ -426,7 +424,6 @@ export function TodoApp() {
         }>(STORAGE_KEYS.UI_OPTIONS, {});
       })
       .then((saved) => {
-        console.log("[UI_OPTIONS] Loaded:", saved);
         if (saved.activeTab !== undefined) {
           const validTabs: ViewTab[] = [
             "list",
@@ -439,7 +436,6 @@ export function TodoApp() {
             "stats",
           ];
           if (validTabs.includes(saved.activeTab)) {
-            console.log("[UI_OPTIONS] Setting activeView to:", saved.activeTab);
             setActiveView(saved.activeTab);
           }
         }
@@ -452,7 +448,6 @@ export function TodoApp() {
   // Persist UI options to storage (only after initial load)
   useEffect(() => {
     if (!uiOptionsLoaded) return;
-    console.log("[UI_OPTIONS] Saving:", { activeTab: activeView, showArchivedPeople, showArchivedProjects });
     saveToStorage(STORAGE_KEYS.UI_OPTIONS, {
       activeTab: activeView,
       showArchivedPeople,
