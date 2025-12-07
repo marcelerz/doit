@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Sprint } from "@/types/settings";
+import { Sprint, MarkerColors } from "@/types/settings";
 import { SprintModel } from "@/hooks/useSprints";
 import { SprintItem } from "@/components/items/SprintItem";
 import { SprintDetailsOverlay } from "@/components/overlays/SprintDetailsOverlay";
@@ -25,6 +25,7 @@ interface SprintsViewProps {
   onTodoClick?: (todo: TodoModel) => void;
   onRemoveTodoFromSprint?: (todoId: string) => void;
   defaultDuration: number;
+  markerColors: MarkerColors;
 }
 
 type FilterType = "all" | "active" | "archived";
@@ -46,6 +47,7 @@ export function SprintsView({
   onTodoClick,
   onRemoveTodoFromSprint,
   defaultDuration,
+  markerColors,
 }: SprintsViewProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [selectedSprint, setSelectedSprint] = useState<SprintModel | null>(null);
@@ -100,6 +102,7 @@ export function SprintsView({
       goal: formData.goal.trim() || undefined,
       durationDays: formData.durationDays,
       plannedStartDate: formData.plannedStartDate || undefined,
+      color: undefined, // Will use marker default color
     });
 
     setFormData({
@@ -322,6 +325,7 @@ export function SprintsView({
           sprint={selectedSprint}
           allSprints={sprints}
           todos={todos}
+          markerColors={markerColors}
           onClose={() => setSelectedSprint(null)}
           onUpdate={onUpdate}
           onDelete={(id) => {

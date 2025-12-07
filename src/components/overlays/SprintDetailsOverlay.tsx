@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { SprintModel } from "@/hooks/useSprints";
-import { Sprint } from "@/types/settings";
+import { Sprint, MarkerColors } from "@/types/settings";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
 import { ActionButtons } from "@/components/shared/ActionButtons";
@@ -13,6 +13,7 @@ interface SprintDetailsOverlayProps {
   sprint: SprintModel;
   allSprints: SprintModel[];
   todos: TodoModel[];
+  markerColors: MarkerColors;
   onClose: () => void;
   onUpdate: (id: string, updates: Partial<Sprint>) => void;
   onDelete: (id: string) => void;
@@ -34,6 +35,7 @@ export function SprintDetailsOverlay({
   sprint,
   allSprints,
   todos,
+  markerColors,
   onClose,
   onUpdate,
   onDelete,
@@ -53,6 +55,7 @@ export function SprintDetailsOverlay({
   const [editingGoal, setEditingGoal] = useState(sprint.goal || "");
   const [editingDuration, setEditingDuration] = useState(sprint.durationDays);
   const [editingStartDate, setEditingStartDate] = useState(sprint.plannedStartDate || "");
+  const [editingColor, setEditingColor] = useState(sprint.color || "");
   const [newComment, setNewComment] = useState("");
 
   // Get todos in this sprint
@@ -69,6 +72,7 @@ export function SprintDetailsOverlay({
     setEditingGoal(sprint.goal || "");
     setEditingDuration(sprint.durationDays);
     setEditingStartDate(sprint.plannedStartDate || "");
+    setEditingColor(sprint.color || "");
   }, [sprint]);
 
   // Auto-save when fields change (only for planning sprints)
@@ -80,7 +84,8 @@ export function SprintDetailsOverlay({
         editingName.trim() !== sprint.name ||
         (editingGoal.trim() || undefined) !== sprint.goal ||
         editingDuration !== sprint.durationDays ||
-        (editingStartDate || undefined) !== sprint.plannedStartDate;
+        (editingStartDate || undefined) !== sprint.plannedStartDate ||
+        (editingColor || undefined) !== sprint.color;
 
       if (needsUpdate) {
         onUpdate(sprint.id, {
@@ -88,12 +93,13 @@ export function SprintDetailsOverlay({
           goal: editingGoal.trim() || undefined,
           durationDays: editingDuration,
           plannedStartDate: editingStartDate || undefined,
+          color: editingColor || undefined,
         });
       }
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [editingName, editingGoal, editingDuration, editingStartDate, sprint, onUpdate]);
+  }, [editingName, editingGoal, editingDuration, editingStartDate, editingColor, sprint, onUpdate]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -183,6 +189,9 @@ export function SprintDetailsOverlay({
   const canComplete = sprint.canComplete();
   const canCancel = sprint.canCancel();
 
+  // Get the display color (custom color > marker default)
+  const sprintColor = editingColor || sprint.color || markerColors.sprint;
+
   const tabs: { id: TabType; label: string; count?: number }[] = [
     { id: "details", label: "Details" },
     { id: "todos", label: "Todos", count: sprintTodos.length },
@@ -198,7 +207,7 @@ export function SprintDetailsOverlay({
             <div className="flex items-center gap-4">
               <div
                 className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl font-bold shadow-md"
-                style={{ backgroundColor: sprint.statusColor }}
+                style={{ backgroundColor: sprintColor }}
               >
                 🏃
               </div>
@@ -316,6 +325,37 @@ export function SprintDetailsOverlay({
                   </label>
                   <div className="px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
                     {sprint.actualEndDate || sprint.plannedEndDate || "—"}
+                  </div>
+                </div>
+
+                {/* Color Field */}
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Color</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={editingColor || markerColors.sprint}
+                      onChange={(e) => setEditingColor(e.target.value)}
+                      disabled={sprint.status !== "planning"}
+                      className="h-10 w-20 rounded cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                    />
+                    <input
+                      type="text"
+                      value={editingColor || markerColors.sprint}
+                      onChange={(e) => setEditingColor(e.target.value)}
+                      disabled={sprint.status !== "planning"}
+                      className="flex-1 px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono disabled:opacity-60 disabled:cursor-not-allowed"
+                      placeholder="#dbeafe"
+                      pattern="^#[0-9A-Fa-f]{6}$"
+                    />
+                    {editingColor && sprint.status === "planning" && (
+                      <button
+                        onClick={() => setEditingColor("")}
+                        className="px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                      >
+                        Use Default
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

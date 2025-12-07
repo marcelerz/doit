@@ -3308,6 +3308,7 @@ export function TodoApp() {
               }
             }}
             defaultDuration={settings.sprints?.defaultSprintDuration || 14}
+            markerColors={settings.markerColors}
           />
         )}
 

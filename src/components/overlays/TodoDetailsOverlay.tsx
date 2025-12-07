@@ -997,15 +997,44 @@ export function TodoDetailsOverlay({
 
           {/* Sprint */}
           {sprints.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2 flex items-center gap-1.5">
-                <span>🏃 Sprint</span>
-                <InfoTooltip content={tooltipContent.sprints} />
-              </h4>
-              <div className="flex flex-wrap gap-1.5">
-                {editingMetadata.sprint ? (
+            <MetadataSection
+              title="Sprint"
+              icon="🏃"
+              values={editingMetadata.sprint ? [editingMetadata.sprint] : []}
+              onRemove={() => {
+                handleMetadataChange({
+                  ...editingMetadata,
+                  sprint: undefined,
+                });
+              }}
+              onAdd={(sprintId) => {
+                handleMetadataChange({
+                  ...editingMetadata,
+                  sprint: sprintId,
+                });
+              }}
+              availableItems={[
+                // Active sprint first with emoji
+                ...(runningSprint ? [{ id: runningSprint.id, label: `🏃 ${runningSprint.name} (Active)` }] : []),
+                // Planning sprints
+                ...sprints
+                  .filter((s) => s.id !== runningSprint?.id && s.status === "planning")
+                  .map((s) => ({ id: s.id, label: `📝 ${s.name}` })),
+              ]}
+              dropdownId="sprint"
+              placeholder="Search sprints..."
+              customColor={markerColors.sprint}
+              emptyMessage="No sprints available"
+              noItemsMessage="No sprints available"
+              tooltip={tooltipContent.sprints}
+              renderCustomValue={(sprintId) => {
+                const sprint = sprints.find((s) => s.id === sprintId);
+                if (!sprint) return null;
+                const sprintColor = sprint.color || markerColors.sprint;
+                const isRunning = sprint.status === "active";
+                return (
                   <Badge
-                    variant="blue"
+                    customColor={sprintColor}
                     onRemove={() => {
                       handleMetadataChange({
                         ...editingMetadata,
@@ -1013,34 +1042,11 @@ export function TodoDetailsOverlay({
                       });
                     }}
                   >
-                    {sprints.find((s) => s.id === editingMetadata.sprint)?.name || editingMetadata.sprint}
+                    {isRunning ? "🏃" : "📝"} {sprint.name}
                   </Badge>
-                ) : (
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        handleMetadataChange({
-                          ...editingMetadata,
-                          sprint: e.target.value,
-                        });
-                      }
-                    }}
-                    className="text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                  >
-                    <option value="">Select sprint...</option>
-                    {runningSprint && <option value={runningSprint.id}>🏃 {runningSprint.name} (Active)</option>}
-                    {sprints
-                      .filter((s) => s.id !== runningSprint?.id && s.status === "planning")
-                      .map((sprint) => (
-                        <option key={sprint.id} value={sprint.id}>
-                          📝 {sprint.name}
-                        </option>
-                      ))}
-                  </select>
-                )}
-              </div>
-            </div>
+                );
+              }}
+            />
           )}
 
           {/* Links */}

@@ -85,6 +85,7 @@ export interface MarkerColors extends Record<string, string> {
   recurring: string; // ~ (auto-detected)
   dependency: string; // (via field)
   tag: string; // #
+  sprint: string; // 🏃 (sprint selector)
 }
 
 export const defaultMarkerColors: MarkerColors = {
@@ -98,6 +99,7 @@ export const defaultMarkerColors: MarkerColors = {
   recurring: "#e1f5e1", // Light green
   dependency: "#fff4e6", // Light orange
   tag: "#ffe4cc", // Light orange
+  sprint: "#dbeafe", // Light blue
 };
 
 export interface DateTimeSettings {
@@ -402,6 +404,7 @@ export interface Sprint {
   id: string;
   name: string;
   goal?: string; // Sprint goal description
+  color?: string; // Optional - defaults to marker color if not set
   durationDays: number; // Sprint duration in days
   plannedStartDate?: string; // Planned start date (ISO date string)
   actualStartDate?: string; // Actual start date when sprint was started

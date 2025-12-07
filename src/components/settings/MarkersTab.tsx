@@ -28,6 +28,12 @@ const markerInfo = [
     description: "Default color for new priorities",
   },
   {
+    key: "sprint" as keyof MarkerColors,
+    symbol: "🏃",
+    label: "Sprint (Default)",
+    description: "Default color for new sprints",
+  },
+  {
     key: "dueDate" as keyof MarkerColors,
     symbol: "📅",
     label: "Due Date",
