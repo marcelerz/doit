@@ -44,6 +44,14 @@ const tabs = {
 
 type Tab = (typeof tabs)[keyof typeof tabs];
 
+// Tabs that depend on feature settings
+const featureDependentTabs: Record<string, keyof typeof import("@/types/settings").defaultFeatureSettings> = {
+  gantt: "ganttView",
+  kanban: "kanbanView",
+  sprints: "sprintsView",
+  calendar: "calendarView",
+};
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -74,6 +82,7 @@ export default function SettingsPage() {
     addCategory,
     updateCategory,
     deleteCategory,
+    updateFeatureSettings,
   } = useSettings();
 
   const { people, isLoaded: peopleLoaded } = usePeople();
@@ -150,7 +159,16 @@ export default function SettingsPage() {
     );
   }
 
-  const buttons = Object.entries(tabs).map(([label]) => {
+  // Filter out tabs for disabled features
+  const visibleTabs = Object.entries(tabs).filter(([, tabKey]) => {
+    const featureKey = featureDependentTabs[tabKey];
+    if (featureKey && settings.features) {
+      return settings.features[featureKey];
+    }
+    return true;
+  });
+
+  const buttons = visibleTabs.map(([label]) => {
     const tabKey = label as keyof typeof tabs;
     return (
       <button
@@ -233,7 +251,14 @@ export default function SettingsPage() {
             {(() => {
               switch (activeTab) {
                 case "general":
-                  return <GeneralTab general={settings.general} onUpdate={updateGeneralSettings} />;
+                  return (
+                    <GeneralTab
+                      general={settings.general}
+                      features={settings.features}
+                      onUpdate={updateGeneralSettings}
+                      onUpdateFeatures={updateFeatureSettings}
+                    />
+                  );
                 case "datetime":
                   return <DateTimeTab dateTime={settings.dateTime} onUpdate={updateDateTimeSettings} />;
                 case "workhours":

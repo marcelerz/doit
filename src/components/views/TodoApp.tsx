@@ -86,6 +86,9 @@ export function TodoApp() {
   } = useTodos();
   const { settings, addPriority, updateGantt, updateKanbanSettings } = useSettings();
 
+  // Feature settings with defaults
+  const features = settings.features;
+
   const {
     people,
     addPerson,
@@ -158,6 +161,21 @@ export function TodoApp() {
 
   // Search history state
   const [showSearchHistory, setShowSearchHistory] = useState(false);
+
+  // Redirect to list view if current view is disabled
+  useEffect(() => {
+    const viewFeatureMap: Record<string, boolean | undefined> = {
+      kanban: features?.kanbanView,
+      gantt: features?.ganttView,
+      calendar: features?.calendarView,
+      sprints: features?.sprintsView,
+      stats: features?.statsView,
+    };
+
+    if (activeView in viewFeatureMap && viewFeatureMap[activeView] === false) {
+      setActiveView("list");
+    }
+  }, [activeView, features]);
 
   // Derived state: show filters section only in list view
   const showFiltersSection = activeView === "list";
@@ -1165,13 +1183,23 @@ export function TodoApp() {
         return;
       }
 
-      // '1-8' - Switch view tabs
+      // '1-8' - Switch view tabs (respecting feature settings)
       if (e.key >= "1" && e.key <= "8" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
-        const views: ViewTab[] = ["list", "kanban", "gantt", "calendar", "people", "projects", "sprints", "stats"];
+        // Build enabled views list based on feature settings
+        const enabledViews: ViewTab[] = [
+          "list", // Always enabled
+          ...(features?.kanbanView ? ["kanban" as ViewTab] : []),
+          ...(features?.ganttView ? ["gantt" as ViewTab] : []),
+          ...(features?.calendarView ? ["calendar" as ViewTab] : []),
+          "people", // Always enabled
+          "projects", // Always enabled
+          ...(features?.sprintsView ? ["sprints" as ViewTab] : []),
+          ...(features?.statsView ? ["stats" as ViewTab] : []),
+        ];
         const index = parseInt(e.key) - 1;
-        if (index < views.length) {
-          setActiveView(views[index]);
+        if (index < enabledViews.length) {
+          setActiveView(enabledViews[index]);
         }
         return;
       }
@@ -1197,6 +1225,7 @@ export function TodoApp() {
     isAddProjectOverlayOpen,
     confirmDialog,
     isSelectionMode,
+    features,
   ]);
 
   const handleTokensChange = (tokens: TokenMatch[], fullText: string, plainText: string) => {
@@ -1939,8 +1968,8 @@ export function TodoApp() {
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-3xl sm:text-4xl font-bold text-zinc-900 dark:text-zinc-100">DoIt</h1>
             <div className="flex items-center gap-2">
-              {/* Focus Mode Button - only show if there are active todos */}
-              {todos.filter((t) => t.isActive).length > 0 && (
+              {/* Focus Mode Button - only show if feature enabled and there are active todos */}
+              {features?.focusMode && todos.filter((t) => t.isActive).length > 0 && (
                 <button
                   onClick={() => setIsFocusMode(true)}
                   className="px-2 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
@@ -2018,65 +2047,71 @@ export function TodoApp() {
                 <span className="hidden sm:inline">List</span>
               </div>
             </button>
-            <button
-              onClick={() => setActiveView("kanban")}
-              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
-                activeView === "kanban"
-                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-              }`}
-              title="Kanban view"
-            >
-              <div className="flex items-center gap-1 sm:gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
-                  />
-                </svg>
-                <span className="hidden sm:inline">Kanban</span>
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveView("gantt")}
-              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
-                activeView === "gantt"
-                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-              }`}
-              title="Gantt view"
-            >
-              <div className="flex items-center gap-1 sm:gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {/* Horizontal bars representing a Gantt chart timeline */}
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h10M4 12h16M4 18h12" />
-                </svg>
-                <span className="hidden sm:inline">Gantt</span>
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveView("calendar")}
-              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
-                activeView === "calendar"
-                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-              }`}
-              title="Calendar view"
-            >
-              <div className="flex items-center gap-1 sm:gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                <span className="hidden sm:inline">Calendar</span>
-              </div>
-            </button>
+            {features?.kanbanView && (
+              <button
+                onClick={() => setActiveView("kanban")}
+                className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                  activeView === "kanban"
+                    ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                    : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+                }`}
+                title="Kanban view"
+              >
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">Kanban</span>
+                </div>
+              </button>
+            )}
+            {features?.ganttView && (
+              <button
+                onClick={() => setActiveView("gantt")}
+                className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                  activeView === "gantt"
+                    ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                    : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+                }`}
+                title="Gantt view"
+              >
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {/* Horizontal bars representing a Gantt chart timeline */}
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h10M4 12h16M4 18h12" />
+                  </svg>
+                  <span className="hidden sm:inline">Gantt</span>
+                </div>
+              </button>
+            )}
+            {features?.calendarView && (
+              <button
+                onClick={() => setActiveView("calendar")}
+                className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                  activeView === "calendar"
+                    ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                    : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+                }`}
+                title="Calendar view"
+              >
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">Calendar</span>
+                </div>
+              </button>
+            )}
             <button
               onClick={() => setActiveView("people")}
               className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
@@ -2119,44 +2154,50 @@ export function TodoApp() {
                 <span className="hidden sm:inline">Projects</span>
               </div>
             </button>
-            <button
-              onClick={() => setActiveView("sprints")}
-              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
-                activeView === "sprints"
-                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-              }`}
-              title="Sprints view"
-            >
-              <div className="flex items-center gap-1 sm:gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <span className="hidden sm:inline">Sprints</span>
-                {runningSprint && <span className="hidden sm:inline w-2 h-2 rounded-full bg-green-500 animate-pulse" />}
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveView("stats")}
-              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
-                activeView === "stats"
-                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-              }`}
-              title="Stats view"
-            >
-              <div className="flex items-center gap-1 sm:gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-                <span className="hidden sm:inline">Stats</span>
-              </div>
-            </button>
+            {features?.sprintsView && (
+              <button
+                onClick={() => setActiveView("sprints")}
+                className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                  activeView === "sprints"
+                    ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                    : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+                }`}
+                title="Sprints view"
+              >
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span className="hidden sm:inline">Sprints</span>
+                  {runningSprint && (
+                    <span className="hidden sm:inline w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  )}
+                </div>
+              </button>
+            )}
+            {features?.statsView && (
+              <button
+                onClick={() => setActiveView("stats")}
+                className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                  activeView === "stats"
+                    ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                    : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+                }`}
+                title="Stats view"
+              >
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">Stats</span>
+                </div>
+              </button>
+            )}
           </div>
         </div>
 
@@ -2334,7 +2375,7 @@ export function TodoApp() {
               <div className="h-6 w-px bg-zinc-300 dark:bg-zinc-600 mx-1" />
 
               {/* Templates Button */}
-              {templates.length > 0 && (
+              {features?.templates && templates.length > 0 && (
                 <button
                   onClick={() => setShowTemplatesManager(true)}
                   className="p-2 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
@@ -2352,7 +2393,7 @@ export function TodoApp() {
               )}
 
               {/* Export Button */}
-              {todos.length > 0 && (
+              {features?.exports && todos.length > 0 && (
                 <div ref={exportMenuRef} className="relative">
                   <button
                     onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
@@ -2424,7 +2465,7 @@ export function TodoApp() {
               )}
 
               {/* Selection Mode Toggle */}
-              {todos.length > 0 && (
+              {features?.batchProcessing && todos.length > 0 && (
                 <button
                   onClick={toggleSelectionMode}
                   className={`p-2 rounded-lg transition-colors ${
@@ -2446,7 +2487,7 @@ export function TodoApp() {
               )}
 
               {/* Drag reorder button */}
-              {todos.length > 0 && (
+              {features?.reordering && todos.length > 0 && (
                 <button
                   onClick={toggleDragMode}
                   className={`p-2 rounded-lg transition-colors ${

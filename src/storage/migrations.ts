@@ -208,6 +208,10 @@ export function migrateSettings(loadedSettings: any): Settings {
       ...defaultSettings.autoAssign,
       ...autoAssign,
     },
+    features: {
+      ...defaultSettings.features,
+      ...(loadedSettings.features || {}),
+    },
   };
 }
 

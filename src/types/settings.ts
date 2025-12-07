@@ -569,6 +569,36 @@ export const defaultKanbanSettings: KanbanSettings = {
   cardDisplayFields: ["assignedPeople", "priority", "dueDate", "projects"],
 };
 
+// Feature Toggles - Allow users to simplify the interface by disabling features
+export interface FeatureSettings {
+  // Views
+  ganttView: boolean;
+  calendarView: boolean;
+  kanbanView: boolean;
+  sprintsView: boolean;
+  statsView: boolean;
+  // Features
+  templates: boolean;
+  batchProcessing: boolean;
+  reordering: boolean;
+  exports: boolean;
+  focusMode: boolean;
+}
+
+export const defaultFeatureSettings: FeatureSettings = {
+  // All features enabled by default
+  ganttView: true,
+  calendarView: true,
+  kanbanView: true,
+  sprintsView: true,
+  statsView: true,
+  templates: true,
+  batchProcessing: true,
+  reordering: true,
+  exports: true,
+  focusMode: true,
+};
+
 export interface Settings {
   // Priorities Tab
   priorities: Priority[];
@@ -596,6 +626,8 @@ export interface Settings {
   sprints: SprintSettings;
   // Categories Tab - Project categories for organizing work types
   categories: ProjectCategory[];
+  // Feature Toggles - Enable/disable features to simplify interface
+  features: FeatureSettings;
 }
 
 // Default project categories
@@ -637,4 +669,5 @@ export const defaultSettings: Settings = {
   kanban: defaultKanbanSettings,
   sprints: defaultSprintSettings,
   categories: defaultCategories,
+  features: defaultFeatureSettings,
 };

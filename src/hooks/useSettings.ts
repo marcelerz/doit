@@ -11,6 +11,7 @@ import {
   KanbanView,
   KanbanTransition,
   ProjectCategory,
+  FeatureSettings,
 } from "@/types/settings";
 import { migrateSettings } from "@/storage/migrations";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
@@ -422,6 +423,17 @@ export function useSettings() {
     }));
   };
 
+  // Feature settings methods
+  const updateFeatureSettings = (features: Partial<FeatureSettings>) => {
+    setSettings((prev) => ({
+      ...prev,
+      features: {
+        ...prev.features,
+        ...features,
+      },
+    }));
+  };
+
   return {
     settings,
     isLoaded,
@@ -460,5 +472,7 @@ export function useSettings() {
     deleteCategory,
     // Sprint methods
     updateSprintSettings,
+    // Feature methods
+    updateFeatureSettings,
   };
 }
