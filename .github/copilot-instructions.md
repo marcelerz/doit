@@ -67,6 +67,10 @@
 - [x] Add customizable time blocks with types and colors (meeting, focus, lunch, break, commute, personal)
 - [x] Add Kanban board view with workflow states, drag-and-drop, state transitions, and multiple views
 - [x] Add Sprint/Scrum feature with sprint planning, assignment, and Kanban filtering
+- [x] Add sprint as grouping option in list view
+- [x] Add sprint assignment to batch edit modal
+- [x] Add priority-colored checkmark outlines for todos
+- [x] Add distinct round selection checkboxes with black border for batch mode
 
 ## Project Details
 

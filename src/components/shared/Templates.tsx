@@ -12,32 +12,22 @@ interface TemplatesManagerProps {
   onClose: () => void;
 }
 
-export function TemplatesManager({
-  templates,
-  onApply,
-  onDelete,
-  onClose,
-}: TemplatesManagerProps) {
+export function TemplatesManager({ templates, onApply, onDelete, onClose }: TemplatesManagerProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredTemplates = templates.filter(
     (t) =>
       t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.text.toLowerCase().includes(searchQuery.toLowerCase())
+      t.text.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
     <Modal isOpen={true} onClose={onClose} maxWidth="lg">
       <div className="w-full max-w-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            Task Templates
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-          >
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Task Templates</h2>
+          <button onClick={onClose} className="p-1 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -62,9 +52,7 @@ export function TemplatesManager({
               <div>
                 <p className="text-2xl mb-2">📝</p>
                 <p>No templates yet</p>
-                <p className="text-sm mt-1">
-                  Create a template from any todo using the menu
-                </p>
+                <p className="text-sm mt-1">Create a template from any todo using the menu</p>
               </div>
             )}
           </div>
@@ -77,17 +65,11 @@ export function TemplatesManager({
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                      {template.name}
-                    </h3>
+                    <h3 className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{template.name}</h3>
                     {template.description && (
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
-                        {template.description}
-                      </p>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">{template.description}</p>
                     )}
-                    <p className="text-sm text-zinc-600 dark:text-zinc-300 mt-1 line-clamp-2">
-                      {template.plainText}
-                    </p>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-300 mt-1 line-clamp-2">{template.plainText}</p>
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       {(template.metadata.assignedPeople?.length ?? 0) > 0 && (
                         <Badge variant="blue" size="sm">
@@ -132,7 +114,12 @@ export function TemplatesManager({
                       title="Delete template"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -151,7 +138,21 @@ interface CreateTemplateModalProps {
   initialPlainText: string;
   initialMetadata: TaskTemplate["metadata"];
   subtasks?: TaskTemplate["subtasks"];
-  onSave: (name: string, description?: string) => void;
+  onSave: (
+    name: string,
+    description: string | undefined,
+    selectedFields: {
+      text: boolean;
+      assignedPeople: boolean;
+      sourcePeople: boolean;
+      projects: boolean;
+      priority: boolean;
+      tags: boolean;
+      dueDate: boolean;
+      duration: boolean;
+      subtasks: boolean;
+    },
+  ) => void;
   onClose: () => void;
 }
 
@@ -165,26 +166,37 @@ export function CreateTemplateModal({
 }: CreateTemplateModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [selectedFields, setSelectedFields] = useState({
+    text: true,
+    assignedPeople: (initialMetadata.assignedPeople?.length ?? 0) > 0,
+    sourcePeople: (initialMetadata.sourcePeople?.length ?? 0) > 0,
+    projects: (initialMetadata.projects?.length ?? 0) > 0,
+    priority: !!initialMetadata.priority,
+    tags: (initialMetadata.tags?.length ?? 0) > 0,
+    dueDate: !!initialMetadata.dueDate,
+    duration: !!initialMetadata.duration,
+    subtasks: (subtasks?.length ?? 0) > 0,
+  });
 
   const handleSave = () => {
     if (name.trim()) {
-      onSave(name.trim(), description.trim() || undefined);
+      onSave(name.trim(), description.trim() || undefined, selectedFields);
       onClose();
     }
   };
 
+  const toggleField = (field: keyof typeof selectedFields) => {
+    setSelectedFields((prev) => ({ ...prev, [field]: !prev[field] }));
+  };
+
   return (
     <Modal isOpen={true} onClose={onClose} maxWidth="md">
-      <div className="w-full max-w-md p-6">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-          Create Template
-        </h2>
+      <div className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Create Template</h2>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              Template Name *
-            </label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Template Name *</label>
             <input
               type="text"
               value={name}
@@ -209,49 +221,159 @@ export function CreateTemplateModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              Task Preview
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+              Select Fields to Include
             </label>
-            <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-sm text-zinc-700 dark:text-zinc-300">
-              {initialPlainText || <span className="text-zinc-400">Empty task</span>}
-            </div>
-          </div>
+            <div className="space-y-2 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+              {/* Text field - always included, shown for reference */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedFields.text}
+                  onChange={() => toggleField("text")}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">Task Text</span>
+                <span className="text-xs text-zinc-500 truncate flex-1">{initialPlainText || "(empty)"}</span>
+              </label>
 
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              Included Metadata
-            </label>
-            <div className="flex flex-wrap gap-2">
+              {/* Assigned People */}
               {(initialMetadata.assignedPeople?.length ?? 0) > 0 && (
-                <Badge variant="blue">
-                  {initialMetadata.assignedPeople!.length} assigned
-                </Badge>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedFields.assignedPeople}
+                    onChange={() => toggleField("assignedPeople")}
+                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600"
+                  />
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Assigned People</span>
+                  <Badge variant="blue" size="sm">
+                    @{initialMetadata.assignedPeople!.join(", @")}
+                  </Badge>
+                </label>
               )}
+
+              {/* Source People */}
+              {(initialMetadata.sourcePeople?.length ?? 0) > 0 && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedFields.sourcePeople}
+                    onChange={() => toggleField("sourcePeople")}
+                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600"
+                  />
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Source People</span>
+                  <Badge variant="amber" size="sm">
+                    ${initialMetadata.sourcePeople!.join(", $")}
+                  </Badge>
+                </label>
+              )}
+
+              {/* Projects */}
               {(initialMetadata.projects?.length ?? 0) > 0 && (
-                <Badge variant="purple">
-                  {initialMetadata.projects!.length} project{initialMetadata.projects!.length !== 1 ? "s" : ""}
-                </Badge>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedFields.projects}
+                    onChange={() => toggleField("projects")}
+                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600"
+                  />
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Projects</span>
+                  <Badge variant="purple" size="sm">
+                    %{initialMetadata.projects!.join(", %")}
+                  </Badge>
+                </label>
               )}
-              {(initialMetadata.tags?.length ?? 0) > 0 && (
-                <Badge variant="zinc">
-                  {initialMetadata.tags!.length} tag{initialMetadata.tags!.length !== 1 ? "s" : ""}
-                </Badge>
-              )}
+
+              {/* Priority */}
               {initialMetadata.priority && (
-                <Badge variant="red">{initialMetadata.priority}</Badge>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedFields.priority}
+                    onChange={() => toggleField("priority")}
+                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600"
+                  />
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Priority</span>
+                  <Badge variant="red" size="sm">
+                    {initialMetadata.priority}
+                  </Badge>
+                </label>
               )}
+
+              {/* Tags */}
+              {(initialMetadata.tags?.length ?? 0) > 0 && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedFields.tags}
+                    onChange={() => toggleField("tags")}
+                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600"
+                  />
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Tags</span>
+                  <Badge variant="zinc" size="sm">
+                    #{initialMetadata.tags!.join(", #")}
+                  </Badge>
+                </label>
+              )}
+
+              {/* Due Date */}
+              {initialMetadata.dueDate && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedFields.dueDate}
+                    onChange={() => toggleField("dueDate")}
+                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600"
+                  />
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Due Date</span>
+                  <Badge variant="green" size="sm">
+                    {initialMetadata.dueDate}
+                  </Badge>
+                </label>
+              )}
+
+              {/* Duration */}
+              {initialMetadata.duration && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedFields.duration}
+                    onChange={() => toggleField("duration")}
+                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600"
+                  />
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Duration</span>
+                  <Badge variant="blue" size="sm">
+                    {initialMetadata.duration}
+                  </Badge>
+                </label>
+              )}
+
+              {/* Subtasks */}
               {(subtasks?.length ?? 0) > 0 && (
-                <Badge variant="green">
-                  {subtasks!.length} subtask{subtasks!.length !== 1 ? "s" : ""}
-                </Badge>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedFields.subtasks}
+                    onChange={() => toggleField("subtasks")}
+                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600"
+                  />
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Subtasks</span>
+                  <Badge variant="green" size="sm">
+                    {subtasks!.length} subtask{subtasks!.length !== 1 ? "s" : ""}
+                  </Badge>
+                </label>
               )}
+
+              {/* No metadata message */}
               {!initialMetadata.assignedPeople?.length &&
+                !initialMetadata.sourcePeople?.length &&
                 !initialMetadata.projects?.length &&
                 !initialMetadata.tags?.length &&
                 !initialMetadata.priority &&
-                !(subtasks?.length) && (
-                  <span className="text-sm text-zinc-400">No metadata</span>
-                )}
+                !initialMetadata.dueDate &&
+                !initialMetadata.duration &&
+                !subtasks?.length && <p className="text-sm text-zinc-400 italic">No additional metadata to include</p>}
             </div>
           </div>
 
@@ -282,11 +404,7 @@ interface TemplateDropdownProps {
   onManage: () => void;
 }
 
-export function TemplateDropdown({
-  templates,
-  onSelect,
-  onManage,
-}: TemplateDropdownProps) {
+export function TemplateDropdown({ templates, onSelect, onManage }: TemplateDropdownProps) {
   const recentTemplates = templates.slice(0, 5);
 
   return (
@@ -300,13 +418,9 @@ export function TemplateDropdown({
                   onClick={() => onSelect(template)}
                   className="w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                 >
-                  <span className="font-medium text-zinc-900 dark:text-zinc-100 text-sm">
-                    {template.name}
-                  </span>
+                  <span className="font-medium text-zinc-900 dark:text-zinc-100 text-sm">{template.name}</span>
                   {template.description && (
-                    <span className="block text-xs text-zinc-500 truncate">
-                      {template.description}
-                    </span>
+                    <span className="block text-xs text-zinc-500 truncate">{template.description}</span>
                   )}
                 </button>
               </li>
@@ -322,9 +436,7 @@ export function TemplateDropdown({
           </div>
         </>
       ) : (
-        <div className="px-3 py-4 text-center text-sm text-zinc-500">
-          No templates yet
-        </div>
+        <div className="px-3 py-4 text-center text-sm text-zinc-500">No templates yet</div>
       )}
     </div>
   );

@@ -431,28 +431,57 @@ export function TodoItem({
           )}
           {/* Selection checkbox shown in selection mode */}
           {isSelectionMode && (
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={(e) => {
+            <div
+              onClick={(e) => {
                 e.stopPropagation();
-                onSelectionChange?.(todo.id, e.target.checked);
+                onSelectionChange?.(todo.id, !isSelected);
               }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-5 h-5 mt-0.5 rounded border-blue-400 dark:border-blue-500 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer flex-shrink-0"
+              className={`w-5 h-5 mt-0.5 rounded-full border-2 border-black dark:border-white cursor-pointer flex-shrink-0 flex items-center justify-center transition-colors ${
+                isSelected ? "bg-blue-600 border-blue-600 dark:border-blue-600" : "bg-white dark:bg-zinc-800"
+              }`}
+              role="checkbox"
+              aria-checked={isSelected}
               aria-label={`Select task: ${todo.plainText}`}
-            />
+            >
+              {isSelected && (
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
           )}
           {/* Completion checkbox shown when not in selection mode */}
-          {!isSelectionMode && (
-            <input
-              type="checkbox"
-              checked={todo.isCompleted || todo.isArchived}
-              onChange={() => onToggle(todo.id)}
-              onClick={(e) => e.stopPropagation()}
-              className="w-5 h-5 mt-0.5 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer flex-shrink-0"
-            />
-          )}
+          {!isSelectionMode &&
+            (() => {
+              const priorityColor = todo.metadata.priority
+                ? findPriorityColor(todo.metadata.priority, availablePriorities, markerColors.priority)
+                : "#a1a1aa"; // zinc-400 fallback
+              const isChecked = todo.isCompleted || todo.isArchived;
+              return (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggle(todo.id);
+                  }}
+                  className="w-5 h-5 mt-0.5 rounded cursor-pointer flex-shrink-0 flex items-center justify-center transition-all"
+                  style={{
+                    borderWidth: "2px",
+                    borderStyle: "solid",
+                    borderColor: priorityColor,
+                    backgroundColor: isChecked ? priorityColor : undefined,
+                    boxShadow: isChecked ? undefined : `0 0 6px 1px ${priorityColor}40, 0 0 2px 0px ${priorityColor}`,
+                  }}
+                  role="checkbox"
+                  aria-checked={isChecked}
+                >
+                  {isChecked && (
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+              );
+            })()}
           <div className="flex-1 min-w-0 cursor-pointer" onClick={onToggleExpand}>
             <div className="text-base">
               <MarkedText

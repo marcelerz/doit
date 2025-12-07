@@ -151,6 +151,10 @@ export function TodoApp() {
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
   const [templateTodoId, setTemplateTodoId] = useState<string | null>(null);
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+
+  // Get the active template object
+  const activeTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) : null;
 
   // Search history state
   const [showSearchHistory, setShowSearchHistory] = useState(false);
@@ -280,25 +284,40 @@ export function TodoApp() {
     setShowCreateTemplate(true);
   };
 
-  const handleSaveTemplate = (name: string, description?: string) => {
+  const handleSaveTemplate = (
+    name: string,
+    description: string | undefined,
+    selectedFields: {
+      text: boolean;
+      assignedPeople: boolean;
+      sourcePeople: boolean;
+      projects: boolean;
+      priority: boolean;
+      tags: boolean;
+      dueDate: boolean;
+      duration: boolean;
+      subtasks: boolean;
+    },
+  ) => {
     const todo = todos.find((t) => t.id === templateTodoId);
     if (todo) {
       addTemplate({
         name,
         description,
-        text: todo.text,
-        plainText: todo.plainText,
+        text: selectedFields.text ? todo.text : "",
+        plainText: selectedFields.text ? todo.plainText : "",
         metadata: {
-          assignedPeople: [...todo.metadata.assignedPeople],
-          sourcePeople: [...todo.metadata.sourcePeople],
-          mentionedPeople: [...todo.metadata.mentionedPeople],
-          projects: [...todo.metadata.projects],
+          assignedPeople: selectedFields.assignedPeople ? [...todo.metadata.assignedPeople] : [],
+          sourcePeople: selectedFields.sourcePeople ? [...todo.metadata.sourcePeople] : [],
+          mentionedPeople: [], // Don't copy mentioned people - they're auto-detected
+          projects: selectedFields.projects ? [...todo.metadata.projects] : [],
           dependencies: [], // Don't copy dependencies
-          priority: todo.metadata.priority,
-          tags: [...todo.metadata.tags],
-          // Don't copy dueDate, duration, recurring as those are time-specific
+          priority: selectedFields.priority ? todo.metadata.priority : undefined,
+          tags: selectedFields.tags ? [...todo.metadata.tags] : [],
+          dueDate: selectedFields.dueDate ? todo.metadata.dueDate : undefined,
+          duration: selectedFields.duration ? todo.metadata.duration : undefined,
         },
-        subtasks: todo.subtasks?.map((s) => s.text),
+        subtasks: selectedFields.subtasks ? todo.subtasks?.map((s) => s.text) : undefined,
       });
     }
     setTemplateTodoId(null);
@@ -311,7 +330,16 @@ export function TodoApp() {
     if (smartInputRef.current) {
       smartInputRef.current.setValue(template.text);
     }
+    // Set this as the active template
+    setActiveTemplateId(template.id);
     setShowTemplateDropdown(false);
+  };
+
+  const clearActiveTemplate = () => {
+    setActiveTemplateId(null);
+    if (smartInputRef.current) {
+      smartInputRef.current.setValue("");
+    }
   };
 
   // Collapsible section states
@@ -530,6 +558,14 @@ export function TodoApp() {
     project: string;
     setAssignee: boolean;
     assignee: string;
+    setSprint: boolean;
+    sprint: string;
+    setSource: boolean;
+    source: string;
+    setDueDate: boolean;
+    dueDate: string;
+    setTags: boolean;
+    tags: string;
   }>({
     setPriority: false,
     priority: "",
@@ -537,6 +573,14 @@ export function TodoApp() {
     project: "",
     setAssignee: false,
     assignee: "",
+    setSprint: false,
+    sprint: "",
+    setSource: false,
+    source: "",
+    setDueDate: false,
+    dueDate: "",
+    setTags: false,
+    tags: "",
   });
 
   const openBatchEdit = useCallback(() => {
@@ -547,6 +591,14 @@ export function TodoApp() {
       project: "",
       setAssignee: false,
       assignee: "",
+      setSprint: false,
+      sprint: "",
+      setSource: false,
+      source: "",
+      setDueDate: false,
+      dueDate: "",
+      setTags: false,
+      tags: "",
     });
     setIsBatchEditOpen(true);
   }, []);
@@ -580,6 +632,41 @@ export function TodoApp() {
         } else {
           // Clear assignees if empty
           newMetadata.assignedPeople = [];
+        }
+      }
+      if (batchEditData.setSprint) {
+        // Set or clear sprint
+        newMetadata.sprint = batchEditData.sprint || undefined;
+      }
+      if (batchEditData.setSource) {
+        if (batchEditData.source) {
+          // Add source if not already present
+          if (!newMetadata.sourcePeople.includes(batchEditData.source)) {
+            newMetadata.sourcePeople = [...newMetadata.sourcePeople, batchEditData.source];
+          }
+        } else {
+          // Clear source people if empty
+          newMetadata.sourcePeople = [];
+        }
+      }
+      if (batchEditData.setDueDate) {
+        newMetadata.dueDate = batchEditData.dueDate || undefined;
+      }
+      if (batchEditData.setTags) {
+        if (batchEditData.tags) {
+          // Add tags (split by comma)
+          const newTags = batchEditData.tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean);
+          newTags.forEach((tag) => {
+            if (!newMetadata.tags.includes(tag)) {
+              newMetadata.tags = [...newMetadata.tags, tag];
+            }
+          });
+        } else {
+          // Clear tags if empty
+          newMetadata.tags = [];
         }
       }
 
@@ -697,7 +784,7 @@ export function TodoApp() {
     | "timeSpent"
     | "created";
   type SortDirection = "asc" | "desc";
-  type GroupBy = "none" | "dueDate" | "priority" | "project" | "category" | "assigned";
+  type GroupBy = "none" | "dueDate" | "priority" | "project" | "category" | "assigned" | "sprint";
 
   interface ViewPreset {
     name: string;
@@ -1158,6 +1245,9 @@ export function TodoApp() {
     setCurrentTokens([]);
     setCurrentFullText("");
     setCurrentPlainText("");
+
+    // Clear active template after creating todo
+    setActiveTemplateId(null);
   };
 
   const markers = {
@@ -1719,6 +1809,49 @@ export function TodoApp() {
       return sortedGroups;
     }
 
+    if (groupBy === "sprint") {
+      const grouped: Record<string, typeof todos> = {};
+
+      todoList.forEach((todo) => {
+        let groupKey = "Backlog";
+        if (todo.metadata.sprint) {
+          const sprint = sprints.find((s) => s.id === todo.metadata.sprint);
+          groupKey = sprint?.name || "Unknown Sprint";
+        }
+        if (!grouped[groupKey]) {
+          grouped[groupKey] = [];
+        }
+        grouped[groupKey].push(todo);
+      });
+
+      // Sort groups: Active sprint first, then by start date, then "Backlog" at end
+      const sortedKeys = Object.keys(grouped).sort((a, b) => {
+        if (a === "Backlog") return 1;
+        if (b === "Backlog") return -1;
+        if (a === "Unknown Sprint") return 1;
+        if (b === "Unknown Sprint") return -1;
+
+        const sprintA = sprints.find((s) => s.name === a);
+        const sprintB = sprints.find((s) => s.name === b);
+
+        // Active sprint first
+        if (sprintA?.status === "active" && sprintB?.status !== "active") return -1;
+        if (sprintB?.status === "active" && sprintA?.status !== "active") return 1;
+
+        // Then by planned start date (most recent first)
+        const dateA = sprintA?.raw.plannedStartDate ? new Date(sprintA.raw.plannedStartDate).getTime() : 0;
+        const dateB = sprintB?.raw.plannedStartDate ? new Date(sprintB.raw.plannedStartDate).getTime() : 0;
+        return dateB - dateA;
+      });
+
+      const sortedGroups: Record<string, typeof todos> = {};
+      sortedKeys.forEach((key) => {
+        sortedGroups[key] = grouped[key];
+      });
+
+      return sortedGroups;
+    }
+
     return { "": todoList };
   };
 
@@ -2140,6 +2273,7 @@ export function TodoApp() {
                   <option value="project">Project</option>
                   <option value="category">Category</option>
                   <option value="assigned">Assigned</option>
+                  <option value="sprint">Sprint</option>
                 </select>
               </div>
 
@@ -3524,6 +3658,96 @@ export function TodoApp() {
                   </button>
                 </div>
 
+                {/* Template Selector */}
+                {templates.length > 0 && (
+                  <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Template:</span>
+                        {activeTemplate ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                              {activeTemplate.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={clearActiveTemplate}
+                              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                              title="Clear template"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-zinc-400">None selected</span>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
+                          className="px-3 py-1.5 text-sm bg-white dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-600 transition-colors flex items-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          Use Template
+                        </button>
+                        {showTemplateDropdown && (
+                          <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg z-50">
+                            <ul className="py-1 max-h-64 overflow-y-auto">
+                              {templates.map((template) => (
+                                <li key={template.id}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleApplyTemplate(template)}
+                                    className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors ${
+                                      activeTemplateId === template.id ? "bg-blue-50 dark:bg-blue-900/20" : ""
+                                    }`}
+                                  >
+                                    <span className="font-medium text-zinc-900 dark:text-zinc-100 text-sm">
+                                      {template.name}
+                                    </span>
+                                    {template.description && (
+                                      <span className="block text-xs text-zinc-500 truncate">
+                                        {template.description}
+                                      </span>
+                                    )}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                            <div className="border-t border-zinc-200 dark:border-zinc-700">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowTemplateDropdown(false);
+                                  setShowTemplatesManager(true);
+                                }}
+                                className="w-full px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-left"
+                              >
+                                Manage templates...
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Smart Input Markers Legend */}
                 <MarkerReference />
 
@@ -3780,7 +4004,7 @@ export function TodoApp() {
       {isBatchEditOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsBatchEditOpen(false)} />
-          <div className="relative bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md p-6 space-y-6">
+          <div className="relative bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md p-6 space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 Edit {selectedTodoIds.size} Task{selectedTodoIds.size === 1 ? "" : "s"}
@@ -3880,6 +4104,105 @@ export function TodoApp() {
               )}
             </div>
 
+            {/* Sprint Field */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={batchEditData.setSprint}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setSprint: e.target.checked }))}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Set Sprint</span>
+              </label>
+              {batchEditData.setSprint && (
+                <select
+                  value={batchEditData.sprint}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, sprint: e.target.value }))}
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">No Sprint (Backlog)</option>
+                  {sprints
+                    .filter((s) => s.isActive && (s.status === "planning" || s.status === "active"))
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} {s.status === "active" ? "🏃" : ""}
+                      </option>
+                    ))}
+                </select>
+              )}
+            </div>
+
+            {/* Source Field */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={batchEditData.setSource}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setSource: e.target.checked }))}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Add Source</span>
+              </label>
+              {batchEditData.setSource && (
+                <select
+                  value={batchEditData.source}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, source: e.target.value }))}
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Clear All Sources</option>
+                  {sortedPeople.map((p) => (
+                    <option key={p.id} value={p.name}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Due Date Field */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={batchEditData.setDueDate}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setDueDate: e.target.checked }))}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Set Due Date</span>
+              </label>
+              {batchEditData.setDueDate && (
+                <input
+                  type="date"
+                  value={batchEditData.dueDate}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, dueDate: e.target.value }))}
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+            </div>
+
+            {/* Tags Field */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={batchEditData.setTags}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setTags: e.target.checked }))}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Add Tags</span>
+              </label>
+              {batchEditData.setTags && (
+                <input
+                  type="text"
+                  value={batchEditData.tags}
+                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, tags: e.target.value }))}
+                  placeholder="tag1, tag2, tag3 (comma-separated)"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+            </div>
+
             {/* Action Buttons */}
             <div className="flex justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
               <button
@@ -3890,7 +4213,15 @@ export function TodoApp() {
               </button>
               <button
                 onClick={applyBatchEdit}
-                disabled={!batchEditData.setPriority && !batchEditData.setProject && !batchEditData.setAssignee}
+                disabled={
+                  !batchEditData.setPriority &&
+                  !batchEditData.setProject &&
+                  !batchEditData.setAssignee &&
+                  !batchEditData.setSprint &&
+                  !batchEditData.setSource &&
+                  !batchEditData.setDueDate &&
+                  !batchEditData.setTags
+                }
                 className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
               >
                 Apply Changes
@@ -3962,6 +4293,8 @@ export function TodoApp() {
                 dependencies: [],
                 priority: todo.metadata.priority,
                 tags: [...todo.metadata.tags],
+                dueDate: todo.metadata.dueDate,
+                duration: todo.metadata.duration,
               }}
               subtasks={todo.subtasks?.map((s) => s.text)}
               onSave={handleSaveTemplate}
