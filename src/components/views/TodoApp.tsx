@@ -3018,10 +3018,10 @@ export function TodoApp() {
             onToggleSubtask={toggleSubtask}
             onEditSubtask={editSubtask}
             onDeleteSubtask={deleteSubtask}
-            onStartTimeTracking={startTimeTracking}
-            onStopTimeTracking={stopTimeTracking}
-            onAddManualTimeEntry={addManualTimeEntry}
-            onDeleteTimeEntry={deleteTimeEntry}
+            onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
+            onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
+            onAddManualTimeEntry={settings.features.timeTracking ? addManualTimeEntry : undefined}
+            onDeleteTimeEntry={settings.features.timeTracking ? deleteTimeEntry : undefined}
             onCreateTemplate={handleCreateTemplate}
           />
         )}
@@ -3052,10 +3052,10 @@ export function TodoApp() {
             onToggleSubtask={toggleSubtask}
             onEditSubtask={editSubtask}
             onDeleteSubtask={deleteSubtask}
-            onStartTimeTracking={startTimeTracking}
-            onStopTimeTracking={stopTimeTracking}
-            onAddManualTimeEntry={addManualTimeEntry}
-            onDeleteTimeEntry={deleteTimeEntry}
+            onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
+            onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
+            onAddManualTimeEntry={settings.features.timeTracking ? addManualTimeEntry : undefined}
+            onDeleteTimeEntry={settings.features.timeTracking ? deleteTimeEntry : undefined}
             onCreateTemplate={handleCreateTemplate}
             sprints={sprints.map((s) => s.raw)}
             runningSprint={runningSprint?.raw}
@@ -3086,10 +3086,10 @@ export function TodoApp() {
             onToggleSubtask={toggleSubtask}
             onEditSubtask={editSubtask}
             onDeleteSubtask={deleteSubtask}
-            onStartTimeTracking={startTimeTracking}
-            onStopTimeTracking={stopTimeTracking}
-            onAddManualTimeEntry={addManualTimeEntry}
-            onDeleteTimeEntry={deleteTimeEntry}
+            onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
+            onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
+            onAddManualTimeEntry={settings.features.timeTracking ? addManualTimeEntry : undefined}
+            onDeleteTimeEntry={settings.features.timeTracking ? deleteTimeEntry : undefined}
             onCreateTemplate={handleCreateTemplate}
             onDuplicate={duplicateTodo}
           />
@@ -3946,10 +3946,10 @@ export function TodoApp() {
                     onToggleSubtask={toggleSubtask}
                     onEditSubtask={editSubtask}
                     onDeleteSubtask={deleteSubtask}
-                    onStartTimeTracking={startTimeTracking}
-                    onStopTimeTracking={stopTimeTracking}
-                    onAddManualTimeEntry={addManualTimeEntry}
-                    onDeleteTimeEntry={deleteTimeEntry}
+                    onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
+                    onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
+                    onAddManualTimeEntry={settings.features.timeTracking ? addManualTimeEntry : undefined}
+                    onDeleteTimeEntry={settings.features.timeTracking ? deleteTimeEntry : undefined}
                     onCreateTemplate={handleCreateTemplate}
                     sprints={sprints.map((s) => s.raw)}
                     runningSprint={runningSprint?.raw}

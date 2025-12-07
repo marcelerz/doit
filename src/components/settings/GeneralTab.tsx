@@ -387,6 +387,19 @@ export function GeneralTab({
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">Distraction-free task view</p>
                   </div>
                 </label>
+
+                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={features.timeTracking}
+                    onChange={(e) => onUpdateFeatures({ timeTracking: e.target.checked })}
+                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Time Tracking</span>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Track time spent on tasks</p>
+                  </div>
+                </label>
               </div>
             </div>
           </div>

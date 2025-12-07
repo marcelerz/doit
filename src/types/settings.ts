@@ -586,6 +586,7 @@ export interface FeatureSettings {
   reordering: boolean;
   exports: boolean;
   focusMode: boolean;
+  timeTracking: boolean;
 }
 
 export const defaultFeatureSettings: FeatureSettings = {
@@ -600,6 +601,7 @@ export const defaultFeatureSettings: FeatureSettings = {
   reordering: true,
   exports: true,
   focusMode: true,
+  timeTracking: true,
 };
 
 export interface Settings {

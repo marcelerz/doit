@@ -27,7 +27,6 @@ import { ImportTab } from "@/components/settings/ImportTab";
 const tabGroups = [
   {
     name: "General",
-    icon: "⚙️",
     tabs: [
       { key: "general", label: "General", icon: "🔧" },
       { key: "notifications", label: "Notifications", icon: "🔔" },
@@ -35,7 +34,6 @@ const tabGroups = [
   },
   {
     name: "Time & Scheduling",
-    icon: "🕐",
     tabs: [
       { key: "datetime", label: "Date/Time", icon: "📅" },
       { key: "workhours", label: "Work Hours", icon: "⏰" },
@@ -43,7 +41,6 @@ const tabGroups = [
   },
   {
     name: "Views",
-    icon: "👁️",
     tabs: [
       { key: "gantt", label: "Gantt", icon: "📊", feature: "ganttView" },
       { key: "kanban", label: "Kanban", icon: "📋", feature: "kanbanView" },
@@ -53,7 +50,6 @@ const tabGroups = [
   },
   {
     name: "Organization",
-    icon: "📁",
     tabs: [
       { key: "categories", label: "Categories", icon: "🏷️" },
       { key: "priorities", label: "Priorities", icon: "⚡" },
@@ -62,7 +58,6 @@ const tabGroups = [
   },
   {
     name: "Appearance",
-    icon: "🎨",
     tabs: [
       { key: "markers", label: "Markers", icon: "🖍️" },
       { key: "links", label: "Links", icon: "🔗" },
@@ -70,7 +65,6 @@ const tabGroups = [
   },
   {
     name: "Data",
-    icon: "💾",
     tabs: [
       { key: "backup", label: "Backup", icon: "📦" },
       { key: "import", label: "Import", icon: "📥" },
@@ -155,7 +149,7 @@ export default function SettingsPage() {
     for (const group of tabGroups) {
       for (const tab of group.tabs) {
         if (tab.key === activeTab) {
-          return `${tab.icon} ${tab.label}`;
+          return `${tab.label}`;
         }
       }
     }
@@ -176,7 +170,7 @@ export default function SettingsPage() {
         return (
           <div key={group.name}>
             <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-3">
-              {group.icon} {group.name}
+              {group.name}
             </div>
             <div className="space-y-1">
               {visibleTabs.map((tab) => (
@@ -189,7 +183,6 @@ export default function SettingsPage() {
                       : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
-                  <span>{tab.icon}</span>
                   <span>{tab.label}</span>
                 </button>
               ))}
