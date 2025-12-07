@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { LinkPattern } from "@/types/settings";
 import { IconButton } from "@/components/shared/IconButton";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface LinksTabProps {
   linkPatterns: LinkPattern[];
@@ -63,7 +64,10 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Link Patterns</h2>
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+          <span>Link Patterns</span>
+          <InfoTooltip content={tooltipContent.linkPatterns} />
+        </h2>
         {!isAdding && (
           <button
             onClick={() => setIsAdding(true)}

@@ -4,6 +4,7 @@ import { WorkHoursSettings, DaySchedule, BreakPeriod, DEFAULT_BLOCK_TYPES, TimeB
 import { useState } from "react";
 import { getTextColor } from "@/utils/colors";
 import { IconButton } from "@/components/shared/IconButton";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface WorkHoursTabProps {
   workHours: WorkHoursSettings;
@@ -151,7 +152,10 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Time Blocks</label>
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                  <span>Time Blocks</span>
+                  <InfoTooltip content={tooltipContent.timeBlocks} size="sm" />
+                </label>
                 <button
                   onClick={() => addBreak(type)}
                   className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
@@ -285,7 +289,10 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Work Hours Configuration</h3>
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4 flex items-center gap-2">
+          <span>Work Hours Configuration</span>
+          <InfoTooltip content={tooltipContent.workHours} />
+        </h3>
         <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
           Configure your daily work schedule. These hours are used in the Gantt view for task planning.
         </p>

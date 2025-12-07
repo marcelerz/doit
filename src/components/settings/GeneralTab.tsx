@@ -1,6 +1,7 @@
 "use client";
 
 import { GeneralSettings, ThemeMode, FeatureSettings, defaultFeatureSettings } from "@/types/settings";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface GeneralTabProps {
   general: GeneralSettings;
@@ -128,7 +129,10 @@ export function GeneralTab({
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Archive Completed Tasks</h3>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
+                <span>Archive Completed Tasks</span>
+                <InfoTooltip content={tooltipContent.archiveDays} />
+              </h3>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
                 Automatically move completed tasks to the archived section after a specified number of days. Set to 0 to
                 archive immediately upon completion.
@@ -152,7 +156,10 @@ export function GeneralTab({
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div className="flex-1">
-              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Auto-Delete Tasks</h3>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
+                <span>Auto-Delete Tasks</span>
+                <InfoTooltip content={tooltipContent.autoDelete} />
+              </h3>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
                 Automatically delete completed and archived tasks after a specified number of days. This is useful for
                 keeping your todo list clean and removing old tasks you no longer need.

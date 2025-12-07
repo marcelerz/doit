@@ -1,6 +1,7 @@
 "use client";
 
 import { SprintSettings } from "@/types/settings";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface SprintsTabProps {
   sprints: SprintSettings;
@@ -11,7 +12,10 @@ export function SprintsTab({ sprints, onUpdate }: SprintsTabProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Sprint Settings</h2>
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+          <span>Sprint Settings</span>
+          <InfoTooltip content={tooltipContent.sprints} />
+        </h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
           Configure default settings for sprints. Manage individual sprints in the Sprints tab on the main view.
         </p>

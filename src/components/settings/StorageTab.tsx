@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface StorageItem {
   key: string;
@@ -188,7 +189,10 @@ export function StorageTab() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Storage</h2>
+          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+            <span>Storage</span>
+            <InfoTooltip content={tooltipContent.storage} />
+          </h2>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
             Using{" "}
             <span className="font-medium text-zinc-900 dark:text-zinc-100">

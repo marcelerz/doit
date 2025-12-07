@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ProjectCategory } from "@/types/settings";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface CategoriesTabProps {
   categories: ProjectCategory[];
@@ -53,7 +54,10 @@ export function CategoriesTab({ categories, onAdd, onUpdate, onDelete }: Categor
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Project Categories</h2>
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+          <span>Project Categories</span>
+          <InfoTooltip content={tooltipContent.categories} />
+        </h2>
         {!isAdding && (
           <button
             onClick={() => setIsAdding(true)}

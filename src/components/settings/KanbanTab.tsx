@@ -11,6 +11,7 @@ import {
 } from "@/types/settings";
 import { useState } from "react";
 import { IconButton } from "@/components/shared/IconButton";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface KanbanTabProps {
   kanban: KanbanSettings;
@@ -193,7 +194,10 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Kanban Board Settings</h3>
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+            <span>Kanban Board Settings</span>
+            <InfoTooltip content={tooltipContent.kanbanStates} />
+          </h3>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
             Configure workflow states, transitions, and views for your Kanban board.
           </p>

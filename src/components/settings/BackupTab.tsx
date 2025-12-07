@@ -17,6 +17,7 @@ import {
 } from "@/storage/backup";
 import { Notification, ConfirmDialog, type NotificationType } from "@/components/shared/Notification";
 import { IconButton } from "@/components/shared/IconButton";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface BackupTabProps {
   onRestore?: () => void; // Callback to refresh data after restore
@@ -203,7 +204,10 @@ export function BackupTab({ onRestore }: BackupTabProps) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Backup & Restore</h2>
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+          <span>Backup & Restore</span>
+          <InfoTooltip content={tooltipContent.backup} />
+        </h2>
       </div>
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">

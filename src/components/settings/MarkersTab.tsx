@@ -1,6 +1,7 @@
 "use client";
 
 import { MarkerColors } from "@/types/settings";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface MarkersTabProps {
   markerColors: MarkerColors;
@@ -66,7 +67,10 @@ export function MarkersTab({ markerColors, onUpdate }: MarkersTabProps) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Marker Colors</h2>
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+          <span>Marker Colors</span>
+          <InfoTooltip content={tooltipContent.markers} />
+        </h2>
       </div>
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">

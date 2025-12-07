@@ -3,6 +3,7 @@
 import { Gantt, GanttZoomLevel, GanttPreset, defaultGantt, defaultGanttPresets } from "@/types/settings";
 import { useState } from "react";
 import { playNotificationSound } from "@/utils/notifications";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface GanttTabProps {
   gantt: Gantt;
@@ -239,6 +240,7 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
           <div className="flex items-center gap-2">
             <span className="text-xl">🍅</span>
             <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Pomodoro Technique</h4>
+            <InfoTooltip content={tooltipContent.pomodoro} />
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input

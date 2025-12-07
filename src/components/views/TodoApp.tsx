@@ -36,6 +36,7 @@ import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filte
 import { getTextColor } from "@/utils/colors";
 import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
 import { exportTodos, ExportFormat } from "@/utils/export";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface TodoFilters {
   searchText: string;
@@ -3688,7 +3689,10 @@ export function TodoApp() {
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Add New Todo</h2>
+                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <span>Add New Todo</span>
+                    <InfoTooltip content={tooltipContent.smartInput} />
+                  </h2>
                   <button
                     onClick={() => setIsAddOverlayOpen(false)}
                     className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"

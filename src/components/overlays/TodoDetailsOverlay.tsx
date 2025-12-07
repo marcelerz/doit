@@ -14,6 +14,7 @@ import { SearchableDropdown } from "@/components/shared/SearchableDropdown";
 import { ActionButtons } from "@/components/shared/ActionButtons";
 import { MetadataSection } from "@/components/shared/MetadataSection";
 import { Modal } from "@/components/shared/Modal";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { getDurationSuggestions, filterRecurringSuggestions } from "@/utils/suggestions";
 import { normalizeDateValue, convertToDateInputFormat, convertToTimeInputFormat } from "@/utils/dateUtils";
 import { calculateUsageStats, sortStringsByUsage } from "@/utils/usageStats";
@@ -480,6 +481,7 @@ export function TodoDetailsOverlay({
             getColor={getPersonColor}
             getTextColor={getTextColor}
             prefix="@"
+            tooltip={tooltipContent.assignedPeople}
           />
 
           {/* Projects */}
@@ -514,6 +516,7 @@ export function TodoDetailsOverlay({
             getColor={getProjectColor}
             getTextColor={getTextColor}
             prefix="%"
+            tooltip={tooltipContent.projects}
           />
 
           {/* Source People */}
@@ -548,6 +551,7 @@ export function TodoDetailsOverlay({
             getColor={getPersonColor}
             getTextColor={getTextColor}
             prefix="$"
+            tooltip={tooltipContent.sourcePeople}
           />
 
           {/* Mentioned People */}
@@ -582,11 +586,15 @@ export function TodoDetailsOverlay({
             getColor={getPersonColor}
             getTextColor={getTextColor}
             showPrefix={false}
+            tooltip={tooltipContent.mentionedPeople}
           />
 
           {/* Priority */}
           <div>
-            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔥 Priority</h4>
+            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2 flex items-center gap-1.5">
+              <span>🔥 Priority</span>
+              <InfoTooltip content={tooltipContent.priority} />
+            </h4>
             <div className="flex flex-wrap gap-1.5">
               {dropdown.isOpen("priority") && (
                 <SearchableDropdown
@@ -676,6 +684,7 @@ export function TodoDetailsOverlay({
             placeholder="Search or add tag..."
             customColor={markerColors.tag}
             emptyMessage="No existing tags. Type to create new."
+            tooltip={tooltipContent.tags}
           />
 
           {/* Dependencies */}
@@ -683,6 +692,7 @@ export function TodoDetailsOverlay({
             title="Dependencies"
             icon="⛓️"
             values={editingMetadata.dependencies}
+            tooltip={tooltipContent.dependencies}
             onRemove={(depId) => {
               handleMetadataChange({
                 ...editingMetadata,
@@ -722,7 +732,10 @@ export function TodoDetailsOverlay({
 
           {/* Due Date */}
           <div>
-            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📅 Due</h4>
+            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2 flex items-center gap-1.5">
+              <span>📅 Due</span>
+              <InfoTooltip content={tooltipContent.dueDate} />
+            </h4>
             <div className="flex gap-2">
               <div className="flex-1 flex items-center gap-2">
                 {editingMetadata.dueDate && (
@@ -846,7 +859,10 @@ export function TodoDetailsOverlay({
 
           {/* Duration */}
           <div>
-            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">⏱️ Duration</h4>
+            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2 flex items-center gap-1.5">
+              <span>⏱️ Duration</span>
+              <InfoTooltip content={tooltipContent.duration} />
+            </h4>
             <div className="flex flex-wrap gap-1.5">
               {dropdown.isOpen("duration") && (
                 <SearchableDropdown
@@ -896,7 +912,10 @@ export function TodoDetailsOverlay({
 
           {/* Recurring */}
           <div>
-            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🔄 Recurring</h4>
+            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2 flex items-center gap-1.5">
+              <span>🔄 Recurring</span>
+              <InfoTooltip content={tooltipContent.recurring} />
+            </h4>
             <div className="flex flex-wrap gap-1.5">
               {dropdown.isOpen("recurring") && (
                 <SearchableDropdown
@@ -947,7 +966,10 @@ export function TodoDetailsOverlay({
           {/* Sprint */}
           {sprints.length > 0 && (
             <div>
-              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🏃 Sprint</h4>
+              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2 flex items-center gap-1.5">
+                <span>🏃 Sprint</span>
+                <InfoTooltip content={tooltipContent.sprints} />
+              </h4>
               <div className="flex flex-wrap gap-1.5">
                 {editingMetadata.sprint ? (
                   <Badge

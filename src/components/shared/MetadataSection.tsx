@@ -2,6 +2,7 @@
 
 import { SearchableDropdown } from "./SearchableDropdown";
 import { Badge } from "./Badge";
+import { InfoTooltip } from "./InfoTooltip";
 import { useDropdownManager } from "@/hooks/useDropdownManager";
 
 interface MetadataSectionProps {
@@ -23,6 +24,7 @@ interface MetadataSectionProps {
   renderCustomValue?: (value: string) => React.ReactNode;
   addButtonLabel?: string;
   noItemsMessage?: string;
+  tooltip?: React.ReactNode; // Optional tooltip content
 }
 
 export function MetadataSection({
@@ -44,6 +46,7 @@ export function MetadataSection({
   renderCustomValue,
   addButtonLabel = "+",
   noItemsMessage,
+  tooltip,
 }: MetadataSectionProps) {
   const dropdown = useDropdownManager();
 
@@ -64,8 +67,11 @@ export function MetadataSection({
 
   return (
     <div>
-      <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
-        {icon} {title}
+      <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2 flex items-center gap-1.5">
+        <span>
+          {icon} {title}
+        </span>
+        {tooltip && <InfoTooltip content={tooltip} />}
       </h4>
       {noItemsMessage && (!availableItems || availableItems.length <= 1) ? (
         <div className="text-xs text-zinc-500 dark:text-zinc-400 italic">{noItemsMessage}</div>
