@@ -177,6 +177,10 @@ export function TodoDetailsOverlay({
       dueDate: editTokens.find((t) => t.type === "dueDate")?.value || editingMetadata.dueDate,
       duration: editTokens.find((t) => t.type === "duration")?.value || editingMetadata.duration,
       recurring: editTokens.find((t) => t.type === "recurring")?.value || editingMetadata.recurring,
+      // Preserve sprint from editingMetadata (not in tokens)
+      sprint: editingMetadata.sprint,
+      // Preserve context from editingMetadata (not in tokens)
+      context: editingMetadata.context,
     };
 
     onEdit(todo.id, editFullText, editPlainText, metadata);

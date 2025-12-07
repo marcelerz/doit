@@ -81,6 +81,7 @@ function migrateTodo(todo: any): Todo {
       recurring: todo.metadata?.recurring,
       context: todo.metadata?.context,
       tags: todo.metadata?.tags || [],
+      sprint: todo.metadata?.sprint,
     } as TodoMetadata,
     // Ensure comments array exists
     comments: todo.comments || [],
