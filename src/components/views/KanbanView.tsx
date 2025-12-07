@@ -482,6 +482,19 @@ export function KanbanView({
                               ☑️ {todo.raw.subtasks.filter((s) => s.completed).length}/{todo.raw.subtasks.length}
                             </span>
                           )}
+
+                          {/* Time tracking indicator */}
+                          {todo.hasTimeTracking && (
+                            <span
+                              className={`px-1.5 py-0.5 text-xs rounded flex items-center gap-1 ${
+                                todo.isTrackingTime
+                                  ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                              }`}
+                            >
+                              {todo.isTrackingTime ? "⏱️" : "🕐"} {todo.totalTrackedTimeDisplay}
+                            </span>
+                          )}
                         </div>
                       </div>
                     );

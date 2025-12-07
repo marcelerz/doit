@@ -22,6 +22,48 @@ export function StatisticsView({ todos }: StatisticsViewProps) {
     const completedTodos = allTodos.filter((t) => t.isCompleted);
     const archivedTodos = allTodos.filter((t) => t.isArchived);
 
+    // Time tracking stats
+    const todosWithTracking = allTodos.filter((t) => t.hasTimeTracking);
+    const totalTrackedMinutes = todosWithTracking.reduce((sum, t) => sum + t.totalTrackedMinutes, 0);
+    const currentlyTracking = allTodos.filter((t) => t.isTrackingTime);
+
+    // Time tracked today (from entries that started today)
+    const trackedToday = todosWithTracking.reduce((sum, t) => {
+      const todayMinutes =
+        t.raw.timeTracking?.entries.reduce((entrySum, entry) => {
+          const startDate = new Date(entry.startTime);
+          if (startDate >= today) {
+            const endTime = entry.endTime ? new Date(entry.endTime).getTime() : Date.now();
+            return entrySum + Math.round((endTime - startDate.getTime()) / (1000 * 60));
+          }
+          return entrySum;
+        }, 0) || 0;
+      return sum + todayMinutes;
+    }, 0);
+
+    // Time tracked this week
+    const trackedThisWeek = todosWithTracking.reduce((sum, t) => {
+      const weekMinutes =
+        t.raw.timeTracking?.entries.reduce((entrySum, entry) => {
+          const startDate = new Date(entry.startTime);
+          if (startDate >= weekAgo) {
+            const endTime = entry.endTime ? new Date(entry.endTime).getTime() : Date.now();
+            return entrySum + Math.round((endTime - startDate.getTime()) / (1000 * 60));
+          }
+          return entrySum;
+        }, 0) || 0;
+      return sum + weekMinutes;
+    }, 0);
+
+    // Time by project
+    const timeByProject: Record<string, number> = {};
+    todosWithTracking.forEach((t) => {
+      const projects = t.projects.length > 0 ? t.projects : ["No Project"];
+      projects.forEach((project) => {
+        timeByProject[project] = (timeByProject[project] || 0) + t.totalTrackedMinutes;
+      });
+    });
+
     // Completed this week
     const completedThisWeek = completedTodos.filter((t) => {
       const completedDate = t.completedAt ? new Date(t.completedAt) : null;
@@ -149,6 +191,13 @@ export function StatisticsView({ todos }: StatisticsViewProps) {
       byPriority,
       completionTrend,
       streak,
+      // Time tracking stats
+      totalTrackedMinutes,
+      trackedToday,
+      trackedThisWeek,
+      currentlyTracking: currentlyTracking.length,
+      tasksWithTracking: todosWithTracking.length,
+      timeByProject,
     };
   }, [todos]);
 
@@ -161,6 +210,16 @@ export function StatisticsView({ todos }: StatisticsViewProps) {
     }
     const days = hours / 24;
     return `${Math.round(days)}d`;
+  };
+
+  // Format minutes into hours and minutes
+  const formatMinutes = (minutes: number) => {
+    if (minutes === 0) return "0m";
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours === 0) return `${mins}m`;
+    if (mins === 0) return `${hours}h`;
+    return `${hours}h ${mins}m`;
   };
 
   // Find max value for chart scaling
@@ -243,6 +302,77 @@ export function StatisticsView({ todos }: StatisticsViewProps) {
           </div>
         </div>
       </div>
+
+      {/* Time Tracking Stats */}
+      {stats.tasksWithTracking > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">⏱️ Time Tracking</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-600 dark:text-zinc-400">Tracked Today</span>
+                <span className="font-semibold text-blue-600 dark:text-blue-400">
+                  {formatMinutes(stats.trackedToday)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-600 dark:text-zinc-400">Tracked This Week</span>
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  {formatMinutes(stats.trackedThisWeek)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-600 dark:text-zinc-400">Total Tracked</span>
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  {formatMinutes(stats.totalTrackedMinutes)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-600 dark:text-zinc-400">Tasks with Time</span>
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">{stats.tasksWithTracking}</span>
+              </div>
+              {stats.currentlyTracking > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-600 dark:text-zinc-400">Currently Tracking</span>
+                  <span className="font-semibold text-green-600 dark:text-green-400 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    {stats.currentlyTracking} task{stats.currentlyTracking !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">📁 Time by Project</h3>
+            {Object.keys(stats.timeByProject).length === 0 ? (
+              <p className="text-zinc-500 dark:text-zinc-500 text-sm">No time tracked yet</p>
+            ) : (
+              <div className="space-y-2">
+                {Object.entries(stats.timeByProject)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 6)
+                  .map(([project, minutes]) => (
+                    <div key={project} className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0 text-sm text-zinc-600 dark:text-zinc-400 truncate">{project}</div>
+                      <div className="flex-1 h-4 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-purple-500 rounded-full transition-all"
+                          style={{
+                            width: `${(minutes / Math.max(...Object.values(stats.timeByProject))) * 100}%`,
+                          }}
+                        />
+                      </div>
+                      <div className="w-16 text-right text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        {formatMinutes(minutes)}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 7-Day Activity Chart */}
       <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">

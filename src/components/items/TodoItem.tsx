@@ -460,20 +460,54 @@ export function TodoItem({
               />
             </div>
 
-            {/* Subtask progress indicator */}
-            {todo.hasSubtasks && (
-              <div className="mt-1 flex items-center gap-2">
-                <div className="flex-1 max-w-[120px] h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-300 ${
-                      todo.allSubtasksCompleted ? "bg-green-500 dark:bg-green-600" : "bg-blue-500 dark:bg-blue-600"
-                    }`}
-                    style={{ width: `${todo.subtaskProgress}%` }}
-                  />
-                </div>
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {todo.completedSubtaskCount}/{todo.subtaskCount}
-                </span>
+            {/* Subtask progress indicator and time tracking */}
+            {(todo.hasSubtasks || todo.hasTimeTracking) && (
+              <div className="mt-1 flex items-center gap-3 flex-wrap">
+                {/* Subtask progress */}
+                {todo.hasSubtasks && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-[80px] h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-300 ${
+                          todo.allSubtasksCompleted ? "bg-green-500 dark:bg-green-600" : "bg-blue-500 dark:bg-blue-600"
+                        }`}
+                        style={{ width: `${todo.subtaskProgress}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {todo.completedSubtaskCount}/{todo.subtaskCount}
+                    </span>
+                  </div>
+                )}
+
+                {/* Time tracking indicator */}
+                {todo.hasTimeTracking && (
+                  <div className="flex items-center gap-1">
+                    <span
+                      className={`text-xs flex items-center gap-1 px-1.5 py-0.5 rounded ${
+                        todo.isTrackingTime
+                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                      }`}
+                    >
+                      {todo.isTrackingTime ? (
+                        <svg className="w-3 h-3 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      )}
+                      {todo.totalTrackedTimeDisplay}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
