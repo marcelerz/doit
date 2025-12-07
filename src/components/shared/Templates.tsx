@@ -7,12 +7,11 @@ import { Badge } from "./Badge";
 
 interface TemplatesManagerProps {
   templates: TaskTemplate[];
-  onApply: (template: TaskTemplate) => void;
   onDelete: (templateId: string) => void;
   onClose: () => void;
 }
 
-export function TemplatesManager({ templates, onApply, onDelete, onClose }: TemplatesManagerProps) {
+export function TemplatesManager({ templates, onDelete, onClose }: TemplatesManagerProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredTemplates = templates.filter(
@@ -102,12 +101,6 @@ export function TemplatesManager({ templates, onApply, onDelete, onClose }: Temp
                     </div>
                   </div>
                   <div className="flex items-center gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => onApply(template)}
-                      className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                    >
-                      Use
-                    </button>
                     <button
                       onClick={() => onDelete(template.id)}
                       className="p-1.5 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"

@@ -4266,10 +4266,6 @@ export function TodoApp() {
       {showTemplatesManager && (
         <TemplatesManager
           templates={templates}
-          onApply={(template) => {
-            handleApplyTemplate(template);
-            setShowTemplatesManager(false);
-          }}
           onDelete={deleteTemplate}
           onClose={() => setShowTemplatesManager(false)}
         />
