@@ -55,6 +55,10 @@ export class TodoModel {
     return this._todo.deletedAt;
   }
 
+  get workflowState(): string | undefined {
+    return this._todo.workflowState;
+  }
+
   get comments() {
     return this._todo.comments;
   }

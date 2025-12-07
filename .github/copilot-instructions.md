@@ -65,6 +65,7 @@
 - [x] Remove explicit marker support for ^, \*, ~, > - these are now auto-detect only or set via fields
 - [x] Add Pomodoro-style planning to Gantt chart with short/long breaks and presets
 - [x] Add customizable time blocks with types and colors (meeting, focus, lunch, break, commute, personal)
+- [x] Add Kanban board view with workflow states, drag-and-drop, state transitions, and multiple views
 
 ## Project Details
 
@@ -115,6 +116,7 @@ Data is now organized into separate top-level storage keys:
 - `doit-view-options` - Current view state (filters, sort, group) for List view
 - `doit-gantt-view-options` - Gantt view state (schedulingMode, groupByProject, completedCollapsed, showTasksWithoutDates)
 - `doit-calendar-view-options` - Calendar view state (viewMode, sortField, sortDirection, showTasksWithoutDates)
+- `doit-kanban-view-options` - Kanban view state (activeViewId, sortField, sortDirection)
 - `doit-backup-settings` - Backup configuration
 
 All keys are centralized in `STORAGE_KEYS` constant for easy management.
@@ -272,15 +274,42 @@ Settings are organized by tabs and no longer include people/projects:
 - `general` - General Tab (archiveDays, autoDelete)
 - `dateTime` - Date/Time Tab (morning, noon, afternoon, evening, workWeekStart, fiscalYearStart)
 - `workHours` - Work Hours Tab (schedules, BOD/EOD computation)
+- `gantt` - Gantt Tab (scheduling settings, Pomodoro configuration)
+- `kanban` - Kanban Tab (workflow states, transitions, views, display options)
 - `autoAssign` - Auto-Assign Tab (default metadata for new todos)
 
 ## Views
 
-The app now has three different views accessible via tabs:
+The app now has four different views accessible via tabs:
 
 1. **List View** - Traditional todo list with filtering, sorting, grouping
-2. **Gantt View** - Timeline visualization showing todos with due dates on a horizontal timeline
-3. **Calendar View** - Monthly calendar with dots indicating tasks, click to see details
+2. **Kanban View** - Drag-and-drop board with customizable workflow states
+3. **Gantt View** - Timeline visualization showing todos with due dates on a horizontal timeline
+4. **Calendar View** - Monthly calendar with dots indicating tasks, click to see details
+
+### Kanban View
+
+The Kanban view provides a visual board for managing todos through workflow states:
+
+- **Workflow States**: Customizable columns (Backlog, To Do, In Progress, Review, Completed, Archived)
+- **Drag and Drop**: Move tasks between states by dragging cards
+- **State Transitions**: Configurable rules for which states can transition to others
+- **System States**: Completed and Archived states are protected (cannot be deleted) and sync with TodoState
+- **Multiple Views**: Create custom views showing different combinations of states (e.g., "Active Work", "Intake", "Done & Archived")
+- **Card Display**: Shows task title, due date, assigned people, project, priority, comments, and subtasks
+- **Sorting**: Sort tasks within columns by created date, updated date, due date, priority, or title
+- **Settings**: Configure in Settings → Kanban (states, transitions, views, display options)
+
+**Kanban Settings Tabs:**
+
+1. **Workflow States**: Add/edit/delete/reorder states with custom colors and icons
+2. **Transitions**: Matrix to define allowed state-to-state transitions
+3. **Views**: Create named views with specific state combinations
+
+**Display Options:**
+
+- Show/hide empty columns
+- Show/hide task count in column headers
 
 ### Gantt View Pomodoro Planning
 

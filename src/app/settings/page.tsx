@@ -14,6 +14,7 @@ import { DateTimeTab } from "@/components/settings/DateTimeTab";
 import { WorkHoursTab } from "@/components/settings/WorkHoursTab";
 import { GanttTab } from "@/components/settings/GanttTab";
 import { CalendarTab } from "@/components/settings/CalendarTab";
+import { KanbanTab } from "@/components/settings/KanbanTab";
 import { AutoAssignTab } from "@/components/settings/AutoAssignTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 import { StorageTab } from "@/components/settings/StorageTab";
@@ -25,6 +26,7 @@ const tabs = {
   "Date/Time": "datetime",
   "Work Hours": "workhours",
   Gantt: "gantt",
+  Kanban: "kanban",
   Calendar: "calendar",
   "Auto-Assign": "autoassign",
   Notifications: "notifications",
@@ -60,6 +62,7 @@ export default function SettingsPage() {
     updateDateTimeSettings,
     updateWorkHoursSettings,
     updateGantt,
+    updateKanbanSettings,
     updateCalendar,
     updateNotificationSettings,
     updateAutoAssignSettings,
@@ -229,6 +232,8 @@ export default function SettingsPage() {
                   return <WorkHoursTab workHours={settings.workHours} onUpdate={updateWorkHoursSettings} />;
                 case "gantt":
                   return <GanttTab gantt={settings.gantt} onUpdate={updateGantt} />;
+                case "kanban":
+                  return <KanbanTab kanban={settings.kanban} onUpdate={updateKanbanSettings} />;
                 case "calendar":
                   return <CalendarTab calendar={settings.calendar} onUpdate={updateCalendar} />;
                 case "autoassign":

@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, defaultSettings, Priority, LinkPattern, MarkerColors } from "@/types/settings";
+import {
+  Settings,
+  defaultSettings,
+  Priority,
+  LinkPattern,
+  MarkerColors,
+  KanbanState,
+  KanbanView,
+  KanbanTransition,
+} from "@/types/settings";
 import { migrateSettings } from "@/storage/migrations";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
@@ -221,6 +230,162 @@ export function useSettings() {
     }));
   };
 
+  // Kanban settings methods
+  const updateKanbanSettings = (kanban: Partial<Settings["kanban"]>) => {
+    setSettings((prev) => ({
+      ...prev,
+      kanban: {
+        ...prev.kanban,
+        ...kanban,
+      },
+    }));
+  };
+
+  const addKanbanState = (state: Omit<KanbanState, "id">) => {
+    const newState: KanbanState = {
+      ...state,
+      id: `state-${Date.now()}`,
+    };
+    setSettings((prev) => ({
+      ...prev,
+      kanban: {
+        ...prev.kanban,
+        states: [...prev.kanban.states, newState],
+      },
+    }));
+    return newState.id;
+  };
+
+  const updateKanbanState = (id: string, updates: Partial<KanbanState>) => {
+    setSettings((prev) => ({
+      ...prev,
+      kanban: {
+        ...prev.kanban,
+        states: prev.kanban.states.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+      },
+    }));
+  };
+
+  const deleteKanbanState = (id: string) => {
+    setSettings((prev) => {
+      // Don't allow deleting system states
+      const stateToDelete = prev.kanban.states.find((s) => s.id === id);
+      if (stateToDelete?.isSystem) return prev;
+
+      return {
+        ...prev,
+        kanban: {
+          ...prev.kanban,
+          states: prev.kanban.states.filter((s) => s.id !== id),
+          // Also remove transitions involving this state
+          allowedTransitions: prev.kanban.allowedTransitions.filter((t) => t.fromStateId !== id && t.toStateId !== id),
+          // Remove from views
+          views: prev.kanban.views.map((v) => ({
+            ...v,
+            stateIds: v.stateIds.filter((sId) => sId !== id),
+          })),
+        },
+      };
+    });
+  };
+
+  const reorderKanbanStates = (newOrder: string[]) => {
+    setSettings((prev) => ({
+      ...prev,
+      kanban: {
+        ...prev.kanban,
+        states: prev.kanban.states
+          .map((s) => ({ ...s, order: newOrder.indexOf(s.id) }))
+          .sort((a, b) => a.order - b.order),
+      },
+    }));
+  };
+
+  const addKanbanTransition = (transition: KanbanTransition) => {
+    setSettings((prev) => {
+      // Check if transition already exists
+      const exists = prev.kanban.allowedTransitions.some(
+        (t) => t.fromStateId === transition.fromStateId && t.toStateId === transition.toStateId,
+      );
+      if (exists) return prev;
+
+      return {
+        ...prev,
+        kanban: {
+          ...prev.kanban,
+          allowedTransitions: [...prev.kanban.allowedTransitions, transition],
+        },
+      };
+    });
+  };
+
+  const removeKanbanTransition = (fromStateId: string, toStateId: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      kanban: {
+        ...prev.kanban,
+        allowedTransitions: prev.kanban.allowedTransitions.filter(
+          (t) => !(t.fromStateId === fromStateId && t.toStateId === toStateId),
+        ),
+      },
+    }));
+  };
+
+  const addKanbanView = (view: Omit<KanbanView, "id">) => {
+    const newView: KanbanView = {
+      ...view,
+      id: `view-${Date.now()}`,
+    };
+    setSettings((prev) => ({
+      ...prev,
+      kanban: {
+        ...prev.kanban,
+        views: [...prev.kanban.views, newView],
+      },
+    }));
+    return newView.id;
+  };
+
+  const updateKanbanView = (id: string, updates: Partial<KanbanView>) => {
+    setSettings((prev) => ({
+      ...prev,
+      kanban: {
+        ...prev.kanban,
+        views: prev.kanban.views.map((v) => (v.id === id ? { ...v, ...updates } : v)),
+      },
+    }));
+  };
+
+  const deleteKanbanView = (id: string) => {
+    setSettings((prev) => {
+      // Don't delete if it's the only view
+      if (prev.kanban.views.length <= 1) return prev;
+
+      const updatedViews = prev.kanban.views.filter((v) => v.id !== id);
+      // If we deleted the active view, switch to first remaining
+      const newActiveViewId = prev.kanban.activeViewId === id ? updatedViews[0]?.id : prev.kanban.activeViewId;
+
+      return {
+        ...prev,
+        kanban: {
+          ...prev.kanban,
+          views: updatedViews,
+          activeViewId: newActiveViewId,
+        },
+      };
+    });
+  };
+
+  const setActiveKanbanView = (viewId: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      kanban: {
+        ...prev.kanban,
+        activeViewId: viewId,
+      },
+    }));
+  };
+
   return {
     settings,
     isLoaded,
@@ -241,5 +406,17 @@ export function useSettings() {
     addPriorityComment,
     editPriorityComment,
     deletePriorityComment,
+    // Kanban methods
+    updateKanbanSettings,
+    addKanbanState,
+    updateKanbanState,
+    deleteKanbanState,
+    reorderKanbanStates,
+    addKanbanTransition,
+    removeKanbanTransition,
+    addKanbanView,
+    updateKanbanView,
+    deleteKanbanView,
+    setActiveKanbanView,
   };
 }

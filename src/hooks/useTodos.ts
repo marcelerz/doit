@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Todo, TodoMetadata, ActivityEntry, TimeEntry } from "@/types/todo";
+import { Todo, TodoMetadata, ActivityEntry, TimeEntry, TodoState } from "@/types/todo";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/storage/migrations";
 import { defaultSettings, Settings } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
@@ -705,6 +705,76 @@ export function useTodos() {
     setRawTodos((prev) => [...prev, ...newTodos]);
   };
 
+  // Set workflow state for Kanban board
+  const setWorkflowState = (
+    todoId: string,
+    newStateId: string,
+    kanbanStates: Array<{ id: string; name?: string; mapsToTodoState?: string }>,
+    allowedTransitions?: Array<{ fromStateId: string; toStateId: string }>,
+  ): boolean => {
+    const todo = rawTodos.find((t) => t.id === todoId);
+    if (!todo) return false;
+
+    const currentStateId = todo.workflowState || "backlog";
+
+    // Check if transition is allowed (if transition rules exist)
+    if (allowedTransitions && allowedTransitions.length > 0) {
+      const isAllowed = allowedTransitions.some((t) => t.fromStateId === currentStateId && t.toStateId === newStateId);
+      if (!isAllowed) {
+        return false;
+      }
+    }
+
+    const now = Date.now();
+    const newState = kanbanStates.find((s) => s.id === newStateId);
+    const mappedTodoState = newState?.mapsToTodoState as TodoState | undefined;
+
+    // Get state names for activity description
+    const oldStateName = kanbanStates.find((s) => s.id === currentStateId)?.name || currentStateId;
+    const newStateName = newState?.name || newStateId;
+
+    setRawTodos((prev) =>
+      prev.map((t) => {
+        if (t.id === todoId) {
+          const workflowActivity = createActivity(
+            "workflow_state_changed",
+            `Moved from "${oldStateName}" to "${newStateName}"`,
+            { from: currentStateId, to: newStateId },
+          );
+
+          const updates: Partial<Todo> = {
+            workflowState: newStateId,
+            updatedAt: now,
+            activity: [...(t.activity || []), workflowActivity],
+          };
+
+          // Sync with underlying TodoState if the new state maps to one
+          if (mappedTodoState) {
+            updates.state = mappedTodoState;
+            if (mappedTodoState === "completed" && t.state !== "completed") {
+              updates.completedAt = now;
+            } else if (mappedTodoState === "archived" && t.state !== "archived") {
+              updates.archivedAt = now;
+            } else if (mappedTodoState === "active") {
+              // Reopening - clear completion/archive timestamps
+              if (t.state === "completed") {
+                updates.completedAt = undefined;
+              }
+              if (t.state === "archived") {
+                updates.archivedAt = undefined;
+              }
+            }
+          }
+
+          return { ...t, ...updates };
+        }
+        return t;
+      }),
+    );
+
+    return true;
+  };
+
   return {
     todos,
     addTodo,
@@ -727,6 +797,7 @@ export function useTodos() {
     addManualTimeEntry,
     deleteTimeEntry,
     importTodos,
+    setWorkflowState,
     isLoaded,
     undoActions,
     fadingOutIds,

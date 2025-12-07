@@ -384,6 +384,129 @@ export const defaultNotificationSettings: NotificationSettings = {
   checkInterval: 15, // Check every 15 minutes
 };
 
+// Kanban Tab Settings
+export interface KanbanState {
+  id: string;
+  name: string;
+  color: string;
+  icon?: string; // emoji
+  order: number;
+  isSystem?: boolean; // System states (completed, archived) cannot be deleted
+  mapsToTodoState?: "active" | "completed" | "archived"; // Maps to underlying TodoState
+}
+
+export interface KanbanTransition {
+  fromStateId: string;
+  toStateId: string;
+}
+
+export interface KanbanView {
+  id: string;
+  name: string;
+  description?: string;
+  stateIds: string[]; // Which states to show in this view (in order)
+  isDefault?: boolean;
+}
+
+export interface KanbanSettings {
+  states: KanbanState[];
+  allowedTransitions: KanbanTransition[]; // Which state transitions are allowed
+  views: KanbanView[];
+  activeViewId: string; // Currently selected view
+  showEmptyColumns: boolean; // Show columns with no tasks
+  showTaskCount: boolean; // Show count in column headers
+  cardDisplayFields: string[]; // Which metadata fields to show on cards
+}
+
+// Default Kanban states
+export const defaultKanbanStates: KanbanState[] = [
+  { id: "backlog", name: "Backlog", color: "#94a3b8", icon: "📥", order: 0, mapsToTodoState: "active" },
+  { id: "todo", name: "To Do", color: "#60a5fa", icon: "📋", order: 1, mapsToTodoState: "active" },
+  { id: "in-progress", name: "In Progress", color: "#fbbf24", icon: "🔄", order: 2, mapsToTodoState: "active" },
+  { id: "review", name: "Review", color: "#a78bfa", icon: "👀", order: 3, mapsToTodoState: "active" },
+  {
+    id: "completed",
+    name: "Done",
+    color: "#4ade80",
+    icon: "✅",
+    order: 4,
+    isSystem: true,
+    mapsToTodoState: "completed",
+  },
+  {
+    id: "archived",
+    name: "Archived",
+    color: "#9ca3af",
+    icon: "📦",
+    order: 5,
+    isSystem: true,
+    mapsToTodoState: "archived",
+  },
+];
+
+// Default transitions - most states can move to adjacent states or to completed
+export const defaultKanbanTransitions: KanbanTransition[] = [
+  // From Backlog
+  { fromStateId: "backlog", toStateId: "todo" },
+  { fromStateId: "backlog", toStateId: "in-progress" },
+  { fromStateId: "backlog", toStateId: "archived" },
+  // From To Do
+  { fromStateId: "todo", toStateId: "backlog" },
+  { fromStateId: "todo", toStateId: "in-progress" },
+  { fromStateId: "todo", toStateId: "completed" },
+  // From In Progress
+  { fromStateId: "in-progress", toStateId: "todo" },
+  { fromStateId: "in-progress", toStateId: "review" },
+  { fromStateId: "in-progress", toStateId: "completed" },
+  // From Review
+  { fromStateId: "review", toStateId: "in-progress" },
+  { fromStateId: "review", toStateId: "completed" },
+  // From Completed
+  { fromStateId: "completed", toStateId: "archived" },
+  { fromStateId: "completed", toStateId: "todo" }, // Reopen
+  // From Archived
+  { fromStateId: "archived", toStateId: "todo" }, // Unarchive
+];
+
+// Default Kanban views
+export const defaultKanbanViews: KanbanView[] = [
+  {
+    id: "all",
+    name: "All Tasks",
+    description: "Full workflow view",
+    stateIds: ["backlog", "todo", "in-progress", "review", "completed"],
+    isDefault: true,
+  },
+  {
+    id: "active-work",
+    name: "Active Work",
+    description: "Focus on current work",
+    stateIds: ["todo", "in-progress", "review"],
+  },
+  {
+    id: "intake",
+    name: "Intake",
+    description: "Triage and prioritize new tasks",
+    stateIds: ["backlog", "todo"],
+  },
+  {
+    id: "completed-archive",
+    name: "Done & Archived",
+    description: "Review completed work",
+    stateIds: ["completed", "archived"],
+  },
+];
+
+export const defaultKanbanSettings: KanbanSettings = {
+  states: defaultKanbanStates,
+  allowedTransitions: defaultKanbanTransitions,
+  views: defaultKanbanViews,
+  activeViewId: "all",
+  showEmptyColumns: true,
+  showTaskCount: true,
+  cardDisplayFields: ["assignedPeople", "priority", "dueDate", "projects"],
+};
+
 export interface Settings {
   // Priorities Tab
   priorities: Priority[];
@@ -405,6 +528,8 @@ export interface Settings {
   autoAssign: AutoAssignSettings;
   // Notifications Tab
   notifications: NotificationSettings;
+  // Kanban Tab
+  kanban: KanbanSettings;
 }
 
 export const defaultSettings: Settings = {
@@ -437,4 +562,5 @@ export const defaultSettings: Settings = {
   calendar: defaultCalendar,
   autoAssign: defaultAutoAssignSettings,
   notifications: defaultNotificationSettings,
+  kanban: defaultKanbanSettings,
 };

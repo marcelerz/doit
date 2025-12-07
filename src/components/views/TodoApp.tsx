@@ -12,6 +12,7 @@ import { TodoItem } from "@/components/items/TodoItem";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { GanttView } from "./GanttView";
 import { CalendarView } from "./CalendarView";
+import { KanbanView } from "./KanbanView";
 import { StatisticsView } from "./StatisticsView";
 import { FocusView } from "./FocusView";
 import { MarkerReference } from "@/components/shared/MarkerReference";
@@ -48,7 +49,7 @@ interface TodoFilters {
   dependencies: Set<string>;
 }
 
-type ViewTab = "list" | "gantt" | "calendar" | "people" | "projects" | "stats";
+type ViewTab = "list" | "kanban" | "gantt" | "calendar" | "people" | "projects" | "stats";
 
 export function TodoApp() {
   const {
@@ -72,6 +73,7 @@ export function TodoApp() {
     stopTimeTracking,
     addManualTimeEntry,
     deleteTimeEntry,
+    setWorkflowState,
     isLoaded,
     undoActions,
     fadingOutIds,
@@ -79,7 +81,7 @@ export function TodoApp() {
     undo,
     dismissUndo,
   } = useTodos();
-  const { settings, addPriority, updateGantt } = useSettings();
+  const { settings, addPriority, updateGantt, updateKanbanSettings } = useSettings();
 
   const {
     people,
@@ -1671,6 +1673,26 @@ export function TodoApp() {
             </div>
           </button>
           <button
+            onClick={() => setActiveView("kanban")}
+            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+              activeView === "kanban"
+                ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+                />
+              </svg>
+              Kanban
+            </div>
+          </button>
+          <button
             onClick={() => setActiveView("gantt")}
             className={`px-4 py-3 font-medium transition-colors border-b-2 ${
               activeView === "gantt"
@@ -2254,6 +2276,30 @@ export function TodoApp() {
             linkPatterns={settings.linkPatterns}
             onAddComment={addTodoComment}
             onUpdateGanttSettings={updateGantt}
+          />
+        )}
+
+        {activeView === "kanban" && (
+          <KanbanView
+            todos={todos}
+            markerColors={settings.markerColors}
+            kanban={settings.kanban}
+            onEditTodo={editTodo}
+            availablePeople={sortedPeople}
+            availableProjects={sortedProjects}
+            availablePriorities={sortedPriorities}
+            onAddPerson={handleAddPerson}
+            onAddProject={handleAddProject}
+            onAddPriority={handleAddPriority}
+            onToggle={toggleTodo}
+            onDelete={deleteTodo}
+            onArchive={archiveTodo}
+            onUnarchive={unarchiveTodo}
+            onSetWorkflowState={setWorkflowState}
+            settings={settings}
+            linkPatterns={settings.linkPatterns}
+            onAddComment={addTodoComment}
+            onUpdateKanbanSettings={updateKanbanSettings}
           />
         )}
 

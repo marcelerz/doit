@@ -57,7 +57,8 @@ export interface ActivityEntry {
     | "dependency_removed"
     | "tag_added"
     | "tag_removed"
-    | "context_changed";
+    | "context_changed"
+    | "workflow_state_changed";
   description: string;
   metadata?: any; // Optional metadata for the activity
 }
@@ -77,6 +78,7 @@ export interface Todo {
   text: string; // Full text with markers
   plainText: string; // Text without markers
   state: TodoState; // Current state of the todo
+  workflowState?: string; // Kanban workflow state ID (e.g., "backlog", "in-progress", "review")
   createdAt: number;
   updatedAt?: number; // Timestamp when task was last updated
   completedAt?: number; // Timestamp when task was marked as completed
