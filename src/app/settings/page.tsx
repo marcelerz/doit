@@ -166,7 +166,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
         <header className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-100">Settings</h1>

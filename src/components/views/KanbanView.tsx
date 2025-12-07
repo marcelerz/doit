@@ -304,14 +304,15 @@ export function KanbanView({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex-shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex-shrink-0">
         {/* View selector */}
         <div className="flex items-center gap-2">
-          <label className="text-sm text-zinc-600 dark:text-zinc-400">View:</label>
+          <label className="text-sm text-zinc-600 dark:text-zinc-400 hidden sm:inline">View:</label>
           <select
             value={viewOptions.activeViewId}
             onChange={(e) => setViewOptions((prev) => ({ ...prev, activeViewId: e.target.value }))}
-            className="px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-sm"
+            className="flex-1 sm:flex-none px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-base sm:text-sm"
+            title="Select view"
           >
             {kanban.views.map((view) => (
               <option key={view.id} value={view.id}>
@@ -320,13 +321,15 @@ export function KanbanView({
             ))}
           </select>
           {activeView?.description && (
-            <span className="text-sm text-zinc-500 dark:text-zinc-400 italic">{activeView.description}</span>
+            <span className="text-sm text-zinc-500 dark:text-zinc-400 italic hidden md:inline">
+              {activeView.description}
+            </span>
           )}
         </div>
 
         {/* Sort controls */}
         <div className="flex items-center gap-2">
-          <label className="text-sm text-zinc-600 dark:text-zinc-400">Sort:</label>
+          <label className="text-sm text-zinc-600 dark:text-zinc-400 hidden sm:inline">Sort:</label>
           <select
             value={viewOptions.sortField}
             onChange={(e) =>
@@ -335,7 +338,8 @@ export function KanbanView({
                 sortField: e.target.value as KanbanViewOptions["sortField"],
               }))
             }
-            className="px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-sm"
+            className="flex-1 sm:flex-none px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-base sm:text-sm"
+            title="Sort by"
           >
             <option value="createdAt">Created</option>
             <option value="updatedAt">Updated</option>
@@ -350,7 +354,7 @@ export function KanbanView({
                 sortDirection: prev.sortDirection === "asc" ? "desc" : "asc",
               }))
             }
-            className="px-2 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700"
+            className="px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-base sm:text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700"
           >
             {viewOptions.sortDirection === "asc" ? "↑" : "↓"}
           </button>
@@ -359,7 +363,7 @@ export function KanbanView({
 
       {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="flex h-full p-4 gap-4 min-w-min">
+        <div className="flex h-full p-2 sm:p-4 gap-2 sm:gap-4 min-w-min">
           {visibleStates.map((state) => {
             const columnTodos = todosByState[state.id] || [];
             const isDropTarget = dragOverColumnId === state.id;
@@ -370,7 +374,7 @@ export function KanbanView({
             return (
               <div
                 key={state.id}
-                className={`flex flex-col w-72 flex-shrink-0 rounded-lg transition-all ${
+                className={`flex flex-col w-56 sm:w-64 md:w-72 lg:w-80 flex-shrink-0 rounded-lg transition-all ${
                   isDropTarget && canDropHere
                     ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
                     : "bg-zinc-100 dark:bg-zinc-800"
@@ -381,11 +385,13 @@ export function KanbanView({
               >
                 {/* Column Header */}
                 <div
-                  className="flex items-center gap-2 px-3 py-2 rounded-t-lg"
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-t-lg"
                   style={{ backgroundColor: state.color + "33" }}
                 >
-                  <span className="text-lg">{state.icon}</span>
-                  <span className="font-medium text-zinc-900 dark:text-zinc-100">{state.name}</span>
+                  <span className="text-base sm:text-lg">{state.icon}</span>
+                  <span className="font-medium text-sm sm:text-base text-zinc-900 dark:text-zinc-100 truncate">
+                    {state.name}
+                  </span>
                   {kanban.showTaskCount && (
                     <span className="ml-auto px-2 py-0.5 text-xs bg-white/50 dark:bg-black/20 rounded-full">
                       {columnTodos.length}
@@ -410,13 +416,13 @@ export function KanbanView({
                         onDragStart={(e) => handleDragStart(e, todo.id)}
                         onDragEnd={handleDragEnd}
                         onClick={() => handleTodoClick(todo.id)}
-                        className={`bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 p-3 cursor-pointer hover:shadow-md transition-all ${
+                        className={`bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 p-2 sm:p-3 cursor-pointer hover:shadow-md transition-all ${
                           isDragging ? "opacity-50 scale-95" : ""
                         }`}
                         style={priorityColor ? { borderLeftWidth: 3, borderLeftColor: priorityColor } : undefined}
                       >
                         {/* Card Content */}
-                        <div className="text-sm text-zinc-900 dark:text-zinc-100 line-clamp-2">
+                        <div className="text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 line-clamp-2">
                           <MarkedText
                             text={todo.plainText || todo.text}
                             linkPatterns={linkPatterns}

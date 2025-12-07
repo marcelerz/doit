@@ -604,8 +604,8 @@ export function CalendarView({
     <div className="space-y-4 print:space-y-2" ref={calendarRef} role="application" aria-label="Calendar">
       {/* Toggle for todos without dates */}
       {todosWithoutDates > 0 && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 print:hidden">
-          <div className="flex items-center gap-3">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg border border-blue-200 dark:border-blue-800 print:hidden">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <svg
               className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0"
               fill="none"
@@ -619,42 +619,44 @@ export function CalendarView({
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                {todosWithoutDates} {todosWithoutDates === 1 ? "task" : "tasks"} without due dates
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-blue-900 dark:text-blue-100">
+                {todosWithoutDates} {todosWithoutDates === 1 ? "task" : "tasks"} without dates
               </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5 hidden sm:block">
                 {showTasksWithoutDates ? "Shown under today's date" : "Not shown in calendar"}
               </p>
             </div>
-            <button
-              onClick={() => setShowTasksWithoutDates(!showTasksWithoutDates)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0 ${
-                showTasksWithoutDates ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-600"
-              }`}
-              role="switch"
-              aria-checked={showTasksWithoutDates}
-              aria-label="Show tasks without dates for today"
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  showTasksWithoutDates ? "translate-x-6" : "translate-x-1"
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={() => setShowTasksWithoutDates(!showTasksWithoutDates)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  showTasksWithoutDates ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-600"
                 }`}
-              />
-            </button>
-            <span className="text-xs font-medium text-blue-900 dark:text-blue-100 whitespace-nowrap">
-              Show for today
-            </span>
+                role="switch"
+                aria-checked={showTasksWithoutDates}
+                aria-label="Show tasks without dates for today"
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    showTasksWithoutDates ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+              <span className="text-xs font-medium text-blue-900 dark:text-blue-100 whitespace-nowrap hidden sm:inline">
+                Show for today
+              </span>
+            </div>
           </div>
         </div>
       )}
 
       {/* Calendar */}
-      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 print:p-2 print:border-0">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 sm:p-6 print:p-2 print:border-0">
         {/* Header with navigation and controls */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 print:mb-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-6 print:mb-2">
           {/* Month navigation */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={() => navigateMonth(-1)}
               className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors print:hidden"
@@ -669,7 +671,7 @@ export function CalendarView({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 min-w-[180px] text-center">
+            <h3 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100 min-w-[140px] sm:min-w-[180px] text-center">
               {formatMonthYear(currentMonth)}
             </h3>
             <button
@@ -689,11 +691,11 @@ export function CalendarView({
           </div>
 
           {/* Controls */}
-          <div className="flex items-center gap-2 print:hidden">
+          <div className="flex items-center gap-1 sm:gap-2 print:hidden">
             {/* Today button */}
             <button
               onClick={goToToday}
-              className="px-3 py-1.5 text-sm font-medium rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-colors"
+              className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-colors"
               title="Go to today (T)"
             >
               Today
@@ -710,7 +712,7 @@ export function CalendarView({
                   key={mode}
                   onClick={() => setViewMode(mode)}
                   aria-pressed={viewMode === mode}
-                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors ${
                     viewMode === mode
                       ? "bg-blue-600 text-white"
                       : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700"
@@ -754,8 +756,12 @@ export function CalendarView({
                 <div className="text-center text-xs font-medium text-zinc-400 dark:text-zinc-500 py-2">Wk</div>
               )}
               {dayHeaders.map((day) => (
-                <div key={day} className="text-center text-sm font-medium text-zinc-600 dark:text-zinc-400 py-2">
-                  {day}
+                <div
+                  key={day}
+                  className="text-center text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 py-1 sm:py-2"
+                >
+                  <span className="sm:hidden">{day.charAt(0)}</span>
+                  <span className="hidden sm:inline">{day}</span>
                 </div>
               ))}
             </div>
@@ -783,34 +789,44 @@ export function CalendarView({
         {viewMode === "week" && (
           <div className="space-y-4">
             {/* Week header */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2 overflow-x-auto">
               {weekDays.map((day, i) => (
                 <button
                   key={day.dateKey}
                   onClick={() => handleDateClick(day.date)}
-                  className={`p-3 rounded-lg border transition-colors ${day.isToday ? "ring-2 ring-blue-500" : ""} ${
+                  className={`p-1.5 sm:p-3 rounded-lg border transition-colors min-w-[40px] ${
+                    day.isToday ? "ring-2 ring-blue-500" : ""
+                  } ${
                     selectedDate?.toDateString() === day.date.toDateString()
                       ? "bg-blue-100 dark:bg-blue-900/30 border-blue-500"
                       : "border-zinc-200 dark:border-zinc-700 hover:border-blue-400"
                   }`}
                 >
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {day.date.toLocaleDateString("en-US", { weekday: "short" })}
+                  <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400">
+                    <span className="sm:hidden">{day.date.toLocaleDateString("en-US", { weekday: "narrow" })}</span>
+                    <span className="hidden sm:inline">
+                      {day.date.toLocaleDateString("en-US", { weekday: "short" })}
+                    </span>
                   </div>
-                  <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{day.date.getDate()}</div>
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400">{day.todos.length} tasks</div>
+                  <div className="text-sm sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                    {day.date.getDate()}
+                  </div>
+                  <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400">
+                    <span className="sm:hidden">{day.todos.length}</span>
+                    <span className="hidden sm:inline">{day.todos.length} tasks</span>
+                  </div>
                 </button>
               ))}
             </div>
 
             {/* Week tasks list */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {weekDays.map((day) => (
-                <div key={day.dateKey} className="space-y-1 min-h-[100px]">
-                  {day.todos.slice(0, 5).map((todo) => (
+                <div key={day.dateKey} className="space-y-0.5 sm:space-y-1 min-h-[60px] sm:min-h-[100px]">
+                  {day.todos.slice(0, 3).map((todo) => (
                     <div
                       key={todo.id}
-                      className={`p-1.5 rounded text-xs truncate cursor-pointer hover:opacity-80 ${
+                      className={`p-1 sm:p-1.5 rounded text-[10px] sm:text-xs truncate cursor-pointer hover:opacity-80 ${
                         todo.state === "completed" ? "line-through opacity-60" : ""
                       }`}
                       style={{
@@ -825,9 +841,9 @@ export function CalendarView({
                       {todo.plainText}
                     </div>
                   ))}
-                  {day.todos.length > 5 && (
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400 text-center">
-                      +{day.todos.length - 5} more
+                  {day.todos.length > 3 && (
+                    <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 text-center">
+                      +{day.todos.length - 3}
                     </div>
                   )}
                 </div>
@@ -904,31 +920,33 @@ export function CalendarView({
 
       {/* Selected date todos (only in month view) */}
       {viewMode === "month" && selectedDate && (
-        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 print:hidden">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              Tasks for {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 sm:p-6 print:hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              Tasks for {selectedDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
             </h3>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
               {/* Quick add button */}
               {onQuickAdd && (
                 <button
                   onClick={() => handleQuickAdd(selectedDate)}
-                  className="px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                  className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
                 >
-                  + Add Task
+                  + Add
                 </button>
               )}
 
               {/* Sort controls - only show when there are tasks */}
               {selectedDateTodos.length > 0 && (
                 <>
-                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Sort:</label>
+                  <label className="text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 hidden sm:inline">
+                    Sort:
+                  </label>
                   <select
                     value={sortField}
                     onChange={(e) => setSortField(e.target.value as "priority" | "duration" | "created")}
-                    className="px-3 py-1 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-2 sm:px-3 py-1.5 text-base sm:text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="created">Created</option>
                     <option value="priority">Priority</option>
@@ -936,7 +954,7 @@ export function CalendarView({
                   </select>
                   <button
                     onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
-                    className="p-1 rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                    className="p-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                     title={sortDirection === "asc" ? "Ascending" : "Descending"}
                   >
                     <svg

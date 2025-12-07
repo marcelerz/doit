@@ -1198,15 +1198,15 @@ export function GanttView({
   return (
     <div className="space-y-4" role="region" aria-label="Gantt Chart Schedule">
       {/* Scheduling Mode Toggle */}
-      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 print:hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Mode:</span>
-            <div className="flex gap-2" role="group" aria-label="Scheduling mode">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-2 sm:p-3 print:hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            <span className="text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300">Mode:</span>
+            <div className="flex gap-1 sm:gap-2" role="group" aria-label="Scheduling mode">
               <button
                 onClick={() => setSchedulingMode("asap")}
                 aria-pressed={schedulingMode === "asap"}
-                className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors ${
                   schedulingMode === "asap"
                     ? "bg-blue-600 text-white"
                     : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
@@ -1217,7 +1217,7 @@ export function GanttView({
               <button
                 onClick={() => setSchedulingMode("dueDate")}
                 aria-pressed={schedulingMode === "dueDate"}
-                className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors ${
                   schedulingMode === "dueDate"
                     ? "bg-blue-600 text-white"
                     : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
@@ -1228,11 +1228,11 @@ export function GanttView({
             </div>
 
             {/* Group by Project Toggle */}
-            <div className="flex items-center gap-2 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-700">
+            <div className="flex items-center gap-2 sm:ml-2 sm:pl-2 sm:border-l border-zinc-200 dark:border-zinc-700">
               <button
                 onClick={() => setGroupByProject(!groupByProject)}
                 aria-pressed={groupByProject}
-                className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors flex items-center gap-1.5 ${
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors flex items-center gap-1.5 ${
                   groupByProject
                     ? "bg-purple-600 text-white"
                     : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
@@ -1247,19 +1247,18 @@ export function GanttView({
                     d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                   />
                 </svg>
-                Group
+                <span className="hidden sm:inline">Group</span>
               </button>
             </div>
 
             {/* Pomodoro Status */}
             {settings.gantt.pomodoroEnabled && (
-              <div className="flex items-center gap-2 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-700">
+              <div className="flex items-center gap-1 sm:gap-2 sm:ml-2 sm:pl-2 sm:border-l border-zinc-200 dark:border-zinc-700">
                 <span
                   className="text-sm text-red-500 dark:text-red-400 flex items-center gap-1"
                   title="Pomodoro mode active"
                 >
                   🍅
-                  <span className="hidden sm:inline text-xs">Pomodoro</span>
                 </span>
                 {settings.gantt.pomodoroNotifications && notificationPermission !== "granted" && (
                   <button
@@ -1267,10 +1266,10 @@ export function GanttView({
                       const permission = await requestNotificationPermission();
                       setNotificationPermission(permission);
                     }}
-                    className="px-2 py-1 text-xs rounded bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-colors flex items-center gap-1"
+                    className="p-1 sm:px-2 sm:py-1 text-xs rounded bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-colors flex items-center gap-1"
                     title="Enable browser notifications for break reminders"
                   >
-                    🔔 Enable Alerts
+                    🔔<span className="hidden sm:inline">Alerts</span>
                   </button>
                 )}
                 {settings.gantt.pomodoroNotifications && notificationPermission === "granted" && (
@@ -1282,20 +1281,24 @@ export function GanttView({
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Time Stats */}
-            <div className="flex items-center gap-3 text-xs" role="status" aria-label="Daily statistics">
+            <div
+              className="flex items-center gap-1.5 sm:gap-3 text-[10px] sm:text-xs"
+              role="status"
+              aria-label="Daily statistics"
+            >
               <span className="text-zinc-500 dark:text-zinc-400">
                 <span className="font-medium text-zinc-700 dark:text-zinc-300">
                   {Math.round((timeStats.totalPlannedMinutes / 60) * 10) / 10}h
                 </span>{" "}
-                planned
+                <span className="hidden sm:inline">planned</span>
               </span>
               <span className="text-zinc-500 dark:text-zinc-400">
                 <span className="font-medium text-green-600 dark:text-green-400">
                   {Math.round((timeStats.completedMinutes / 60) * 10) / 10}h
                 </span>{" "}
-                done
+                <span className="hidden sm:inline">done</span>
               </span>
               <span
                 className={`font-medium ${
@@ -1306,7 +1309,7 @@ export function GanttView({
                     : "text-zinc-600 dark:text-zinc-400"
                 }`}
               >
-                {timeStats.utilizationPercent}% util
+                {timeStats.utilizationPercent}%
               </span>
               {timeStats.conflictCount > 0 && (
                 <span
@@ -1346,10 +1349,11 @@ export function GanttView({
       </div>
 
       {/* Mini Week Overview */}
-      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4 print:hidden">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-            Week of {currentWeekDates[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-2 sm:p-4 print:hidden">
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
+          <h3 className="text-xs sm:text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+            <span className="hidden sm:inline">Week of </span>
+            {currentWeekDates[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </h3>
           <div className="flex gap-1">
             <button
@@ -1393,18 +1397,19 @@ export function GanttView({
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {weekTasks.map(({ date, tasks }, index) => {
             const isToday = date.toDateString() === new Date().toDateString();
             const isSelected = date.toDateString() === selectedDate.toDateString();
-            const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+            const dayName = date.toLocaleDateString("en-US", { weekday: "narrow" });
+            const dayNameLong = date.toLocaleDateString("en-US", { weekday: "short" });
             const dayNum = date.getDate();
 
             return (
               <button
                 key={index}
                 onClick={() => setSelectedDate(date)}
-                className={`p-2 rounded-lg border transition-all ${
+                className={`p-1 sm:p-2 rounded-lg border transition-all ${
                   isSelected
                     ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
                     : isToday
@@ -1412,9 +1417,12 @@ export function GanttView({
                     : "border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                 }`}
               >
-                <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{dayName}</div>
+                <div className="text-[10px] sm:text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  <span className="sm:hidden">{dayName}</span>
+                  <span className="hidden sm:inline">{dayNameLong}</span>
+                </div>
                 <div
-                  className={`text-lg font-semibold ${
+                  className={`text-sm sm:text-lg font-semibold ${
                     isSelected ? "text-blue-600 dark:text-blue-400" : "text-zinc-900 dark:text-zinc-100"
                   }`}
                 >
@@ -1570,17 +1578,17 @@ export function GanttView({
 
       <div
         ref={containerRef}
-        className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 print:border-0 print:shadow-none"
+        className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 sm:p-6 print:border-0 print:shadow-none"
       >
         {/* Date Navigation */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between gap-2 mb-4 sm:mb-6">
           <button
             onClick={() => navigateDate(-1)}
-            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors print:hidden"
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors print:hidden flex-shrink-0"
             title="Previous day (←)"
           >
             <svg
-              className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
+              className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-600 dark:text-zinc-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1589,14 +1597,23 @@ export function GanttView({
             </svg>
           </button>
 
-          <div className="text-center">
-            <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{formatDate(selectedDate)}</h3>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-              {schedule.startTime} - {schedule.endTime} • {activeTasks.length} active • {completedTasks.length}{" "}
-              completed • {unscheduledTasks.length} overflow
+          <div className="text-center min-w-0 flex-1">
+            <h3 className="text-base sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+              {formatDate(selectedDate)}
+            </h3>
+            <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mt-0.5 sm:mt-1">
+              <span className="hidden sm:inline">
+                {schedule.startTime} - {schedule.endTime} •{" "}
+              </span>
+              {activeTasks.length} <span className="hidden sm:inline">active</span>
+              <span className="sm:hidden">a</span> • {completedTasks.length}{" "}
+              <span className="hidden sm:inline">completed</span>
+              <span className="sm:hidden">c</span> • {unscheduledTasks.length}{" "}
+              <span className="hidden sm:inline">overflow</span>
+              <span className="sm:hidden">o</span>
             </p>
             {/* Keyboard shortcuts hint */}
-            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 print:hidden">
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 print:hidden hidden sm:block">
               <span className="inline-flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 text-[10px] bg-zinc-100 dark:bg-zinc-800 rounded">↑↓</kbd> navigate
                 <kbd className="px-1.5 py-0.5 text-[10px] bg-zinc-100 dark:bg-zinc-800 rounded ml-2">Enter</kbd> open
@@ -1608,11 +1625,11 @@ export function GanttView({
 
           <button
             onClick={() => navigateDate(1)}
-            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors print:hidden"
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors print:hidden flex-shrink-0"
             title="Next day (→)"
           >
             <svg
-              className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
+              className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-600 dark:text-zinc-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

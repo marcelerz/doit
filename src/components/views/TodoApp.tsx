@@ -1766,6 +1766,12 @@ export function TodoApp() {
     [hasActiveFilters, activeTodos, completedTodos, archivedTodos, todos],
   );
 
+  // Determine container width based on active view
+  // NOTE: This must be before the isLoaded check to satisfy Rules of Hooks
+  // Use consistent container width for all views to prevent jarring layout shifts
+  // Individual views handle their own internal overflow/scrolling needs
+  const containerClass = "max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto";
+
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800">
@@ -1775,17 +1781,17 @@ export function TodoApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800 py-8 px-4">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800 py-4 sm:py-8 px-2 sm:px-4">
+      <div className={containerClass}>
         <header className="mb-4">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-100">DoIt</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold text-zinc-900 dark:text-zinc-100">DoIt</h1>
             <div className="flex items-center gap-2">
               {/* Focus Mode Button - only show if there are active todos */}
               {todos.filter((t) => t.isActive).length > 0 && (
                 <button
                   onClick={() => setIsFocusMode(true)}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
+                  className="px-2 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
                   title="Enter focus mode"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1807,17 +1813,17 @@ export function TodoApp() {
               )}
               <button
                 onClick={() => setIsAddOverlayOpen(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
+                className="px-2 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
                 title="Add new todo"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Add
+                <span className="hidden sm:inline">Add</span>
               </button>
               <Link
                 href="/settings"
-                className="px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
+                className="px-2 sm:px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
                 title="Settings"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1834,294 +1840,155 @@ export function TodoApp() {
                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                   />
                 </svg>
-                Settings
+                <span className="hidden sm:inline">Settings</span>
               </Link>
             </div>
           </div>
-          <p className="text-zinc-600 dark:text-zinc-400">A simple, extensible, local todo app</p>
+          <p className="text-zinc-600 dark:text-zinc-400 text-sm sm:text-base">A simple, extensible, local todo app</p>
         </header>
 
         {/* View Tabs */}
-        <div className="mb-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800">
-          <button
-            onClick={() => setActiveView("list")}
-            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
-              activeView === "list"
-                ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-              List
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveView("kanban")}
-            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
-              activeView === "kanban"
-                ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
-                />
-              </svg>
-              Kanban
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveView("gantt")}
-            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
-              activeView === "gantt"
-                ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
-              Gantt
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveView("calendar")}
-            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
-              activeView === "calendar"
-                ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              Calendar
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveView("people")}
-            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
-              activeView === "people"
-                ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-              People
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveView("projects")}
-            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
-              activeView === "projects"
-                ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                />
-              </svg>
-              Projects
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveView("stats")}
-            className={`px-4 py-3 font-medium transition-colors border-b-2 ${
-              activeView === "stats"
-                ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
-              Stats
-            </div>
-          </button>
-
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Templates Button - Only show in list view */}
-          {activeView === "list" && templates.length > 0 && (
+        <div className="mb-6 overflow-x-auto -mx-2 sm:-mx-0 px-2 sm:px-0">
+          <div className="flex gap-1 sm:gap-2 border-b border-zinc-200 dark:border-zinc-800 min-w-max">
             <button
-              onClick={() => setShowTemplatesManager(true)}
-              className="px-3 py-2 font-medium transition-colors rounded-lg text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              title="Manage templates"
+              onClick={() => setActiveView("list")}
+              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                activeView === "list"
+                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+              }`}
+              title="List view"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <span className="hidden sm:inline">List</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveView("kanban")}
+              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                activeView === "kanban"
+                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+              }`}
+              title="Kanban view"
+            >
+              <div className="flex items-center gap-1 sm:gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                    d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
                   />
                 </svg>
-                <span className="hidden sm:inline">Templates</span>
-                <span className="text-xs px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded">{templates.length}</span>
+                <span className="hidden sm:inline">Kanban</span>
               </div>
             </button>
-          )}
-
-          {/* Export Button - Only show in list view with todos */}
-          {activeView === "list" && todos.length > 0 && (
-            <div ref={exportMenuRef} className="relative">
-              <button
-                onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                className="px-3 py-2 font-medium transition-colors rounded-lg text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                title="Export todos"
-              >
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                    />
-                  </svg>
-                  <span className="hidden sm:inline">Export</span>
-                </div>
-              </button>
-
-              {/* Export Dropdown Menu */}
-              {isExportMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
-                  <button
-                    onClick={() => handleExport("markdown")}
-                    className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    Markdown (.md)
-                  </button>
-                  <button
-                    onClick={() => handleExport("csv")}
-                    className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                      />
-                    </svg>
-                    CSV (.csv)
-                  </button>
-                  <button
-                    onClick={() => handleExport("json")}
-                    className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-                      />
-                    </svg>
-                    JSON (.json)
-                  </button>
-                  <div className="border-t border-zinc-200 dark:border-zinc-700 my-1" />
-                  <div className="px-4 py-2 text-xs text-zinc-500 dark:text-zinc-400">
-                    {hasActiveFilters ? "Exports filtered todos" : "Exports all todos"}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Selection Mode Toggle - Only show in list view */}
-          {activeView === "list" && todos.length > 0 && (
-            <>
-              <button
-                onClick={toggleSelectionMode}
-                className={`px-3 py-2 font-medium transition-colors rounded-lg text-sm ${
-                  isSelectionMode
-                    ? "bg-blue-600 text-white"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                }`}
-                title={isSelectionMode ? "Exit selection mode" : "Enter selection mode"}
-              >
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                    />
-                  </svg>
-                  <span className="hidden sm:inline">Select</span>
-                </div>
-              </button>
-              {/* Drag reorder button */}
-              <button
-                onClick={toggleDragMode}
-                className={`px-3 py-2 font-medium transition-colors rounded-lg text-sm ${
-                  isDragMode
-                    ? "bg-purple-600 text-white"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                }`}
-                title={isDragMode ? "Exit reorder mode" : "Enter reorder mode"}
-              >
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm6-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
-                  </svg>
-                  <span className="hidden sm:inline">Reorder</span>
-                </div>
-              </button>
-            </>
-          )}
+            <button
+              onClick={() => setActiveView("gantt")}
+              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                activeView === "gantt"
+                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+              }`}
+              title="Gantt view"
+            >
+              <div className="flex items-center gap-1 sm:gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {/* Horizontal bars representing a Gantt chart timeline */}
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h10M4 12h16M4 18h12" />
+                </svg>
+                <span className="hidden sm:inline">Gantt</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveView("calendar")}
+              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                activeView === "calendar"
+                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+              }`}
+              title="Calendar view"
+            >
+              <div className="flex items-center gap-1 sm:gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Calendar</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveView("people")}
+              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                activeView === "people"
+                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+              }`}
+              title="People view"
+            >
+              <div className="flex items-center gap-1 sm:gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                </svg>
+                <span className="hidden sm:inline">People</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveView("projects")}
+              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                activeView === "projects"
+                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+              }`}
+              title="Projects view"
+            >
+              <div className="flex items-center gap-1 sm:gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Projects</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveView("stats")}
+              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                activeView === "stats"
+                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+              }`}
+              title="Stats view"
+            >
+              <div className="flex items-center gap-1 sm:gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Stats</span>
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* Filter Section - Only show in List view */}
@@ -2153,9 +2020,9 @@ export function TodoApp() {
             )}
 
             {/* Top Row: Search + Show Filters Toggle + Group By + Sort By + Save */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 lg:gap-3">
               {/* Search Input with History */}
-              <div className="relative flex-1">
+              <div className="relative flex-1 min-w-[140px] sm:min-w-[200px] lg:min-w-[300px] xl:min-w-[400px]">
                 <input
                   ref={searchInputRef}
                   type="text"
@@ -2221,14 +2088,17 @@ export function TodoApp() {
               </button>
 
               {/* Group By */}
-              <div className="flex items-center gap-2 ml-4">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">Group:</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap hidden sm:inline">
+                  Group:
+                </label>
                 <select
                   value={groupBy}
                   onChange={(e) => setGroupBy(e.target.value as GroupBy)}
                   className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  title="Group by"
                 >
-                  <option value="none">None</option>
+                  <option value="none">No Group</option>
                   <option value="dueDate">Due Date</option>
                   <option value="priority">Priority</option>
                   <option value="project">Project</option>
@@ -2239,11 +2109,14 @@ export function TodoApp() {
 
               {/* Sort By */}
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">Sort:</label>
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap hidden sm:inline">
+                  Sort:
+                </label>
                 <select
                   value={sortField}
                   onChange={(e) => setSortField(e.target.value as SortField)}
                   className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  title="Sort by"
                 >
                   <option value="manual">Manual</option>
                   <option value="created">Created</option>
@@ -2274,7 +2147,7 @@ export function TodoApp() {
               {/* Save View Button */}
               <button
                 onClick={() => setIsSavePresetOpen(true)}
-                className="p-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors ml-auto"
+                className="p-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors"
                 title="Save current view"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2286,175 +2159,310 @@ export function TodoApp() {
                   />
                 </svg>
               </button>
+
+              {/* Divider */}
+              <div className="h-6 w-px bg-zinc-300 dark:bg-zinc-600 mx-1" />
+
+              {/* Templates Button */}
+              {templates.length > 0 && (
+                <button
+                  onClick={() => setShowTemplatesManager(true)}
+                  className="p-2 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                  title="Manage templates"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                    />
+                  </svg>
+                </button>
+              )}
+
+              {/* Export Button */}
+              {todos.length > 0 && (
+                <div ref={exportMenuRef} className="relative">
+                  <button
+                    onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                    className="p-2 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                    title="Export todos"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Export Dropdown Menu */}
+                  {isExportMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
+                      <button
+                        onClick={() => handleExport("markdown")}
+                        className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        Markdown (.md)
+                      </button>
+                      <button
+                        onClick={() => handleExport("csv")}
+                        className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                          />
+                        </svg>
+                        CSV (.csv)
+                      </button>
+                      <button
+                        onClick={() => handleExport("json")}
+                        className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                          />
+                        </svg>
+                        JSON (.json)
+                      </button>
+                      <div className="border-t border-zinc-200 dark:border-zinc-700 my-1" />
+                      <div className="px-4 py-2 text-xs text-zinc-500 dark:text-zinc-400">
+                        {hasActiveFilters ? "Exports filtered todos" : "Exports all todos"}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Selection Mode Toggle */}
+              {todos.length > 0 && (
+                <button
+                  onClick={toggleSelectionMode}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isSelectionMode
+                      ? "bg-blue-600 text-white"
+                      : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                  }`}
+                  title={isSelectionMode ? "Exit selection mode" : "Enter selection mode"}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                    />
+                  </svg>
+                </button>
+              )}
+
+              {/* Drag reorder button */}
+              {todos.length > 0 && (
+                <button
+                  onClick={toggleDragMode}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDragMode
+                      ? "bg-purple-600 text-white"
+                      : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                  }`}
+                  title={isDragMode ? "Exit reorder mode" : "Enter reorder mode"}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm6-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             {showFilters && (
-              <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 space-y-2">
-                {/* Assigned People Filter */}
-                <FilterSection
-                  label="Assigned (@)"
-                  activeCount={filters.assignedPeople.size}
-                  options={filterOptions.assignedPeople}
-                  selectedValues={filters.assignedPeople}
-                  onToggle={(value) => handleFilterClick("assignedPeople", value)}
-                  onSelectAll={() => handleSelectAll("assignedPeople")}
-                  onClear={() => handleClearAll("assignedPeople")}
-                  getButtonColor={(value, isSelected) => getFilterButtonColor("assignedPeople", value, isSelected)}
-                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("assignedPeople", value, isSelected)}
-                  formatLabel={(value) => `@${value}`}
-                />
+              <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 lg:p-4 space-y-2 lg:space-y-3">
+                {/* Grid layout for filters on larger screens */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2 lg:gap-4">
+                  {/* Assigned People Filter */}
+                  <FilterSection
+                    label="Assigned (@)"
+                    activeCount={filters.assignedPeople.size}
+                    options={filterOptions.assignedPeople}
+                    selectedValues={filters.assignedPeople}
+                    onToggle={(value) => handleFilterClick("assignedPeople", value)}
+                    onSelectAll={() => handleSelectAll("assignedPeople")}
+                    onClear={() => handleClearAll("assignedPeople")}
+                    getButtonColor={(value, isSelected) => getFilterButtonColor("assignedPeople", value, isSelected)}
+                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("assignedPeople", value, isSelected)}
+                    formatLabel={(value) => `@${value}`}
+                  />
 
-                {/* Projects Filter */}
-                <FilterSection
-                  label="Projects (#)"
-                  activeCount={filters.projects.size}
-                  options={filterOptions.projects}
-                  selectedValues={filters.projects}
-                  onToggle={(value) => handleFilterClick("projects", value)}
-                  onSelectAll={() => handleSelectAll("projects")}
-                  onClear={() => handleClearAll("projects")}
-                  getButtonColor={(value, isSelected) => getFilterButtonColor("projects", value, isSelected)}
-                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("projects", value, isSelected)}
-                  formatLabel={(value) => `#${value}`}
-                />
+                  {/* Projects Filter */}
+                  <FilterSection
+                    label="Projects (#)"
+                    activeCount={filters.projects.size}
+                    options={filterOptions.projects}
+                    selectedValues={filters.projects}
+                    onToggle={(value) => handleFilterClick("projects", value)}
+                    onSelectAll={() => handleSelectAll("projects")}
+                    onClear={() => handleClearAll("projects")}
+                    getButtonColor={(value, isSelected) => getFilterButtonColor("projects", value, isSelected)}
+                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("projects", value, isSelected)}
+                    formatLabel={(value) => `#${value}`}
+                  />
 
-                {/* Categories Filter */}
-                <FilterSection
-                  label="Categories"
-                  activeCount={filters.categories.size}
-                  options={filterOptions.categories}
-                  selectedValues={filters.categories}
-                  onToggle={(value) => handleFilterClick("categories", value)}
-                  onSelectAll={() => handleSelectAll("categories")}
-                  onClear={() => handleClearAll("categories")}
-                  getButtonColor={(value, isSelected) => getFilterButtonColor("categories", value, isSelected)}
-                  getButtonStyle={(value, isSelected) => {
-                    if (!isSelected) return undefined;
-                    // Use category's own color
-                    const category = settings.categories.find((c) => c.id === value);
-                    const bgColor = category?.color || settings.markerColors.project;
-                    return {
-                      backgroundColor: bgColor,
-                      color: getTextColor(bgColor),
-                    };
-                  }}
-                  formatLabel={(value) => {
-                    const category = settings.categories.find((c) => c.id === value);
-                    return category?.name || value;
-                  }}
-                />
+                  {/* Categories Filter */}
+                  <FilterSection
+                    label="Categories"
+                    activeCount={filters.categories.size}
+                    options={filterOptions.categories}
+                    selectedValues={filters.categories}
+                    onToggle={(value) => handleFilterClick("categories", value)}
+                    onSelectAll={() => handleSelectAll("categories")}
+                    onClear={() => handleClearAll("categories")}
+                    getButtonColor={(value, isSelected) => getFilterButtonColor("categories", value, isSelected)}
+                    getButtonStyle={(value, isSelected) => {
+                      if (!isSelected) return undefined;
+                      // Use category's own color
+                      const category = settings.categories.find((c) => c.id === value);
+                      const bgColor = category?.color || settings.markerColors.project;
+                      return {
+                        backgroundColor: bgColor,
+                        color: getTextColor(bgColor),
+                      };
+                    }}
+                    formatLabel={(value) => {
+                      const category = settings.categories.find((c) => c.id === value);
+                      return category?.name || value;
+                    }}
+                  />
 
-                {/* Source People Filter */}
-                <FilterSection
-                  label="Source ($)"
-                  activeCount={filters.sourcePeople.size}
-                  options={filterOptions.sourcePeople}
-                  selectedValues={filters.sourcePeople}
-                  onToggle={(value) => handleFilterClick("sourcePeople", value)}
-                  onSelectAll={() => handleSelectAll("sourcePeople")}
-                  onClear={() => handleClearAll("sourcePeople")}
-                  getButtonColor={(value, isSelected) => getFilterButtonColor("sourcePeople", value, isSelected)}
-                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("sourcePeople", value, isSelected)}
-                  formatLabel={(value) => `$${value}`}
-                />
+                  {/* Source People Filter */}
+                  <FilterSection
+                    label="Source ($)"
+                    activeCount={filters.sourcePeople.size}
+                    options={filterOptions.sourcePeople}
+                    selectedValues={filters.sourcePeople}
+                    onToggle={(value) => handleFilterClick("sourcePeople", value)}
+                    onSelectAll={() => handleSelectAll("sourcePeople")}
+                    onClear={() => handleClearAll("sourcePeople")}
+                    getButtonColor={(value, isSelected) => getFilterButtonColor("sourcePeople", value, isSelected)}
+                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("sourcePeople", value, isSelected)}
+                    formatLabel={(value) => `$${value}`}
+                  />
 
-                {/* Mentioned People Filter */}
-                <FilterSection
-                  label="Mentioned"
-                  activeCount={filters.mentionedPeople.size}
-                  options={filterOptions.mentionedPeople}
-                  selectedValues={filters.mentionedPeople}
-                  onToggle={(value) => handleFilterClick("mentionedPeople", value)}
-                  onSelectAll={() => handleSelectAll("mentionedPeople")}
-                  onClear={() => handleClearAll("mentionedPeople")}
-                  getButtonColor={(value, isSelected) => getFilterButtonColor("mentionedPeople", value, isSelected)}
-                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("mentionedPeople", value, isSelected)}
-                  formatLabel={(value) => value}
-                />
+                  {/* Mentioned People Filter */}
+                  <FilterSection
+                    label="Mentioned"
+                    activeCount={filters.mentionedPeople.size}
+                    options={filterOptions.mentionedPeople}
+                    selectedValues={filters.mentionedPeople}
+                    onToggle={(value) => handleFilterClick("mentionedPeople", value)}
+                    onSelectAll={() => handleSelectAll("mentionedPeople")}
+                    onClear={() => handleClearAll("mentionedPeople")}
+                    getButtonColor={(value, isSelected) => getFilterButtonColor("mentionedPeople", value, isSelected)}
+                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("mentionedPeople", value, isSelected)}
+                    formatLabel={(value) => value}
+                  />
 
-                {/* Priority Filter */}
-                <FilterSection
-                  label="Priority (!!)"
-                  activeCount={filters.priorities.size}
-                  options={filterOptions.priorities}
-                  selectedValues={filters.priorities}
-                  onToggle={(value) => handleFilterClick("priorities", value)}
-                  onSelectAll={() => handleSelectAll("priorities")}
-                  onClear={() => handleClearAll("priorities")}
-                  getButtonColor={(value, isSelected) => getFilterButtonColor("priorities", value, isSelected)}
-                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("priorities", value, isSelected)}
-                  formatLabel={(value) => `!!${value}`}
-                />
+                  {/* Priority Filter */}
+                  <FilterSection
+                    label="Priority (!!)"
+                    activeCount={filters.priorities.size}
+                    options={filterOptions.priorities}
+                    selectedValues={filters.priorities}
+                    onToggle={(value) => handleFilterClick("priorities", value)}
+                    onSelectAll={() => handleSelectAll("priorities")}
+                    onClear={() => handleClearAll("priorities")}
+                    getButtonColor={(value, isSelected) => getFilterButtonColor("priorities", value, isSelected)}
+                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("priorities", value, isSelected)}
+                    formatLabel={(value) => `!!${value}`}
+                  />
 
-                {/* Due Date Filter */}
-                <FilterSection
-                  label="Due Date (~)"
-                  activeCount={filters.dueDates.size}
-                  options={filterOptions.dueDates}
-                  selectedValues={filters.dueDates}
-                  onToggle={(value) => handleFilterClick("dueDates", value)}
-                  onSelectAll={() => handleSelectAll("dueDates")}
-                  onClear={() => handleClearAll("dueDates")}
-                  getButtonColor={(value, isSelected) => getFilterButtonColor("dueDates", value, isSelected)}
-                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("dueDates", value, isSelected)}
-                  formatLabel={(value) => `~${value}`}
-                />
+                  {/* Due Date Filter */}
+                  <FilterSection
+                    label="Due Date (~)"
+                    activeCount={filters.dueDates.size}
+                    options={filterOptions.dueDates}
+                    selectedValues={filters.dueDates}
+                    onToggle={(value) => handleFilterClick("dueDates", value)}
+                    onSelectAll={() => handleSelectAll("dueDates")}
+                    onClear={() => handleClearAll("dueDates")}
+                    getButtonColor={(value, isSelected) => getFilterButtonColor("dueDates", value, isSelected)}
+                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("dueDates", value, isSelected)}
+                    formatLabel={(value) => `~${value}`}
+                  />
 
-                {/* Duration Filter */}
-                <FilterSection
-                  label="Duration (*)"
-                  activeCount={filters.durations.size}
-                  options={filterOptions.durations}
-                  selectedValues={filters.durations}
-                  onToggle={(value) => handleFilterClick("durations", value)}
-                  onSelectAll={() => handleSelectAll("durations")}
-                  onClear={() => handleClearAll("durations")}
-                  getButtonColor={(value, isSelected) => getFilterButtonColor("durations", value, isSelected)}
-                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("durations", value, isSelected)}
-                  formatLabel={(value) => `*${value}`}
-                />
+                  {/* Duration Filter */}
+                  <FilterSection
+                    label="Duration (*)"
+                    activeCount={filters.durations.size}
+                    options={filterOptions.durations}
+                    selectedValues={filters.durations}
+                    onToggle={(value) => handleFilterClick("durations", value)}
+                    onSelectAll={() => handleSelectAll("durations")}
+                    onClear={() => handleClearAll("durations")}
+                    getButtonColor={(value, isSelected) => getFilterButtonColor("durations", value, isSelected)}
+                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("durations", value, isSelected)}
+                    formatLabel={(value) => `*${value}`}
+                  />
 
-                {/* Tags Filter */}
-                <FilterSection
-                  label="Tags (&)"
-                  activeCount={filters.tags.size}
-                  options={filterOptions.tags}
-                  selectedValues={filters.tags}
-                  onToggle={(value) => handleFilterClick("tags", value)}
-                  onSelectAll={() => handleSelectAll("tags")}
-                  onClear={() => handleClearAll("tags")}
-                  getButtonColor={(value, isSelected) => getFilterButtonColor("tags", value, isSelected)}
-                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("tags", value, isSelected)}
-                  formatLabel={(value) => `&${value}`}
-                />
+                  {/* Tags Filter */}
+                  <FilterSection
+                    label="Tags (&)"
+                    activeCount={filters.tags.size}
+                    options={filterOptions.tags}
+                    selectedValues={filters.tags}
+                    onToggle={(value) => handleFilterClick("tags", value)}
+                    onSelectAll={() => handleSelectAll("tags")}
+                    onClear={() => handleClearAll("tags")}
+                    getButtonColor={(value, isSelected) => getFilterButtonColor("tags", value, isSelected)}
+                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("tags", value, isSelected)}
+                    formatLabel={(value) => `&${value}`}
+                  />
 
-                {/* Recurring Filter */}
-                <FilterSection
-                  label="Recurring (%)"
-                  activeCount={filters.recurring.size}
-                  options={filterOptions.recurring}
-                  selectedValues={filters.recurring}
-                  onToggle={(value) => handleFilterClick("recurring", value)}
-                  onSelectAll={() => handleSelectAll("recurring")}
-                  onClear={() => handleClearAll("recurring")}
-                  getButtonColor={(value, isSelected) => getFilterButtonColor("recurring", value, isSelected)}
-                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("recurring", value, isSelected)}
-                  formatLabel={(value) => `%${value}`}
-                />
+                  {/* Recurring Filter */}
+                  <FilterSection
+                    label="Recurring (%)"
+                    activeCount={filters.recurring.size}
+                    options={filterOptions.recurring}
+                    selectedValues={filters.recurring}
+                    onToggle={(value) => handleFilterClick("recurring", value)}
+                    onSelectAll={() => handleSelectAll("recurring")}
+                    onClear={() => handleClearAll("recurring")}
+                    getButtonColor={(value, isSelected) => getFilterButtonColor("recurring", value, isSelected)}
+                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("recurring", value, isSelected)}
+                    formatLabel={(value) => `%${value}`}
+                  />
 
-                {/* Dependencies Filter */}
-                <FilterSection
-                  label="Dependencies (>)"
-                  activeCount={filters.dependencies.size}
-                  options={filterOptions.dependencies}
-                  selectedValues={filters.dependencies}
-                  onToggle={(value) => handleFilterClick("dependencies", value)}
-                  onSelectAll={() => handleSelectAll("dependencies")}
-                  onClear={() => handleClearAll("dependencies")}
-                  getButtonColor={(value, isSelected) => getFilterButtonColor("dependencies", value, isSelected)}
-                  getButtonStyle={(value, isSelected) => getFilterButtonStyle("dependencies", value, isSelected)}
-                  formatLabel={(value) => `>${value}`}
-                />
+                  {/* Dependencies Filter */}
+                  <FilterSection
+                    label="Dependencies (>)"
+                    activeCount={filters.dependencies.size}
+                    options={filterOptions.dependencies}
+                    selectedValues={filters.dependencies}
+                    onToggle={(value) => handleFilterClick("dependencies", value)}
+                    onSelectAll={() => handleSelectAll("dependencies")}
+                    onClear={() => handleClearAll("dependencies")}
+                    getButtonColor={(value, isSelected) => getFilterButtonColor("dependencies", value, isSelected)}
+                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("dependencies", value, isSelected)}
+                    formatLabel={(value) => `>${value}`}
+                  />
+                </div>
 
                 {/* Clear All Filters Button */}
                 {hasActiveFilters && (
