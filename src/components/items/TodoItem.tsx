@@ -497,10 +497,10 @@ export function TodoItem({
 
             {/* Compact metadata row (shown when not expanded) */}
             {!isExpanded && (
-              <div className="mt-1.5 grid grid-cols-[1fr_auto_auto] sm:grid-cols-[minmax(80px,1fr)_minmax(80px,1fr)_auto_auto] gap-x-2 gap-y-1 items-center text-[10px]">
+              <div className="mt-1.5 grid grid-cols-[1fr_auto_auto] sm:grid-cols-[minmax(80px,1fr)_1fr_100px_80px] gap-x-2 gap-y-1 items-center text-[10px]">
                 {/* Assigned + Project - column 1 (combined on mobile, separate on desktop) */}
                 <div className="flex items-center gap-1 overflow-hidden">
-                  {todo.metadata.assignedPeople.length > 0 && (
+                  {todo.metadata.assignedPeople.length > 0 ? (
                     <span
                       className="px-1.5 py-0.5 rounded truncate"
                       style={{
@@ -512,6 +512,8 @@ export function TodoItem({
                       @{todo.metadata.assignedPeople[0]}
                       {todo.metadata.assignedPeople.length > 1 && ` +${todo.metadata.assignedPeople.length - 1}`}
                     </span>
+                  ) : (
+                    <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">—</span>
                   )}
                   {/* Project shown inline on mobile */}
                   <span className="sm:hidden">
@@ -530,8 +532,8 @@ export function TodoItem({
                   </span>
                 </div>
 
-                {/* Project - column 2 (desktop only) */}
-                <div className="hidden sm:flex items-center overflow-hidden">
+                {/* Project + Sprint - column 2 (desktop only, centered) */}
+                <div className="hidden sm:flex items-center justify-center gap-1 overflow-hidden">
                   {todo.metadata.projects.length > 0 ? (
                     <span
                       className="px-1.5 py-0.5 rounded truncate"
@@ -547,10 +549,22 @@ export function TodoItem({
                   ) : (
                     <span className="text-zinc-300 dark:text-zinc-600">—</span>
                   )}
+                  {todo.metadata.sprint &&
+                    (() => {
+                      const sprint = sprints.find((s) => s.id === todo.metadata.sprint);
+                      return sprint ? (
+                        <span
+                          className="px-1.5 py-0.5 rounded truncate bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 whitespace-nowrap"
+                          title={sprint.name}
+                        >
+                          🏃 {sprint.name}
+                        </span>
+                      ) : null;
+                    })()}
                 </div>
 
-                {/* Due date + Duration - column 3 (time-related fields together) */}
-                <div className="flex items-center gap-1 justify-end sm:justify-start">
+                {/* Due date + Duration - column 3 (fixed width for consistency) */}
+                <div className="flex items-center gap-1 justify-end sm:justify-center">
                   {todo.metadata.dueDate ? (
                     <span
                       className={`px-1.5 py-0.5 rounded whitespace-nowrap ${
@@ -574,7 +588,7 @@ export function TodoItem({
                   )}
                 </div>
 
-                {/* Priority - column 4 (rightmost) */}
+                {/* Priority - column 4 (fixed width for consistency) */}
                 <div className="flex items-center justify-end">
                   {todo.metadata.priority ? (
                     <span

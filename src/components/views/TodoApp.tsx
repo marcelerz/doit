@@ -361,10 +361,52 @@ export function TodoApp() {
     }
   };
 
-  // Collapsible section states
-  const [activeExpanded, setActiveExpanded] = useState(true);
-  const [completedExpanded, setCompletedExpanded] = useState(true);
-  const [archivedExpanded, setArchivedExpanded] = useState(false);
+  // Collapsible section states - load from localStorage
+  const [activeExpanded, setActiveExpanded] = useState(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
+        const saved = typeof result === "string" ? result : null;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.sections?.activeExpanded ?? true;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load section states from localStorage:", e);
+    }
+    return true;
+  });
+  const [completedExpanded, setCompletedExpanded] = useState(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
+        const saved = typeof result === "string" ? result : null;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.sections?.completedExpanded ?? true;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load section states from localStorage:", e);
+    }
+    return true;
+  });
+  const [archivedExpanded, setArchivedExpanded] = useState(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
+        const saved = typeof result === "string" ? result : null;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.sections?.archivedExpanded ?? false;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load section states from localStorage:", e);
+    }
+    return false;
+  });
 
   // Bulk selection state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -379,6 +421,10 @@ export function TodoApp() {
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
 
+  // More options menu state
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
   // Focus mode state
   const [isFocusMode, setIsFocusMode] = useState(false);
 
@@ -388,13 +434,16 @@ export function TodoApp() {
       if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
         setIsExportMenuOpen(false);
       }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
     };
 
-    if (isExportMenuOpen) {
+    if (isExportMenuOpen || isMoreMenuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isExportMenuOpen]);
+  }, [isExportMenuOpen, isMoreMenuOpen]);
 
   // Search state for People/Projects views
   const [peopleSearch, setPeopleSearch] = useState("");
@@ -963,6 +1012,11 @@ export function TodoApp() {
       sortDirection,
       groupBy,
       quickFilter: activeQuickFilter,
+      sections: {
+        activeExpanded,
+        completedExpanded,
+        archivedExpanded,
+      },
     };
     if (typeof window !== "undefined") {
       getStorageAdapter().setItem(STORAGE_KEYS.VIEW_OPTIONS, JSON.stringify(viewOptions));
@@ -986,7 +1040,17 @@ export function TodoApp() {
     });
 
     setActivePreset(matchingPreset ? matchingPreset.name : "custom");
-  }, [filters, sortField, sortDirection, groupBy, activeQuickFilter, viewPresets]);
+  }, [
+    filters,
+    sortField,
+    sortDirection,
+    groupBy,
+    activeQuickFilter,
+    activeExpanded,
+    completedExpanded,
+    archivedExpanded,
+    viewPresets,
+  ]);
 
   // Helper function to compare arrays
   const arraysEqual = (a: string[], b: string[]) => {
@@ -1383,6 +1447,7 @@ export function TodoApp() {
       recurring: new Set(),
       dependencies: new Set(),
     });
+    setActiveQuickFilter("all");
   };
 
   // Helper function to get button color class for filter sections
@@ -1440,7 +1505,8 @@ export function TodoApp() {
     filters.durations.size > 0 ||
     filters.tags.size > 0 ||
     filters.recurring.size > 0 ||
-    filters.dependencies.size > 0;
+    filters.dependencies.size > 0 ||
+    activeQuickFilter !== "all";
 
   // Apply filters to todos
   const applyFilters = (todoList: typeof todos) => {
@@ -2231,13 +2297,13 @@ export function TodoApp() {
             )}
 
             {/* Top Row: Search + Show Filters Toggle + Group By + Sort By + Save */}
-            <div className="flex flex-wrap items-center gap-2 lg:gap-3">
+            <div className="flex items-center gap-2 lg:gap-3">
               {/* Search Input with History */}
-              <div className="relative flex-1 min-w-[140px] sm:min-w-[200px] lg:min-w-[300px] xl:min-w-[400px]">
+              <div className="relative w-[140px] sm:w-[180px] lg:w-[250px] xl:w-[300px] flex-shrink-0">
                 <input
                   ref={searchInputRef}
                   type="text"
-                  placeholder="Search tasks... (press / to focus)"
+                  placeholder="Search... (/)"
                   value={filters.searchText}
                   onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
                   onFocus={() => {
@@ -2257,7 +2323,7 @@ export function TodoApp() {
                       setShowSearchHistory(false);
                     }
                   }}
-                  className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 />
                 {/* Search History Dropdown */}
                 <SearchHistoryDropdown
@@ -2276,13 +2342,14 @@ export function TodoApp() {
               {/* Show Filters Toggle */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
+                className={`p-2 rounded-lg font-medium transition-colors flex items-center gap-1 whitespace-nowrap flex-shrink-0 ${
                   showFilters || hasActiveFilters
                     ? "bg-blue-600 text-white hover:bg-blue-700"
                     : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
                 }`}
+                title={showFilters ? "Hide filters" : "Show filters"}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -2290,23 +2357,22 @@ export function TodoApp() {
                     d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                   />
                 </svg>
-                {showFilters ? "Hide" : "Filter"}
-                {hasActiveFilters && !showFilters && (
+                {hasActiveFilters && (
                   <span className="px-1.5 py-0.5 text-xs bg-white/20 rounded-full">
                     {Object.values(filters).filter((v) => v && (typeof v === "string" ? v : v.size > 0)).length}
                   </span>
                 )}
               </button>
 
-              {/* Group By */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap hidden sm:inline">
+              {/* Group By - hidden on small screens, shown in More menu */}
+              <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap hidden xl:inline">
                   Group:
                 </label>
                 <select
                   value={groupBy}
                   onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-                  className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-2 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   title="Group by"
                 >
                   <option value="none">No Group</option>
@@ -2319,15 +2385,15 @@ export function TodoApp() {
                 </select>
               </div>
 
-              {/* Sort By */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap hidden sm:inline">
+              {/* Sort By - hidden on small screens, shown in More menu */}
+              <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap hidden xl:inline">
                   Sort:
                 </label>
                 <select
                   value={sortField}
                   onChange={(e) => setSortField(e.target.value as SortField)}
-                  className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-2 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   title="Sort by"
                 >
                   <option value="manual">Manual</option>
@@ -2343,23 +2409,21 @@ export function TodoApp() {
                 </select>
                 <button
                   onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
-                  className="p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                  className={`px-2 py-2 rounded-lg font-mono text-sm transition-all ${
+                    sortDirection === "desc"
+                      ? "bg-amber-200 dark:bg-amber-700 text-amber-900 dark:text-amber-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
+                      : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-700"
+                  }`}
                   title={sortDirection === "asc" ? "Ascending" : "Descending"}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {sortDirection === "asc" ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    )}
-                  </svg>
+                  {sortDirection === "asc" ? "abc" : "cba"}
                 </button>
               </div>
 
               {/* Save View Button */}
               <button
                 onClick={() => setIsSavePresetOpen(true)}
-                className="p-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors"
+                className="p-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors flex-shrink-0"
                 title="Save current view"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2372,50 +2436,94 @@ export function TodoApp() {
                 </svg>
               </button>
 
-              {/* Divider */}
-              <div className="h-6 w-px bg-zinc-300 dark:bg-zinc-600 mx-1" />
+              {/* Vertical Separator - hidden on small screens */}
+              <div className="hidden lg:block w-px h-6 bg-zinc-300 dark:bg-zinc-600 flex-shrink-0" />
 
-              {/* Templates Button */}
+              {/* Templates Button - hidden on small screens */}
               {features?.templates && templates.length > 0 && (
                 <button
                   onClick={() => setShowTemplatesManager(true)}
-                  className="p-2 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                  title="Manage templates"
+                  className="hidden lg:flex p-2 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors flex-shrink-0"
+                  title="Templates"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                      d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
                     />
                   </svg>
                 </button>
               )}
 
-              {/* Export Button */}
-              {features?.exports && todos.length > 0 && (
-                <div ref={exportMenuRef} className="relative">
+              {/* Selection Mode Button - hidden on small screens */}
+              {features?.batchProcessing && (
+                <button
+                  onClick={toggleSelectionMode}
+                  className={`hidden lg:flex p-2 rounded-lg transition-colors flex-shrink-0 ${
+                    isSelectionMode
+                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                      : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                  }`}
+                  title={isSelectionMode ? "Exit Selection Mode" : "Selection Mode"}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                    />
+                  </svg>
+                </button>
+              )}
+
+              {/* Reorder Mode Button - hidden on small screens */}
+              {features?.reordering && (
+                <button
+                  onClick={toggleDragMode}
+                  className={`hidden lg:flex p-2 rounded-lg transition-colors flex-shrink-0 ${
+                    isDragMode
+                      ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                      : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                  }`}
+                  title={isDragMode ? "Exit Reorder Mode" : "Reorder Mode"}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm6-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Export Dropdown - hidden on small screens */}
+              {features?.exports && (
+                <div ref={exportMenuRef} className="hidden lg:block relative flex-shrink-0">
                   <button
                     onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                    className="p-2 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                    title="Export todos"
+                    className={`p-2 rounded-lg transition-colors ${
+                      isExportMenuOpen
+                        ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
+                        : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                    }`}
+                    title="Export"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                       />
                     </svg>
                   </button>
-
-                  {/* Export Dropdown Menu */}
                   {isExportMenuOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
                       <button
-                        onClick={() => handleExport("markdown")}
+                        onClick={() => {
+                          handleExport("markdown");
+                          setIsExportMenuOpen(false);
+                        }}
                         className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2429,7 +2537,10 @@ export function TodoApp() {
                         Markdown (.md)
                       </button>
                       <button
-                        onClick={() => handleExport("csv")}
+                        onClick={() => {
+                          handleExport("csv");
+                          setIsExportMenuOpen(false);
+                        }}
                         className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2443,7 +2554,10 @@ export function TodoApp() {
                         CSV (.csv)
                       </button>
                       <button
-                        onClick={() => handleExport("json")}
+                        onClick={() => {
+                          handleExport("json");
+                          setIsExportMenuOpen(false);
+                        }}
                         className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2456,8 +2570,7 @@ export function TodoApp() {
                         </svg>
                         JSON (.json)
                       </button>
-                      <div className="border-t border-zinc-200 dark:border-zinc-700 my-1" />
-                      <div className="px-4 py-2 text-xs text-zinc-500 dark:text-zinc-400">
+                      <div className="px-4 py-1 text-xs text-zinc-400 dark:text-zinc-500 border-t border-zinc-200 dark:border-zinc-700 mt-1">
                         {hasActiveFilters ? "Exports filtered todos" : "Exports all todos"}
                       </div>
                     </div>
@@ -2465,50 +2578,226 @@ export function TodoApp() {
                 </div>
               )}
 
-              {/* Selection Mode Toggle */}
-              {features?.batchProcessing && todos.length > 0 && (
-                <button
-                  onClick={toggleSelectionMode}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isSelectionMode
-                      ? "bg-blue-600 text-white"
-                      : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                  }`}
-                  title={isSelectionMode ? "Exit selection mode" : "Enter selection mode"}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                    />
-                  </svg>
-                </button>
-              )}
+              {/* More Options Menu - only shown on small screens */}
+              {todos.length > 0 && (
+                <div ref={moreMenuRef} className="lg:hidden relative flex-shrink-0">
+                  <button
+                    onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      isMoreMenuOpen || isSelectionMode || isDragMode
+                        ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
+                        : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                    }`}
+                    title="More options"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                      />
+                    </svg>
+                  </button>
 
-              {/* Drag reorder button */}
-              {features?.reordering && todos.length > 0 && (
-                <button
-                  onClick={toggleDragMode}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isDragMode
-                      ? "bg-purple-600 text-white"
-                      : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                  }`}
-                  title={isDragMode ? "Exit reorder mode" : "Enter reorder mode"}
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm6-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
-                  </svg>
-                </button>
+                  {/* More Options Dropdown */}
+                  {isMoreMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
+                      {/* Group By - shown on small screens only */}
+                      <div className="lg:hidden px-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
+                        <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                          Group by
+                        </label>
+                        <select
+                          value={groupBy}
+                          onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+                          className="w-full px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="none">No Group</option>
+                          <option value="dueDate">Due Date</option>
+                          <option value="priority">Priority</option>
+                          <option value="project">Project</option>
+                          <option value="category">Category</option>
+                          <option value="assigned">Assigned</option>
+                          <option value="sprint">Sprint</option>
+                        </select>
+                      </div>
+
+                      {/* Sort By - shown on small screens only */}
+                      <div className="lg:hidden px-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
+                        <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                          Sort by
+                        </label>
+                        <div className="flex gap-1">
+                          <select
+                            value={sortField}
+                            onChange={(e) => setSortField(e.target.value as SortField)}
+                            className="flex-1 px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="manual">Manual</option>
+                            <option value="created">Created</option>
+                            <option value="dueDate">Due Date</option>
+                            <option value="duration">Duration</option>
+                            <option value="priority">Priority</option>
+                            <option value="assigned">Assigned</option>
+                            <option value="source">Source</option>
+                            <option value="mentioned">Mentioned</option>
+                            <option value="project">Project</option>
+                            <option value="timeSpent">Time Spent</option>
+                          </select>
+                          <button
+                            onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
+                            className={`px-2 py-1.5 rounded font-mono text-sm transition-all ${
+                              sortDirection === "desc"
+                                ? "bg-amber-200 dark:bg-amber-600 text-amber-900 dark:text-amber-100"
+                                : "bg-zinc-100 dark:bg-zinc-600 text-zinc-700 dark:text-zinc-300"
+                            }`}
+                            title={sortDirection === "asc" ? "Ascending" : "Descending"}
+                          >
+                            {sortDirection === "asc" ? "abc" : "cba"}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Templates - shown on small screens only */}
+                      {features?.templates && templates.length > 0 && (
+                        <button
+                          onClick={() => {
+                            setShowTemplatesManager(true);
+                            setIsMoreMenuOpen(false);
+                          }}
+                          className="lg:hidden w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+                            />
+                          </svg>
+                          Templates
+                        </button>
+                      )}
+
+                      {/* Selection Mode - shown on small screens only */}
+                      {features?.batchProcessing && (
+                        <button
+                          onClick={() => {
+                            toggleSelectionMode();
+                            setIsMoreMenuOpen(false);
+                          }}
+                          className={`lg:hidden w-full px-4 py-2 text-left text-sm flex items-center gap-2 ${
+                            isSelectionMode
+                              ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                              : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                            />
+                          </svg>
+                          {isSelectionMode ? "Exit Selection Mode" : "Selection Mode"}
+                        </button>
+                      )}
+
+                      {/* Drag Reorder - shown on small screens only */}
+                      {features?.reordering && (
+                        <button
+                          onClick={() => {
+                            toggleDragMode();
+                            setIsMoreMenuOpen(false);
+                          }}
+                          className={`lg:hidden w-full px-4 py-2 text-left text-sm flex items-center gap-2 ${
+                            isDragMode
+                              ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                              : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm6-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
+                          </svg>
+                          {isDragMode ? "Exit Reorder Mode" : "Reorder Mode"}
+                        </button>
+                      )}
+
+                      {/* Divider before export options - shown on small screens only */}
+                      {features?.exports && (
+                        <>
+                          <div className="lg:hidden border-t border-zinc-200 dark:border-zinc-700 my-1" />
+                          <div className="lg:hidden px-4 py-1 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                            Export
+                          </div>
+                          <button
+                            onClick={() => {
+                              handleExport("markdown");
+                              setIsMoreMenuOpen(false);
+                            }}
+                            className="lg:hidden w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                            Markdown (.md)
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleExport("csv");
+                              setIsMoreMenuOpen(false);
+                            }}
+                            className="lg:hidden w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
+                            </svg>
+                            CSV (.csv)
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleExport("json");
+                              setIsMoreMenuOpen(false);
+                            }}
+                            className="lg:hidden w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                              />
+                            </svg>
+                            JSON (.json)
+                          </button>
+                          <div className="lg:hidden px-4 py-1 text-xs text-zinc-400 dark:text-zinc-500">
+                            {hasActiveFilters ? "Exports filtered todos" : "Exports all todos"}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
             {showFilters && (
               <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 lg:p-4 space-y-2 lg:space-y-3">
                 {/* Grid layout for filters on larger screens */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2 lg:gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 lg:gap-x-6 lg:gap-y-4 [&>*]:lg:pl-6 [&>*]:lg:border-l [&>*]:lg:border-zinc-200 [&>*]:dark:lg:border-zinc-700 [&>*:first-child]:lg:pl-0 [&>*:first-child]:lg:border-l-0 [&>*:nth-child(2n+1)]:lg:pl-0 [&>*:nth-child(2n+1)]:lg:border-l-0 [&>*:nth-child(2n+1)]:xl:pl-6 [&>*:nth-child(2n+1)]:xl:border-l [&>*:nth-child(3n+1)]:xl:pl-0 [&>*:nth-child(3n+1)]:xl:border-l-0">
                   {/* Assigned People Filter */}
                   <FilterSection
                     label="Assigned (@)"
@@ -2675,18 +2964,6 @@ export function TodoApp() {
                     formatLabel={(value) => `>${value}`}
                   />
                 </div>
-
-                {/* Clear All Filters Button */}
-                {hasActiveFilters && (
-                  <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700">
-                    <button
-                      onClick={handleClearAllFilters}
-                      className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
-                    >
-                      Clear All Filters
-                    </button>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -3140,7 +3417,7 @@ export function TodoApp() {
 
             {/* Quick Filters Bar */}
             {todos.length > 0 && !isSelectionMode && (
-              <div className="mb-4 flex flex-wrap gap-2">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setActiveQuickFilter("all")}
                   className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
@@ -3225,6 +3502,23 @@ export function TodoApp() {
                   </svg>
                   No Due Date ({quickFilterCounts.noDueDate})
                 </button>
+
+                {/* Clear All button - shown when any filter is active */}
+                {hasActiveFilters && (
+                  <>
+                    <div className="flex-1" />
+                    <button
+                      onClick={handleClearAllFilters}
+                      className="px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-800 dark:hover:text-zinc-200"
+                      title="Clear all filters"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Clear All
+                    </button>
+                  </>
+                )}
               </div>
             )}
 
