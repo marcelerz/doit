@@ -6,7 +6,8 @@ import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { KanbanSettings, KanbanState, MarkerColors, Priority, LinkPattern, Settings, Sprint } from "@/types/settings";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
-import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
+import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
+import { waitForStorageInit } from "@/storage/storageInit";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { getTextColor } from "@/utils/colors";
@@ -110,34 +111,20 @@ export function KanbanView({
 
   // Load view options from storage
   useEffect(() => {
-    const loadOptions = async () => {
-      try {
-        const storage = getStorageAdapter();
-        const saved = await storage.getItem(STORAGE_KEYS.KANBAN_VIEW_OPTIONS);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setViewOptions({ ...defaultViewOptions, ...parsed });
-        }
-      } catch (e) {
-        console.error("Failed to load kanban view options:", e);
-      }
-      setIsOptionsLoaded(true);
-    };
-    loadOptions();
+    waitForStorageInit()
+      .then(() => {
+        return loadFromStorage<KanbanViewOptions>(STORAGE_KEYS.KANBAN_VIEW_OPTIONS, defaultViewOptions);
+      })
+      .then((saved) => {
+        setViewOptions({ ...defaultViewOptions, ...saved });
+        setIsOptionsLoaded(true);
+      });
   }, []);
 
   // Save view options to storage
   useEffect(() => {
     if (!isOptionsLoaded) return;
-    const saveOptions = async () => {
-      try {
-        const storage = getStorageAdapter();
-        await storage.setItem(STORAGE_KEYS.KANBAN_VIEW_OPTIONS, JSON.stringify(viewOptions));
-      } catch (e) {
-        console.error("Failed to save kanban view options:", e);
-      }
-    };
-    saveOptions();
+    saveToStorage(STORAGE_KEYS.KANBAN_VIEW_OPTIONS, viewOptions);
   }, [viewOptions, isOptionsLoaded]);
 
   // Get sorted states based on order

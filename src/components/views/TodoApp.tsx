@@ -34,7 +34,7 @@ import { TaskTemplate } from "@/types/todo";
 import { parseTokensToMetadata } from "@/utils/tokenParser";
 import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
 import { getTextColor } from "@/utils/colors";
-import { STORAGE_KEYS, getStorageAdapter, loadFromStorage, saveToStorage } from "@/storage/storage";
+import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
 import { exportTodos, ExportFormat } from "@/utils/export";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
@@ -149,6 +149,8 @@ export function TodoApp() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const peopleSearchInputRef = useRef<HTMLInputElement>(null);
   const projectsSearchInputRef = useRef<HTMLInputElement>(null);
+
+  // Active view state - initialized with default, loaded from UI_OPTIONS in useEffect
   const [activeView, setActiveView] = useState<ViewTab>("list");
 
   // Template state
@@ -362,52 +364,10 @@ export function TodoApp() {
     }
   };
 
-  // Collapsible section states - load from localStorage
-  const [activeExpanded, setActiveExpanded] = useState(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
-        const saved = typeof result === "string" ? result : null;
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return parsed.sections?.activeExpanded ?? true;
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load section states from localStorage:", e);
-    }
-    return true;
-  });
-  const [completedExpanded, setCompletedExpanded] = useState(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
-        const saved = typeof result === "string" ? result : null;
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return parsed.sections?.completedExpanded ?? true;
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load section states from localStorage:", e);
-    }
-    return true;
-  });
-  const [archivedExpanded, setArchivedExpanded] = useState(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
-        const saved = typeof result === "string" ? result : null;
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return parsed.sections?.archivedExpanded ?? false;
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load section states from localStorage:", e);
-    }
-    return false;
-  });
+  // Collapsible section states - initialized with defaults, loaded from storage in useEffect
+  const [activeExpanded, setActiveExpanded] = useState(true);
+  const [completedExpanded, setCompletedExpanded] = useState(true);
+  const [archivedExpanded, setArchivedExpanded] = useState(false);
 
   // Bulk selection state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -451,6 +411,54 @@ export function TodoApp() {
   const [projectsSearch, setProjectsSearch] = useState("");
   const [showArchivedPeople, setShowArchivedPeople] = useState(false);
   const [showArchivedProjects, setShowArchivedProjects] = useState(false);
+  const [uiOptionsLoaded, setUiOptionsLoaded] = useState(false);
+
+  // Load UI options from storage (includes active tab and show archived states)
+  useEffect(() => {
+    console.log("[UI_OPTIONS] Waiting for storage init...");
+    waitForStorageInit()
+      .then(() => {
+        console.log("[UI_OPTIONS] Loading from storage...");
+        return loadFromStorage<{
+          activeTab?: ViewTab;
+          showArchivedPeople?: boolean;
+          showArchivedProjects?: boolean;
+        }>(STORAGE_KEYS.UI_OPTIONS, {});
+      })
+      .then((saved) => {
+        console.log("[UI_OPTIONS] Loaded:", saved);
+        if (saved.activeTab !== undefined) {
+          const validTabs: ViewTab[] = [
+            "list",
+            "kanban",
+            "gantt",
+            "calendar",
+            "people",
+            "projects",
+            "sprints",
+            "stats",
+          ];
+          if (validTabs.includes(saved.activeTab)) {
+            console.log("[UI_OPTIONS] Setting activeView to:", saved.activeTab);
+            setActiveView(saved.activeTab);
+          }
+        }
+        if (saved.showArchivedPeople !== undefined) setShowArchivedPeople(saved.showArchivedPeople);
+        if (saved.showArchivedProjects !== undefined) setShowArchivedProjects(saved.showArchivedProjects);
+        setUiOptionsLoaded(true);
+      });
+  }, []);
+
+  // Persist UI options to storage (only after initial load)
+  useEffect(() => {
+    if (!uiOptionsLoaded) return;
+    console.log("[UI_OPTIONS] Saving:", { activeTab: activeView, showArchivedPeople, showArchivedProjects });
+    saveToStorage(STORAGE_KEYS.UI_OPTIONS, {
+      activeTab: activeView,
+      showArchivedPeople,
+      showArchivedProjects,
+    });
+  }, [uiOptionsLoaded, activeView, showArchivedPeople, showArchivedProjects]);
 
   // Filtered people and projects based on search and archive filter
   const filteredPeople = useMemo(() => {
@@ -477,23 +485,9 @@ export function TodoApp() {
     });
   }, [allProjects, projectsSearch, showArchivedProjects]);
 
-  // Quick filter state
+  // Quick filter state - initialized with default, loaded from storage in useEffect
   type QuickFilter = "all" | "today" | "overdue" | "thisWeek" | "noDueDate";
-  const [activeQuickFilter, setActiveQuickFilter] = useState<QuickFilter>(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
-        const saved = typeof result === "string" ? result : null;
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return (parsed.quickFilter as QuickFilter) || "all";
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load quick filter from localStorage:", e);
-    }
-    return "all";
-  });
+  const [activeQuickFilter, setActiveQuickFilter] = useState<QuickFilter>("all");
 
   // Helper to check if date is today
   const isToday = useCallback((dateStr: string | undefined) => {
@@ -905,101 +899,93 @@ export function TodoApp() {
     }
   }, [viewPresets, viewPresetsLoaded]);
 
-  // Load all view options from a single localStorage key
-  const [filters, setFilters] = useState<TodoFilters>(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
-        const saved = typeof result === "string" ? result : null;
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return {
-            searchText: parsed.filters?.searchText || "",
-            assignedPeople: new Set(parsed.filters?.assignedPeople || []),
-            sourcePeople: new Set(parsed.filters?.sourcePeople || []),
-            mentionedPeople: new Set(parsed.filters?.mentionedPeople || []),
-            projects: new Set(parsed.filters?.projects || []),
-            categories: new Set(parsed.filters?.categories || []),
-            priorities: new Set(parsed.filters?.priorities || []),
-            dueDates: new Set(parsed.filters?.dueDates || []),
-            durations: new Set(parsed.filters?.durations || []),
-            tags: new Set(parsed.filters?.tags || []),
-            recurring: new Set(parsed.filters?.recurring || []),
-            dependencies: new Set(parsed.filters?.dependencies || []),
-          };
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load view options from localStorage:", e);
-    }
-    return {
-      searchText: "",
-      assignedPeople: new Set(),
-      sourcePeople: new Set(),
-      mentionedPeople: new Set(),
-      projects: new Set(),
-      categories: new Set(),
-      priorities: new Set(),
-      dueDates: new Set(),
-      durations: new Set(),
-      tags: new Set(),
-      recurring: new Set(),
-      dependencies: new Set(),
-    };
+  // Load all view options from storage - initialized with defaults, loaded from storage in useEffect
+  const [filters, setFilters] = useState<TodoFilters>({
+    searchText: "",
+    assignedPeople: new Set(),
+    sourcePeople: new Set(),
+    mentionedPeople: new Set(),
+    projects: new Set(),
+    categories: new Set(),
+    priorities: new Set(),
+    dueDates: new Set(),
+    durations: new Set(),
+    tags: new Set(),
+    recurring: new Set(),
+    dependencies: new Set(),
   });
 
   const [showFilters, setShowFilters] = useState(false);
 
-  const [sortField, setSortField] = useState<SortField>(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
-        const saved = typeof result === "string" ? result : null;
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return (parsed.sortField as SortField) || "priority";
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load view options from localStorage:", e);
-    }
-    return "priority";
-  });
+  const [sortField, setSortField] = useState<SortField>("priority");
 
-  const [sortDirection, setSortDirection] = useState<SortDirection>(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
-        const saved = typeof result === "string" ? result : null;
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return (parsed.sortDirection as SortDirection) || "asc";
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load view options from localStorage:", e);
-    }
-    return "asc";
-  });
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-  const [groupBy, setGroupBy] = useState<GroupBy>(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_OPTIONS);
-        const saved = typeof result === "string" ? result : null;
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return (parsed.groupBy as GroupBy) || "dueDate";
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load view options from localStorage:", e);
-    }
-    return "dueDate";
-  });
+  const [groupBy, setGroupBy] = useState<GroupBy>("dueDate");
 
-  // Save all view options to localStorage whenever any of them change
+  // Track if view options have been loaded from storage
+  const [viewOptionsLoaded, setViewOptionsLoaded] = useState(false);
+
+  // Load view options from storage on mount
   useEffect(() => {
+    loadFromStorage<{
+      filters?: {
+        searchText?: string;
+        assignedPeople?: string[];
+        sourcePeople?: string[];
+        mentionedPeople?: string[];
+        projects?: string[];
+        categories?: string[];
+        priorities?: string[];
+        dueDates?: string[];
+        durations?: string[];
+        tags?: string[];
+        recurring?: string[];
+        dependencies?: string[];
+      };
+      sortField?: SortField;
+      sortDirection?: SortDirection;
+      groupBy?: GroupBy;
+      quickFilter?: QuickFilter;
+      sections?: {
+        activeExpanded?: boolean;
+        completedExpanded?: boolean;
+        archivedExpanded?: boolean;
+      };
+    }>(STORAGE_KEYS.VIEW_OPTIONS, {}).then((saved) => {
+      if (saved.filters) {
+        setFilters({
+          searchText: saved.filters.searchText || "",
+          assignedPeople: new Set(saved.filters.assignedPeople || []),
+          sourcePeople: new Set(saved.filters.sourcePeople || []),
+          mentionedPeople: new Set(saved.filters.mentionedPeople || []),
+          projects: new Set(saved.filters.projects || []),
+          categories: new Set(saved.filters.categories || []),
+          priorities: new Set(saved.filters.priorities || []),
+          dueDates: new Set(saved.filters.dueDates || []),
+          durations: new Set(saved.filters.durations || []),
+          tags: new Set(saved.filters.tags || []),
+          recurring: new Set(saved.filters.recurring || []),
+          dependencies: new Set(saved.filters.dependencies || []),
+        });
+      }
+      if (saved.sortField) setSortField(saved.sortField);
+      if (saved.sortDirection) setSortDirection(saved.sortDirection);
+      if (saved.groupBy) setGroupBy(saved.groupBy);
+      if (saved.quickFilter) setActiveQuickFilter(saved.quickFilter);
+      if (saved.sections) {
+        if (saved.sections.activeExpanded !== undefined) setActiveExpanded(saved.sections.activeExpanded);
+        if (saved.sections.completedExpanded !== undefined) setCompletedExpanded(saved.sections.completedExpanded);
+        if (saved.sections.archivedExpanded !== undefined) setArchivedExpanded(saved.sections.archivedExpanded);
+      }
+      setViewOptionsLoaded(true);
+    });
+  }, []);
+
+  // Save all view options to storage whenever any of them change (only after initial load)
+  useEffect(() => {
+    if (!viewOptionsLoaded) return;
+
     const viewOptions = {
       filters: {
         searchText: filters.searchText,
@@ -1025,9 +1011,7 @@ export function TodoApp() {
         archivedExpanded,
       },
     };
-    if (typeof window !== "undefined") {
-      getStorageAdapter().setItem(STORAGE_KEYS.VIEW_OPTIONS, JSON.stringify(viewOptions));
-    }
+    saveToStorage(STORAGE_KEYS.VIEW_OPTIONS, viewOptions);
 
     // Check if current view matches any preset
     const matchingPreset = viewPresets.find((preset) => {
@@ -1056,6 +1040,7 @@ export function TodoApp() {
 
     setActivePreset(matchingPreset ? matchingPreset.name : "custom");
   }, [
+    viewOptionsLoaded,
     filters,
     sortField,
     sortDirection,
@@ -3815,11 +3800,11 @@ export function TodoApp() {
                         <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
                           Or overwrite existing:
                         </h3>
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                        <div className="space-y-3 max-h-60 overflow-y-auto">
                           {viewPresets.map((preset) => (
                             <div
                               key={preset.name}
-                              className="flex items-center justify-between p-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg"
+                              className="group flex items-center justify-between p-4 bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 hover:shadow-md transition-all"
                             >
                               <button
                                 onClick={() => savePreset(preset.name)}
@@ -3829,7 +3814,7 @@ export function TodoApp() {
                               </button>
                               <button
                                 onClick={() => deletePreset(preset.name)}
-                                className="ml-2 p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors"
+                                className="ml-2 p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors opacity-0 group-hover:opacity-100"
                                 title="Delete preset"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

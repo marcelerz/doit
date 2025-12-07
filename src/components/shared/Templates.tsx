@@ -60,11 +60,11 @@ export function TemplatesManager({ templates, onDelete, onClose }: TemplatesMana
             )}
           </div>
         ) : (
-          <ul className="space-y-2 max-h-96 overflow-y-auto">
+          <ul className="space-y-3 max-h-96 overflow-y-auto">
             {filteredTemplates.map((template) => (
               <li
                 key={template.id}
-                className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors group"
+                className="group bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 hover:shadow-md transition-all"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">

@@ -8,7 +8,8 @@ import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import { TodoItem } from "@/components/items/TodoItem";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { Settings, Priority } from "@/types/settings";
-import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
+import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
+import { waitForStorageInit } from "@/storage/storageInit";
 
 interface CalendarViewProps {
   todos: TodoModel[];
@@ -105,82 +106,46 @@ export function CalendarView({
   });
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<TodoModel | null>(null);
 
-  // Load persisted view options
-  const [viewMode, setViewMode] = useState<CalendarViewType>(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const result = getStorageAdapter().getItem(STORAGE_KEYS.CALENDAR_VIEW_OPTIONS);
-        const saved = typeof result === "string" ? result : null;
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return parsed.viewMode ?? calendarSettings.defaultView;
-        }
-      }
-    } catch (e) {
-      /* ignore */
-    }
-    return calendarSettings.defaultView;
-  });
-  const [sortField, setSortField] = useState<"priority" | "duration" | "created">(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const result = getStorageAdapter().getItem(STORAGE_KEYS.CALENDAR_VIEW_OPTIONS);
-        const saved = typeof result === "string" ? result : null;
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return parsed.sortField ?? "created";
-        }
-      }
-    } catch (e) {
-      /* ignore */
-    }
-    return "created";
-  });
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const result = getStorageAdapter().getItem(STORAGE_KEYS.CALENDAR_VIEW_OPTIONS);
-        const saved = typeof result === "string" ? result : null;
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return parsed.sortDirection ?? "asc";
-        }
-      }
-    } catch (e) {
-      /* ignore */
-    }
-    return "asc";
-  });
-  const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const result = getStorageAdapter().getItem(STORAGE_KEYS.CALENDAR_VIEW_OPTIONS);
-        const saved = typeof result === "string" ? result : null;
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return parsed.showTasksWithoutDates ?? true;
-        }
-      }
-    } catch (e) {
-      /* ignore */
-    }
-    return true;
-  });
+  // View options state - initialized with defaults, loaded from storage in useEffect
+  const [viewMode, setViewMode] = useState<CalendarViewType>(calendarSettings.defaultView);
+  const [sortField, setSortField] = useState<"priority" | "duration" | "created">("created");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(true);
+  const [calendarOptionsLoaded, setCalendarOptionsLoaded] = useState(false);
   const [focusedDateIndex, setFocusedDateIndex] = useState<number | null>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
-  // Persist Calendar view options to storage
+  // Load persisted view options from storage
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const viewOptions = {
-        viewMode,
-        sortField,
-        sortDirection,
-        showTasksWithoutDates,
-      };
-      getStorageAdapter().setItem(STORAGE_KEYS.CALENDAR_VIEW_OPTIONS, JSON.stringify(viewOptions));
-    }
-  }, [viewMode, sortField, sortDirection, showTasksWithoutDates]);
+    waitForStorageInit()
+      .then(() => {
+        return loadFromStorage<{
+          viewMode?: CalendarViewType;
+          sortField?: "priority" | "duration" | "created";
+          sortDirection?: "asc" | "desc";
+          showTasksWithoutDates?: boolean;
+        }>(STORAGE_KEYS.CALENDAR_VIEW_OPTIONS, {});
+      })
+      .then((saved) => {
+        if (saved.viewMode !== undefined) setViewMode(saved.viewMode);
+        if (saved.sortField !== undefined) setSortField(saved.sortField);
+        if (saved.sortDirection !== undefined) setSortDirection(saved.sortDirection);
+        if (saved.showTasksWithoutDates !== undefined) setShowTasksWithoutDates(saved.showTasksWithoutDates);
+        setCalendarOptionsLoaded(true);
+      });
+  }, []);
+
+  // Persist Calendar view options to storage (only after initial load)
+  useEffect(() => {
+    if (!calendarOptionsLoaded) return;
+    const viewOptions = {
+      viewMode,
+      sortField,
+      sortDirection,
+      showTasksWithoutDates,
+    };
+    saveToStorage(STORAGE_KEYS.CALENDAR_VIEW_OPTIONS, viewOptions);
+  }, [calendarOptionsLoaded, viewMode, sortField, sortDirection, showTasksWithoutDates]);
 
   // Get day headers based on week start
   const dayHeaders = useMemo(() => {

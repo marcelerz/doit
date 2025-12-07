@@ -196,6 +196,7 @@ export const STORAGE_KEYS = {
   GANTT_VIEW_OPTIONS: "doit-gantt-view-options",
   CALENDAR_VIEW_OPTIONS: "doit-calendar-view-options",
   KANBAN_VIEW_OPTIONS: "doit-kanban-view-options",
+  UI_OPTIONS: "doit-ui-options",
   BACKUP_SETTINGS: "doit-backup-settings",
   TEMPLATES: "doit-templates",
   SEARCH_HISTORY: "doit-search-history",

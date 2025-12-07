@@ -22,7 +22,7 @@ export function SprintItem({
   return (
     <div
       onClick={onClick}
-      className={`group bg-white dark:bg-zinc-900 p-4 rounded-lg border cursor-pointer hover:shadow-md transition-all ${
+      className={`group bg-white dark:bg-zinc-900 p-4 rounded-lg shadow-sm border cursor-pointer hover:shadow-md transition-all ${
         isRunning
           ? "border-green-500 dark:border-green-600 ring-1 ring-green-500/20"
           : sprint.isArchived

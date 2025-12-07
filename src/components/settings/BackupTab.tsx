@@ -353,13 +353,13 @@ export function BackupTab({ onRestore }: BackupTabProps) {
             No backups available. Create your first backup above.
           </p>
         ) : (
-          <div className="space-y-2 max-h-96 overflow-y-auto">
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {backups.map((backup) => (
               <div
                 key={backup.timestamp}
-                className={`p-4 rounded-lg border transition-colors ${
+                className={`group bg-white dark:bg-zinc-900 p-4 rounded-lg shadow-sm border transition-all hover:shadow-md ${
                   selectedBackup === backup.timestamp
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    ? "border-blue-500 ring-1 ring-blue-500/20"
                     : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
                 }`}
               >
