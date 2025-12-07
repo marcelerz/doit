@@ -1,6 +1,7 @@
 "use client";
 
 import { Calendar, CalendarView, CalendarDotColorBy } from "@/types/settings";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface CalendarTabProps {
   calendar: Calendar;
@@ -12,7 +13,10 @@ export function CalendarTab({ calendar, onUpdate }: CalendarTabProps) {
     <div className="space-y-8">
       {/* View Settings */}
       <section>
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">View Settings</h3>
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4 flex items-center gap-2">
+          <span>View Settings</span>
+          <InfoTooltip content={tooltipContent.calendarView} />
+        </h3>
         <div className="space-y-4">
           {/* Week Start Day */}
           <div className="flex items-center justify-between">

@@ -6,6 +6,7 @@ import { MarkerColors, Settings, LinkPattern } from "@/types/settings";
 import { TodoMetadata } from "@/types/todo";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Badge } from "@/components/shared/Badge";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface FocusViewProps {
   todos: TodoModel[];
@@ -125,7 +126,10 @@ export function FocusView({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Focus Mode</h1>
+          <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+            <span>Focus Mode</span>
+            <InfoTooltip content={tooltipContent.focusMode} />
+          </h1>
         </div>
         <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
           <span>

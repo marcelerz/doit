@@ -429,7 +429,10 @@ export function TodoDetailsOverlay({
 
         {/* Context */}
         <div className="mb-4">
-          <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📝 Context</h4>
+          <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2 flex items-center gap-1.5">
+            <span>📝 Context</span>
+            <InfoTooltip content={tooltipContent.context} />
+          </h4>
           <RichTextEditor
             value={editingMetadata.context}
             onChange={(html) => {
@@ -1131,10 +1134,11 @@ export function TodoDetailsOverlay({
         {/* Subtasks Section */}
         <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-4">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-              ✅ Subtasks
+            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
+              <span>✅ Subtasks</span>
+              <InfoTooltip content={tooltipContent.subtasks} />
               {todo.hasSubtasks && (
-                <span className="ml-2 text-xs font-normal text-zinc-500 dark:text-zinc-500">
+                <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
                   ({todo.completedSubtaskCount}/{todo.subtaskCount} completed)
                 </span>
               )}
@@ -1154,10 +1158,11 @@ export function TodoDetailsOverlay({
         {onStartTimeTracking && (
           <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-                ⏱️ Time Tracking
+              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
+                <span>⏱️ Time Tracking</span>
+                <InfoTooltip content={tooltipContent.timeTracking} />
                 {todo.hasTimeTracking && (
-                  <span className="ml-2 text-xs font-normal text-zinc-500 dark:text-zinc-500">
+                  <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
                     ({todo.totalTrackedTimeDisplay})
                   </span>
                 )}
@@ -1179,10 +1184,11 @@ export function TodoDetailsOverlay({
         {/* Activity (includes comments inline) */}
         <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-4">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-              📋 Activity
+            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
+              <span>📋 Activity</span>
+              <InfoTooltip content={tooltipContent.activity} />
               {todo.hasActivity && (
-                <span className="ml-2 text-xs font-normal text-zinc-500 dark:text-zinc-500">
+                <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
                   ({todo.activityCount} {todo.activityCount === 1 ? "entry" : "entries"}
                   {todo.hasComments && `, ${todo.commentCount} ${todo.commentCount === 1 ? "comment" : "comments"}`})
                 </span>

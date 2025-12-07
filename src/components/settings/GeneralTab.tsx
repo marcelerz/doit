@@ -61,7 +61,10 @@ export function GeneralTab({
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Theme</h3>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
+                <span>Theme</span>
+                <InfoTooltip content={tooltipContent.theme} />
+              </h3>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
                 Choose your preferred color scheme. System will automatically match your device settings.
               </p>
@@ -210,7 +213,10 @@ export function GeneralTab({
         {/* Feature Toggles */}
         {onUpdateFeatures && (
           <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
-            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Features</h3>
+            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
+              <span>Features</span>
+              <InfoTooltip content={tooltipContent.features} />
+            </h3>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
               Enable or disable features to simplify the interface. Disabled features will hide their views and related
               settings.

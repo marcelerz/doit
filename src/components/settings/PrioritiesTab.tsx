@@ -5,6 +5,7 @@ import { Priority } from "@/types/settings";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { IconButton } from "@/components/shared/IconButton";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface PrioritiesTabProps {
   priorities: Priority[];
@@ -63,7 +64,10 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Priorities</h2>
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+          <span>Priorities</span>
+          <InfoTooltip content={tooltipContent.priority} />
+        </h2>
         {!isAdding && (
           <button
             onClick={() => setIsAdding(true)}

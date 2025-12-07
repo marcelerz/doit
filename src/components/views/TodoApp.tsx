@@ -3447,7 +3447,10 @@ export function TodoApp() {
                 >
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Save View Preset</h2>
+                      <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                        <span>Save View Preset</span>
+                        <InfoTooltip content={tooltipContent.viewPresets} />
+                      </h2>
                       <button
                         onClick={() => setIsSavePresetOpen(false)}
                         className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
@@ -4051,8 +4054,11 @@ export function TodoApp() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsBatchEditOpen(false)} />
           <div className="relative bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md p-6 space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                Edit {selectedTodoIds.size} Task{selectedTodoIds.size === 1 ? "" : "s"}
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <span>
+                  Edit {selectedTodoIds.size} Task{selectedTodoIds.size === 1 ? "" : "s"}
+                </span>
+                <InfoTooltip content={tooltipContent.batchProcessing} />
               </h2>
               <button
                 onClick={() => setIsBatchEditOpen(false)}

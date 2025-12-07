@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { importTodos, ImportResult, ImportedTodo, ImportFormat, convertAllToTodos } from "@/utils/import";
 import { Todo } from "@/types/todo";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface ImportTabProps {
   onImport: (todos: Array<Omit<Todo, "id">>) => void;
@@ -127,7 +128,10 @@ export function ImportTab({ onImport, existingProjects = [] }: ImportTabProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Import Tasks</h3>
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
+          <span>Import Tasks</span>
+          <InfoTooltip content={tooltipContent.importData} />
+        </h3>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Import tasks from other apps. Supported formats: Todoist, Things 3, Apple Reminders, CSV, and JSON.
         </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { DateTimeSettings } from "@/types/settings";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface DateTimeTabProps {
   dateTime: DateTimeSettings;
@@ -18,7 +19,10 @@ export function DateTimeTab({ dateTime, onUpdate }: DateTimeTabProps) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Date & Time Settings</h2>
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+          <span>Date & Time Settings</span>
+          <InfoTooltip content={tooltipContent.dateTimeSettings} />
+        </h2>
       </div>
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">

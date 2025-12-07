@@ -552,4 +552,274 @@ export const tooltipContent = {
       </ul>
     </div>
   ),
+
+  // Time Tracking
+  timeTracking: (
+    <div className="space-y-2">
+      <p>Track time spent on tasks.</p>
+      <ul className="space-y-1">
+        <li>• Start/stop timer for active tracking</li>
+        <li>• Add manual time entries</li>
+        <li>• View total time and individual entries</li>
+        <li>• Optional notes for each entry</li>
+      </ul>
+    </div>
+  ),
+
+  // Date Time Settings
+  dateTimeSettings: (
+    <div className="space-y-2">
+      <p>Customize time shortcuts and calendar settings.</p>
+      <ul className="space-y-1">
+        <li>• Define what &quot;morning&quot;, &quot;noon&quot;, etc. mean</li>
+        <li>• Set your work week start day</li>
+        <li>• Configure fiscal year start</li>
+        <li>• BOD/EOD from Work Hours settings</li>
+      </ul>
+    </div>
+  ),
+
+  // View Modes
+  viewModes: (
+    <div className="space-y-2">
+      <p>Different ways to visualize your tasks.</p>
+      <ul className="space-y-1">
+        <li>
+          • <strong>List</strong>: Traditional todo list with filters
+        </li>
+        <li>
+          • <strong>Kanban</strong>: Visual board with drag-and-drop
+        </li>
+        <li>
+          • <strong>Gantt</strong>: Timeline for task planning
+        </li>
+        <li>
+          • <strong>Calendar</strong>: Monthly view with task dots
+        </li>
+      </ul>
+    </div>
+  ),
+
+  // Gantt View
+  ganttView: (
+    <div className="space-y-2">
+      <p>Timeline visualization for task planning.</p>
+      <ul className="space-y-1">
+        <li>• View tasks on a horizontal timeline</li>
+        <li>• Auto-schedule based on due dates & durations</li>
+        <li>• Respects work hours and time blocks</li>
+        <li>• Group by project or view all tasks</li>
+      </ul>
+    </div>
+  ),
+
+  // Calendar View
+  calendarView: (
+    <div className="space-y-2">
+      <p>Monthly calendar view of your tasks.</p>
+      <ul className="space-y-1">
+        <li>• Dots indicate tasks due on each day</li>
+        <li>• Click a day to see task details</li>
+        <li>• Navigate between months easily</li>
+        <li>• Quick overview of upcoming deadlines</li>
+      </ul>
+    </div>
+  ),
+
+  // Features
+  features: (
+    <div className="space-y-2">
+      <p>Enable or disable app features.</p>
+      <ul className="space-y-1">
+        <li>• Toggle views you don&apos;t use</li>
+        <li>• Simplify the interface</li>
+        <li>• Disabled features hide their tabs</li>
+        <li>• Re-enable anytime in Settings</li>
+      </ul>
+    </div>
+  ),
+
+  // Search
+  search: (
+    <div className="space-y-2">
+      <p>Find tasks quickly across all your data.</p>
+      <ul className="space-y-1">
+        <li>• Search task text, people, projects</li>
+        <li>• Search tags, comments, and context</li>
+        <li>• Recent searches saved automatically</li>
+        <li>• Press Escape to clear</li>
+      </ul>
+    </div>
+  ),
+
+  // Import
+  importData: (
+    <div className="space-y-2">
+      <p>Import tasks from external sources.</p>
+      <ul className="space-y-1">
+        <li>• Plain text (one task per line)</li>
+        <li>• Markdown checkboxes</li>
+        <li>• CSV format</li>
+        <li>• Duplicate detection available</li>
+      </ul>
+    </div>
+  ),
+
+  // Export
+  exportData: (
+    <div className="space-y-2">
+      <p>Export your tasks for use elsewhere.</p>
+      <ul className="space-y-1">
+        <li>• Markdown format with checkboxes</li>
+        <li>• CSV for spreadsheets</li>
+        <li>• JSON for full data backup</li>
+        <li>• Choose which tasks to include</li>
+      </ul>
+    </div>
+  ),
+
+  // Undo/Redo
+  undoRedo: (
+    <div className="space-y-2">
+      <p>Undo or redo your recent changes.</p>
+      <ul className="space-y-1">
+        <li>• Undo accidental deletions</li>
+        <li>• Redo if you change your mind</li>
+        <li>• Keyboard: Cmd/Ctrl + Z, Cmd/Ctrl + Shift + Z</li>
+      </ul>
+    </div>
+  ),
+
+  // Focus Mode
+  focusMode: (
+    <div className="space-y-2">
+      <p>Distraction-free task view.</p>
+      <ul className="space-y-1">
+        <li>• Shows one task at a time</li>
+        <li>• Hides filters and sidebar</li>
+        <li>• Navigate with arrow keys</li>
+        <li>• Great for deep work sessions</li>
+      </ul>
+    </div>
+  ),
+
+  // Context Field
+  context: (
+    <div className="space-y-2">
+      <p>Rich text notes for additional details.</p>
+      <ul className="space-y-1">
+        <li>• Add formatted notes</li>
+        <li>• Include links and lists</li>
+        <li>• Background info and references</li>
+        <li>• Click to edit, blur to save</li>
+      </ul>
+    </div>
+  ),
+
+  // Links Section
+  links: (
+    <div className="space-y-2">
+      <p>Auto-detected links in your task.</p>
+      <ul className="space-y-1">
+        <li>• Pattern-based link detection</li>
+        <li>• Click to open in new tab</li>
+        <li>• Configure patterns in Settings → Links</li>
+      </ul>
+    </div>
+  ),
+
+  // Theme
+  theme: (
+    <div className="space-y-2">
+      <p>Choose your preferred appearance.</p>
+      <ul className="space-y-1">
+        <li>
+          • <strong>Light</strong>: Bright, clean interface
+        </li>
+        <li>
+          • <strong>Dark</strong>: Easy on the eyes at night
+        </li>
+        <li>
+          • <strong>System</strong>: Matches your device setting
+        </li>
+      </ul>
+    </div>
+  ),
+
+  // Reordering
+  reordering: (
+    <div className="space-y-2">
+      <p>Manually order your tasks.</p>
+      <ul className="space-y-1">
+        <li>• Drag and drop to reorder</li>
+        <li>• Manual order persists</li>
+        <li>• Disable to use automatic sorting</li>
+      </ul>
+    </div>
+  ),
+
+  // Batch Processing
+  batchProcessing: (
+    <div className="space-y-2">
+      <p>Edit multiple tasks at once.</p>
+      <ul className="space-y-1">
+        <li>• Select multiple tasks</li>
+        <li>• Batch complete, archive, or delete</li>
+        <li>• Batch edit metadata (priority, project, etc.)</li>
+        <li>• Shift+click for range selection</li>
+      </ul>
+    </div>
+  ),
+
+  // Notifications
+  notifications: (
+    <div className="space-y-2">
+      <p>Get browser notifications for due tasks.</p>
+      <ul className="space-y-1">
+        <li>• Enable browser notifications permission</li>
+        <li>• Get notified when tasks become overdue</li>
+        <li>• Alerts for tasks due today or soon</li>
+        <li>• Customize check interval and timing</li>
+      </ul>
+    </div>
+  ),
+
+  // Priorities
+  priorities: (
+    <div className="space-y-2">
+      <p>Define priority levels for your tasks.</p>
+      <ul className="space-y-1">
+        <li>• Create custom priority levels</li>
+        <li>• Assign colors to each priority</li>
+        <li>• Add alternative names (e.g., &quot;critical&quot; = &quot;urgent&quot;)</li>
+        <li>• Priority colors show on task checkboxes</li>
+      </ul>
+    </div>
+  ),
+
+  // Sorting
+  sorting: (
+    <div className="space-y-2">
+      <p>Order tasks in the list.</p>
+      <ul className="space-y-1">
+        <li>• Sort by due date, priority, created date</li>
+        <li>• Ascending or descending order</li>
+        <li>• Combined with grouping for organization</li>
+        <li>• Manual order also available</li>
+      </ul>
+    </div>
+  ),
+
+  // View Presets
+  viewPresets: (
+    <div className="space-y-2">
+      <p>Save your favorite view configurations.</p>
+      <ul className="space-y-1">
+        <li>• Save filter and sort combinations</li>
+        <li>• Quick switch between views</li>
+        <li>• Share presets across sessions</li>
+        <li>• Create presets for different workflows</li>
+      </ul>
+    </div>
+  ),
 };

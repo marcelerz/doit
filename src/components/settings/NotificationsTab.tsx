@@ -9,6 +9,7 @@ import {
   sendNotification,
   NotificationPermission,
 } from "@/utils/notifications";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface NotificationsTabProps {
   notifications: NotificationSettings;
@@ -68,7 +69,10 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
       <div className="p-4 rounded-lg border bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Notification Permission</h3>
+            <h3 className="font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <span>Notification Permission</span>
+              <InfoTooltip content={tooltipContent.notifications} />
+            </h3>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
               {permission === "granted" && "Notifications are enabled"}
               {permission === "denied" && "Notifications are blocked. Enable them in your browser settings."}
