@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useSettings } from "@/hooks/useSettings";
 import { usePeople } from "@/hooks/usePeople";
@@ -23,42 +23,83 @@ import { NotificationsTab } from "@/components/settings/NotificationsTab";
 import { CategoriesTab } from "@/components/settings/CategoriesTab";
 import { ImportTab } from "@/components/settings/ImportTab";
 
-const tabs = {
-  General: "general",
-  "Date/Time": "datetime",
-  "Work Hours": "workhours",
-  Gantt: "gantt",
-  Kanban: "kanban",
-  Sprints: "sprints",
-  Calendar: "calendar",
-  Categories: "categories",
-  "Auto-Assign": "autoassign",
-  Notifications: "notifications",
-  Priorities: "priorities",
-  Links: "links",
-  Markers: "markers",
-  Backup: "backup",
-  Import: "import",
-  Storage: "storage",
-} as const;
+// Organized tab groups for sidebar navigation
+const tabGroups = [
+  {
+    name: "General",
+    icon: "⚙️",
+    tabs: [
+      { key: "general", label: "General", icon: "🔧" },
+      { key: "notifications", label: "Notifications", icon: "🔔" },
+    ],
+  },
+  {
+    name: "Time & Scheduling",
+    icon: "🕐",
+    tabs: [
+      { key: "datetime", label: "Date/Time", icon: "📅" },
+      { key: "workhours", label: "Work Hours", icon: "⏰" },
+    ],
+  },
+  {
+    name: "Views",
+    icon: "👁️",
+    tabs: [
+      { key: "gantt", label: "Gantt", icon: "📊", feature: "ganttView" },
+      { key: "kanban", label: "Kanban", icon: "📋", feature: "kanbanView" },
+      { key: "calendar", label: "Calendar", icon: "🗓️", feature: "calendarView" },
+      { key: "sprints", label: "Sprints", icon: "🏃", feature: "sprintsView" },
+    ],
+  },
+  {
+    name: "Organization",
+    icon: "📁",
+    tabs: [
+      { key: "categories", label: "Categories", icon: "🏷️" },
+      { key: "priorities", label: "Priorities", icon: "⚡" },
+      { key: "autoassign", label: "Auto-Assign", icon: "🎯" },
+    ],
+  },
+  {
+    name: "Appearance",
+    icon: "🎨",
+    tabs: [
+      { key: "markers", label: "Markers", icon: "🖍️" },
+      { key: "links", label: "Links", icon: "🔗" },
+    ],
+  },
+  {
+    name: "Data",
+    icon: "💾",
+    tabs: [
+      { key: "backup", label: "Backup", icon: "📦" },
+      { key: "import", label: "Import", icon: "📥" },
+      { key: "storage", label: "Storage", icon: "🗄️" },
+    ],
+  },
+] as const;
 
-type Tab = (typeof tabs)[keyof typeof tabs];
-
-// Tabs that depend on feature settings
-const featureDependentTabs: Record<string, keyof typeof import("@/types/settings").defaultFeatureSettings> = {
-  gantt: "ganttView",
-  kanban: "kanbanView",
-  sprints: "sprintsView",
-  calendar: "calendarView",
-};
+type Tab =
+  | "general"
+  | "datetime"
+  | "workhours"
+  | "gantt"
+  | "kanban"
+  | "sprints"
+  | "calendar"
+  | "categories"
+  | "autoassign"
+  | "notifications"
+  | "priorities"
+  | "links"
+  | "markers"
+  | "backup"
+  | "import"
+  | "storage";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [showLeftHint, setShowLeftHint] = useState(false);
-  const [showRightHint, setShowRightHint] = useState(false);
-  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isHoveringHintRef = useRef(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const {
     settings,
@@ -93,64 +134,6 @@ export default function SettingsPage() {
 
   const isLoaded = settingsLoaded && peopleLoaded && projectsLoaded && todosLoaded;
 
-  // Check if scrolling is needed and which direction
-  useEffect(() => {
-    const checkScroll = () => {
-      // Don't update hints while hovering
-      if (isHoveringHintRef.current) return;
-
-      if (scrollContainerRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-        const hasOverflow = scrollWidth > clientWidth;
-
-        setShowLeftHint(hasOverflow && scrollLeft > 0);
-        setShowRightHint(hasOverflow && scrollLeft < scrollWidth - clientWidth - 1);
-      }
-    };
-
-    // Use requestAnimationFrame to ensure DOM is painted
-    const rafId = requestAnimationFrame(() => {
-      checkScroll();
-    });
-
-    const container = scrollContainerRef.current;
-    container?.addEventListener("scroll", checkScroll);
-    window.addEventListener("resize", checkScroll);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      container?.removeEventListener("scroll", checkScroll);
-      window.removeEventListener("resize", checkScroll);
-    };
-  }, [isLoaded]); // Re-run when data is loaded
-
-  const handleScrollHoverEnter = (direction: "left" | "right") => {
-    isHoveringHintRef.current = true;
-    if (scrollContainerRef.current) {
-      scrollIntervalRef.current = setInterval(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollLeft += direction === "right" ? 5 : -5;
-        }
-      }, 20);
-    }
-  };
-
-  const handleScrollHoverLeave = () => {
-    isHoveringHintRef.current = false;
-    if (scrollIntervalRef.current) {
-      clearInterval(scrollIntervalRef.current);
-      scrollIntervalRef.current = null;
-    }
-
-    // Check scroll position after hover ends
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      const hasOverflow = scrollWidth > clientWidth;
-      setShowLeftHint(hasOverflow && scrollLeft > 0);
-      setShowRightHint(hasOverflow && scrollLeft < scrollWidth - clientWidth - 1);
-    }
-  };
-
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800">
@@ -159,95 +142,125 @@ export default function SettingsPage() {
     );
   }
 
-  // Filter out tabs for disabled features
-  const visibleTabs = Object.entries(tabs).filter(([, tabKey]) => {
-    const featureKey = featureDependentTabs[tabKey];
-    if (featureKey && settings.features) {
-      return settings.features[featureKey];
+  // Check if a tab should be visible based on feature settings
+  const isTabVisible = (tab: { key: string; feature?: string }) => {
+    if (tab.feature && settings.features) {
+      return settings.features[tab.feature as keyof typeof settings.features];
     }
     return true;
-  });
+  };
 
-  const buttons = visibleTabs.map(([label]) => {
-    const tabKey = label as keyof typeof tabs;
-    return (
-      <button
-        key={label}
-        onClick={() => setActiveTab(tabs[tabKey])}
-        className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-          activeTab === tabs[tabKey]
-            ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-600"
-            : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-        }`}
-      >
-        {label}
-      </button>
-    );
-  });
+  // Get current tab label for mobile header
+  const getCurrentTabLabel = () => {
+    for (const group of tabGroups) {
+      for (const tab of group.tabs) {
+        if (tab.key === activeTab) {
+          return `${tab.icon} ${tab.label}`;
+        }
+      }
+    }
+    return "Settings";
+  };
+
+  const handleTabClick = (tabKey: Tab) => {
+    setActiveTab(tabKey);
+    setIsMobileSidebarOpen(false);
+  };
+
+  const renderSidebar = () => (
+    <nav className="space-y-4">
+      {tabGroups.map((group) => {
+        const visibleTabs = group.tabs.filter(isTabVisible);
+        if (visibleTabs.length === 0) return null;
+
+        return (
+          <div key={group.name}>
+            <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-3">
+              {group.icon} {group.name}
+            </div>
+            <div className="space-y-1">
+              {visibleTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => handleTabClick(tab.key as Tab)}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                    activeTab === tab.key
+                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                      : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  <span>{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </nav>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800 py-8 px-4">
-      <div className="max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
-        <header className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-100">Settings</h1>
-            <Link
-              href="/"
-              className="px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
-            >
-              ← Back to Todos
-            </Link>
-          </div>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            Configure general settings, date/time, priorities, link patterns, and marker colors for your todo app
-          </p>
-        </header>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800">
+      {/* Mobile header */}
+      <div className="lg:hidden sticky top-0 z-20 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <span className="font-medium">{getCurrentTabLabel()}</span>
+          </button>
+          <Link
+            href="/"
+            className="px-3 py-1.5 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg text-sm font-medium transition-colors"
+          >
+            ← Back
+          </Link>
+        </div>
+      </div>
 
-        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-          <div className="relative">
-            <div
-              ref={scrollContainerRef}
-              className="flex border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto scrollbar-hide touch-pan-x"
-              style={{
-                scrollBehavior: "smooth",
-                WebkitOverflowScrolling: "touch",
-              }}
-            >
-              {buttons}
+      {/* Mobile sidebar overlay */}
+      {isMobileSidebarOpen && (
+        <div className="lg:hidden fixed inset-0 z-30">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-zinc-900 shadow-xl overflow-y-auto">
+            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
+              <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">Settings</h2>
             </div>
-
-            {/* Scroll hint overlay on the left */}
-            {showLeftHint && (
-              <div
-                className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white dark:from-zinc-900 to-transparent pointer-events-auto flex items-center justify-start pl-2 z-10"
-                onMouseEnter={() => handleScrollHoverEnter("left")}
-                onMouseLeave={handleScrollHoverLeave}
-              >
-                <div className="text-zinc-600 dark:text-zinc-300 drop-shadow-md">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-                  </svg>
-                </div>
-              </div>
-            )}
-
-            {/* Scroll hint overlay on the right */}
-            {showRightHint && (
-              <div
-                className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white dark:from-zinc-900 to-transparent pointer-events-auto flex items-center justify-end pr-2 z-10"
-                onMouseEnter={() => handleScrollHoverEnter("right")}
-                onMouseLeave={handleScrollHoverLeave}
-              >
-                <div className="text-zinc-600 dark:text-zinc-300 drop-shadow-md">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-                  </svg>
-                </div>
-              </div>
-            )}
+            <div className="p-4">{renderSidebar()}</div>
           </div>
+        </div>
+      )}
 
-          <div className="p-6">
+      <div className="flex max-w-7xl mx-auto">
+        {/* Desktop sidebar */}
+        <aside className="hidden lg:block w-64 flex-shrink-0 p-6">
+          <div className="sticky top-6">
+            <div className="mb-6">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Todos
+              </Link>
+            </div>
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-6">Settings</h1>
+            <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-4">
+              {renderSidebar()}
+            </div>
+          </div>
+        </aside>
+
+        {/* Main content */}
+        <main className="flex-1 p-4 lg:p-6 lg:pl-0">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-800 p-6">
             {(() => {
               switch (activeTab) {
                 case "general":
@@ -328,7 +341,7 @@ export default function SettingsPage() {
               }
             })()}
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
