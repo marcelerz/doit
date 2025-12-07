@@ -51,14 +51,13 @@ export function ProjectDetailsOverlay({
     setEditingCategory(project.raw.category || "");
   }, [project]);
 
-  // Auto-save when fields change
+  // Auto-save when fields change (except context - saved on blur)
   useEffect(() => {
     const handler = setTimeout(() => {
       if (
         editingName.trim() !== project.name ||
         JSON.stringify(editingAlternatives) !== JSON.stringify(project.alternatives) ||
         editingColor !== project.color ||
-        (editingContext.trim() || undefined) !== project.context ||
         (editingCategory || undefined) !== project.raw.category
       ) {
         onUpdate(project.id, {
@@ -72,7 +71,7 @@ export function ProjectDetailsOverlay({
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [editingName, editingAlternatives, editingColor, editingContext, editingCategory, project, onUpdate]);
+  }, [editingName, editingAlternatives, editingColor, editingCategory, project, onUpdate, editingContext]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -195,6 +194,18 @@ export function ProjectDetailsOverlay({
             <RichTextEditor
               value={editingContext}
               onChange={(html) => setEditingContext(html || "")}
+              onBlur={(html) => {
+                // Commit context change on blur
+                if ((html.trim() || undefined) !== project.context) {
+                  onUpdate(project.id, {
+                    name: editingName.trim(),
+                    alternatives: editingAlternatives,
+                    color: editingColor,
+                    context: html.trim() || undefined,
+                    category: editingCategory || undefined,
+                  });
+                }
+              }}
               placeholder="Add context..."
               minHeight="100px"
               maxHeight="300px"

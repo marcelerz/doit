@@ -34,7 +34,8 @@ import { TaskTemplate } from "@/types/todo";
 import { parseTokensToMetadata } from "@/utils/tokenParser";
 import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
 import { getTextColor } from "@/utils/colors";
-import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
+import { STORAGE_KEYS, getStorageAdapter, loadFromStorage, saveToStorage } from "@/storage/storage";
+import { waitForStorageInit } from "@/storage/storageInit";
 import { exportTodos, ExportFormat } from "@/utils/export";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
@@ -873,30 +874,36 @@ export function TodoApp() {
     sortField: SortField;
     sortDirection: SortDirection;
     groupBy: GroupBy;
+    quickFilter?: "all" | "today" | "overdue" | "thisWeek" | "noDueDate";
+    sections?: {
+      activeExpanded: boolean;
+      completedExpanded: boolean;
+      archivedExpanded: boolean;
+    };
   }
 
   // Load saved view presets
-  const [viewPresets, setViewPresets] = useState<ViewPreset[]>(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const result = getStorageAdapter().getItem(STORAGE_KEYS.VIEW_PRESETS);
-        const saved = typeof result === "string" ? result : null;
-        if (saved) {
-          return JSON.parse(saved);
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load view presets from localStorage:", e);
-    }
-    return [];
-  });
+  const [viewPresets, setViewPresets] = useState<ViewPreset[]>([]);
+  const [viewPresetsLoaded, setViewPresetsLoaded] = useState(false);
 
-  // Save view presets to localStorage
+  // Load view presets from storage on mount
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      getStorageAdapter().setItem(STORAGE_KEYS.VIEW_PRESETS, JSON.stringify(viewPresets));
+    waitForStorageInit()
+      .then(() => {
+        return loadFromStorage<ViewPreset[]>(STORAGE_KEYS.VIEW_PRESETS, []);
+      })
+      .then((saved) => {
+        setViewPresets(saved);
+        setViewPresetsLoaded(true);
+      });
+  }, []);
+
+  // Save view presets to storage when they change (only after initial load)
+  useEffect(() => {
+    if (viewPresetsLoaded) {
+      saveToStorage(STORAGE_KEYS.VIEW_PRESETS, viewPresets);
     }
-  }, [viewPresets]);
+  }, [viewPresets, viewPresetsLoaded]);
 
   // Load all view options from a single localStorage key
   const [filters, setFilters] = useState<TodoFilters>(() => {
@@ -1030,12 +1037,20 @@ export function TodoApp() {
         arraysEqual(preset.filters.sourcePeople, Array.from(filters.sourcePeople)) &&
         arraysEqual(preset.filters.mentionedPeople, Array.from(filters.mentionedPeople)) &&
         arraysEqual(preset.filters.projects, Array.from(filters.projects)) &&
+        arraysEqual(preset.filters.categories || [], Array.from(filters.categories)) &&
         arraysEqual(preset.filters.priorities, Array.from(filters.priorities)) &&
         arraysEqual(preset.filters.dueDates, Array.from(filters.dueDates)) &&
         arraysEqual(preset.filters.durations, Array.from(filters.durations)) &&
+        arraysEqual(preset.filters.tags || [], Array.from(filters.tags)) &&
+        arraysEqual(preset.filters.recurring || [], Array.from(filters.recurring)) &&
+        arraysEqual(preset.filters.dependencies || [], Array.from(filters.dependencies)) &&
         preset.sortField === sortField &&
         preset.sortDirection === sortDirection &&
-        preset.groupBy === groupBy
+        preset.groupBy === groupBy &&
+        (preset.quickFilter || "all") === activeQuickFilter &&
+        (preset.sections?.activeExpanded ?? true) === activeExpanded &&
+        (preset.sections?.completedExpanded ?? false) === completedExpanded &&
+        (preset.sections?.archivedExpanded ?? false) === archivedExpanded
       );
     });
 
@@ -1079,6 +1094,14 @@ export function TodoApp() {
     setSortField(preset.sortField);
     setSortDirection(preset.sortDirection);
     setGroupBy(preset.groupBy);
+    // Load quick filter (default to "all" for backward compatibility)
+    setActiveQuickFilter(preset.quickFilter || "all");
+    // Load section states (default to true for backward compatibility)
+    if (preset.sections) {
+      setActiveExpanded(preset.sections.activeExpanded);
+      setCompletedExpanded(preset.sections.completedExpanded);
+      setArchivedExpanded(preset.sections.archivedExpanded);
+    }
     setActivePreset(preset.name);
   };
 
@@ -1103,6 +1126,12 @@ export function TodoApp() {
       sortField,
       sortDirection,
       groupBy,
+      quickFilter: activeQuickFilter,
+      sections: {
+        activeExpanded,
+        completedExpanded,
+        archivedExpanded,
+      },
     };
 
     // Replace if exists, otherwise add
@@ -2100,31 +2129,31 @@ export function TodoApp() {
           <div className="flex gap-1 sm:gap-2 border-b border-zinc-200 dark:border-zinc-800 min-w-max">
             <button
               onClick={() => setActiveView("list")}
-              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+              className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
                 activeView === "list"
                   ? "text-blue-600 dark:text-blue-400 border-blue-600"
                   : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
               }`}
               title="List view"
             >
-              <div className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-1 lg:gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-                <span className="hidden sm:inline">List</span>
+                <span className="hidden lg:inline">List</span>
               </div>
             </button>
             {features?.kanbanView && (
               <button
                 onClick={() => setActiveView("kanban")}
-                className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
                   activeView === "kanban"
                     ? "text-blue-600 dark:text-blue-400 border-blue-600"
                     : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
                 }`}
                 title="Kanban view"
               >
-                <div className="flex items-center gap-1 sm:gap-2">
+                <div className="flex items-center gap-1 lg:gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
@@ -2133,40 +2162,40 @@ export function TodoApp() {
                       d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
                     />
                   </svg>
-                  <span className="hidden sm:inline">Kanban</span>
+                  <span className="hidden lg:inline">Kanban</span>
                 </div>
               </button>
             )}
             {features?.ganttView && (
               <button
                 onClick={() => setActiveView("gantt")}
-                className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
                   activeView === "gantt"
                     ? "text-blue-600 dark:text-blue-400 border-blue-600"
                     : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
                 }`}
                 title="Gantt view"
               >
-                <div className="flex items-center gap-1 sm:gap-2">
+                <div className="flex items-center gap-1 lg:gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     {/* Horizontal bars representing a Gantt chart timeline */}
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h10M4 12h16M4 18h12" />
                   </svg>
-                  <span className="hidden sm:inline">Gantt</span>
+                  <span className="hidden lg:inline">Gantt</span>
                 </div>
               </button>
             )}
             {features?.calendarView && (
               <button
                 onClick={() => setActiveView("calendar")}
-                className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
                   activeView === "calendar"
                     ? "text-blue-600 dark:text-blue-400 border-blue-600"
                     : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
                 }`}
                 title="Calendar view"
               >
-                <div className="flex items-center gap-1 sm:gap-2">
+                <div className="flex items-center gap-1 lg:gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
@@ -2175,20 +2204,20 @@ export function TodoApp() {
                       d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  <span className="hidden sm:inline">Calendar</span>
+                  <span className="hidden lg:inline">Calendar</span>
                 </div>
               </button>
             )}
             <button
               onClick={() => setActiveView("people")}
-              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+              className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
                 activeView === "people"
                   ? "text-blue-600 dark:text-blue-400 border-blue-600"
                   : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
               }`}
               title="People view"
             >
-              <div className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-1 lg:gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
@@ -2197,19 +2226,19 @@ export function TodoApp() {
                     d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                   />
                 </svg>
-                <span className="hidden sm:inline">People</span>
+                <span className="hidden lg:inline">People</span>
               </div>
             </button>
             <button
               onClick={() => setActiveView("projects")}
-              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+              className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
                 activeView === "projects"
                   ? "text-blue-600 dark:text-blue-400 border-blue-600"
                   : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
               }`}
               title="Projects view"
             >
-              <div className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-1 lg:gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
@@ -2218,26 +2247,26 @@ export function TodoApp() {
                     d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
                   />
                 </svg>
-                <span className="hidden sm:inline">Projects</span>
+                <span className="hidden lg:inline">Projects</span>
               </div>
             </button>
             {features?.sprintsView && (
               <button
                 onClick={() => setActiveView("sprints")}
-                className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
                   activeView === "sprints"
                     ? "text-blue-600 dark:text-blue-400 border-blue-600"
                     : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
                 }`}
                 title="Sprints view"
               >
-                <div className="flex items-center gap-1 sm:gap-2">
+                <div className="flex items-center gap-1 lg:gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  <span className="hidden sm:inline">Sprints</span>
+                  <span className="hidden lg:inline">Sprints</span>
                   {runningSprint && (
-                    <span className="hidden sm:inline w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="hidden lg:inline w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                   )}
                 </div>
               </button>
@@ -2245,14 +2274,14 @@ export function TodoApp() {
             {features?.statsView && (
               <button
                 onClick={() => setActiveView("stats")}
-                className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                className={`px-2 lg:px-4 py-2 lg:py-3 font-medium transition-colors border-b-2 ${
                   activeView === "stats"
                     ? "text-blue-600 dark:text-blue-400 border-blue-600"
                     : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
                 }`}
                 title="Stats view"
               >
-                <div className="flex items-center gap-1 sm:gap-2">
+                <div className="flex items-center gap-1 lg:gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
@@ -2261,7 +2290,7 @@ export function TodoApp() {
                       d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                     />
                   </svg>
-                  <span className="hidden sm:inline">Stats</span>
+                  <span className="hidden lg:inline">Stats</span>
                 </div>
               </button>
             )}
@@ -2282,13 +2311,13 @@ export function TodoApp() {
                     className={`px-3 py-1.5 rounded-lg font-medium transition-colors text-sm ${
                       activePreset === preset.name
                         ? "bg-blue-600 text-white"
-                        : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                     }`}
                   >
                     {preset.name}
                   </button>
                 ))}
-                {activePreset === "custom" && (
+                {activePreset === "custom" && hasActiveFilters && (
                   <span className="px-3 py-1.5 rounded-lg font-medium text-sm bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
                     Custom
                   </span>
@@ -2365,8 +2394,8 @@ export function TodoApp() {
               </button>
 
               {/* Group By - hidden on small screens, shown in More menu */}
-              <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap hidden xl:inline">
+              <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap hidden lg:inline">
                   Group:
                 </label>
                 <select
@@ -2386,8 +2415,8 @@ export function TodoApp() {
               </div>
 
               {/* Sort By - hidden on small screens, shown in More menu */}
-              <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap hidden xl:inline">
+              <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap hidden lg:inline">
                   Sort:
                 </label>
                 <select
@@ -2436,10 +2465,10 @@ export function TodoApp() {
                 </svg>
               </button>
 
-              {/* Vertical Separator - hidden on small screens */}
+              {/* Vertical Separator - hidden on medium screens */}
               <div className="hidden lg:block w-px h-6 bg-zinc-300 dark:bg-zinc-600 flex-shrink-0" />
 
-              {/* Templates Button - hidden on small screens */}
+              {/* Templates Button - hidden on medium screens */}
               {features?.templates && templates.length > 0 && (
                 <button
                   onClick={() => setShowTemplatesManager(true)}
@@ -2457,7 +2486,7 @@ export function TodoApp() {
                 </button>
               )}
 
-              {/* Selection Mode Button - hidden on small screens */}
+              {/* Selection Mode Button - hidden on medium screens */}
               {features?.batchProcessing && (
                 <button
                   onClick={toggleSelectionMode}
@@ -2479,7 +2508,7 @@ export function TodoApp() {
                 </button>
               )}
 
-              {/* Reorder Mode Button - hidden on small screens */}
+              {/* Reorder Mode Button - hidden on medium screens */}
               {features?.reordering && (
                 <button
                   onClick={toggleDragMode}
@@ -2496,7 +2525,7 @@ export function TodoApp() {
                 </button>
               )}
 
-              {/* Export Dropdown - hidden on small screens */}
+              {/* Export Dropdown - hidden on medium screens */}
               {features?.exports && (
                 <div ref={exportMenuRef} className="hidden lg:block relative flex-shrink-0">
                   <button
@@ -2578,7 +2607,7 @@ export function TodoApp() {
                 </div>
               )}
 
-              {/* More Options Menu - only shown on small screens */}
+              {/* More Options Menu - shown when extra toolbar options are hidden */}
               {todos.length > 0 && (
                 <div ref={moreMenuRef} className="lg:hidden relative flex-shrink-0">
                   <button
@@ -2604,7 +2633,7 @@ export function TodoApp() {
                   {isMoreMenuOpen && (
                     <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
                       {/* Group By - shown on small screens only */}
-                      <div className="lg:hidden px-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
+                      <div className="sm:hidden px-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
                         <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
                           Group by
                         </label>
@@ -2624,7 +2653,7 @@ export function TodoApp() {
                       </div>
 
                       {/* Sort By - shown on small screens only */}
-                      <div className="lg:hidden px-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
+                      <div className="sm:hidden px-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
                         <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
                           Sort by
                         </label>
@@ -2659,14 +2688,14 @@ export function TodoApp() {
                         </div>
                       </div>
 
-                      {/* Templates - shown on small screens only */}
+                      {/* Templates - shown when toolbar button is hidden */}
                       {features?.templates && templates.length > 0 && (
                         <button
                           onClick={() => {
                             setShowTemplatesManager(true);
                             setIsMoreMenuOpen(false);
                           }}
-                          className="lg:hidden w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                          className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -2680,14 +2709,14 @@ export function TodoApp() {
                         </button>
                       )}
 
-                      {/* Selection Mode - shown on small screens only */}
+                      {/* Selection Mode - shown when toolbar button is hidden */}
                       {features?.batchProcessing && (
                         <button
                           onClick={() => {
                             toggleSelectionMode();
                             setIsMoreMenuOpen(false);
                           }}
-                          className={`lg:hidden w-full px-4 py-2 text-left text-sm flex items-center gap-2 ${
+                          className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 ${
                             isSelectionMode
                               ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                               : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
@@ -2705,14 +2734,14 @@ export function TodoApp() {
                         </button>
                       )}
 
-                      {/* Drag Reorder - shown on small screens only */}
+                      {/* Drag Reorder - shown when toolbar button is hidden */}
                       {features?.reordering && (
                         <button
                           onClick={() => {
                             toggleDragMode();
                             setIsMoreMenuOpen(false);
                           }}
-                          className={`lg:hidden w-full px-4 py-2 text-left text-sm flex items-center gap-2 ${
+                          className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 ${
                             isDragMode
                               ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
                               : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
@@ -2725,19 +2754,17 @@ export function TodoApp() {
                         </button>
                       )}
 
-                      {/* Divider before export options - shown on small screens only */}
+                      {/* Divider before export options */}
                       {features?.exports && (
                         <>
-                          <div className="lg:hidden border-t border-zinc-200 dark:border-zinc-700 my-1" />
-                          <div className="lg:hidden px-4 py-1 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                            Export
-                          </div>
+                          <div className="border-t border-zinc-200 dark:border-zinc-700 my-1" />
+                          <div className="px-4 py-1 text-xs text-zinc-500 dark:text-zinc-400 font-medium">Export</div>
                           <button
                             onClick={() => {
                               handleExport("markdown");
                               setIsMoreMenuOpen(false);
                             }}
-                            className="lg:hidden w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path
@@ -2754,7 +2781,7 @@ export function TodoApp() {
                               handleExport("csv");
                               setIsMoreMenuOpen(false);
                             }}
-                            className="lg:hidden w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path
@@ -2771,7 +2798,7 @@ export function TodoApp() {
                               handleExport("json");
                               setIsMoreMenuOpen(false);
                             }}
-                            className="lg:hidden w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path
@@ -2783,7 +2810,7 @@ export function TodoApp() {
                             </svg>
                             JSON (.json)
                           </button>
-                          <div className="lg:hidden px-4 py-1 text-xs text-zinc-400 dark:text-zinc-500">
+                          <div className="px-4 py-1 text-xs text-zinc-400 dark:text-zinc-500">
                             {hasActiveFilters ? "Exports filtered todos" : "Exports all todos"}
                           </div>
                         </>

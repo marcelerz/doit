@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 interface RichTextEditorProps {
   value?: string;
   onChange: (html: string) => void;
+  onBlur?: (html: string) => void; // Called when editor loses focus, useful for committing changes
   placeholder?: string;
   minHeight?: string;
   maxHeight?: string;
@@ -15,6 +16,7 @@ interface RichTextEditorProps {
 export default function RichTextEditor({
   value,
   onChange,
+  onBlur,
   placeholder = "Start typing...",
   minHeight = "100px",
   maxHeight = "300px",
@@ -148,6 +150,11 @@ export default function RichTextEditor({
           onBlur={(e) => {
             // If alwaysEditable, don't exit edit mode
             if (alwaysEditable) {
+              // Still call onBlur callback if provided
+              if (onBlur && editorRef.current) {
+                const html = editorRef.current.innerHTML;
+                onBlur(html || "");
+              }
               return;
             }
 
@@ -164,6 +171,10 @@ export default function RichTextEditor({
                 const html = editorRef.current.innerHTML;
                 lastValueRef.current = html || "";
                 onChange(html || "");
+                // Call onBlur callback if provided
+                if (onBlur) {
+                  onBlur(html || "");
+                }
               }
               setIsEditing(false);
               setShowFormattingToolbar(false);

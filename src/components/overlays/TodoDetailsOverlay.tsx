@@ -249,12 +249,33 @@ export function TodoDetailsOverlay({
         {/* Task Content */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start gap-3 flex-1">
-            <input
-              type="checkbox"
-              checked={todo.isCompleted}
-              onChange={() => onToggle(todo.id)}
-              className="mt-1 w-5 h-5 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
-            />
+            {(() => {
+              const priorityColor = todo.metadata.priority
+                ? findPriorityColor(todo.metadata.priority, availablePriorities, markerColors.priority)
+                : "#a1a1aa"; // zinc-400 fallback
+              const isChecked = todo.isCompleted || todo.isArchived;
+              return (
+                <div
+                  onClick={() => onToggle(todo.id)}
+                  className="w-5 h-5 mt-1 rounded cursor-pointer flex-shrink-0 flex items-center justify-center transition-all"
+                  style={{
+                    borderWidth: "2px",
+                    borderStyle: "solid",
+                    borderColor: priorityColor,
+                    backgroundColor: isChecked ? priorityColor : undefined,
+                    boxShadow: isChecked ? undefined : `0 0 6px 1px ${priorityColor}40, 0 0 2px 0px ${priorityColor}`,
+                  }}
+                  role="checkbox"
+                  aria-checked={isChecked}
+                >
+                  {isChecked && (
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+              );
+            })()}
             <div className="flex-1">
               {isEditing ? (
                 <div className="space-y-2">
@@ -421,7 +442,7 @@ export function TodoDetailsOverlay({
             )}
             {todo.archivedAt && (
               <div>
-                <span className="font-medium">Archived:</span> {new Date(todo.archivedAt).toLocaleDateString()}
+                <span className="font-medium">Archived:</span> {todo.archivedDateDisplay}
               </div>
             )}
           </div>
@@ -436,6 +457,14 @@ export function TodoDetailsOverlay({
           <RichTextEditor
             value={editingMetadata.context}
             onChange={(html) => {
+              // Update local state only - don't trigger activity logging on every keystroke
+              setEditingMetadata((prev) => ({
+                ...prev,
+                context: html || undefined,
+              }));
+            }}
+            onBlur={(html) => {
+              // Commit the change and trigger activity logging on blur
               const newMetadata = {
                 ...editingMetadata,
                 context: html || undefined,

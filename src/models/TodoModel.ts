@@ -743,26 +743,42 @@ export class TodoModel {
   }
 
   /**
-   * Get formatted created date
+   * Format a date with time
    */
-  get createdDateDisplay(): string {
-    return new Date(this.createdAt).toLocaleDateString();
+  private formatDateWithTime(timestamp: number): string {
+    const date = new Date(timestamp);
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   }
 
   /**
-   * Get formatted updated date
+   * Get formatted created date with time
+   */
+  get createdDateDisplay(): string {
+    return this.formatDateWithTime(this.createdAt);
+  }
+
+  /**
+   * Get formatted updated date with time
    */
   get updatedDateDisplay(): string | undefined {
     if (!this.updatedAt) return undefined;
-    return new Date(this.updatedAt).toLocaleDateString();
+    return this.formatDateWithTime(this.updatedAt);
   }
 
   /**
-   * Get formatted completed date
+   * Get formatted completed date with time
    */
   get completedDateDisplay(): string | undefined {
     if (!this.completedAt) return undefined;
-    return new Date(this.completedAt).toLocaleDateString();
+    return this.formatDateWithTime(this.completedAt);
+  }
+
+  /**
+   * Get formatted archived date with time
+   */
+  get archivedDateDisplay(): string | undefined {
+    if (!this.archivedAt) return undefined;
+    return this.formatDateWithTime(this.archivedAt);
   }
 
   /**

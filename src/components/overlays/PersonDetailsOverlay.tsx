@@ -47,14 +47,13 @@ export function PersonDetailsOverlay({
     setEditingContext(person.context || "");
   }, [person]);
 
-  // Auto-save when fields change
+  // Auto-save when fields change (except context - saved on blur)
   useEffect(() => {
     const handler = setTimeout(() => {
       if (
         editingName.trim() !== person.name ||
         JSON.stringify(editingAlternatives) !== JSON.stringify(person.alternatives) ||
-        editingColor !== person.color ||
-        (editingContext.trim() || undefined) !== person.context
+        editingColor !== person.color
       ) {
         onUpdate(person.id, {
           name: editingName.trim(),
@@ -66,7 +65,7 @@ export function PersonDetailsOverlay({
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [editingName, editingAlternatives, editingColor, editingContext, person, onUpdate]);
+  }, [editingName, editingAlternatives, editingColor, person, onUpdate, editingContext]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -160,6 +159,17 @@ export function PersonDetailsOverlay({
             <RichTextEditor
               value={editingContext}
               onChange={(html) => setEditingContext(html || "")}
+              onBlur={(html) => {
+                // Commit context change on blur
+                if ((html.trim() || undefined) !== person.context) {
+                  onUpdate(person.id, {
+                    name: editingName.trim(),
+                    alternatives: editingAlternatives,
+                    color: editingColor,
+                    context: html.trim() || undefined,
+                  });
+                }
+              }}
               placeholder="Add context..."
               minHeight="100px"
               maxHeight="300px"

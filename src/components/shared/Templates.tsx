@@ -70,44 +70,18 @@ export function TemplatesManager({ templates, onDelete, onClose }: TemplatesMana
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{template.name}</h3>
                     {template.description && (
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">{template.description}</p>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 line-clamp-2">
+                        {template.description}
+                      </p>
                     )}
-                    <p className="text-sm text-zinc-600 dark:text-zinc-300 mt-1 line-clamp-2">{template.plainText}</p>
-                    <div className="flex items-center gap-2 mt-2 flex-wrap">
-                      {(template.metadata.assignedPeople?.length ?? 0) > 0 && (
-                        <Badge variant="blue" size="sm">
-                          @{template.metadata.assignedPeople!.length}
-                        </Badge>
-                      )}
-                      {(template.metadata.projects?.length ?? 0) > 0 && (
-                        <Badge variant="purple" size="sm">
-                          %{template.metadata.projects!.length}
-                        </Badge>
-                      )}
-                      {(template.metadata.tags?.length ?? 0) > 0 && (
-                        <Badge variant="zinc" size="sm">
-                          #{template.metadata.tags!.length}
-                        </Badge>
-                      )}
-                      {template.metadata.priority && (
-                        <Badge variant="red" size="sm">
-                          {template.metadata.priority}
-                        </Badge>
-                      )}
-                      {(template.subtasks?.length ?? 0) > 0 && (
-                        <Badge variant="green" size="sm">
-                          {template.subtasks!.length} subtasks
-                        </Badge>
-                      )}
-                      <span className="text-xs text-zinc-400">
-                        Used {template.usageCount} time{template.usageCount !== 1 ? "s" : ""}
-                      </span>
-                    </div>
+                    <span className="text-xs text-zinc-400 mt-1 inline-block">
+                      Used {template.usageCount} time{template.usageCount !== 1 ? "s" : ""}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => onDelete(template.id)}
-                      className="p-1.5 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
                       title="Delete template"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
