@@ -4,6 +4,7 @@ import { TodoMetadata } from "@/types/todo";
 import { TodoModel } from "@/models/TodoModel";
 import { MarkerColors, WorkHoursSettings, GanttZoomLevel, DEFAULT_BLOCK_TYPES, TimeBlockType } from "@/types/settings";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
@@ -147,6 +148,7 @@ export function GanttView({
   });
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<TodoModel | null>(null);
   const [completedCollapsed, setCompletedCollapsed] = useState(() => {
     try {
@@ -168,6 +170,18 @@ export function GanttView({
   const [showClickHint, setShowClickHint] = useState(true); // Shows "Click to edit" hint
   const timelineRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Helper to handle mouse enter on tasks with position tracking for portal tooltip
+  const handleTaskMouseEnter = useCallback((e: React.MouseEvent, taskId: string) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setTooltipPosition({ x: rect.left + 16, y: rect.bottom + 8 });
+    setHoveredTaskId(taskId);
+  }, []);
+
+  const handleTaskMouseLeave = useCallback(() => {
+    setHoveredTaskId(null);
+    setTooltipPosition(null);
+  }, []);
 
   // Pomodoro state
   const [pomodoroNotifiedBreaks, setPomodoroNotifiedBreaks] = useState<Set<string>>(new Set());
@@ -1919,8 +1933,8 @@ export function GanttView({
                                                 ? "polygon(0 0, calc(100% - 8px) 0, 100% 10%, 100% 30%, calc(100% - 8px) 50%, 100% 70%, 100% 90%, calc(100% - 8px) 100%, 0 100%)"
                                                 : "none",
                                           }}
-                                          onMouseEnter={() => setHoveredTaskId(task.todo.id)}
-                                          onMouseLeave={() => setHoveredTaskId(null)}
+                                          onMouseEnter={(e) => handleTaskMouseEnter(e, task.todo.id)}
+                                          onMouseLeave={handleTaskMouseLeave}
                                           onClick={() => {
                                             setShowClickHint(false);
                                             setDetailsOverlayTodo(task.todo);
@@ -2078,10 +2092,8 @@ export function GanttView({
                                         ? "polygon(0 0, calc(100% - 8px) 0, 100% 10%, 100% 30%, calc(100% - 8px) 50%, 100% 70%, 100% 90%, calc(100% - 8px) 100%, 0 100%)"
                                         : "none",
                                   }}
-                                  onMouseEnter={() => {
-                                    setHoveredTaskId(task.todo.id);
-                                  }}
-                                  onMouseLeave={() => setHoveredTaskId(null)}
+                                  onMouseEnter={(e) => handleTaskMouseEnter(e, task.todo.id)}
+                                  onMouseLeave={handleTaskMouseLeave}
                                   onClick={() => {
                                     setShowClickHint(false);
                                     setDetailsOverlayTodo(task.todo);
@@ -2298,19 +2310,6 @@ export function GanttView({
                                   </div>
                                 </div>
                               )}
-
-                              {/* Hover tooltip - positioned outside task bar */}
-                              {hoveredTaskId === task.todo.id && (
-                                <div className="absolute left-4 top-full mt-2 z-50 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-3 min-w-[300px] max-w-[500px] pointer-events-none">
-                                  <MarkedText
-                                    text={task.todo.text}
-                                    markerColors={markerColors}
-                                    availablePeople={availablePeople}
-                                    availableProjects={availableProjects}
-                                    availablePriorities={availablePriorities}
-                                  />
-                                </div>
-                              )}
                             </div>
                           );
                         })}
@@ -2386,8 +2385,8 @@ export function GanttView({
                                       color: textColor,
                                       borderRadius: "0.375rem",
                                     }}
-                                    onMouseEnter={() => setHoveredTaskId(task.todo.id)}
-                                    onMouseLeave={() => setHoveredTaskId(null)}
+                                    onMouseEnter={(e) => handleTaskMouseEnter(e, task.todo.id)}
+                                    onMouseLeave={handleTaskMouseLeave}
                                     onClick={() => setDetailsOverlayTodo(task.todo)}
                                     title="Click to view details"
                                   >
@@ -2438,17 +2437,6 @@ export function GanttView({
                                     </div>
                                   </div>
                                 </div>
-                                {hoveredTaskId === task.todo.id && (
-                                  <div className="absolute left-4 top-full mt-2 z-50 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-3 min-w-[300px] max-w-[500px] pointer-events-none">
-                                    <MarkedText
-                                      text={task.todo.text}
-                                      markerColors={markerColors}
-                                      availablePeople={availablePeople}
-                                      availableProjects={availableProjects}
-                                      availablePriorities={availablePriorities}
-                                    />
-                                  </div>
-                                )}
                               </div>
                             );
                           })}
@@ -2596,6 +2584,29 @@ export function GanttView({
             />
           );
         })()}
+
+      {/* Portal-based floating tooltip for hovered tasks */}
+      {hoveredTaskId &&
+        tooltipPosition &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed z-[9999] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl p-3 min-w-[300px] max-w-[500px] pointer-events-none"
+            style={{
+              left: Math.min(tooltipPosition.x, window.innerWidth - 520),
+              top: Math.min(tooltipPosition.y, window.innerHeight - 200),
+            }}
+          >
+            <MarkedText
+              text={todos.find((t) => t.id === hoveredTaskId)?.text || ""}
+              markerColors={markerColors}
+              availablePeople={availablePeople}
+              availableProjects={availableProjects}
+              availablePriorities={availablePriorities}
+            />
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
