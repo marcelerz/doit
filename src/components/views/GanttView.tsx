@@ -2695,7 +2695,7 @@ export function GanttView({
                           className="px-1.5 py-0.5 rounded"
                           style={{ backgroundColor: bgColor, color: getTextColor(bgColor) }}
                         >
-                          #{project}
+                          %{project}
                         </span>
                       );
                     })}

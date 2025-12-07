@@ -351,7 +351,7 @@ export function TodoItem({
   }
 
   return (
-    <div ref={containerRef} className="relative overflow-hidden rounded-lg">
+    <div ref={containerRef} className="relative rounded-lg">
       {/* Swipe action backgrounds (mobile only) */}
       {swipeOffset !== 0 && (
         <>
@@ -391,7 +391,7 @@ export function TodoItem({
 
       {/* Main content */}
       <div
-        className={`bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 group hover:shadow-md transition-all ${
+        className={`bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 group hover:shadow-md transition-shadow duration-200 ${
           isSelected ? "ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-zinc-900" : ""
         } ${isDraggedOver ? "border-blue-500 border-2 bg-blue-50 dark:bg-blue-900/20" : ""} ${
           isDraggable ? "cursor-grab active:cursor-grabbing" : ""
@@ -497,21 +497,8 @@ export function TodoItem({
 
             {/* Compact metadata row (shown when not expanded) */}
             {!isExpanded && (
-              <div className="mt-1.5 grid grid-cols-[auto_1fr_auto_auto] sm:grid-cols-[60px_minmax(80px,1fr)_minmax(80px,1fr)_auto_auto] gap-x-2 gap-y-1 items-center text-[10px]">
-                {/* Status badge - column 1 */}
-                <span
-                  className={`px-1.5 py-0.5 rounded font-medium text-center ${
-                    todo.isArchived
-                      ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
-                      : todo.isCompleted
-                      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                      : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-                  }`}
-                >
-                  {todo.isArchived ? "Archived" : todo.isCompleted ? "Done" : "Active"}
-                </span>
-
-                {/* Assigned + Project - column 2 (combined on mobile, separate on desktop) */}
+              <div className="mt-1.5 grid grid-cols-[1fr_auto_auto] sm:grid-cols-[minmax(80px,1fr)_minmax(80px,1fr)_auto_auto] gap-x-2 gap-y-1 items-center text-[10px]">
+                {/* Assigned + Project - column 1 (combined on mobile, separate on desktop) */}
                 <div className="flex items-center gap-1 overflow-hidden">
                   {todo.metadata.assignedPeople.length > 0 && (
                     <span
@@ -537,13 +524,13 @@ export function TodoItem({
                         }}
                         title={todo.metadata.projects.join(", ")}
                       >
-                        #{todo.metadata.projects[0]}
+                        %{todo.metadata.projects[0]}
                       </span>
                     )}
                   </span>
                 </div>
 
-                {/* Project - column 3 (desktop only) */}
+                {/* Project - column 2 (desktop only) */}
                 <div className="hidden sm:flex items-center overflow-hidden">
                   {todo.metadata.projects.length > 0 ? (
                     <span
@@ -554,7 +541,7 @@ export function TodoItem({
                       }}
                       title={todo.metadata.projects.join(", ")}
                     >
-                      #{todo.metadata.projects[0]}
+                      %{todo.metadata.projects[0]}
                       {todo.metadata.projects.length > 1 && ` +${todo.metadata.projects.length - 1}`}
                     </span>
                   ) : (
@@ -562,7 +549,7 @@ export function TodoItem({
                   )}
                 </div>
 
-                {/* Due date + Duration - column 4 (time-related fields together) */}
+                {/* Due date + Duration - column 3 (time-related fields together) */}
                 <div className="flex items-center gap-1 justify-end sm:justify-start">
                   {todo.metadata.dueDate ? (
                     <span
@@ -587,7 +574,7 @@ export function TodoItem({
                   )}
                 </div>
 
-                {/* Priority - column 5 (rightmost) */}
+                {/* Priority - column 4 (rightmost) */}
                 <div className="flex items-center justify-end">
                   {todo.metadata.priority ? (
                     <span

@@ -2525,7 +2525,7 @@ export function TodoApp() {
 
                   {/* Projects Filter */}
                   <FilterSection
-                    label="Projects (#)"
+                    label="Projects (%)"
                     activeCount={filters.projects.size}
                     options={filterOptions.projects}
                     selectedValues={filters.projects}
@@ -2534,7 +2534,7 @@ export function TodoApp() {
                     onClear={() => handleClearAll("projects")}
                     getButtonColor={(value, isSelected) => getFilterButtonColor("projects", value, isSelected)}
                     getButtonStyle={(value, isSelected) => getFilterButtonStyle("projects", value, isSelected)}
-                    formatLabel={(value) => `#${value}`}
+                    formatLabel={(value) => `%${value}`}
                   />
 
                   {/* Categories Filter */}
