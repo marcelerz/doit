@@ -16,14 +16,15 @@ import { CalendarView } from "./CalendarView";
 import { KanbanView } from "./KanbanView";
 import { StatisticsView } from "./StatisticsView";
 import { FocusView } from "./FocusView";
-import { SprintsView } from "./SprintsView";
 import { MarkerReference } from "@/components/shared/MarkerReference";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { PersonDetailsOverlay } from "@/components/overlays/PersonDetailsOverlay";
 import { ProjectDetailsOverlay } from "@/components/overlays/ProjectDetailsOverlay";
+import { SprintDetailsOverlay } from "@/components/overlays/SprintDetailsOverlay";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { PersonItem } from "@/components/items/PersonItem";
 import { ProjectItem } from "@/components/items/ProjectItem";
+import { SprintItem } from "@/components/items/SprintItem";
 import { calculateUsageStats, sortByUsage, UsageStats } from "@/utils/usageStats";
 import { normalizeDateValue } from "@/utils/dateUtils";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -150,6 +151,7 @@ export function TodoApp() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const peopleSearchInputRef = useRef<HTMLInputElement>(null);
   const projectsSearchInputRef = useRef<HTMLInputElement>(null);
+  const sprintsSearchInputRef = useRef<HTMLInputElement>(null);
 
   // Active view state - initialized with default, loaded from UI_OPTIONS in useEffect
   const [activeView, setActiveView] = useState<ViewTab>("list");
@@ -407,11 +409,13 @@ export function TodoApp() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isExportMenuOpen, isMoreMenuOpen]);
 
-  // Search state for People/Projects views
+  // Search state for People/Projects/Sprints views
   const [peopleSearch, setPeopleSearch] = useState("");
   const [projectsSearch, setProjectsSearch] = useState("");
+  const [sprintsSearch, setSprintsSearch] = useState("");
   const [showArchivedPeople, setShowArchivedPeople] = useState(false);
   const [showArchivedProjects, setShowArchivedProjects] = useState(false);
+  const [showArchivedSprints, setShowArchivedSprints] = useState(false);
   const [uiOptionsLoaded, setUiOptionsLoaded] = useState(false);
 
   // Load UI options from storage (includes active tab and show archived states)
@@ -422,6 +426,7 @@ export function TodoApp() {
           activeTab?: ViewTab;
           showArchivedPeople?: boolean;
           showArchivedProjects?: boolean;
+          showArchivedSprints?: boolean;
         }>(STORAGE_KEYS.UI_OPTIONS, {});
       })
       .then((saved) => {
@@ -442,6 +447,7 @@ export function TodoApp() {
         }
         if (saved.showArchivedPeople !== undefined) setShowArchivedPeople(saved.showArchivedPeople);
         if (saved.showArchivedProjects !== undefined) setShowArchivedProjects(saved.showArchivedProjects);
+        if (saved.showArchivedSprints !== undefined) setShowArchivedSprints(saved.showArchivedSprints);
         setUiOptionsLoaded(true);
       });
   }, []);
@@ -453,8 +459,9 @@ export function TodoApp() {
       activeTab: activeView,
       showArchivedPeople,
       showArchivedProjects,
+      showArchivedSprints,
     });
-  }, [uiOptionsLoaded, activeView, showArchivedPeople, showArchivedProjects]);
+  }, [uiOptionsLoaded, activeView, showArchivedPeople, showArchivedProjects, showArchivedSprints]);
 
   // Filtered people and projects based on search and archive filter
   const filteredPeople = useMemo(() => {
@@ -480,6 +487,39 @@ export function TodoApp() {
       return true;
     });
   }, [allProjects, projectsSearch, showArchivedProjects]);
+
+  // Filtered sprints based on search and archive filter
+  const filteredSprints = useMemo(() => {
+    return sprints.filter((sprint) => {
+      // Filter by archived status
+      if (!showArchivedSprints && sprint.isArchived) return false;
+      // Filter by search term
+      if (sprintsSearch.trim()) {
+        const search = sprintsSearch.toLowerCase();
+        return (
+          sprint.name.toLowerCase().includes(search) || (sprint.goal && sprint.goal.toLowerCase().includes(search))
+        );
+      }
+      return true;
+    });
+  }, [sprints, sprintsSearch, showArchivedSprints]);
+
+  // Count todos per sprint
+  const todoCountBySprint = useMemo(() => {
+    const counts: Record<string, { total: number; completed: number }> = {};
+    todos.forEach((todo) => {
+      if (todo.metadata.sprint) {
+        if (!counts[todo.metadata.sprint]) {
+          counts[todo.metadata.sprint] = { total: 0, completed: 0 };
+        }
+        counts[todo.metadata.sprint].total++;
+        if (todo.state === "completed") {
+          counts[todo.metadata.sprint].completed++;
+        }
+      }
+    });
+    return counts;
+  }, [todos]);
 
   // Quick filter state - initialized with default, loaded from storage in useEffect
   type QuickFilter = "all" | "today" | "overdue" | "thisWeek" | "noDueDate";
@@ -812,11 +852,13 @@ export function TodoApp() {
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<(typeof todos)[0] | null>(null);
   const [detailsOverlayPersonId, setDetailsOverlayPersonId] = useState<string | null>(null);
   const [detailsOverlayProjectId, setDetailsOverlayProjectId] = useState<string | null>(null);
+  const [detailsOverlaySprintId, setDetailsOverlaySprintId] = useState<string | null>(null);
 
   // Add todo overlay state
   const [isAddOverlayOpen, setIsAddOverlayOpen] = useState(false);
   const [isAddPersonOverlayOpen, setIsAddPersonOverlayOpen] = useState(false);
   const [isAddProjectOverlayOpen, setIsAddProjectOverlayOpen] = useState(false);
+  const [isAddSprintOverlayOpen, setIsAddSprintOverlayOpen] = useState(false);
   const [isHelpOverlayOpen, setIsHelpOverlayOpen] = useState(false);
 
   // Confirm dialog state
@@ -1176,6 +1218,10 @@ export function TodoApp() {
           setDetailsOverlayProjectId(null);
           return;
         }
+        if (detailsOverlaySprintId) {
+          setDetailsOverlaySprintId(null);
+          return;
+        }
         if (isAddOverlayOpen) {
           setIsAddOverlayOpen(false);
           return;
@@ -1186,6 +1232,10 @@ export function TodoApp() {
         }
         if (isAddProjectOverlayOpen) {
           setIsAddProjectOverlayOpen(false);
+          return;
+        }
+        if (isAddSprintOverlayOpen) {
+          setIsAddSprintOverlayOpen(false);
           return;
         }
         if (confirmDialog) {
@@ -1201,7 +1251,8 @@ export function TodoApp() {
         if (
           document.activeElement === searchInputRef.current ||
           document.activeElement === peopleSearchInputRef.current ||
-          document.activeElement === projectsSearchInputRef.current
+          document.activeElement === projectsSearchInputRef.current ||
+          document.activeElement === sprintsSearchInputRef.current
         ) {
           (document.activeElement as HTMLElement).blur();
           return;
@@ -1234,6 +1285,8 @@ export function TodoApp() {
           peopleSearchInputRef.current?.focus();
         } else if (activeView === "projects") {
           projectsSearchInputRef.current?.focus();
+        } else if (activeView === "sprints") {
+          sprintsSearchInputRef.current?.focus();
         }
         return;
       }
@@ -1295,9 +1348,11 @@ export function TodoApp() {
     detailsOverlayTodo,
     detailsOverlayPersonId,
     detailsOverlayProjectId,
+    detailsOverlaySprintId,
     isAddOverlayOpen,
     isAddPersonOverlayOpen,
     isAddProjectOverlayOpen,
+    isAddSprintOverlayOpen,
     confirmDialog,
     isSelectionMode,
     features,
@@ -3302,30 +3357,91 @@ export function TodoApp() {
 
         {/* Sprints View */}
         {activeView === "sprints" && (
-          <SprintsView
-            sprints={sprints}
-            todos={todos}
-            onAdd={addSprint}
-            onUpdate={updateSprint}
-            onDelete={deleteSprint}
-            onStart={startSprint}
-            onComplete={completeSprint}
-            onCancel={cancelSprint}
-            onArchive={archiveSprint}
-            onUnarchive={unarchiveSprint}
-            onAddComment={addSprintComment}
-            onEditComment={editSprintComment}
-            onDeleteComment={deleteSprintComment}
-            onTodoClick={(todo) => setDetailsOverlayTodo(todo)}
-            onRemoveTodoFromSprint={(todoId) => {
-              const todo = todos.find((t) => t.id === todoId);
-              if (todo) {
-                editTodo(todoId, todo.text, todo.plainText, { ...todo.metadata, sprint: undefined });
-              }
-            }}
-            defaultDuration={settings.sprints?.defaultSprintDuration || 14}
-            markerColors={settings.markerColors}
-          />
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+              <div>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Sprints</h2>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                  {filteredSprints.length} of {sprints.length} {sprints.length === 1 ? "sprint" : "sprints"}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAddSprintOverlayOpen(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Sprint
+              </button>
+            </div>
+
+            {/* Search and filter bar */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <input
+                  ref={sprintsSearchInputRef}
+                  type="text"
+                  value={sprintsSearch}
+                  onChange={(e) => setSprintsSearch(e.target.value)}
+                  placeholder="Search sprints... (press / to focus)"
+                  className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {sprintsSearch && (
+                  <button
+                    onClick={() => setSprintsSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={showArchivedSprints}
+                  onChange={(e) => setShowArchivedSprints(e.target.checked)}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                Show archived
+              </label>
+            </div>
+
+            {sprints.length === 0 ? (
+              <EmptyState emoji="🏃" title="No Sprints" message="No sprints yet. Add one to get started!" />
+            ) : filteredSprints.length === 0 ? (
+              <EmptyState emoji="🔍" title="No Results" message="No sprints match your search." />
+            ) : (
+              <ul className="space-y-2">
+                {filteredSprints.map((sprint) => (
+                  <li key={sprint.id}>
+                    <SprintItem
+                      sprint={sprint}
+                      onClick={() => setDetailsOverlaySprintId(sprint.id)}
+                      isRunning={sprint.status === "active"}
+                      todoCount={todoCountBySprint[sprint.id]?.total || 0}
+                      completedTodoCount={todoCountBySprint[sprint.id]?.completed || 0}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
 
         {activeView === "list" && (
@@ -3998,6 +4114,41 @@ export function TodoApp() {
             ) : null;
           })()}
 
+        {/* Sprint Details Overlay */}
+        {detailsOverlaySprintId &&
+          (() => {
+            const sprint = sprints.find((s) => s.id === detailsOverlaySprintId);
+            return sprint ? (
+              <SprintDetailsOverlay
+                sprint={sprint}
+                allSprints={sprints}
+                todos={todos}
+                markerColors={settings.markerColors}
+                onClose={() => setDetailsOverlaySprintId(null)}
+                onUpdate={updateSprint}
+                onDelete={(id) => {
+                  deleteSprint(id);
+                  setDetailsOverlaySprintId(null);
+                }}
+                onStart={startSprint}
+                onComplete={completeSprint}
+                onCancel={cancelSprint}
+                onArchive={archiveSprint}
+                onUnarchive={unarchiveSprint}
+                onAddComment={addSprintComment}
+                onEditComment={editSprintComment}
+                onDeleteComment={deleteSprintComment}
+                onTodoClick={(todo) => setDetailsOverlayTodo(todo)}
+                onRemoveTodoFromSprint={(todoId) => {
+                  const todo = todos.find((t) => t.id === todoId);
+                  if (todo) {
+                    editTodo(todoId, todo.text, todo.plainText, { ...todo.metadata, sprint: undefined });
+                  }
+                }}
+              />
+            ) : null;
+          })()}
+
         {/* Add Todo Overlay */}
         {isAddOverlayOpen && (
           <div
@@ -4357,6 +4508,123 @@ export function TodoApp() {
                       className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
                     >
                       Add Project
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Sprint Overlay */}
+        {isAddSprintOverlayOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={() => setIsAddSprintOverlayOpen(false)}
+          >
+            <div
+              className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Add Sprint</h2>
+                  <button
+                    onClick={() => setIsAddSprintOverlayOpen(false)}
+                    className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const name = formData.get("name") as string;
+                    const goal = formData.get("goal") as string;
+                    const durationDays =
+                      parseInt(formData.get("durationDays") as string) || settings.sprints?.defaultSprintDuration || 14;
+                    const plannedStartDate = formData.get("plannedStartDate") as string;
+
+                    if (name.trim()) {
+                      addSprint({
+                        name: name.trim(),
+                        goal: goal?.trim() || undefined,
+                        durationDays,
+                        plannedStartDate: plannedStartDate || undefined,
+                        color: undefined,
+                      });
+                      setIsAddSprintOverlayOpen(false);
+                      e.currentTarget.reset();
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                      Sprint Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      required
+                      placeholder="Sprint 1"
+                      className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                      Duration (days)
+                    </label>
+                    <input
+                      type="number"
+                      name="durationDays"
+                      min={1}
+                      defaultValue={settings.sprints?.defaultSprintDuration || 14}
+                      className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                      Planned Start Date (optional)
+                    </label>
+                    <input
+                      type="date"
+                      name="plannedStartDate"
+                      className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                      Sprint Goal (optional)
+                    </label>
+                    <textarea
+                      name="goal"
+                      rows={2}
+                      placeholder="What is the main objective of this sprint?"
+                      className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 justify-end pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddSprintOverlayOpen(false)}
+                      className="px-6 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
+                    >
+                      Add Sprint
                     </button>
                   </div>
                 </form>
