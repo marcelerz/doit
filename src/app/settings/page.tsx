@@ -28,47 +28,47 @@ const tabGroups = [
   {
     name: "General",
     tabs: [
-      { key: "general", label: "General", icon: "🔧" },
-      { key: "notifications", label: "Notifications", icon: "🔔" },
+      { key: "general", label: "General" },
+      { key: "notifications", label: "Notifications" },
     ],
   },
   {
     name: "Time & Scheduling",
     tabs: [
-      { key: "datetime", label: "Date/Time", icon: "📅" },
-      { key: "workhours", label: "Work Hours", icon: "⏰" },
+      { key: "datetime", label: "Date/Time" },
+      { key: "workhours", label: "Work Hours" },
     ],
   },
   {
     name: "Views",
     tabs: [
-      { key: "gantt", label: "Gantt", icon: "📊", feature: "ganttView" },
-      { key: "kanban", label: "Kanban", icon: "📋", feature: "kanbanView" },
-      { key: "calendar", label: "Calendar", icon: "🗓️", feature: "calendarView" },
-      { key: "sprints", label: "Sprints", icon: "🏃", feature: "sprintsView" },
+      { key: "gantt", label: "Gantt", feature: "ganttView" },
+      { key: "kanban", label: "Kanban", feature: "kanbanView" },
+      { key: "calendar", label: "Calendar", feature: "calendarView" },
+      { key: "sprints", label: "Sprints", feature: "sprintsView" },
     ],
   },
   {
     name: "Organization",
     tabs: [
-      { key: "categories", label: "Categories", icon: "🏷️" },
-      { key: "priorities", label: "Priorities", icon: "⚡" },
-      { key: "autoassign", label: "Auto-Assign", icon: "🎯" },
+      { key: "categories", label: "Categories" },
+      { key: "priorities", label: "Priorities" },
+      { key: "autoassign", label: "Auto-Assign" },
     ],
   },
   {
     name: "Appearance",
     tabs: [
-      { key: "markers", label: "Markers", icon: "🖍️" },
-      { key: "links", label: "Links", icon: "🔗" },
+      { key: "markers", label: "Markers" },
+      { key: "links", label: "Links" },
     ],
   },
   {
     name: "Data",
     tabs: [
-      { key: "backup", label: "Backup", icon: "📦" },
-      { key: "import", label: "Import", icon: "📥" },
-      { key: "storage", label: "Storage", icon: "🗄️" },
+      { key: "backup", label: "Backup" },
+      { key: "import", label: "Import" },
+      { key: "storage", label: "Storage" },
     ],
   },
 ] as const;
@@ -177,13 +177,13 @@ export default function SettingsPage() {
                 <button
                   key={tab.key}
                   onClick={() => handleTabClick(tab.key as Tab)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                  className={`w-full text-left pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     activeTab === tab.key
                       ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                       : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
-                  <span>{tab.label}</span>
+                  {tab.label}
                 </button>
               ))}
             </div>
@@ -236,9 +236,9 @@ export default function SettingsPage() {
             <div className="mb-6">
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg text-sm font-medium transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 Back to Todos
