@@ -36,6 +36,20 @@ interface GanttViewProps {
   onAddPriority: (priority: string) => void;
   onAddComment?: (todoId: string, content: string) => void;
   onUpdateGanttSettings?: (gantt: import("@/types/settings").Gantt) => void;
+  // Subtask handlers
+  onAddSubtask?: (todoId: string, text: string) => void;
+  onToggleSubtask?: (todoId: string, subtaskId: string) => void;
+  onEditSubtask?: (todoId: string, subtaskId: string, text: string) => void;
+  onDeleteSubtask?: (todoId: string, subtaskId: string) => void;
+  // Time tracking handlers
+  onStartTimeTracking?: (todoId: string, note?: string) => void;
+  onStopTimeTracking?: (todoId: string) => void;
+  onAddManualTimeEntry?: (todoId: string, minutes: number, note?: string) => void;
+  onDeleteTimeEntry?: (todoId: string, entryId: string) => void;
+  // Template handler
+  onCreateTemplate?: (todoId: string) => void;
+  // Duplicate handler
+  onDuplicate?: (id: string) => string | undefined;
 }
 
 interface ScheduledTask {
@@ -92,6 +106,16 @@ export function GanttView({
   onAddPriority,
   onAddComment,
   onUpdateGanttSettings,
+  onAddSubtask,
+  onToggleSubtask,
+  onEditSubtask,
+  onDeleteSubtask,
+  onStartTimeTracking,
+  onStopTimeTracking,
+  onAddManualTimeEntry,
+  onDeleteTimeEntry,
+  onCreateTemplate,
+  onDuplicate,
 }: GanttViewProps) {
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
@@ -2171,22 +2195,6 @@ export function GanttView({
                                     <span className="text-xs opacity-80 whitespace-nowrap">
                                       {formatDuration(task.durationMinutes)}
                                     </span>
-                                    {/* Edit icon on hover */}
-                                    {hoveredTaskId === task.todo.id && (
-                                      <svg
-                                        className="w-3 h-3 opacity-70"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                                        />
-                                      </svg>
-                                    )}
                                   </div>
                                 </div>
 
@@ -2568,6 +2576,7 @@ export function GanttView({
               onClose={() => setDetailsOverlayTodo(null)}
               onToggle={onToggle}
               onDelete={onDelete}
+              onDuplicate={onDuplicate}
               onEdit={onEditTodo}
               onArchive={onArchive}
               onUnarchive={onUnarchive}
@@ -2581,6 +2590,15 @@ export function GanttView({
               onAddProject={onAddProject}
               onAddPriority={onAddPriority}
               onAddComment={onAddComment}
+              onAddSubtask={onAddSubtask}
+              onToggleSubtask={onToggleSubtask}
+              onEditSubtask={onEditSubtask}
+              onDeleteSubtask={onDeleteSubtask}
+              onStartTimeTracking={onStartTimeTracking}
+              onStopTimeTracking={onStopTimeTracking}
+              onAddManualTimeEntry={onAddManualTimeEntry}
+              onDeleteTimeEntry={onDeleteTimeEntry}
+              onCreateTemplate={onCreateTemplate}
             />
           );
         })()}

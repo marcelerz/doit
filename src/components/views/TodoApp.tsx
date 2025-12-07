@@ -2495,12 +2495,22 @@ export function TodoApp() {
             onAddPriority={handleAddPriority}
             onToggle={toggleTodo}
             onDelete={deleteTodo}
+            onDuplicate={duplicateTodo}
             onArchive={archiveTodo}
             onUnarchive={unarchiveTodo}
             settings={settings}
             linkPatterns={settings.linkPatterns}
             onAddComment={addTodoComment}
             onUpdateGanttSettings={updateGantt}
+            onAddSubtask={addSubtask}
+            onToggleSubtask={toggleSubtask}
+            onEditSubtask={editSubtask}
+            onDeleteSubtask={deleteSubtask}
+            onStartTimeTracking={startTimeTracking}
+            onStopTimeTracking={stopTimeTracking}
+            onAddManualTimeEntry={addManualTimeEntry}
+            onDeleteTimeEntry={deleteTimeEntry}
+            onCreateTemplate={handleCreateTemplate}
           />
         )}
 
@@ -2518,6 +2528,7 @@ export function TodoApp() {
             onAddPriority={handleAddPriority}
             onToggle={toggleTodo}
             onDelete={deleteTodo}
+            onDuplicate={duplicateTodo}
             onArchive={archiveTodo}
             onUnarchive={unarchiveTodo}
             onSetWorkflowState={setWorkflowState}
@@ -2525,6 +2536,15 @@ export function TodoApp() {
             linkPatterns={settings.linkPatterns}
             onAddComment={addTodoComment}
             onUpdateKanbanSettings={updateKanbanSettings}
+            onAddSubtask={addSubtask}
+            onToggleSubtask={toggleSubtask}
+            onEditSubtask={editSubtask}
+            onDeleteSubtask={deleteSubtask}
+            onStartTimeTracking={startTimeTracking}
+            onStopTimeTracking={stopTimeTracking}
+            onAddManualTimeEntry={addManualTimeEntry}
+            onDeleteTimeEntry={deleteTimeEntry}
+            onCreateTemplate={handleCreateTemplate}
           />
         )}
 

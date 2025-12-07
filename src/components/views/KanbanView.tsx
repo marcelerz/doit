@@ -36,6 +36,20 @@ interface KanbanViewProps {
   onAddPriority: (priority: string) => void;
   onAddComment?: (todoId: string, content: string) => void;
   onUpdateKanbanSettings?: (kanban: KanbanSettings) => void;
+  // Subtask handlers
+  onAddSubtask?: (todoId: string, text: string) => void;
+  onToggleSubtask?: (todoId: string, subtaskId: string) => void;
+  onEditSubtask?: (todoId: string, subtaskId: string, text: string) => void;
+  onDeleteSubtask?: (todoId: string, subtaskId: string) => void;
+  // Time tracking handlers
+  onStartTimeTracking?: (todoId: string, note?: string) => void;
+  onStopTimeTracking?: (todoId: string) => void;
+  onAddManualTimeEntry?: (todoId: string, minutes: number, note?: string) => void;
+  onDeleteTimeEntry?: (todoId: string, entryId: string) => void;
+  // Template handler
+  onCreateTemplate?: (todoId: string) => void;
+  // Duplicate handler
+  onDuplicate?: (id: string) => string | undefined;
 }
 
 interface KanbanViewOptions {
@@ -70,6 +84,16 @@ export function KanbanView({
   onAddPriority,
   onAddComment,
   onUpdateKanbanSettings,
+  onAddSubtask,
+  onToggleSubtask,
+  onEditSubtask,
+  onDeleteSubtask,
+  onStartTimeTracking,
+  onStopTimeTracking,
+  onAddManualTimeEntry,
+  onDeleteTimeEntry,
+  onCreateTemplate,
+  onDuplicate,
 }: KanbanViewProps) {
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
   const [viewOptions, setViewOptions] = useState<KanbanViewOptions>(defaultViewOptions);
@@ -546,6 +570,7 @@ export function KanbanView({
             onDelete(id);
             handleCloseDetail();
           }}
+          onDuplicate={onDuplicate}
           onArchive={
             onArchive
               ? (id) => {
@@ -572,6 +597,15 @@ export function KanbanView({
           onAddProject={onAddProject}
           onAddPriority={onAddPriority}
           onAddComment={onAddComment}
+          onAddSubtask={onAddSubtask}
+          onToggleSubtask={onToggleSubtask}
+          onEditSubtask={onEditSubtask}
+          onDeleteSubtask={onDeleteSubtask}
+          onStartTimeTracking={onStartTimeTracking}
+          onStopTimeTracking={onStopTimeTracking}
+          onAddManualTimeEntry={onAddManualTimeEntry}
+          onDeleteTimeEntry={onDeleteTimeEntry}
+          onCreateTemplate={onCreateTemplate}
         />
       )}
     </div>
