@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { TodoMetadata } from "@/types/todo";
-import { MarkerColors, Settings, LinkPattern, Priority } from "@/types/settings";
+import { MarkerColors, Settings, LinkPattern, Priority, Sprint } from "@/types/settings";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Comments } from "@/components/shared/Comments";
@@ -50,6 +50,10 @@ interface TodoItemProps {
   onDragOver?: (e: React.DragEvent, id: string) => void;
   onDragLeave?: (e: React.DragEvent) => void;
   onDrop?: (e: React.DragEvent, id: string) => void;
+  // Sprint data (for displaying sprint name in expanded view)
+  sprints?: Sprint[];
+  // Next planned sprint for quick assignment
+  nextPlannedSprint?: Sprint;
 }
 
 export function TodoItem({
@@ -84,6 +88,8 @@ export function TodoItem({
   onDragOver,
   onDragLeave,
   onDrop,
+  sprints = [],
+  nextPlannedSprint,
 }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentTokens, setCurrentTokens] = useState<TokenMatch[]>([]);
@@ -833,12 +839,12 @@ export function TodoItem({
                   </div>
 
                   {/* Sprint */}
-                  {settings.sprints?.sprints && settings.sprints.sprints.length > 0 && (
+                  {sprints.length > 0 && (
                     <div>
                       <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">🏃 Sprint</h4>
                       {todo.metadata.sprint ? (
                         (() => {
-                          const sprint = settings.sprints.sprints.find((s) => s.id === todo.metadata.sprint);
+                          const sprint = sprints.find((s) => s.id === todo.metadata.sprint);
                           return sprint ? (
                             <span className="px-2 py-0.5 text-xs rounded bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">
                               {sprint.name}
@@ -921,6 +927,27 @@ export function TodoItem({
                   </>
                 )}
               </div>
+            )}
+
+            {/* Add to Sprint button - for active todos without a sprint and when there's a next planned sprint */}
+            {todo.isActive && !todo.metadata.sprint && nextPlannedSprint && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const updatedMetadata = {
+                    ...todo.metadata,
+                    sprint: nextPlannedSprint.id,
+                  };
+                  onEdit(todo.id, todo.text, todo.plainText, updatedMetadata);
+                }}
+                className="p-2 bg-cyan-100 hover:bg-cyan-200 dark:bg-cyan-900/30 dark:hover:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400 rounded-md transition-colors"
+                aria-label={`Add to ${nextPlannedSprint.name}`}
+                title={`Add to ${nextPlannedSprint.name}`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </button>
             )}
 
             {/* Archive button - for active and completed todos */}

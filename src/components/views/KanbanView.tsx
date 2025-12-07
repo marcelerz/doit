@@ -50,6 +50,9 @@ interface KanbanViewProps {
   onCreateTemplate?: (todoId: string) => void;
   // Duplicate handler
   onDuplicate?: (id: string) => string | undefined;
+  // Sprints data
+  sprints?: Sprint[];
+  runningSprint?: Sprint;
 }
 
 interface KanbanViewOptions {
@@ -96,6 +99,8 @@ export function KanbanView({
   onDeleteTimeEntry,
   onCreateTemplate,
   onDuplicate,
+  sprints = [],
+  runningSprint,
 }: KanbanViewProps) {
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
   const [viewOptions, setViewOptions] = useState<KanbanViewOptions>(defaultViewOptions);
@@ -151,9 +156,8 @@ export function KanbanView({
     return sortedStates.filter((state) => activeView.stateIds.includes(state.id));
   }, [sortedStates, activeView]);
 
-  // Get available sprints from settings
-  const sprints: Sprint[] = settings.sprints?.sprints || [];
-  const activeSprint = sprints.find((s) => s.id === settings.sprints?.activeSprintId);
+  // Get active sprint from props
+  const activeSprint = runningSprint;
 
   // Group todos by workflow state
   const todosByState = useMemo(() => {

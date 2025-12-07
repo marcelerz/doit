@@ -1,15 +1,24 @@
 "use client";
 
-import { ActivityEntry, Comment } from "@/types/todo";
+import { Comment } from "@/types/todo";
 import { formatActivityTime, formatActivityDateTime } from "@/utils/activityLogger";
 
+// Generic activity entry that works for todos, people, projects, and sprints
+interface GenericActivityEntry {
+  id: string;
+  timestamp: number;
+  type: string;
+  description: string;
+  metadata?: unknown;
+}
+
 interface ActivityProps {
-  activities: ActivityEntry[];
+  activities: GenericActivityEntry[];
   comments: Comment[];
 }
 
 // Union type for combined timeline items
-type TimelineItem = { type: "activity"; data: ActivityEntry } | { type: "comment"; data: Comment };
+type TimelineItem = { type: "activity"; data: GenericActivityEntry } | { type: "comment"; data: Comment };
 
 export function Activity({ activities, comments }: ActivityProps) {
   // Combine activities and comments into a single timeline
@@ -46,7 +55,7 @@ export function Activity({ activities, comments }: ActivityProps) {
   });
 
   // Get activity icon based on type (using same icons as the app)
-  const getActivityIcon = (type: ActivityEntry["type"]): string => {
+  const getActivityIcon = (type: string): string => {
     switch (type) {
       case "created":
         return "✨";
@@ -100,6 +109,12 @@ export function Activity({ activities, comments }: ActivityProps) {
         return "🏷️";
       case "context_changed":
         return "📝";
+      case "started":
+        return "🚀";
+      case "cancelled":
+        return "❌";
+      case "workflow_state_changed":
+        return "🔀";
       default:
         return "•";
     }
@@ -118,7 +133,7 @@ export function Activity({ activities, comments }: ActivityProps) {
             <div className="space-y-1">
               {items.map((item) => {
                 if (item.type === "activity") {
-                  const activity = item.data as ActivityEntry;
+                  const activity = item.data as GenericActivityEntry;
                   return (
                     <div
                       key={activity.id}
@@ -129,11 +144,11 @@ export function Activity({ activities, comments }: ActivityProps) {
                       </span>
                       <div className="flex-1 min-w-0">
                         <span className="text-zinc-700 dark:text-zinc-300">{activity.description}</span>
-                        {activity.metadata && (
+                        {activity.metadata !== undefined && activity.metadata !== null && (
                           <span className="ml-1 text-zinc-500 dark:text-zinc-500">
                             {typeof activity.metadata === "string"
                               ? activity.metadata
-                              : JSON.stringify(activity.metadata)}
+                              : String(JSON.stringify(activity.metadata))}
                           </span>
                         )}
                       </div>

@@ -396,28 +396,52 @@ export const defaultNotificationSettings: NotificationSettings = {
 
 // Sprint Settings for Scrum planning
 export type SprintStatus = "planning" | "active" | "completed" | "cancelled";
+export type SprintState = "active" | "archived";
 
 export interface Sprint {
   id: string;
   name: string;
   goal?: string; // Sprint goal description
-  startDate?: string; // ISO date string
-  endDate?: string; // ISO date string
+  durationDays: number; // Sprint duration in days
+  plannedStartDate?: string; // Planned start date (ISO date string)
+  actualStartDate?: string; // Actual start date when sprint was started
+  actualEndDate?: string; // Actual end date when sprint was completed/cancelled
   status: SprintStatus;
+  state: SprintState; // For archiving sprints
   createdAt: number;
-  completedAt?: number;
+  startedAt?: number; // Timestamp when sprint was started
+  completedAt?: number; // Timestamp when sprint was completed
+  cancelledAt?: number; // Timestamp when sprint was cancelled
+  archivedAt?: number; // Timestamp when sprint was archived
+  comments: Array<{
+    commentId: number;
+    history: Array<{ date: number; content: string }>;
+  }>;
+  activity: Array<{
+    id: string;
+    timestamp: number;
+    type:
+      | "created"
+      | "edited"
+      | "updated"
+      | "archived"
+      | "unarchived"
+      | "comment_added"
+      | "comment_edited"
+      | "comment_deleted"
+      | "started"
+      | "completed"
+      | "cancelled";
+    description: string;
+  }>;
 }
 
 export interface SprintSettings {
-  sprints: Sprint[];
-  activeSprintId?: string; // Currently active sprint
   defaultSprintDuration: number; // Default sprint duration in days (typically 14)
   showBacklogInSprint: boolean; // Show backlog items in sprint view
 }
 
 export const defaultSprintSettings: SprintSettings = {
-  sprints: [],
-  activeSprintId: undefined,
   defaultSprintDuration: 14, // 2 weeks
   showBacklogInSprint: false,
 };

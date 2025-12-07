@@ -188,6 +188,7 @@ export const STORAGE_KEYS = {
   TODOS: "doit-todos",
   PEOPLE: "doit-people",
   PROJECTS: "doit-projects",
+  SPRINTS: "doit-sprints",
   SETTINGS: "doit-settings",
   VERSION: "doit-version",
   VIEW_PRESETS: "doit-view-presets",

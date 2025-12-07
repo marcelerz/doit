@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { TodoMetadata } from "@/types/todo";
-import { MarkerColors, Settings, LinkPattern, Priority } from "@/types/settings";
+import { MarkerColors, Settings, LinkPattern, Priority, Sprint } from "@/types/settings";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Activity } from "@/components/shared/Activity";
@@ -57,6 +57,9 @@ interface TodoDetailsOverlayProps {
   onDeleteTimeEntry?: (todoId: string, entryId: string) => void;
   // Template handler
   onCreateTemplate?: (todoId: string) => void;
+  // Sprints data (for displaying sprint selector)
+  sprints?: Sprint[];
+  runningSprint?: Sprint;
 }
 
 export function TodoDetailsOverlay({
@@ -89,6 +92,8 @@ export function TodoDetailsOverlay({
   onAddManualTimeEntry,
   onDeleteTimeEntry,
   onCreateTemplate,
+  sprints = [],
+  runningSprint,
 }: TodoDetailsOverlayProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTokens, setEditTokens] = useState<TokenMatch[]>([]);
@@ -936,7 +941,7 @@ export function TodoDetailsOverlay({
           </div>
 
           {/* Sprint */}
-          {settings.sprints?.sprints && settings.sprints.sprints.length > 0 && (
+          {sprints.length > 0 && (
             <div>
               <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">🏃 Sprint</h4>
               <div className="flex flex-wrap gap-1.5">
@@ -950,8 +955,7 @@ export function TodoDetailsOverlay({
                       });
                     }}
                   >
-                    {settings.sprints.sprints.find((s) => s.id === editingMetadata.sprint)?.name ||
-                      editingMetadata.sprint}
+                    {sprints.find((s) => s.id === editingMetadata.sprint)?.name || editingMetadata.sprint}
                   </Badge>
                 ) : (
                   <select
@@ -967,14 +971,9 @@ export function TodoDetailsOverlay({
                     className="text-xs px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
                   >
                     <option value="">Select sprint...</option>
-                    {settings.sprints.activeSprintId && (
-                      <option value={settings.sprints.activeSprintId}>
-                        🏃 {settings.sprints.sprints.find((s) => s.id === settings.sprints.activeSprintId)?.name}{" "}
-                        (Active)
-                      </option>
-                    )}
-                    {settings.sprints.sprints
-                      .filter((s) => s.id !== settings.sprints.activeSprintId && s.status === "planning")
+                    {runningSprint && <option value={runningSprint.id}>🏃 {runningSprint.name} (Active)</option>}
+                    {sprints
+                      .filter((s) => s.id !== runningSprint?.id && s.status === "planning")
                       .map((sprint) => (
                         <option key={sprint.id} value={sprint.id}>
                           📝 {sprint.name}

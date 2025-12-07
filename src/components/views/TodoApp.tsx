@@ -8,6 +8,7 @@ import { usePeople } from "@/hooks/usePeople";
 import { useProjects } from "@/hooks/useProjects";
 import { useTemplates } from "@/hooks/useTemplates";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
+import { useSprints } from "@/hooks/useSprints";
 import { TodoItem } from "@/components/items/TodoItem";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { GanttView } from "./GanttView";
@@ -15,6 +16,7 @@ import { CalendarView } from "./CalendarView";
 import { KanbanView } from "./KanbanView";
 import { StatisticsView } from "./StatisticsView";
 import { FocusView } from "./FocusView";
+import { SprintsView } from "./SprintsView";
 import { MarkerReference } from "@/components/shared/MarkerReference";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { PersonDetailsOverlay } from "@/components/overlays/PersonDetailsOverlay";
@@ -50,7 +52,7 @@ interface TodoFilters {
   dependencies: Set<string>;
 }
 
-type ViewTab = "list" | "kanban" | "gantt" | "calendar" | "people" | "projects" | "stats";
+type ViewTab = "list" | "kanban" | "gantt" | "calendar" | "people" | "projects" | "sprints" | "stats";
 
 export function TodoApp() {
   const {
@@ -107,6 +109,23 @@ export function TodoApp() {
     editProjectComment,
     deleteProjectComment,
   } = useProjects();
+
+  const {
+    sprints,
+    runningSprint,
+    nextPlannedSprint,
+    addSprint,
+    updateSprint,
+    deleteSprint,
+    startSprint,
+    completeSprint,
+    cancelSprint,
+    archiveSprint,
+    unarchiveSprint,
+    addSprintComment,
+    editSprintComment,
+    deleteSprintComment,
+  } = useSprints();
 
   // Templates and search history hooks
   const { templates, addTemplate, deleteTemplate, incrementUsage } = useTemplates();
@@ -1059,10 +1078,10 @@ export function TodoApp() {
         return;
       }
 
-      // '1-6' - Switch view tabs
-      if (e.key >= "1" && e.key <= "6" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      // '1-8' - Switch view tabs
+      if (e.key >= "1" && e.key <= "8" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
-        const views: ViewTab[] = ["list", "gantt", "calendar", "people", "projects", "stats"];
+        const views: ViewTab[] = ["list", "kanban", "gantt", "calendar", "people", "projects", "sprints", "stats"];
         const index = parseInt(e.key) - 1;
         if (index < views.length) {
           setActiveView(views[index]);
@@ -1074,7 +1093,7 @@ export function TodoApp() {
       if (e.key === "?" && e.shiftKey) {
         e.preventDefault();
         // For now, just log - could show a help modal later
-        console.log("Keyboard shortcuts: n=new, /=search, f=filters, s=select, 1-6=views, Esc=close");
+        console.log("Keyboard shortcuts: n=new, /=search, f=filters, s=select, 1-8=views, Esc=close");
         return;
       }
     };
@@ -1968,6 +1987,23 @@ export function TodoApp() {
               </div>
             </button>
             <button
+              onClick={() => setActiveView("sprints")}
+              className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
+                activeView === "sprints"
+                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
+                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
+              }`}
+              title="Sprints view"
+            >
+              <div className="flex items-center gap-1 sm:gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span className="hidden sm:inline">Sprints</span>
+                {runningSprint && <span className="hidden sm:inline w-2 h-2 rounded-full bg-green-500 animate-pulse" />}
+              </div>
+            </button>
+            <button
               onClick={() => setActiveView("stats")}
               className={`px-2 sm:px-4 py-2 sm:py-3 font-medium transition-colors border-b-2 ${
                 activeView === "stats"
@@ -2545,6 +2581,8 @@ export function TodoApp() {
             onAddManualTimeEntry={addManualTimeEntry}
             onDeleteTimeEntry={deleteTimeEntry}
             onCreateTemplate={handleCreateTemplate}
+            sprints={sprints.map((s) => s.raw)}
+            runningSprint={runningSprint?.raw}
           />
         )}
 
@@ -2784,6 +2822,33 @@ export function TodoApp() {
         {/* Statistics View */}
         {activeView === "stats" && (
           <StatisticsView todos={todos} projects={projects} categories={settings.categories} />
+        )}
+
+        {/* Sprints View */}
+        {activeView === "sprints" && (
+          <SprintsView
+            sprints={sprints}
+            todos={todos}
+            onAdd={addSprint}
+            onUpdate={updateSprint}
+            onDelete={deleteSprint}
+            onStart={startSprint}
+            onComplete={completeSprint}
+            onCancel={cancelSprint}
+            onArchive={archiveSprint}
+            onUnarchive={unarchiveSprint}
+            onAddComment={addSprintComment}
+            onEditComment={editSprintComment}
+            onDeleteComment={deleteSprintComment}
+            onTodoClick={(todo) => setDetailsOverlayTodo(todo)}
+            onRemoveTodoFromSprint={(todoId) => {
+              const todo = todos.find((t) => t.id === todoId);
+              if (todo) {
+                editTodo(todoId, todo.text, todo.plainText, { ...todo.metadata, sprint: undefined });
+              }
+            }}
+            defaultDuration={settings.sprints?.defaultSprintDuration || 14}
+          />
         )}
 
         {activeView === "list" && (
@@ -3061,6 +3126,8 @@ export function TodoApp() {
                                     onDragOver={handleDragOver}
                                     onDragLeave={handleDragLeave}
                                     onDrop={handleDrop}
+                                    sprints={sprints.map((s) => s.raw)}
+                                    nextPlannedSprint={nextPlannedSprint?.raw}
                                   />
                                 </li>
                               ))}
@@ -3121,6 +3188,8 @@ export function TodoApp() {
                               isSelected={selectedTodoIds.has(todo.id)}
                               onSelectionChange={handleSelectionChange}
                               isDraggable={false}
+                              sprints={sprints.map((s) => s.raw)}
+                              nextPlannedSprint={nextPlannedSprint?.raw}
                             />
                           </li>
                         ))}
@@ -3178,6 +3247,8 @@ export function TodoApp() {
                               isSelected={selectedTodoIds.has(todo.id)}
                               onSelectionChange={handleSelectionChange}
                               isDraggable={false}
+                              sprints={sprints.map((s) => s.raw)}
+                              nextPlannedSprint={nextPlannedSprint?.raw}
                             />
                           </li>
                         ))}
@@ -3383,6 +3454,8 @@ export function TodoApp() {
                     onAddManualTimeEntry={addManualTimeEntry}
                     onDeleteTimeEntry={deleteTimeEntry}
                     onCreateTemplate={handleCreateTemplate}
+                    sprints={sprints.map((s) => s.raw)}
+                    runningSprint={runningSprint?.raw}
                   />
                 );
               })()}
