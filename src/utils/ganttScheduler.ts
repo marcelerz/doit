@@ -736,26 +736,32 @@ export function scheduleDayTasks(
       nextBreak: null, // Will be computed after all tasks are scheduled
     });
 
-    // Track Pomodoro session count for break computation
-    if (schedulingTechnique === "pomodoro") {
-      pomodoroSessionCount++;
-    }
-
     // Add break time between tasks based on scheduling technique
     // AND compute nextBreak info at the same time (scheduler is authoritative source)
     if (schedulingTechnique === "pomodoro") {
-      // Pomodoro adds short/long break after each task
-      const breakDuration = getPomodoroBreakDuration(pomodoroSessionCount, ganttSettings);
-      const isLongBreak = pomodoroSessionCount > 0 && pomodoroSessionCount % longBreakInterval === 0;
+      // For Pomodoro, breaks happen at work session boundaries (every pomodoroWorkMinutes)
+      // Check if we need a break after this task based on accumulated work time
+      if (workTimeSinceLastPomodoroBreak >= pomodoroWorkMinutes) {
+        // We've completed a work session - take the appropriate break
+        pomodoroSessionCount++;
+        const breakDuration = getPomodoroBreakDuration(pomodoroSessionCount, ganttSettings);
+        const isLongBreak = pomodoroSessionCount > 0 && pomodoroSessionCount % longBreakInterval === 0;
 
-      tasks[tasks.length - 1].nextBreak = {
-        type: isLongBreak ? "long" : "short",
-        durationMinutes: breakDuration,
-        icon: "🍅",
-        label: isLongBreak ? "long break" : "short break",
-      };
+        tasks[tasks.length - 1].nextBreak = {
+          type: isLongBreak ? "long" : "short",
+          durationMinutes: breakDuration,
+          icon: "🍅",
+          label: isLongBreak ? "long break" : "short break",
+        };
 
-      currentTime = new Date(overallEndTime.getTime() + breakDuration * 60000);
+        currentTime = new Date(overallEndTime.getTime() + breakDuration * 60000);
+        workTimeSinceLastPomodoroBreak = 0;
+      } else {
+        // Not at a session boundary yet - no break between tasks
+        // The next task will continue accumulating work time
+        tasks[tasks.length - 1].nextBreak = null;
+        currentTime = new Date(overallEndTime);
+      }
     } else if (schedulingTechnique === "flow") {
       // Flow adds context switch between tasks
       if (flowContextMinutes > 0) {
