@@ -28,7 +28,7 @@ function getAudioContext(): AudioContext | null {
  * @param type - Type of sound
  */
 export function playNotificationSound(
-  type: "short-break" | "long-break" | "work-start" | "task-complete" | "task-start" | "break-end",
+  type: "short-break" | "long-break" | "task-complete" | "task-start" | "break-end",
 ): void {
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -46,56 +46,72 @@ export function playNotificationSound(
     gainNode.connect(ctx.destination);
 
     // Different sound patterns for different notification types
+    // Task sounds use square wave (more digital/focused feel)
+    // Break sounds use sine wave (softer/relaxing feel)
     switch (type) {
-      case "short-break":
-        // Two gentle high tones (break starting)
-        oscillator.frequency.setValueAtTime(880, ctx.currentTime); // A5
-        oscillator.frequency.setValueAtTime(1047, ctx.currentTime + 0.15); // C6
-        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-        oscillator.start(ctx.currentTime);
-        oscillator.stop(ctx.currentTime + 0.3);
-        break;
-
-      case "long-break":
-        // Three descending tones (more celebratory - long break starting)
-        oscillator.frequency.setValueAtTime(1047, ctx.currentTime); // C6
-        oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
-        oscillator.frequency.setValueAtTime(698, ctx.currentTime + 0.3); // F5
-        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-        oscillator.start(ctx.currentTime);
-        oscillator.stop(ctx.currentTime + 0.5);
-        break;
-
-      case "work-start":
-      case "break-end":
-        // Single decisive tone (back to work)
-        oscillator.frequency.setValueAtTime(523, ctx.currentTime); // C5
-        gainNode.gain.setValueAtTime(0.25, ctx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-        oscillator.start(ctx.currentTime);
-        oscillator.stop(ctx.currentTime + 0.2);
-        break;
-
       case "task-start":
-        // Rising tone (starting fresh task)
-        oscillator.frequency.setValueAtTime(392, ctx.currentTime); // G4
-        oscillator.frequency.linearRampToValueAtTime(523, ctx.currentTime + 0.15); // C5
-        gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        // Upward arpeggio - energizing "let's go" sound
+        oscillator.type = "square";
+        oscillator.frequency.setValueAtTime(262, ctx.currentTime); // C4
+        oscillator.frequency.setValueAtTime(330, ctx.currentTime + 0.08); // E4
+        oscillator.frequency.setValueAtTime(392, ctx.currentTime + 0.16); // G4
+        oscillator.frequency.setValueAtTime(523, ctx.currentTime + 0.24); // C5
+        gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
         oscillator.start(ctx.currentTime);
-        oscillator.stop(ctx.currentTime + 0.2);
+        oscillator.stop(ctx.currentTime + 0.35);
         break;
 
       case "task-complete":
-        // Ascending two tones (success sound - task finished)
+        // Gentle success chime - satisfying but not startling
+        oscillator.type = "sine";
         oscillator.frequency.setValueAtTime(523, ctx.currentTime); // C5
-        oscillator.frequency.setValueAtTime(659, ctx.currentTime + 0.1); // E5
-        gainNode.gain.setValueAtTime(0.25, ctx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        oscillator.frequency.setValueAtTime(659, ctx.currentTime + 0.12); // E5
+        oscillator.frequency.setValueAtTime(784, ctx.currentTime + 0.24); // G5
+        gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
         oscillator.start(ctx.currentTime);
-        oscillator.stop(ctx.currentTime + 0.25);
+        oscillator.stop(ctx.currentTime + 0.4);
+        break;
+
+      case "short-break":
+        // Gentle descending tone - soft "relax" sound
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(659, ctx.currentTime); // E5
+        oscillator.frequency.linearRampToValueAtTime(440, ctx.currentTime + 0.3); // A4
+        gainNode.gain.setValueAtTime(0.25, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.4);
+        break;
+
+      case "long-break":
+        // Longer descending melody - more relaxing "take a real break" sound
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(784, ctx.currentTime); // G5
+        oscillator.frequency.setValueAtTime(659, ctx.currentTime + 0.15); // E5
+        oscillator.frequency.setValueAtTime(523, ctx.currentTime + 0.3); // C5
+        oscillator.frequency.linearRampToValueAtTime(392, ctx.currentTime + 0.5); // G4
+        gainNode.gain.setValueAtTime(0.25, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.6);
+        break;
+
+      case "break-end":
+        // Short alarm - repeated beeps to get attention
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime); // A5
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.2); // A5
+        gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+        gainNode.gain.setValueAtTime(0.02, ctx.currentTime + 0.08);
+        gainNode.gain.setValueAtTime(0.2, ctx.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(0.02, ctx.currentTime + 0.18);
+        gainNode.gain.setValueAtTime(0.2, ctx.currentTime + 0.2);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.3);
         break;
     }
   } catch (error) {
@@ -140,7 +156,7 @@ export function notifyPomodoroWorkStart(
   playSound: boolean = true,
 ): Notification | null {
   if (playSound) {
-    playNotificationSound("work-start");
+    playNotificationSound("task-start");
   }
 
   return sendNotification(`🍅 Break over - back to work!`, {

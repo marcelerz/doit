@@ -360,14 +360,6 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
                 >
                   ⏰ Break End
                 </button>
-                <button
-                  type="button"
-                  onClick={() => playNotificationSound("work-start")}
-                  className="px-3 py-1.5 text-xs rounded bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors"
-                  title="Played when resuming work after a break"
-                >
-                  💪 Work Start
-                </button>
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-2">Click to preview each sound effect</p>
             </div>
