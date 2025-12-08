@@ -18,6 +18,21 @@ import {
   getNotificationPermission,
   requestNotificationPermission,
 } from "@/utils/notifications";
+import {
+  ScheduledTask,
+  TaskSegment,
+  BreakBlock as SchedulerBreakBlock,
+  parseTime,
+  parseDuration,
+  getScheduleForDate,
+  getBreakTypeFromDuration,
+  getPomodoroBreakDuration,
+  sortTodosForScheduling,
+  createTaskSchedulingMap,
+  scheduleDayTasks,
+  scheduleWeekTasks,
+  WeekDaySchedule,
+} from "@/utils/ganttScheduler";
 
 interface GanttViewProps {
   todos: TodoModel[];
@@ -54,31 +69,9 @@ interface GanttViewProps {
   onDuplicate?: (id: string) => string | undefined;
 }
 
-interface TaskSegment {
-  startTime: Date;
-  endTime: Date;
-  durationMinutes: number;
-}
-
-interface ScheduledTask {
-  todo: TodoModel;
-  startTime: Date; // Overall start time (first segment)
-  endTime: Date; // Overall end time (last segment)
-  durationMinutes: number; // Total duration across all segments
-  segments: TaskSegment[]; // Individual work segments (split by breaks)
-  targetDate: Date;
-  hasBuffer: boolean;
-  bufferMinutes: number;
-  isOverdue: boolean;
-}
-
-interface BreakBlock {
-  name: string;
-  startTime: Date;
-  endTime: Date;
-  color: string;
+// Local BreakBlock interface extends the scheduler's with TimeBlockType
+interface BreakBlock extends SchedulerBreakBlock {
   blockType?: TimeBlockType | string;
-  icon?: string;
 }
 
 // Helper to get color for a block
@@ -241,274 +234,22 @@ export function GanttView({
     }
   };
 
-  // Calculate Pomodoro break duration based on session count
-  const getPomodoroBreakDuration = (sessionCount: number): number => {
-    const { pomodoroShortBreak, pomodoroLongBreak, pomodoroLongBreakInterval } = settings.gantt;
-
-    const tasksForLongBreak = pomodoroLongBreakInterval ?? 4;
-
-    // Long break after every N sessions
-    if (sessionCount > 0 && sessionCount % tasksForLongBreak === 0) {
-      return pomodoroLongBreak ?? 15;
-    }
-
-    return pomodoroShortBreak ?? 5;
-  };
-
-  // Get break type label for display based on session count
-  const getPomodoroBreakType = (sessionCount: number): "short" | "long" => {
-    const { pomodoroLongBreakInterval } = settings.gantt;
-    const tasksForLongBreak = pomodoroLongBreakInterval ?? 4;
-
-    if (sessionCount > 0 && sessionCount % tasksForLongBreak === 0) {
-      return "long";
-    }
-
-    return "short";
-  };
-
-  // Get break type based on actual gap duration (for UI display)
-  // Always returns "short" to show blue indicators consistently
-  const getBreakTypeFromDuration = (gapMinutes: number): "context" | "short" | "long" => {
-    // Always return "short" for consistent blue coloring
-    // The actual break duration is shown in the tooltip
-    return "short";
-  };
-
-  // Get schedule for a specific date
-  const getScheduleForDate = (date: Date) => {
-    const dayOfWeek = date.getDay();
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
-    const dayName = dayNames[dayOfWeek];
-
-    if (workHours.useCommonSchedule) {
-      return workHours.commonSchedule;
-    }
-
-    const customSchedule = workHours.customSchedules[dayName];
-    if (customSchedule) return customSchedule;
-
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    return isWeekend ? workHours.weekendSchedule : workHours.weekdaySchedule;
-  };
-
-  // Parse time string to Date
-  const parseTime = (timeStr: string, baseDate: Date): Date => {
-    const [hours, minutes] = timeStr.split(":").map(Number);
-    const date = new Date(baseDate);
-    date.setHours(hours, minutes, 0, 0);
-    return date;
-  };
-
   // Get all todos (active, completed, archived - not deleted), sorted by mode
   const allActiveTodos = useMemo(() => {
-    let filtered = todos.filter((todo) => {
-      return todo.state !== "deleted";
-    });
-
-    if (schedulingMode === "asap") {
-      // Sort by state first (active before completed/archived), then priority, then due date
-      filtered.sort((a, b) => {
-        // Active tasks come first
-        if (a.state === "active" && b.state !== "active") return -1;
-        if (a.state !== "active" && b.state === "active") return 1;
-
-        // For active tasks, sort by priority then due date
-        if (a.state === "active" && b.state === "active") {
-          const aPriorityObj = availablePriorities.find(
-            (p) => p.name === a.metadata.priority || p.alternatives.includes(a.metadata.priority || ""),
-          );
-          const bPriorityObj = availablePriorities.find(
-            (p) => p.name === b.metadata.priority || p.alternatives.includes(b.metadata.priority || ""),
-          );
-
-          const aOrder = aPriorityObj?.order ?? 999;
-          const bOrder = bPriorityObj?.order ?? 999;
-
-          if (aOrder !== bOrder) {
-            return aOrder - bOrder;
-          }
-
-          // Secondary sort: due date (earliest first)
-          if (!a.metadata.dueDate && !b.metadata.dueDate) return 0;
-          if (!a.metadata.dueDate) return 1;
-          if (!b.metadata.dueDate) return -1;
-
-          const aDate = new Date(a.metadata.dueDate);
-          const bDate = new Date(b.metadata.dueDate);
-
-          return aDate.getTime() - bDate.getTime();
-        }
-
-        // For completed/archived, sort by completion/archive date
-        const aDate = a.completedAt || a.archivedAt || 0;
-        const bDate = b.completedAt || b.archivedAt || 0;
-        return aDate - bDate;
-      });
-    } else {
-      // Sort by state first, then due date
-      filtered.sort((a, b) => {
-        // Active tasks come first
-        if (a.state === "active" && b.state !== "active") return -1;
-        if (a.state !== "active" && b.state === "active") return 1;
-
-        // For active tasks, sort by due date
-        if (a.state === "active" && b.state === "active") {
-          if (!a.metadata.dueDate && !b.metadata.dueDate) return 0;
-          if (!a.metadata.dueDate) return 1;
-          if (!b.metadata.dueDate) return -1;
-
-          const aDate = new Date(a.metadata.dueDate);
-          const bDate = new Date(b.metadata.dueDate);
-
-          return aDate.getTime() - bDate.getTime();
-        }
-
-        // For completed/archived, sort by completion/archive date
-        const aDate = a.completedAt || a.archivedAt || 0;
-        const bDate = b.completedAt || b.archivedAt || 0;
-        return aDate - bDate;
-      });
-    }
-
-    return filtered;
+    return sortTodosForScheduling(todos, availablePriorities, schedulingMode);
   }, [todos, availablePriorities, schedulingMode]);
 
   // Determine which day each task should be scheduled on (ASAP scheduling with different sort orders)
   const taskSchedulingMap = useMemo(() => {
-    const map = new Map<string, string>(); // todoId -> dateKey
-    const now = new Date();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // First, schedule all completed/archived tasks at their exact completion time
-    const activeTodosOnly = allActiveTodos.filter((todo) => {
-      if (todo.isCompleted && todo.completedAt) {
-        const completionDate = new Date(todo.completedAt);
-
-        // Assign to the day based on LOCAL date (not UTC date)
-        const localYear = completionDate.getFullYear();
-        const localMonth = String(completionDate.getMonth() + 1).padStart(2, "0");
-        const localDay = String(completionDate.getDate()).padStart(2, "0");
-        const completedDateKey = `${localYear}-${localMonth}-${localDay}`;
-
-        map.set(todo.id, completedDateKey);
-        return false; // Remove from active scheduling
-      }
-
-      if (todo.isArchived) {
-        // Archived tasks use completedAt if available, otherwise skip scheduling
-        if (todo.completedAt) {
-          const completionDate = new Date(todo.completedAt);
-
-          // Assign to the day based on LOCAL date (not UTC date)
-          const localYear = completionDate.getFullYear();
-          const localMonth = String(completionDate.getMonth() + 1).padStart(2, "0");
-          const localDay = String(completionDate.getDate()).padStart(2, "0");
-          const archivedDateKey = `${localYear}-${localMonth}-${localDay}`;
-
-          map.set(todo.id, archivedDateKey);
-        }
-        return false; // Remove from active scheduling
-      }
-
-      return true; // Keep active tasks for ASAP scheduling
+    return createTaskSchedulingMap(allActiveTodos, {
+      ganttSettings: settings.gantt,
+      workHours,
+      availablePriorities,
+      schedulingMode,
     });
+  }, [allActiveTodos, workHours, settings.gantt, availablePriorities, schedulingMode]);
 
-    let currentDay = new Date(today);
-    let remainingTodos = [...activeTodosOnly];
-
-    // Schedule active tasks across days starting from today (sorted by priority or due date)
-    while (remainingTodos.length > 0) {
-      const daySchedule = getScheduleForDate(currentDay);
-      const dayStart = parseTime(daySchedule.startTime, currentDay);
-      const dayEnd = parseTime(daySchedule.endTime, currentDay);
-      const dayBreaks = daySchedule.breaks.map((b) => ({
-        startTime: parseTime(b.startTime, currentDay),
-        endTime: parseTime(b.endTime, currentDay),
-      }));
-      const isCurrentDay = currentDay.toDateString() === today.toDateString();
-
-      // Start from current time if today, otherwise start of work day
-      let currentTime = new Date(dayStart);
-      if (isCurrentDay && now > dayStart && now < dayEnd) {
-        currentTime = new Date(now);
-      }
-
-      const scheduledToday: string[] = [];
-      let dailyTaskIndex = 0; // Track task index for break time estimation
-      // Track work time for Pomodoro-style break calculation
-      let workTimeSinceBreak = 0;
-      let pomodoroSessions = 0;
-
-      for (const todo of remainingTodos) {
-        // For active tasks, schedule ASAP
-        // Ensure we're not in the past (for today)
-        if (isCurrentDay && currentTime < now) {
-          currentTime = new Date(now);
-        }
-
-        // Skip breaks
-        let inBreak = true;
-        while (inBreak && currentTime < dayEnd) {
-          inBreak = false;
-          for (const breakBlock of dayBreaks) {
-            if (currentTime >= breakBlock.startTime && currentTime < breakBlock.endTime) {
-              currentTime = new Date(breakBlock.endTime);
-              if (isCurrentDay && currentTime < now) {
-                currentTime = new Date(now);
-              }
-              inBreak = true;
-              break;
-            }
-          }
-        }
-
-        if (currentTime >= dayEnd) break; // No more time today
-
-        const durationMinutes = parseDuration(todo.metadata.duration) * settings.gantt.durationMultiplier;
-        const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
-
-        if (taskEnd <= dayEnd) {
-          // Task fits on this day - schedule it
-          const dateKey = currentDay.toISOString().split("T")[0];
-          map.set(todo.id, dateKey);
-          scheduledToday.push(todo.id);
-
-          // Calculate break time based on Pomodoro settings or context switching
-          const { pomodoroEnabled, pomodoroWorkDuration, contextSwitchingTime } = settings.gantt;
-          let breakMinutes = contextSwitchingTime ?? 5;
-
-          if (pomodoroEnabled) {
-            workTimeSinceBreak += durationMinutes;
-            const workDuration = pomodoroWorkDuration ?? 25;
-            if (workTimeSinceBreak >= workDuration) {
-              pomodoroSessions++;
-              breakMinutes = getPomodoroBreakDuration(pomodoroSessions);
-              workTimeSinceBreak = 0;
-            }
-          }
-
-          currentTime = new Date(taskEnd.getTime() + breakMinutes * 60000);
-          dailyTaskIndex++;
-        } else {
-          // Task doesn't fit - stop scheduling for this day, will try next day
-          break;
-        }
-      }
-
-      // Remove scheduled tasks from remaining
-      remainingTodos = remainingTodos.filter((t) => !scheduledToday.includes(t.id));
-
-      // Move to next day
-      currentDay.setDate(currentDay.getDate() + 1);
-
-      // Safety: don't schedule more than 30 days out
-      if (currentDay.getTime() - today.getTime() > 30 * 24 * 60 * 60 * 1000) break;
-    }
-
-    return map;
-  }, [allActiveTodos, workHours, settings.gantt]); // Get todos for selected date based on scheduling map
+  // Get todos for selected date based on scheduling map
   const todosForDate = useMemo(() => {
     const dateKey = selectedDate.toISOString().split("T")[0];
     return allActiveTodos.filter((todo) => taskSchedulingMap.get(todo.id) === dateKey);
@@ -520,7 +261,7 @@ export function GanttView({
   }, [todos]);
 
   // Get schedule and time bounds, dynamically expanded for completed tasks outside work hours
-  const schedule = getScheduleForDate(selectedDate);
+  const schedule = getScheduleForDate(selectedDate, workHours);
   const { expandedStartTime, expandedEndTime } = useMemo(() => {
     let minTime = parseTime(schedule.startTime, selectedDate);
     let maxTime = parseTime(schedule.endTime, selectedDate);
@@ -533,13 +274,11 @@ export function GanttView({
         const taskStartTime = new Date(completionDate.getTime() - durationMinutes * 60 * 1000);
 
         if (taskStartTime < minTime) {
-          // Round down to the nearest hour
           const rounded = new Date(taskStartTime);
           rounded.setMinutes(0, 0, 0);
           minTime = rounded;
         }
         if (completionDate > maxTime) {
-          // Round up to the next hour
           const rounded = new Date(completionDate);
           rounded.setMinutes(0, 0, 0);
           rounded.setHours(rounded.getHours() + 1);
@@ -567,281 +306,10 @@ export function GanttView({
     }));
   }, [schedule, selectedDate]);
 
-  // Schedule tasks
-  const scheduledTasks: ScheduledTask[] = useMemo(() => {
-    const tasks: ScheduledTask[] = [];
-    const now = new Date();
-    const isToday = selectedDate.toDateString() === now.toDateString();
-
-    // Start from current time if today and we're past the start time, otherwise start of day
-    let currentTime = new Date(dayStartTime);
-    if (isToday && now > dayStartTime && now < dayEndTime) {
-      currentTime = new Date(now);
-    }
-
-    // Helper to find the next break that starts after or overlaps with a given time
-    const findNextBreak = (fromTime: Date): BreakBlock | null => {
-      const sorted = [...breakBlocks].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-      for (const b of sorted) {
-        // Break overlaps or is after fromTime
-        if (b.endTime > fromTime) {
-          return b;
-        }
-      }
-      return null;
-    };
-
-    // Helper to skip past any break we're currently in
-    const skipCurrentBreak = (time: Date): Date => {
-      let result = new Date(time);
-      let changed = true;
-      while (changed) {
-        changed = false;
-        for (const breakBlock of breakBlocks) {
-          if (result >= breakBlock.startTime && result < breakBlock.endTime) {
-            result = new Date(breakBlock.endTime);
-            changed = true;
-            break;
-          }
-        }
-      }
-      return result;
-    };
-
-    // Pomodoro state tracking (time-based, not task-count based)
-    const { pomodoroEnabled, pomodoroWorkDuration, contextSwitchingTime } = settings.gantt;
-    const workDurationMinutes = pomodoroWorkDuration ?? 25;
-    const contextSwitchMinutes = contextSwitchingTime ?? 5;
-
-    // Track work time since last Pomodoro break (in minutes)
-    let workTimeSinceLastPomodoroBreak = 0;
-    // Track Pomodoro session count for long break calculation
-    let pomodoroSessionCount = 0;
-
-    for (const todo of todosForDate) {
-      // For completed/archived tasks, schedule based on their actual completion time
-      if ((todo.isCompleted || todo.isArchived) && todo.completedAt) {
-        const completionDate = new Date(todo.completedAt);
-        const durationMinutes = parseDuration(todo.metadata.duration);
-
-        // Calculate when task would have started (completion time - duration)
-        const taskEndTime = completionDate;
-        const taskStartTime = new Date(completionDate.getTime() - durationMinutes * 60 * 1000);
-
-        // Calculate target date from the actual due date
-        let targetDate: Date;
-        if (todo.metadata.dueDate) {
-          const dueDateStr = todo.metadata.dueDate;
-          if (dueDateStr.includes("T") || dueDateStr.includes("Z")) {
-            targetDate = new Date(dueDateStr);
-          } else if (dueDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            const [year, month, day] = dueDateStr.split("-").map(Number);
-            targetDate = new Date(year, month - 1, day);
-            targetDate.setHours(23, 59, 59, 999);
-          } else {
-            targetDate = new Date(dueDateStr);
-          }
-        } else {
-          targetDate = completionDate;
-        }
-
-        // Calculate buffer/overdue based on completion time vs due date
-        const timeDiff = targetDate.getTime() - taskEndTime.getTime();
-        const hasBuffer = timeDiff > 0;
-        const isOverdue = timeDiff < 0;
-        const bufferMinutes = Math.abs(Math.floor(timeDiff / 60000));
-
-        tasks.push({
-          todo,
-          startTime: taskStartTime,
-          endTime: taskEndTime,
-          durationMinutes,
-          segments: [{ startTime: taskStartTime, endTime: taskEndTime, durationMinutes }],
-          targetDate,
-          hasBuffer,
-          bufferMinutes,
-          isOverdue,
-        });
-
-        continue;
-      }
-
-      // For active tasks, use ASAP scheduling with break splitting and Pomodoro time-based breaks
-      // If today, ensure currentTime is not in the past
-      if (isToday && currentTime < now) {
-        currentTime = new Date(now);
-      }
-
-      // Skip past any break we're currently in
-      currentTime = skipCurrentBreak(currentTime);
-
-      if (currentTime >= dayEndTime) break;
-
-      const totalDurationMinutes = parseDuration(todo.metadata.duration) * settings.gantt.durationMultiplier;
-      let remainingMinutes = totalDurationMinutes;
-      const segments: TaskSegment[] = [];
-
-      // Schedule segments, splitting across breaks AND at Pomodoro work duration boundaries
-      while (remainingMinutes > 0 && currentTime < dayEndTime) {
-        // Skip any break we might be in
-        currentTime = skipCurrentBreak(currentTime);
-        if (currentTime >= dayEndTime) break;
-
-        // If Pomodoro is enabled and we've accumulated enough work time, take a break FIRST
-        if (pomodoroEnabled && workTimeSinceLastPomodoroBreak >= workDurationMinutes) {
-          pomodoroSessionCount++;
-          const pomodoroBreakDuration = getPomodoroBreakDuration(pomodoroSessionCount);
-          currentTime = new Date(currentTime.getTime() + pomodoroBreakDuration * 60000);
-          currentTime = skipCurrentBreak(currentTime);
-          workTimeSinceLastPomodoroBreak = 0;
-          if (currentTime >= dayEndTime) break;
-        }
-
-        // Find how much time until the next break block or end of day
-        let availableMinutes = (dayEndTime.getTime() - currentTime.getTime()) / 60000;
-        const nextBreak = findNextBreak(currentTime);
-
-        if (nextBreak && nextBreak.startTime > currentTime && nextBreak.startTime < dayEndTime) {
-          const minutesToBreak = (nextBreak.startTime.getTime() - currentTime.getTime()) / 60000;
-          availableMinutes = Math.min(availableMinutes, minutesToBreak);
-        }
-
-        // When Pomodoro is enabled, also limit by remaining work duration before next Pomodoro break
-        if (pomodoroEnabled) {
-          const minutesToPomodoroBreak = workDurationMinutes - workTimeSinceLastPomodoroBreak;
-          availableMinutes = Math.min(availableMinutes, minutesToPomodoroBreak);
-        }
-
-        // Use as much time as available or remaining, whichever is less
-        const segmentMinutes = Math.min(remainingMinutes, availableMinutes);
-
-        if (segmentMinutes <= 0) break;
-
-        const segmentEnd = new Date(currentTime.getTime() + segmentMinutes * 60000);
-
-        segments.push({
-          startTime: new Date(currentTime),
-          endTime: segmentEnd,
-          durationMinutes: segmentMinutes,
-        });
-
-        remainingMinutes -= segmentMinutes;
-        currentTime = new Date(segmentEnd);
-
-        // Track work time for Pomodoro
-        if (pomodoroEnabled) {
-          workTimeSinceLastPomodoroBreak += segmentMinutes;
-        }
-
-        // Check if we need to handle a time block break (Pomodoro breaks handled at start of loop)
-        if (remainingMinutes > 0) {
-          const wasAtTimeBlockBreak =
-            currentTime < dayEndTime &&
-            (breakBlocks.some((b) => currentTime >= b.startTime && currentTime < b.endTime) ||
-              (nextBreak && segmentEnd.getTime() === nextBreak.startTime.getTime()));
-
-          if (wasAtTimeBlockBreak) {
-            // Hit a time block break - skip it
-            const beforeSkip = new Date(currentTime);
-            currentTime = skipCurrentBreak(currentTime);
-            const timeBlockBreakDuration = (currentTime.getTime() - beforeSkip.getTime()) / 60000;
-
-            if (pomodoroEnabled) {
-              const { pomodoroLongBreak } = settings.gantt;
-              const longBreakDuration = pomodoroLongBreak ?? 15;
-
-              // If time block break is >= long break duration, reset session count entirely
-              // (user got a proper long rest like lunch)
-              if (timeBlockBreakDuration >= longBreakDuration) {
-                pomodoroSessionCount = 0;
-                workTimeSinceLastPomodoroBreak = 0;
-              } else if (workTimeSinceLastPomodoroBreak >= workDurationMinutes) {
-                // Time block break counts as rest time for Pomodoro
-                // If we've accumulated enough work time, the time block counts toward the break
-                pomodoroSessionCount++;
-                const requiredBreak = getPomodoroBreakDuration(pomodoroSessionCount);
-                // Time block already provided some break time
-                const additionalBreakNeeded = Math.max(0, requiredBreak - timeBlockBreakDuration);
-                if (additionalBreakNeeded > 0) {
-                  currentTime = new Date(currentTime.getTime() + additionalBreakNeeded * 60000);
-                  currentTime = skipCurrentBreak(currentTime);
-                }
-                workTimeSinceLastPomodoroBreak = 0;
-              } else {
-                // Time block wasn't long enough and we haven't hit work duration yet
-                // But it still counts as rest - reset work time
-                workTimeSinceLastPomodoroBreak = 0;
-              }
-              // No context switching when Pomodoro is enabled
-            } else {
-              // Pomodoro disabled - add context switch time after time block break
-              currentTime = new Date(currentTime.getTime() + contextSwitchMinutes * 60000);
-              currentTime = skipCurrentBreak(currentTime);
-            }
-          }
-          // Pomodoro breaks are now handled at the start of the loop
-        }
-      }
-
-      // If we couldn't schedule any segments, skip this task
-      if (segments.length === 0) continue;
-
-      // Calculate overall start and end time
-      const overallStartTime = segments[0].startTime;
-      const overallEndTime = segments[segments.length - 1].endTime;
-      const scheduledMinutes = segments.reduce((sum, s) => sum + s.durationMinutes, 0);
-
-      // Calculate target date from the actual due date
-      let targetDate: Date;
-      if (todo.metadata.dueDate) {
-        const dueDateStr = todo.metadata.dueDate;
-        if (dueDateStr.includes("T") || dueDateStr.includes("Z")) {
-          targetDate = new Date(dueDateStr);
-        } else if (dueDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          const [year, month, day] = dueDateStr.split("-").map(Number);
-          targetDate = new Date(year, month - 1, day);
-          targetDate.setHours(23, 59, 59, 999); // End of day if no time specified
-        } else {
-          targetDate = new Date(dueDateStr);
-        }
-      } else {
-        // No due date - use end of selected day or now if today
-        targetDate = isToday && now > dayStartTime && now < dayEndTime ? now : dayEndTime;
-      }
-
-      // Calculate buffer/overdue based on when the task actually finishes
-      const timeDiff = targetDate.getTime() - overallEndTime.getTime();
-      const hasBuffer = timeDiff > 0;
-      const isOverdue = timeDiff < 0;
-      const bufferMinutes = Math.abs(Math.floor(timeDiff / 60000));
-
-      tasks.push({
-        todo,
-        startTime: overallStartTime,
-        endTime: overallEndTime,
-        durationMinutes: scheduledMinutes,
-        segments,
-        targetDate,
-        hasBuffer,
-        bufferMinutes,
-        isOverdue,
-      });
-
-      // Add break time between tasks
-      if (pomodoroEnabled) {
-        // Pomodoro mode: breaks are handled at the start of the segment loop
-        // Just move currentTime to the end of this task
-        currentTime = new Date(overallEndTime);
-      } else {
-        // Pomodoro disabled - use context switching time between tasks
-        currentTime = new Date(overallEndTime.getTime() + contextSwitchMinutes * 60000);
-      }
-    }
-
-    return tasks;
-  }, [todosForDate, dayStartTime, dayEndTime, breakBlocks, workHours, selectedDate, settings.gantt]);
-
-  const unscheduledTasks = todosForDate.slice(scheduledTasks.length);
+  // Schedule tasks using the utility function
+  const { tasks: scheduledTasks, unscheduledTasks } = useMemo(() => {
+    return scheduleDayTasks(todosForDate, dayStartTime, dayEndTime, breakBlocks, selectedDate, settings.gantt);
+  }, [todosForDate, dayStartTime, dayEndTime, breakBlocks, selectedDate, settings.gantt]);
 
   // Separate active and completed tasks for collapsible section
   const { activeTasks, completedTasks } = useMemo(() => {
@@ -1242,7 +710,7 @@ export function GanttView({
   const weekScheduledTasks = useMemo(() => {
     return currentWeekDates.map((date) => {
       const dateStr = date.toISOString().split("T")[0];
-      const daySchedule = getScheduleForDate(date);
+      const daySchedule = getScheduleForDate(date, workHours);
       const dayStart = parseTime(daySchedule.startTime, date);
       const dayEnd = parseTime(daySchedule.endTime, date);
       const totalMinutes = (dayEnd.getTime() - dayStart.getTime()) / 60000;
@@ -1349,7 +817,7 @@ export function GanttView({
           const workDuration = pomodoroWorkDuration ?? 25;
           if (workTimeSinceBreak >= workDuration) {
             pomodoroSessions++;
-            breakMinutes = getPomodoroBreakDuration(pomodoroSessions);
+            breakMinutes = getPomodoroBreakDuration(pomodoroSessions, settings.gantt);
             workTimeSinceBreak = 0;
           }
         }
@@ -2012,7 +1480,7 @@ export function GanttView({
                                   const gapMinutes = nextTask
                                     ? (nextTask.startTime.getTime() - task.endTime.getTime()) / 60000
                                     : 0;
-                                  const breakType = getBreakTypeFromDuration(gapMinutes);
+                                  const breakType = getBreakTypeFromDuration();
                                   const hasBreak = nextTask && gapMinutes > 0 && !isCompletedTask;
                                   const breakStartPos = endPos;
                                   const breakEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
@@ -2260,7 +1728,7 @@ export function GanttView({
                           const gapMinutes = nextTask
                             ? (nextTask.startTime.getTime() - task.endTime.getTime()) / 60000
                             : 0;
-                          const breakType = getBreakTypeFromDuration(gapMinutes);
+                          const breakType = getBreakTypeFromDuration();
                           const hasBreak = nextTask && gapMinutes > 0 && !isCompletedTask;
                           const breakStartPos = endPos;
                           const breakEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
