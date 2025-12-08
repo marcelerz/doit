@@ -13,10 +13,11 @@ import {
   requestNotificationPermission,
   getNotificationPermission,
 } from "@/utils/notifications";
-import { scheduleDayTasks, BreakBlock, parseDuration, parseTime, getScheduleForDate } from "@/utils/ganttScheduler";
+import { ScheduledTask, parseDuration } from "@/utils/ganttScheduler";
 
 interface FocusViewProps {
   todos: TodoModel[];
+  scheduledTasks: ScheduledTask[]; // Pre-scheduled tasks from Gantt view
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
@@ -50,6 +51,7 @@ interface FocusState {
 
 export function FocusView({
   todos,
+  scheduledTasks: preScheduledTasks,
   onToggle,
   onDelete,
   onEdit,
@@ -60,39 +62,10 @@ export function FocusView({
   onOpenDetails,
   onClose,
 }: FocusViewProps) {
-  // Show all active todos in focus mode (duration optional)
-  const activeTodos = useMemo(() => todos.filter((t) => t.isActive), [todos]);
-
-  // Schedule tasks using the Gantt scheduler
+  // Filter scheduled tasks to only include non-actual-time, non-completed tasks
   const scheduledTasks = useMemo(() => {
-    if (activeTodos.length === 0) return [];
-
-    const now = new Date();
-    const schedule = getScheduleForDate(now, settings.workHours);
-
-    // Parse startTime and endTime strings (e.g., "09:00", "17:00")
-    const [startHour, startMinute] = schedule.startTime.split(":").map(Number);
-    const [endHour, endMinute] = schedule.endTime.split(":").map(Number);
-
-    const dayStart = new Date(now);
-    dayStart.setHours(startHour, startMinute, 0, 0);
-
-    const dayEnd = new Date(now);
-    dayEnd.setHours(endHour, endMinute, 0, 0);
-
-    // Build break blocks from schedule
-    const breakBlocks: BreakBlock[] = schedule.breaks.map((b) => ({
-      name: b.name,
-      startTime: parseTime(b.startTime, now),
-      endTime: parseTime(b.endTime, now),
-      color: "#94a3b8", // Default gray
-      blockType: b.blockType,
-    }));
-
-    const result = scheduleDayTasks(activeTodos, dayStart, dayEnd, breakBlocks, now, settings.gantt);
-
-    return result.tasks;
-  }, [activeTodos, settings.workHours, settings.gantt]);
+    return preScheduledTasks.filter((t) => !t.isActualTime && !t.todo.isCompleted && !t.todo.isArchived);
+  }, [preScheduledTasks]);
 
   // Get scheduling settings
   const ganttSettings = settings.gantt ?? {};
@@ -648,43 +621,33 @@ export function FocusView({
   const techniqueIcon = technique === "pomodoro" ? "🍅" : technique === "flow" ? "🌊" : "📋";
   const techniqueName = technique === "pomodoro" ? "Pomodoro" : technique === "flow" ? "Flow" : "Sequential";
 
-  // Empty state - no active tasks
-  if (activeTodos.length === 0) {
+  // Count active todos for display
+  const activeTodosCount = todos.filter((t) => t.isActive).length;
+
+  // Empty state - no scheduled tasks
+  if (scheduledTasks.length === 0) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800">
         <div className="text-center p-8">
-          <div className="text-6xl mb-4">🎉</div>
-          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">All caught up!</h2>
-          <p className="text-zinc-600 dark:text-zinc-400 mb-2">No active tasks to focus on.</p>
-          <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-6">Create some tasks to use Focus Mode.</p>
+          <div className="text-6xl mb-4">{activeTodosCount === 0 ? "🎉" : "⏰"}</div>
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
+            {activeTodosCount === 0 ? "All caught up!" : "No tasks scheduled for today"}
+          </h2>
+          <p className="text-zinc-600 dark:text-zinc-400 mb-2">
+            {activeTodosCount === 0
+              ? "No active tasks to focus on."
+              : `You have ${activeTodosCount} active task${
+                  activeTodosCount !== 1 ? "s" : ""
+                }, but none are scheduled for today.`}
+          </p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-6">
+            {activeTodosCount === 0
+              ? "Create some tasks to use Focus Mode."
+              : "Set due dates on your tasks or check your scheduling settings."}
+          </p>
           <button
             onClick={onClose}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-          >
-            Exit Focus Mode
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // No scheduled tasks (e.g., outside work hours)
-  if (scheduledTasks.length === 0) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 dark:from-zinc-900 dark:to-zinc-800">
-        <div className="text-center p-8">
-          <div className="text-6xl mb-4">⏰</div>
-          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">Outside work hours</h2>
-          <p className="text-zinc-600 dark:text-zinc-400 mb-2">
-            You have {activeTodos.length} active task{activeTodos.length !== 1 ? "s" : ""}, but it&apos;s outside your
-            scheduled work hours.
-          </p>
-          <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-6">
-            Adjust your work hours in Settings → Work Hours, or try again during your scheduled hours.
-          </p>
-          <button
-            onClick={onClose}
-            className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors"
           >
             Exit Focus Mode
           </button>

@@ -17,6 +17,7 @@ import { KanbanView } from "./KanbanView";
 import { StatisticsView } from "./StatisticsView";
 import { FocusView } from "./FocusView";
 import TimeReportsView from "./TimeReportsView";
+import { ScheduledTask } from "@/utils/ganttScheduler";
 import { MarkerReference } from "@/components/shared/MarkerReference";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { PersonDetailsOverlay } from "@/components/overlays/PersonDetailsOverlay";
@@ -392,6 +393,7 @@ export function TodoApp() {
 
   // Focus mode state
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [focusTasks, setFocusTasks] = useState<ScheduledTask[]>([]);
 
   // Close export menu when clicking outside
   useEffect(() => {
@@ -2109,30 +2111,6 @@ export function TodoApp() {
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-3xl sm:text-4xl font-bold text-zinc-900 dark:text-zinc-100">DoIt</h1>
             <div className="flex items-center gap-2">
-              {/* Focus Mode Button - only show if feature enabled and there are active todos */}
-              {features?.focusMode && todos.filter((t) => t.isActive).length > 0 && (
-                <button
-                  onClick={() => setIsFocusMode(true)}
-                  className="px-2 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
-                  title="Enter focus mode"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    />
-                  </svg>
-                  <span className="hidden sm:inline">Focus</span>
-                </button>
-              )}
               <button
                 onClick={() => setIsAddOverlayOpen(true)}
                 className="px-2 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
@@ -3112,6 +3090,14 @@ export function TodoApp() {
             onAddManualTimeEntry={settings.features.timeTracking ? addManualTimeEntry : undefined}
             onDeleteTimeEntry={settings.features.timeTracking ? deleteTimeEntry : undefined}
             onCreateTemplate={handleCreateTemplate}
+            onStartFocusMode={
+              features?.focusMode
+                ? (tasks) => {
+                    setFocusTasks(tasks);
+                    setIsFocusMode(true);
+                  }
+                : undefined
+            }
           />
         )}
 
@@ -4923,6 +4909,7 @@ export function TodoApp() {
       {isFocusMode && (
         <FocusView
           todos={todos}
+          scheduledTasks={focusTasks}
           onToggle={toggleTodo}
           onDelete={deleteTodo}
           onEdit={editTodo}

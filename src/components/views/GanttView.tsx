@@ -75,6 +75,8 @@ interface GanttViewProps {
   onCreateTemplate?: (todoId: string) => void;
   // Duplicate handler
   onDuplicate?: (id: string) => string | undefined;
+  // Focus mode handler
+  onStartFocusMode?: (tasks: ScheduledTask[]) => void;
 }
 
 // Local BreakBlock interface extends the scheduler's with TimeBlockType
@@ -126,6 +128,7 @@ export function GanttView({
   onDeleteTimeEntry,
   onCreateTemplate,
   onDuplicate,
+  onStartFocusMode,
 }: GanttViewProps) {
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
@@ -967,6 +970,31 @@ export function GanttView({
                 </svg>
                 {timeStats.conflictCount}
               </span>
+            )}
+
+            {/* Focus Mode Button */}
+            {onStartFocusMode && activeTasks.length > 0 && (
+              <button
+                onClick={() => onStartFocusMode(activeTasks)}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-xs sm:text-sm flex items-center gap-1.5"
+                title="Start focus mode with scheduled tasks for this date"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Focus</span>
+              </button>
             )}
 
             {/* Print Button */}
