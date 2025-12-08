@@ -1,9 +1,15 @@
 import { TodoModel } from "@/models/TodoModel";
 
 export type NotificationPermission = "default" | "granted" | "denied";
+export type SoundType = "short-break" | "long-break" | "task-complete" | "task-start" | "break-end";
 
 // Audio context for playing sounds
 let audioContext: AudioContext | null = null;
+
+// Sound queue system
+const soundQueue: SoundType[] = [];
+let isProcessingQueue = false;
+const SOUND_DELAY_MS = 3000; // 3 seconds between sounds
 
 /**
  * Get or create AudioContext (lazy initialization due to browser autoplay policies)
@@ -24,12 +30,63 @@ function getAudioContext(): AudioContext | null {
 }
 
 /**
- * Play a notification sound using Web Audio API
+ * Process the sound queue - plays sounds with delays between them
+ */
+function processQueue(): void {
+  if (isProcessingQueue || soundQueue.length === 0) return;
+
+  isProcessingQueue = true;
+  const sound = soundQueue.shift()!;
+  playSound(sound);
+
+  if (soundQueue.length > 0) {
+    // Wait 3 seconds before playing next sound
+    setTimeout(() => {
+      isProcessingQueue = false;
+      processQueue();
+    }, SOUND_DELAY_MS);
+  } else {
+    isProcessingQueue = false;
+  }
+}
+
+/**
+ * Queue a sound to be played. If multiple sounds are queued, they play with 3s delays.
+ * @param type - Type of sound to queue
+ */
+export function queueSound(type: SoundType): void {
+  soundQueue.push(type);
+  processQueue();
+}
+
+/**
+ * Queue multiple sounds to be played in sequence with delays
+ * @param types - Array of sound types to queue
+ */
+export function queueSounds(types: SoundType[]): void {
+  soundQueue.push(...types);
+  processQueue();
+}
+
+/**
+ * Clear all queued sounds
+ */
+export function clearSoundQueue(): void {
+  soundQueue.length = 0;
+}
+
+/**
+ * Play a notification sound immediately (bypasses queue)
  * @param type - Type of sound
  */
-export function playNotificationSound(
-  type: "short-break" | "long-break" | "task-complete" | "task-start" | "break-end",
-): void {
+export function playNotificationSound(type: SoundType): void {
+  playSound(type);
+}
+
+/**
+ * Internal function to play a sound
+ */
+function playSound(type: SoundType): void {
   const ctx = getAudioContext();
   if (!ctx) return;
 

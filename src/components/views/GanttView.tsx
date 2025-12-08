@@ -20,13 +20,6 @@ import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { getTextColor } from "@/utils/colors";
 import {
-  notifyPomodoroBreak,
-  notifyPomodoroWorkStart,
-  playNotificationSound,
-  getNotificationPermission,
-  requestNotificationPermission,
-} from "@/utils/notifications";
-import {
   ScheduledTask,
   TaskSegment,
   BreakBlock as SchedulerBreakBlock,
@@ -163,21 +156,12 @@ export function GanttView({
     setTooltipPosition(null);
   }, []);
 
-  // Pomodoro state
-  const [pomodoroNotifiedBreaks, setPomodoroNotifiedBreaks] = useState<Set<string>>(new Set());
-  const [notificationPermission, setNotificationPermission] = useState<string>("default");
-
   // Update current time every minute for the now line
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 60000); // Update every minute
     return () => clearInterval(interval);
-  }, []);
-
-  // Check notification permission on mount
-  useEffect(() => {
-    setNotificationPermission(getNotificationPermission());
   }, []);
 
   // Load persisted view options from storage
@@ -384,71 +368,6 @@ export function GanttView({
     const completed = scheduledTasks.filter((t) => t.todo.isCompleted || t.todo.isArchived);
     return { activeTasks: active, completedTasks: completed };
   }, [scheduledTasks]);
-
-  // Pomodoro break notification effect
-  useEffect(() => {
-    const {
-      schedulingTechnique,
-      pomodoroNotifications,
-      pomodoroSound,
-      pomodoroShortBreak,
-      pomodoroLongBreak,
-      pomodoroLongBreakInterval,
-    } = settings.gantt;
-
-    // Only check if not sequential and today is selected
-    if (schedulingTechnique === "sequential" || selectedDate.toDateString() !== new Date().toDateString()) {
-      return;
-    }
-
-    // Check every 10 seconds for upcoming breaks
-    const checkBreaks = () => {
-      const now = new Date();
-
-      activeTasks.forEach((task, index) => {
-        // Check if task just ended (within the last minute)
-        const taskEndTime = task.endTime.getTime();
-        const timeSinceEnd = now.getTime() - taskEndTime;
-
-        // If task ended 0-60 seconds ago and we haven't notified for this task
-        if (timeSinceEnd >= 0 && timeSinceEnd < 60000) {
-          const breakKey = `${task.todo.id}-${task.endTime.toISOString()}`;
-
-          if (!pomodoroNotifiedBreaks.has(breakKey)) {
-            // Determine break type
-            const taskNumber = index + 1;
-            const isLongBreak = taskNumber > 0 && taskNumber % (pomodoroLongBreakInterval ?? 4) === 0;
-            const breakDuration = isLongBreak ? pomodoroLongBreak ?? 15 : pomodoroShortBreak ?? 5;
-            const breakType = isLongBreak ? "long" : "short";
-
-            // Only notify/sound if the next task exists (not the last task)
-            const hasNextTask = index < activeTasks.length - 1;
-
-            if (hasNextTask) {
-              // Play sound if enabled
-              if (pomodoroSound) {
-                playNotificationSound(isLongBreak ? "long-break" : "short-break");
-              }
-
-              // Show notification if enabled and permission granted
-              if (pomodoroNotifications && notificationPermission === "granted") {
-                notifyPomodoroBreak(breakType, breakDuration, taskNumber, false); // false = don't play sound (already played)
-              }
-
-              // Mark as notified
-              setPomodoroNotifiedBreaks((prev) => new Set(prev).add(breakKey));
-            }
-          }
-        }
-      });
-    };
-
-    // Run immediately and then every 10 seconds
-    checkBreaks();
-    const interval = setInterval(checkBreaks, 10000);
-
-    return () => clearInterval(interval);
-  }, [activeTasks, selectedDate, settings.gantt, pomodoroNotifiedBreaks, notificationPermission]);
 
   // Detect task conflicts (overlapping time slots)
   const taskConflicts = useMemo(() => {

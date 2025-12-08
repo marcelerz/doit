@@ -9,6 +9,8 @@ import { Badge } from "@/components/shared/Badge";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import {
   playNotificationSound,
+  queueSounds,
+  clearSoundQueue,
   sendNotification,
   requestNotificationPermission,
   getNotificationPermission,
@@ -104,6 +106,13 @@ export function FocusView({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   // Confirmation repeat timer ref
   const confirmationTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup sound queue on unmount
+  useEffect(() => {
+    return () => {
+      clearSoundQueue();
+    };
+  }, []);
 
   // Current task
   const currentTask = scheduledTasks[state.currentTaskIndex];
@@ -270,9 +279,9 @@ export function FocusView({
                   : pomodoroShortBreak
                 : ganttSettings.flowBreakDuration ?? 17;
 
-            // Play sound and notify
+            // Play sounds: task-complete, then break sound after 3s delay
             if (soundEnabled) {
-              playNotificationSound(isLongBreak ? "long-break" : "short-break");
+              queueSounds(["task-complete", isLongBreak ? "long-break" : "short-break"]);
             }
             if (notificationsEnabled) {
               sendNotification(isLongBreak ? "🍅 Time for a long break!" : "🍅 Time for a short break!", {
@@ -323,8 +332,9 @@ export function FocusView({
 
           if (newBreakTime <= 0) {
             // Break complete - back to work
+            // Play sounds: break-end, then task-start after 3s delay
             if (soundEnabled) {
-              playNotificationSound("break-end");
+              queueSounds(["break-end", "task-start"]);
             }
             if (notificationsEnabled) {
               sendNotification("🍅 Break over - back to work!", {
@@ -482,7 +492,7 @@ export function FocusView({
   // Skip break
   const skipBreak = useCallback(() => {
     if (soundEnabled) {
-      playNotificationSound("break-end");
+      queueSounds(["break-end", "task-start"]);
     }
     setState((s) => ({
       ...s,
