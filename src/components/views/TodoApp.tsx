@@ -886,7 +886,8 @@ export function TodoApp() {
     | "project"
     | "priority"
     | "timeSpent"
-    | "created";
+    | "created"
+    | "title";
   type SortDirection = "asc" | "desc";
   type GroupBy = "none" | "dueDate" | "priority" | "project" | "category" | "assigned" | "sprint";
 
@@ -1758,6 +1759,12 @@ export function TodoApp() {
           if (aTimeSpent > 0 && bTimeSpent === 0) return -1;
           break;
 
+        case "title":
+          const aTitle = a.plainText.toLowerCase();
+          const bTitle = b.plainText.toLowerCase();
+          comparison = aTitle.localeCompare(bTitle);
+          break;
+
         case "created":
         default:
           comparison = b.createdAt - a.createdAt; // Newest first by default
@@ -2511,6 +2518,7 @@ export function TodoApp() {
                   <option value="mentioned">Mentioned</option>
                   <option value="project">Project</option>
                   <option value="timeSpent">Time Spent</option>
+                  <option value="title">Title</option>
                 </select>
                 <button
                   onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
@@ -2749,6 +2757,7 @@ export function TodoApp() {
                             <option value="mentioned">Mentioned</option>
                             <option value="project">Project</option>
                             <option value="timeSpent">Time Spent</option>
+                            <option value="title">Title</option>
                           </select>
                           <button
                             onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
