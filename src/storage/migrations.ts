@@ -212,6 +212,10 @@ export function migrateSettings(loadedSettings: any): Settings {
       ...defaultSettings.features,
       ...(loadedSettings.features || {}),
     },
+    focus: {
+      ...defaultSettings.focus,
+      ...(loadedSettings.focus || {}),
+    },
   };
 }
 
