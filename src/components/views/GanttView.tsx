@@ -850,9 +850,9 @@ export function GanttView({
               </button>
             </div>
 
-            {/* Technique Toggle */}
+            {/* Technique Toggle - Connected segmented control */}
             <div className="flex items-center gap-1 sm:gap-2 sm:ml-2 sm:pl-2 sm:border-l border-zinc-200 dark:border-zinc-700">
-              <div className="flex gap-1" role="group" aria-label="Scheduling technique">
+              <div className="flex" role="group" aria-label="Scheduling technique">
                 <button
                   onClick={() => {
                     if (onUpdateGanttSettings) {
@@ -863,10 +863,10 @@ export function GanttView({
                     }
                   }}
                   aria-pressed={settings.gantt.schedulingTechnique === "sequential"}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors flex items-center gap-1 ${
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 rounded-l-md border-y border-l ${
                     settings.gantt.schedulingTechnique === "sequential"
-                      ? "bg-blue-600 text-white"
-                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border-zinc-300 dark:border-zinc-600"
                   }`}
                   title="Sequential: Simple context switching between tasks"
                 >
@@ -882,10 +882,10 @@ export function GanttView({
                     }
                   }}
                   aria-pressed={settings.gantt.schedulingTechnique === "pomodoro"}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors flex items-center gap-1 ${
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 border ${
                     settings.gantt.schedulingTechnique === "pomodoro"
-                      ? "bg-red-500 text-white"
-                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                      ? "bg-red-500 text-white border-red-500"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border-zinc-300 dark:border-zinc-600"
                   }`}
                   title="Pomodoro: Work sessions with short/long breaks"
                 >
@@ -901,10 +901,10 @@ export function GanttView({
                     }
                   }}
                   aria-pressed={settings.gantt.schedulingTechnique === "flow"}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors flex items-center gap-1 ${
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 rounded-r-md border-y border-r ${
                     settings.gantt.schedulingTechnique === "flow"
-                      ? "bg-cyan-500 text-white"
-                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                      ? "bg-cyan-500 text-white border-cyan-500"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border-zinc-300 dark:border-zinc-600"
                   }`}
                   title="Flow: Work/break/context cycles (52/17, Ultradian)"
                 >
@@ -936,61 +936,22 @@ export function GanttView({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Time Stats */}
-            <div
-              className="flex items-center gap-1.5 sm:gap-3 text-[10px] sm:text-xs"
-              role="status"
-              aria-label="Daily statistics"
-            >
+            {/* Conflict indicator if any */}
+            {timeStats.conflictCount > 0 && (
               <span
-                className="text-zinc-500 dark:text-zinc-400"
-                title={`Tasks: ${Math.round((timeStats.totalPlannedMinutes / 60) * 10) / 10}h + Breaks: ${
-                  Math.round((timeStats.techniqueBreakMinutes / 60) * 10) / 10
-                }h`}
+                className="text-red-600 dark:text-red-400 flex items-center gap-1 text-xs"
+                title={`${timeStats.conflictCount} overlapping tasks`}
               >
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                  {Math.round(((timeStats.totalPlannedMinutes + timeStats.techniqueBreakMinutes) / 60) * 10) / 10}h
-                </span>{" "}
-                <span className="hidden sm:inline">planned</span>
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {timeStats.conflictCount}
               </span>
-              <span className="text-zinc-500 dark:text-zinc-400" title="Total duration of completed tasks today">
-                <span className="font-medium text-green-600 dark:text-green-400">
-                  {Math.round((timeStats.completedMinutes / 60) * 10) / 10}h
-                </span>{" "}
-                <span className="hidden sm:inline">done</span>
-              </span>
-              <span
-                className={`font-medium ${
-                  timeStats.utilizationPercent > 100
-                    ? "text-red-600 dark:text-red-400"
-                    : timeStats.utilizationPercent > 80
-                    ? "text-amber-600 dark:text-amber-400"
-                    : "text-zinc-600 dark:text-zinc-400"
-                }`}
-                title={`Capacity utilization: (${Math.round((timeStats.totalPlannedMinutes / 60) * 10) / 10}h tasks + ${
-                  Math.round((timeStats.techniqueBreakMinutes / 60) * 10) / 10
-                }h breaks + ${Math.round((timeStats.completedMinutes / 60) * 10) / 10}h done) / ${
-                  Math.round((timeStats.availableMinutes / 60) * 10) / 10
-                }h available = ${timeStats.utilizationPercent}%`}
-              >
-                {timeStats.utilizationPercent}%
-              </span>
-              {timeStats.conflictCount > 0 && (
-                <span
-                  className="text-red-600 dark:text-red-400 flex items-center gap-1"
-                  title={`${timeStats.conflictCount} overlapping tasks`}
-                >
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  {timeStats.conflictCount}
-                </span>
-              )}
-            </div>
+            )}
 
             {/* Print Button */}
             <button
@@ -1217,7 +1178,11 @@ export function GanttView({
                         : "bg-green-400 dark:bg-green-500"
                     }`}
                     style={{ width: `${Math.min(utilizationPercent, 100)}%` }}
-                    title={`${utilizationPercent}% capacity used`}
+                    title={`${Math.round((totalTaskMinutes / 60) * 10) / 10}h tasks + ${
+                      Math.round((techniqueBreakMinutes / 60) * 10) / 10
+                    }h breaks = ${Math.round((utilizedMinutes / 60) * 10) / 10}h planned / ${
+                      Math.round((availableMinutes / 60) * 10) / 10
+                    }h available = ${utilizationPercent}%`}
                   />
                 </div>
               );
