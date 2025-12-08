@@ -16,6 +16,8 @@ export interface TaskSegment {
   startTime: Date;
   endTime: Date;
   durationMinutes: number;
+  // Break info for the gap after this segment (if any)
+  nextBreak: BreakInfo | null;
 }
 
 // Break type after a task
@@ -486,7 +488,7 @@ export function scheduleDayTasks(
         startTime: taskStartTime,
         endTime: taskEndTime,
         durationMinutes,
-        segments: [{ startTime: taskStartTime, endTime: taskEndTime, durationMinutes }],
+        segments: [{ startTime: taskStartTime, endTime: taskEndTime, durationMinutes, nextBreak: null }],
         targetDate,
         hasBuffer,
         bufferMinutes,
@@ -556,10 +558,67 @@ export function scheduleDayTasks(
 
       const segmentEnd = new Date(currentTime.getTime() + segmentMinutes * 60000);
 
+      // Determine if there will be a break after this segment
+      // (there's more work remaining AND we're hitting a boundary)
+      const willHaveMoreSegments = remainingMinutes - segmentMinutes > 0;
+      let segmentBreakInfo: BreakInfo | null = null;
+
+      if (willHaveMoreSegments) {
+        // There's a break between segments - determine type based on technique
+        if (schedulingTechnique === "pomodoro") {
+          // Check if this segment completes a Pomodoro work session
+          const workAfterSegment = workTimeSinceLastPomodoroBreak + segmentMinutes;
+          if (workAfterSegment >= pomodoroWorkMinutes) {
+            const nextSession = pomodoroSessionCount + 1;
+            const isLong = nextSession > 0 && nextSession % longBreakInterval === 0;
+            segmentBreakInfo = {
+              type: isLong ? "long" : "short",
+              durationMinutes: isLong ? longBreakDuration : ganttSettings.pomodoroShortBreak ?? 5,
+              icon: "🍅",
+              label: isLong ? "long break" : "short break",
+            };
+          } else {
+            // Just a time block break, show as break
+            segmentBreakInfo = {
+              type: "short",
+              durationMinutes: 0, // Will be computed from gap
+              icon: "🍅",
+              label: "break",
+            };
+          }
+        } else if (schedulingTechnique === "flow") {
+          const workAfterSegment = workTimeSinceLastPomodoroBreak + segmentMinutes;
+          if (workAfterSegment >= flowWorkMinutes) {
+            segmentBreakInfo = {
+              type: "long",
+              durationMinutes: flowBreakMinutes,
+              icon: "🌊",
+              label: "break",
+            };
+          } else {
+            segmentBreakInfo = {
+              type: "context",
+              durationMinutes: 0,
+              icon: "🌊",
+              label: "break",
+            };
+          }
+        } else {
+          // Sequential - context switch
+          segmentBreakInfo = {
+            type: "context",
+            durationMinutes: contextSwitchMinutes,
+            icon: "",
+            label: "context switch",
+          };
+        }
+      }
+
       segments.push({
         startTime: new Date(currentTime),
         endTime: segmentEnd,
         durationMinutes: segmentMinutes,
+        nextBreak: segmentBreakInfo,
       });
 
       remainingMinutes -= segmentMinutes;

@@ -2033,32 +2033,40 @@ export function GanttView({
                                         </div>
 
                                         {/* Break indicator between segments - shows the gap after break block */}
-                                        {nextSegment && contextSwitchWidth > 0 && contextSwitchDuration > 0 && (
+                                        {nextSegment && segment.nextBreak && contextSwitchWidth > 0 && (
                                           <div
                                             className="absolute top-0 bottom-0 flex items-center z-5"
                                             style={{
                                               left: `${contextSwitchStartPos}%`,
                                               width: `${contextSwitchWidth}%`,
                                             }}
-                                            title={
-                                              settings.gantt.schedulingTechnique === "pomodoro"
-                                                ? `🍅 ${contextSwitchDuration}min break`
-                                                : settings.gantt.schedulingTechnique === "flow"
-                                                ? `🌊 ${contextSwitchDuration}min break`
-                                                : `${contextSwitchDuration}min context switch`
-                                            }
+                                            title={`${segment.nextBreak.icon} ${contextSwitchDuration}min ${segment.nextBreak.label}`.trim()}
                                           >
                                             <div className="flex items-center w-full">
                                               <svg
-                                                className="w-2 h-2 flex-shrink-0 text-blue-500 dark:text-blue-400"
+                                                className={`w-2 h-2 flex-shrink-0 ${
+                                                  segment.nextBreak.type === "long"
+                                                    ? "text-green-500 dark:text-green-400"
+                                                    : "text-blue-500 dark:text-blue-400"
+                                                }`}
                                                 fill="currentColor"
                                                 viewBox="0 0 8 8"
                                               >
                                                 <path d="M4 0 L0 4 L4 8 Z" />
                                               </svg>
-                                              <div className="flex-1 h-px bg-blue-500 dark:bg-blue-400" />
+                                              <div
+                                                className={`flex-1 h-px ${
+                                                  segment.nextBreak.type === "long"
+                                                    ? "bg-green-500 dark:bg-green-400"
+                                                    : "bg-blue-500 dark:bg-blue-400"
+                                                }`}
+                                              />
                                               <svg
-                                                className="w-2 h-2 flex-shrink-0 text-blue-500 dark:text-blue-400"
+                                                className={`w-2 h-2 flex-shrink-0 ${
+                                                  segment.nextBreak.type === "long"
+                                                    ? "text-green-500 dark:text-green-400"
+                                                    : "text-blue-500 dark:text-blue-400"
+                                                }`}
                                                 fill="currentColor"
                                                 viewBox="0 0 8 8"
                                               >
