@@ -397,7 +397,7 @@ export function KanbanView({
                 <option value="backlog">📋 Backlog (No Sprint)</option>
                 {activeSprint && <option value={activeSprint.id}>🏃 {activeSprint.name} (Active)</option>}
                 {sprints
-                  .filter((s) => s.id !== activeSprint?.id)
+                  .filter((s) => s.id !== activeSprint?.id && s.state !== "archived")
                   .sort((a, b) => {
                     // Sort by status: planning first, then others
                     const statusOrder = { planning: 0, active: 1, completed: 2, cancelled: 3 };
