@@ -50,6 +50,10 @@ export interface ScheduledTask {
   isOverdue: boolean;
   // Break info for the gap after this task (if any)
   nextBreak: BreakInfo | null;
+  // Whether this represents actual tracked time (vs predicted/scheduled)
+  isActualTime?: boolean;
+  // Time entry ID if this is actual tracked time
+  timeEntryId?: string;
 }
 
 export interface BreakBlock {
@@ -399,6 +403,7 @@ export function createTaskSchedulingMap(todos: TodoModel[], config: SchedulingCo
 
 /**
  * Schedule tasks for a specific day with segment splitting
+ * @param scheduledTodoIds - Set of todo IDs that are actually scheduled for this date (vs only having time tracking)
  */
 export function scheduleDayTasks(
   todosForDate: TodoModel[],
@@ -407,6 +412,7 @@ export function scheduleDayTasks(
   breakBlocks: BreakBlock[],
   selectedDate: Date,
   ganttSettings: Gantt,
+  scheduledTodoIds?: Set<string>,
 ): DayScheduleResult {
   const tasks: ScheduledTask[] = [];
   const now = new Date();
@@ -473,9 +479,6 @@ export function scheduleDayTasks(
       const completionDate = new Date(todo.completedAt);
       const durationMinutes = parseDuration(todo.metadata.duration);
 
-      const taskEndTime = completionDate;
-      const taskStartTime = new Date(completionDate.getTime() - durationMinutes * 60 * 1000);
-
       let targetDate: Date;
       if (todo.metadata.dueDate) {
         const dueDateStr = todo.metadata.dueDate;
@@ -491,6 +494,55 @@ export function scheduleDayTasks(
       } else {
         targetDate = completionDate;
       }
+
+      // Check if this task has time tracking entries for this date
+      if (todo.hasTimeTracking && todo.timeTracking) {
+        const dayStart = new Date(selectedDate);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(selectedDate);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        // Filter time entries that overlap with this date
+        const entriesForDate = todo.timeTracking.entries.filter((entry) => {
+          const entryStart = new Date(entry.startTime);
+          const entryEnd = entry.endTime ? new Date(entry.endTime) : new Date();
+          return entryStart <= dayEnd && entryEnd >= dayStart;
+        });
+
+        if (entriesForDate.length > 0) {
+          // Create a scheduled task for each time entry (actual tracked time)
+          for (const entry of entriesForDate) {
+            const entryStart = new Date(entry.startTime);
+            const entryEnd = entry.endTime ? new Date(entry.endTime) : new Date();
+            const entryDuration = entry.duration ?? Math.round((entryEnd.getTime() - entryStart.getTime()) / 60000);
+
+            const timeDiff = targetDate.getTime() - entryEnd.getTime();
+            const hasBuffer = timeDiff > 0;
+            const isOverdue = timeDiff < 0;
+            const bufferMinutes = Math.abs(Math.floor(timeDiff / 60000));
+
+            tasks.push({
+              todo,
+              startTime: entryStart,
+              endTime: entryEnd,
+              durationMinutes: entryDuration,
+              segments: [{ startTime: entryStart, endTime: entryEnd, durationMinutes: entryDuration, nextBreak: null }],
+              targetDate,
+              hasBuffer,
+              bufferMinutes,
+              isOverdue,
+              nextBreak: null,
+              isActualTime: true,
+              timeEntryId: entry.id,
+            });
+          }
+          continue;
+        }
+      }
+
+      // Fall back to completion time if no time tracking
+      const taskEndTime = completionDate;
+      const taskStartTime = new Date(completionDate.getTime() - durationMinutes * 60 * 1000);
 
       const timeDiff = targetDate.getTime() - taskEndTime.getTime();
       const hasBuffer = timeDiff > 0;
@@ -725,7 +777,78 @@ export function scheduleDayTasks(
       }
     }
 
+    // Add actual time tracking entries for active tasks (if they have time tracking)
+    // This runs regardless of whether scheduled segments were created
+    if (todo.hasTimeTracking && todo.timeTracking) {
+      const dayStart = new Date(selectedDate);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(selectedDate);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      // Filter time entries that overlap with this date
+      const entriesForDate = todo.timeTracking.entries.filter((entry) => {
+        const entryStart = new Date(entry.startTime);
+        const entryEnd = entry.endTime ? new Date(entry.endTime) : new Date();
+        return entryStart <= dayEnd && entryEnd >= dayStart;
+      });
+
+      // Add each time entry as an actual time block (in gray)
+      for (const entry of entriesForDate) {
+        const entryStart = new Date(entry.startTime);
+        const entryEnd = entry.endTime ? new Date(entry.endTime) : new Date();
+        const entryDuration = entry.duration ?? Math.round((entryEnd.getTime() - entryStart.getTime()) / 60000);
+
+        // Skip entries with no meaningful duration
+        if (entryDuration <= 0) continue;
+
+        // Compute targetDate same as main task
+        let targetDate: Date;
+        if (todo.metadata.dueDate) {
+          const dueDateStr = todo.metadata.dueDate;
+          if (dueDateStr.includes("T") || dueDateStr.includes("Z")) {
+            targetDate = new Date(dueDateStr);
+          } else if (dueDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = dueDateStr.split("-").map(Number);
+            targetDate = new Date(year, month - 1, day);
+            targetDate.setHours(23, 59, 59, 999);
+          } else {
+            targetDate = new Date(dueDateStr);
+          }
+        } else {
+          targetDate = isToday && now > dayStartTime && now < dayEndTime ? now : dayEndTime;
+        }
+
+        const timeDiff = targetDate.getTime() - entryEnd.getTime();
+        const hasBuffer = timeDiff > 0;
+        const isOverdue = timeDiff < 0;
+        const bufferMinutes = Math.abs(Math.floor(timeDiff / 60000));
+
+        tasks.push({
+          todo,
+          startTime: entryStart,
+          endTime: entryEnd,
+          durationMinutes: entryDuration,
+          segments: [{ startTime: entryStart, endTime: entryEnd, durationMinutes: entryDuration, nextBreak: null }],
+          targetDate,
+          hasBuffer,
+          bufferMinutes,
+          isOverdue,
+          nextBreak: null,
+          isActualTime: true,
+          timeEntryId: entry.id,
+        });
+      }
+    }
+
+    // If no scheduled segments were created, skip to next task
+    // (but we've already added any time tracking entries above)
     if (segments.length === 0) continue;
+
+    // Skip adding scheduled block if this task is only here because of time tracking
+    // (not actually scheduled for this date)
+    if (scheduledTodoIds && !scheduledTodoIds.has(todo.id)) {
+      continue;
+    }
 
     const overallStartTime = segments[0].startTime;
     const overallEndTime = segments[segments.length - 1].endTime;
@@ -828,7 +951,10 @@ export function scheduleDayTasks(
     }
   }
 
-  const unscheduledTasks = todosForDate.slice(tasks.length);
+  // Determine unscheduled tasks - tasks that have no representation in the tasks array
+  // A task is "represented" if it has scheduled segments OR actual time entries
+  const representedTodoIds = new Set(tasks.map((t) => t.todo.id));
+  const unscheduledTasks = todosForDate.filter((todo) => !representedTodoIds.has(todo.id));
 
   return { tasks, unscheduledTasks };
 }

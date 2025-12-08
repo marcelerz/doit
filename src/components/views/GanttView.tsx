@@ -252,10 +252,35 @@ export function GanttView({
     });
   }, [allActiveTodos, workHours, settings.gantt, availablePriorities, schedulingMode]);
 
-  // Get todos for selected date based on scheduling map
-  const todosForDate = useMemo(() => {
+  // Get todos for selected date based on scheduling map OR time tracking entries
+  const { todosForDate, scheduledTodoIds } = useMemo(() => {
     const dateKey = selectedDate.toISOString().split("T")[0];
-    return allActiveTodos.filter((todo) => taskSchedulingMap.get(todo.id) === dateKey);
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(selectedDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const scheduled = new Set<string>();
+    const todos = allActiveTodos.filter((todo) => {
+      // Include if scheduled for this date
+      if (taskSchedulingMap.get(todo.id) === dateKey) {
+        scheduled.add(todo.id);
+        return true;
+      }
+      // Also include if there are time tracking entries for this date
+      if (todo.hasTimeTracking && todo.timeTracking) {
+        const hasEntryForDate = todo.timeTracking.entries.some((entry) => {
+          const entryStart = new Date(entry.startTime);
+          const entryEnd = entry.endTime ? new Date(entry.endTime) : new Date();
+          return entryStart <= dayEnd && entryEnd >= dayStart;
+        });
+        if (hasEntryForDate) {
+          return true;
+        }
+      }
+      return false;
+    });
+    return { todosForDate: todos, scheduledTodoIds: scheduled };
   }, [allActiveTodos, taskSchedulingMap, selectedDate]);
 
   // Count todos without due dates
@@ -268,6 +293,11 @@ export function GanttView({
   const { expandedStartTime, expandedEndTime } = useMemo(() => {
     let minTime = parseTime(schedule.startTime, selectedDate);
     let maxTime = parseTime(schedule.endTime, selectedDate);
+
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(selectedDate);
+    dayEnd.setHours(23, 59, 59, 999);
 
     // Check if any completed/archived tasks fall outside work hours
     todosForDate.forEach((todo) => {
@@ -287,6 +317,29 @@ export function GanttView({
           rounded.setHours(rounded.getHours() + 1);
           maxTime = rounded;
         }
+      }
+
+      // Also expand bounds for time tracking entries (active or completed tasks)
+      if (todo.hasTimeTracking && todo.timeTracking) {
+        todo.timeTracking.entries.forEach((entry) => {
+          const entryStart = new Date(entry.startTime);
+          const entryEnd = entry.endTime ? new Date(entry.endTime) : new Date();
+
+          // Only consider entries that overlap with the selected date
+          if (entryStart <= dayEnd && entryEnd >= dayStart) {
+            if (entryStart < minTime) {
+              const rounded = new Date(entryStart);
+              rounded.setMinutes(0, 0, 0);
+              minTime = rounded;
+            }
+            if (entryEnd > maxTime) {
+              const rounded = new Date(entryEnd);
+              rounded.setMinutes(0, 0, 0);
+              rounded.setHours(rounded.getHours() + 1);
+              maxTime = rounded;
+            }
+          }
+        });
       }
     });
 
@@ -311,8 +364,16 @@ export function GanttView({
 
   // Schedule tasks using the utility function
   const { tasks: scheduledTasks, unscheduledTasks } = useMemo(() => {
-    return scheduleDayTasks(todosForDate, dayStartTime, dayEndTime, breakBlocks, selectedDate, settings.gantt);
-  }, [todosForDate, dayStartTime, dayEndTime, breakBlocks, selectedDate, settings.gantt]);
+    return scheduleDayTasks(
+      todosForDate,
+      dayStartTime,
+      dayEndTime,
+      breakBlocks,
+      selectedDate,
+      settings.gantt,
+      scheduledTodoIds,
+    );
+  }, [todosForDate, dayStartTime, dayEndTime, breakBlocks, selectedDate, settings.gantt, scheduledTodoIds]);
 
   // Separate active and completed tasks for collapsible section
   const { activeTasks, completedTasks } = useMemo(() => {
@@ -588,6 +649,18 @@ export function GanttView({
       return markerColors.project;
     },
     [projectColorMap, markerColors.project],
+  );
+
+  // Get color for a scheduled task (accounts for actual time tracking)
+  const getTaskColor = useCallback(
+    (task: ScheduledTask): string => {
+      // Actual tracked time is always shown in gray with a distinct shade
+      if (task.isActualTime) {
+        return "#6b7280"; // gray-500 - distinct from completed gray
+      }
+      return getProjectColor(task.todo);
+    },
+    [getProjectColor],
   );
 
   // Calculate zoom scale factor - determines how wide the timeline is
@@ -1360,7 +1433,7 @@ export function GanttView({
                       const breakEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
                       const breakWidth = breakEndPos - breakStartPos;
 
-                      const taskColor = getProjectColor(task.todo);
+                      const taskColor = getTaskColor(task);
                       const textColor = getTextColor(taskColor);
 
                       // Task row height based on settings
@@ -1372,8 +1445,11 @@ export function GanttView({
                           : "h-10";
                       const showBufferZones = settings.gantt.showBufferZones !== false;
 
+                      // Use unique key for actual time entries
+                      const taskKey = task.isActualTime ? `${task.todo.id}-time-${task.timeEntryId}` : task.todo.id;
+
                       return (
-                        <React.Fragment key={task.todo.id}>
+                        <React.Fragment key={taskKey}>
                           <div
                             role="listitem"
                             aria-label={`Task: ${task.todo.plainText}, ${Math.round(task.durationMinutes)} minutes${
@@ -1487,7 +1563,9 @@ export function GanttView({
                                         setDetailsOverlayTodo(task.todo);
                                       }}
                                       title={
-                                        hasMultipleSegments
+                                        task.isActualTime
+                                          ? `⏱ Actual time tracked: ${formatDuration(task.durationMinutes)}`
+                                          : hasMultipleSegments
                                           ? `Segment ${segIdx + 1}/${task.segments.length}: ${formatDuration(
                                               segment.durationMinutes,
                                             )} (Total: ${formatDuration(task.durationMinutes)})`
@@ -1496,7 +1574,10 @@ export function GanttView({
                                     >
                                       {isFirstSegment ? (
                                         <>
-                                          <span className="text-xs font-medium truncate">{task.todo.plainText}</span>
+                                          <span className="text-xs font-medium truncate">
+                                            {task.isActualTime && <span className="mr-1">⏱</span>}
+                                            {task.todo.plainText}
+                                          </span>
                                           <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                                             {/* Comment/activity indicators */}
                                             {(task.todo.hasComments || task.todo.hasActivity) && (
@@ -1744,7 +1825,7 @@ export function GanttView({
                             const endPos = getTimePosition(task.endTime);
                             const width = endPos - startPos;
                             const isSelected = selectedTaskIndex === globalIndex;
-                            const taskColor = getProjectColor(task.todo);
+                            const taskColor = getTaskColor(task);
                             const textColor = getTextColor(taskColor);
                             const rowHeight =
                               settings.gantt.taskRowHeight === "compact"
@@ -1753,9 +1834,14 @@ export function GanttView({
                                 ? "h-12"
                                 : "h-10";
 
+                            // Use unique key for actual time entries
+                            const taskKey = task.isActualTime
+                              ? `${task.todo.id}-time-${task.timeEntryId}`
+                              : task.todo.id;
+
                             return (
                               <div
-                                key={task.todo.id}
+                                key={taskKey}
                                 className={`relative opacity-60 ${
                                   isSelected ? "ring-2 ring-blue-500 ring-offset-1 rounded-lg" : ""
                                 }`}
@@ -1792,9 +1878,14 @@ export function GanttView({
                                     onMouseEnter={(e) => handleTaskMouseEnter(e, task.todo.id)}
                                     onMouseLeave={handleTaskMouseLeave}
                                     onClick={() => setDetailsOverlayTodo(task.todo)}
-                                    title="Click to view details"
+                                    title={
+                                      task.isActualTime
+                                        ? `⏱ Actual time tracked: ${formatDuration(task.durationMinutes)}`
+                                        : "Click to view details"
+                                    }
                                   >
                                     <span className="text-xs font-medium truncate line-through">
+                                      {task.isActualTime && <span className="mr-1">⏱</span>}
                                       {task.todo.plainText}
                                     </span>
                                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
