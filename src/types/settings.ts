@@ -184,35 +184,50 @@ export const defaultWorkHoursSettings: WorkHoursSettings = {
 
 // Gantt Tab Settings
 export type GanttZoomLevel = "15min" | "30min" | "1hour" | "2hour";
+export type SchedulingTechnique = "sequential" | "pomodoro" | "flow";
 
 export interface GanttPreset {
   id: string;
   name: string;
+  technique: SchedulingTechnique;
+  // Sequential settings
   contextSwitchingTime: number;
   defaultTaskDuration: number;
   durationMultiplier: number;
   // Pomodoro settings
-  pomodoroEnabled?: boolean;
   pomodoroWorkDuration?: number; // Work duration in minutes (default 25)
   pomodoroShortBreak?: number; // Short break in minutes (default 5)
   pomodoroLongBreak?: number; // Long break in minutes (default 15)
   pomodoroLongBreakInterval?: number; // Number of work sessions before long break (default 4)
+  // Flow settings
+  flowWorkDuration?: number; // Work duration in minutes (default 52)
+  flowBreakDuration?: number; // Break duration in minutes (default 17)
+  flowContextSwitchingTime?: number; // Context switch between tasks in minutes (default 10)
 }
 
 export interface Gantt {
-  // Planning Settings
-  contextSwitchingTime: number; // Minutes between tasks for context switching
+  // Active Technique
+  schedulingTechnique: SchedulingTechnique; // Which technique is active
+
+  // Common Settings
   defaultTaskDuration: number; // Default duration in minutes when not specified
   durationMultiplier: number; // Multiplier for task durations during scheduling
 
+  // Sequential Settings
+  contextSwitchingTime: number; // Minutes between tasks for context switching
+
   // Pomodoro Settings
-  pomodoroEnabled: boolean; // Use Pomodoro technique for breaks
   pomodoroWorkDuration: number; // Work duration in minutes (default 25)
   pomodoroShortBreak: number; // Short break in minutes (default 5)
   pomodoroLongBreak: number; // Long break in minutes (default 15)
   pomodoroLongBreakInterval: number; // Number of work sessions before long break (default 4)
   pomodoroNotifications: boolean; // Show browser notifications for breaks
   pomodoroSound: boolean; // Play sound for break notifications
+
+  // Flow Settings
+  flowWorkDuration: number; // Work duration in minutes (default 52)
+  flowBreakDuration: number; // Break duration in minutes (default 17)
+  flowContextSwitchingTime: number; // Context switch between tasks in minutes (default 10)
 
   // View Settings
   zoomLevel: GanttZoomLevel; // Timeline zoom level
@@ -229,20 +244,39 @@ export interface Gantt {
 }
 
 export const defaultGanttPresets: GanttPreset[] = [
+  // Sequential presets
   {
-    id: "focus",
+    id: "sequential-focus",
     name: "Focus Mode",
+    technique: "sequential",
     contextSwitchingTime: 5,
     defaultTaskDuration: 25,
     durationMultiplier: 1.0,
   },
   {
-    id: "pomodoro",
-    name: "Pomodoro",
-    contextSwitchingTime: 0, // Breaks are handled by Pomodoro settings
+    id: "sequential-planning",
+    name: "Planning Mode",
+    technique: "sequential",
+    contextSwitchingTime: 15,
+    defaultTaskDuration: 45,
+    durationMultiplier: 1.5,
+  },
+  {
+    id: "sequential-realistic",
+    name: "Realistic Mode",
+    technique: "sequential",
+    contextSwitchingTime: 20,
+    defaultTaskDuration: 60,
+    durationMultiplier: 2.0,
+  },
+  // Pomodoro presets
+  {
+    id: "pomodoro-standard",
+    name: "Standard (25/5/15)",
+    technique: "pomodoro",
+    contextSwitchingTime: 0,
     defaultTaskDuration: 25,
     durationMultiplier: 1.0,
-    pomodoroEnabled: true,
     pomodoroWorkDuration: 25,
     pomodoroShortBreak: 5,
     pomodoroLongBreak: 15,
@@ -250,43 +284,58 @@ export const defaultGanttPresets: GanttPreset[] = [
   },
   {
     id: "pomodoro-long",
-    name: "Pomodoro (Long)",
+    name: "Long Sessions (50/10/30)",
+    technique: "pomodoro",
     contextSwitchingTime: 0,
     defaultTaskDuration: 50,
     durationMultiplier: 1.0,
-    pomodoroEnabled: true,
     pomodoroWorkDuration: 50,
     pomodoroShortBreak: 10,
     pomodoroLongBreak: 30,
     pomodoroLongBreakInterval: 4,
   },
+  // Flow presets
   {
-    id: "planning",
-    name: "Planning Mode",
-    contextSwitchingTime: 15,
-    defaultTaskDuration: 45,
-    durationMultiplier: 1.5,
+    id: "flow-5217",
+    name: "52/17 Method",
+    technique: "flow",
+    contextSwitchingTime: 0,
+    defaultTaskDuration: 52,
+    durationMultiplier: 1.0,
+    flowWorkDuration: 52,
+    flowBreakDuration: 17,
+    flowContextSwitchingTime: 10,
   },
   {
-    id: "realistic",
-    name: "Realistic Mode",
-    contextSwitchingTime: 20,
-    defaultTaskDuration: 60,
-    durationMultiplier: 2.0,
+    id: "flow-ultradian",
+    name: "Ultradian Rhythm (90/20)",
+    technique: "flow",
+    contextSwitchingTime: 0,
+    defaultTaskDuration: 90,
+    durationMultiplier: 1.0,
+    flowWorkDuration: 90,
+    flowBreakDuration: 20,
+    flowContextSwitchingTime: 10,
   },
 ];
 
 export const defaultGantt: Gantt = {
+  schedulingTechnique: "sequential", // Sequential by default
   contextSwitchingTime: 15, // 15 minutes between tasks
   defaultTaskDuration: 30, // 30 minutes default
   durationMultiplier: 1.0, // 1.0 = no adjustment
-  pomodoroEnabled: false, // Disabled by default
+  // Pomodoro defaults
   pomodoroWorkDuration: 25, // Standard Pomodoro work duration
   pomodoroShortBreak: 5, // Standard short break
   pomodoroLongBreak: 15, // Standard long break
   pomodoroLongBreakInterval: 4, // Long break every 4 sessions
-  pomodoroNotifications: true, // Notifications enabled by default when Pomodoro is on
+  pomodoroNotifications: true, // Notifications enabled by default
   pomodoroSound: true, // Sound enabled by default
+  // Flow defaults (52/17 method)
+  flowWorkDuration: 52,
+  flowBreakDuration: 17,
+  flowContextSwitchingTime: 10,
+  // View settings
   zoomLevel: "1hour",
   showWeekends: true,
   showDependencies: true,

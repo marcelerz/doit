@@ -2,11 +2,11 @@
  * Gantt Chart Scheduling Logic
  *
  * This module handles all task scheduling calculations for the Gantt view,
- * including ASAP scheduling, Pomodoro breaks, and time block handling.
+ * including ASAP scheduling, Pomodoro breaks, Flow breaks, and time block handling.
  */
 
 import { TodoModel } from "@/models/TodoModel";
-import { Priority, WorkHoursSettings, Gantt, DaySchedule } from "@/types/settings";
+import { Priority, WorkHoursSettings, Gantt, DaySchedule, SchedulingTechnique } from "@/types/settings";
 
 // ============================================================================
 // Types
@@ -327,16 +327,33 @@ export function createTaskSchedulingMap(todos: TodoModel[], config: SchedulingCo
         map.set(todo.id, dateKey);
         scheduledToday.push(todo.id);
 
-        const { pomodoroEnabled, pomodoroWorkDuration, contextSwitchingTime } = ganttSettings;
+        const {
+          schedulingTechnique,
+          pomodoroWorkDuration,
+          contextSwitchingTime,
+          flowWorkDuration,
+          flowBreakDuration,
+          flowContextSwitchingTime,
+        } = ganttSettings;
         let breakMinutes = contextSwitchingTime ?? 5;
 
-        if (pomodoroEnabled) {
+        if (schedulingTechnique === "pomodoro") {
           workTimeSinceBreak += durationMinutes;
           const workDuration = pomodoroWorkDuration ?? 25;
           if (workTimeSinceBreak >= workDuration) {
             pomodoroSessions++;
             breakMinutes = getPomodoroBreakDuration(pomodoroSessions, ganttSettings);
             workTimeSinceBreak = 0;
+          }
+        } else if (schedulingTechnique === "flow") {
+          workTimeSinceBreak += durationMinutes;
+          const workDuration = flowWorkDuration ?? 52;
+          if (workTimeSinceBreak >= workDuration) {
+            // Flow break + context switching time
+            breakMinutes = (flowBreakDuration ?? 17) + (flowContextSwitchingTime ?? 10);
+            workTimeSinceBreak = 0;
+          } else {
+            breakMinutes = flowContextSwitchingTime ?? 10;
           }
         }
 
@@ -409,10 +426,21 @@ export function scheduleDayTasks(
   };
 
   // Pomodoro state tracking
-  const { pomodoroEnabled, pomodoroWorkDuration, contextSwitchingTime, pomodoroLongBreak } = ganttSettings;
-  const workDurationMinutes = pomodoroWorkDuration ?? 25;
+  const {
+    schedulingTechnique,
+    pomodoroWorkDuration,
+    contextSwitchingTime,
+    pomodoroLongBreak,
+    flowWorkDuration,
+    flowBreakDuration,
+    flowContextSwitchingTime,
+  } = ganttSettings;
+  const pomodoroWorkMinutes = pomodoroWorkDuration ?? 25;
   const contextSwitchMinutes = contextSwitchingTime ?? 5;
   const longBreakDuration = pomodoroLongBreak ?? 15;
+  const flowWorkMinutes = flowWorkDuration ?? 52;
+  const flowBreakMinutes = flowBreakDuration ?? 17;
+  const flowContextMinutes = flowContextSwitchingTime ?? 10;
 
   let workTimeSinceLastPomodoroBreak = 0;
   let pomodoroSessionCount = 0;
@@ -480,11 +508,18 @@ export function scheduleDayTasks(
       currentTime = skipCurrentBreak(currentTime);
       if (currentTime >= dayEndTime) break;
 
-      // If Pomodoro is enabled and we've accumulated enough work time, take a break FIRST
-      if (pomodoroEnabled && workTimeSinceLastPomodoroBreak >= workDurationMinutes) {
+      // If using Pomodoro or Flow and we've accumulated enough work time, take a break FIRST
+      if (schedulingTechnique === "pomodoro" && workTimeSinceLastPomodoroBreak >= pomodoroWorkMinutes) {
         pomodoroSessionCount++;
         const pomodoroBreakDuration = getPomodoroBreakDuration(pomodoroSessionCount, ganttSettings);
         currentTime = new Date(currentTime.getTime() + pomodoroBreakDuration * 60000);
+        currentTime = skipCurrentBreak(currentTime);
+        workTimeSinceLastPomodoroBreak = 0;
+        if (currentTime >= dayEndTime) break;
+      } else if (schedulingTechnique === "flow" && workTimeSinceLastPomodoroBreak >= flowWorkMinutes) {
+        // Flow: take break + context switch
+        const flowTotalBreak = flowBreakMinutes + flowContextMinutes;
+        currentTime = new Date(currentTime.getTime() + flowTotalBreak * 60000);
         currentTime = skipCurrentBreak(currentTime);
         workTimeSinceLastPomodoroBreak = 0;
         if (currentTime >= dayEndTime) break;
@@ -499,10 +534,13 @@ export function scheduleDayTasks(
         availableMinutes = Math.min(availableMinutes, minutesToBreak);
       }
 
-      // When Pomodoro is enabled, also limit by remaining work duration before next Pomodoro break
-      if (pomodoroEnabled) {
-        const minutesToPomodoroBreak = workDurationMinutes - workTimeSinceLastPomodoroBreak;
+      // When Pomodoro or Flow is enabled, also limit by remaining work duration before next break
+      if (schedulingTechnique === "pomodoro") {
+        const minutesToPomodoroBreak = pomodoroWorkMinutes - workTimeSinceLastPomodoroBreak;
         availableMinutes = Math.min(availableMinutes, minutesToPomodoroBreak);
+      } else if (schedulingTechnique === "flow") {
+        const minutesToFlowBreak = flowWorkMinutes - workTimeSinceLastPomodoroBreak;
+        availableMinutes = Math.min(availableMinutes, minutesToFlowBreak);
       }
 
       const segmentMinutes = Math.min(remainingMinutes, availableMinutes);
@@ -520,8 +558,8 @@ export function scheduleDayTasks(
       remainingMinutes -= segmentMinutes;
       currentTime = new Date(segmentEnd);
 
-      // Track work time for Pomodoro
-      if (pomodoroEnabled) {
+      // Track work time for Pomodoro and Flow
+      if (schedulingTechnique !== "sequential") {
         workTimeSinceLastPomodoroBreak += segmentMinutes;
       }
 
@@ -537,15 +575,29 @@ export function scheduleDayTasks(
           currentTime = skipCurrentBreak(currentTime);
           const timeBlockBreakDuration = (currentTime.getTime() - beforeSkip.getTime()) / 60000;
 
-          if (pomodoroEnabled) {
+          if (schedulingTechnique === "pomodoro") {
             // If time block break is >= long break duration, reset session count entirely
             if (timeBlockBreakDuration >= longBreakDuration) {
               pomodoroSessionCount = 0;
               workTimeSinceLastPomodoroBreak = 0;
-            } else if (workTimeSinceLastPomodoroBreak >= workDurationMinutes) {
+            } else if (workTimeSinceLastPomodoroBreak >= pomodoroWorkMinutes) {
               pomodoroSessionCount++;
               const requiredBreak = getPomodoroBreakDuration(pomodoroSessionCount, ganttSettings);
               const additionalBreakNeeded = Math.max(0, requiredBreak - timeBlockBreakDuration);
+              if (additionalBreakNeeded > 0) {
+                currentTime = new Date(currentTime.getTime() + additionalBreakNeeded * 60000);
+                currentTime = skipCurrentBreak(currentTime);
+              }
+              workTimeSinceLastPomodoroBreak = 0;
+            } else {
+              workTimeSinceLastPomodoroBreak = 0;
+            }
+          } else if (schedulingTechnique === "flow") {
+            // Flow: if time block break is >= flow break, reset
+            if (timeBlockBreakDuration >= flowBreakMinutes) {
+              workTimeSinceLastPomodoroBreak = 0;
+            } else if (workTimeSinceLastPomodoroBreak >= flowWorkMinutes) {
+              const additionalBreakNeeded = Math.max(0, flowBreakMinutes + flowContextMinutes - timeBlockBreakDuration);
               if (additionalBreakNeeded > 0) {
                 currentTime = new Date(currentTime.getTime() + additionalBreakNeeded * 60000);
                 currentTime = skipCurrentBreak(currentTime);
@@ -602,10 +654,15 @@ export function scheduleDayTasks(
       isOverdue,
     });
 
-    // Add break time between tasks
-    if (pomodoroEnabled) {
+    // Add break time between tasks based on scheduling technique
+    if (schedulingTechnique === "pomodoro") {
+      // Pomodoro handles breaks within the loop
       currentTime = new Date(overallEndTime);
+    } else if (schedulingTechnique === "flow") {
+      // Flow adds context switch between tasks
+      currentTime = new Date(overallEndTime.getTime() + flowContextMinutes * 60000);
     } else {
+      // Sequential uses context switch time
       currentTime = new Date(overallEndTime.getTime() + contextSwitchMinutes * 60000);
     }
   }
@@ -736,17 +793,34 @@ export function scheduleWeekTasks(
         color: getProjectColor(todo),
       });
 
-      // Calculate break time based on Pomodoro settings or context switching
-      const { pomodoroEnabled, pomodoroWorkDuration, contextSwitchingTime } = ganttSettings;
+      // Calculate break time based on scheduling technique
+      const {
+        schedulingTechnique,
+        pomodoroWorkDuration,
+        contextSwitchingTime,
+        flowWorkDuration,
+        flowBreakDuration,
+        flowContextSwitchingTime,
+      } = ganttSettings;
       let breakMinutes = contextSwitchingTime ?? 5;
 
-      if (pomodoroEnabled) {
+      if (schedulingTechnique === "pomodoro") {
         workTimeSinceBreak += durationMinutes;
         const workDuration = pomodoroWorkDuration ?? 25;
         if (workTimeSinceBreak >= workDuration) {
           pomodoroSessions++;
           breakMinutes = getPomodoroBreakDuration(pomodoroSessions, ganttSettings);
           workTimeSinceBreak = 0;
+        }
+      } else if (schedulingTechnique === "flow") {
+        workTimeSinceBreak += durationMinutes;
+        const workDuration = flowWorkDuration ?? 52;
+        if (workTimeSinceBreak >= workDuration) {
+          // Flow break + context switching time
+          breakMinutes = (flowBreakDuration ?? 17) + (flowContextSwitchingTime ?? 10);
+          workTimeSinceBreak = 0;
+        } else {
+          breakMinutes = flowContextSwitchingTime ?? 10;
         }
       }
 

@@ -71,6 +71,7 @@
 - [x] Add sprint assignment to batch edit modal
 - [x] Add priority-colored checkmark outlines for todos
 - [x] Add distinct round selection checkboxes with black border for batch mode
+- [x] Add three scheduling techniques to Gantt view (Sequential, Pomodoro, Flow) with presets
 
 ## Project Details
 
@@ -342,19 +343,42 @@ The app supports Scrum-style sprint planning for agile workflows:
 4. Filter Kanban board by sprint to focus on current work
 5. Complete sprint when done
 
-### Gantt View Pomodoro Planning
+### Gantt View Scheduling Techniques
 
-The Gantt view supports Pomodoro-style planning with configurable breaks:
+The Gantt view supports three scheduling techniques, switchable from the toolbar:
 
+**📋 Sequential**
+
+- Simple task-to-task scheduling with context switching buffer
+- **Context Switching Time**: Fixed buffer between tasks (default 5 minutes)
+- **Best For**: Predictable spacing without structured breaks
+
+**🍅 Pomodoro**
+
+- Work in focused sessions with short and long breaks
+- **Work Duration**: Focus time per session (default 25 minutes)
 - **Short Breaks**: Between each task (default 5 minutes)
 - **Long Breaks**: After every N tasks (default 15 minutes after 4 tasks)
-- **Presets**: Quick-apply presets including "Pomodoro" (25m work, 5m short break, 15m long break)
+- **Presets**: Standard Pomodoro (25/5/15/4), Long Sessions (50/10/20/4)
 - **Visual Indicators**: Short breaks shown in blue, long breaks in green
-- **Toggle**: Can be enabled/disabled in Settings → Gantt → Pomodoro Settings
-- **Scheduling Impact**: Breaks affect when tasks are scheduled on the timeline
 - **Notifications**: Browser notifications when breaks start (requires permission)
 - **Sound Alerts**: Audio tones using Web Audio API - different sounds for short/long breaks
-- **Test Sounds**: Preview sounds in Settings → Gantt → Pomodoro Settings
+
+**🌊 Flow**
+
+- Simplified work/break/context cycle for longer focus sessions
+- **Work Duration**: Focus time per session (default 52 minutes)
+- **Break Duration**: Rest between sessions (default 17 minutes)
+- **Context Switch**: Buffer between tasks (default 10 minutes)
+- **Presets**: 52/17 Method (52m work, 17m break, 10m context), Ultradian Rhythm (90m work, 20m break, 10m context)
+- **Best For**: Extended focus sessions like the 52/17 method or Ultradian rhythm cycles
+
+**Common Settings:**
+
+- **Default Task Duration**: When no duration specified (5-480 minutes)
+- **Duration Multiplier**: Safety factor for scheduling (0.5-5.0×)
+- **Presets**: Quick-apply configurations grouped by technique
+- **Custom Presets**: Save current settings as a named preset
 
 ### Customizable Time Blocks
 

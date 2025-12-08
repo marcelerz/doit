@@ -1,6 +1,13 @@
 "use client";
 
-import { Gantt, GanttZoomLevel, GanttPreset, defaultGantt, defaultGanttPresets } from "@/types/settings";
+import {
+  Gantt,
+  GanttZoomLevel,
+  GanttPreset,
+  defaultGantt,
+  defaultGanttPresets,
+  SchedulingTechnique,
+} from "@/types/settings";
 import { useState } from "react";
 import { playNotificationSound } from "@/utils/notifications";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
@@ -17,14 +24,19 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
   const handleApplyPreset = (preset: GanttPreset) => {
     onUpdate({
       ...gantt,
+      schedulingTechnique: preset.technique,
       contextSwitchingTime: preset.contextSwitchingTime,
       defaultTaskDuration: preset.defaultTaskDuration,
       durationMultiplier: preset.durationMultiplier,
-      pomodoroEnabled: preset.pomodoroEnabled ?? false,
-      pomodoroWorkDuration: preset.pomodoroWorkDuration ?? 25,
-      pomodoroShortBreak: preset.pomodoroShortBreak ?? 5,
-      pomodoroLongBreak: preset.pomodoroLongBreak ?? 15,
-      pomodoroLongBreakInterval: preset.pomodoroLongBreakInterval ?? 4,
+      // Pomodoro settings
+      pomodoroWorkDuration: preset.pomodoroWorkDuration ?? gantt.pomodoroWorkDuration,
+      pomodoroShortBreak: preset.pomodoroShortBreak ?? gantt.pomodoroShortBreak,
+      pomodoroLongBreak: preset.pomodoroLongBreak ?? gantt.pomodoroLongBreak,
+      pomodoroLongBreakInterval: preset.pomodoroLongBreakInterval ?? gantt.pomodoroLongBreakInterval,
+      // Flow settings
+      flowWorkDuration: preset.flowWorkDuration ?? gantt.flowWorkDuration,
+      flowBreakDuration: preset.flowBreakDuration ?? gantt.flowBreakDuration,
+      flowContextSwitchingTime: preset.flowContextSwitchingTime ?? gantt.flowContextSwitchingTime,
       activePresetId: preset.id,
     });
   };
@@ -35,14 +47,17 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
     const newPreset: GanttPreset = {
       id: `custom-${Date.now()}`,
       name: newPresetName.trim(),
+      technique: gantt.schedulingTechnique,
       contextSwitchingTime: gantt.contextSwitchingTime,
       defaultTaskDuration: gantt.defaultTaskDuration,
       durationMultiplier: gantt.durationMultiplier,
-      pomodoroEnabled: gantt.pomodoroEnabled,
       pomodoroWorkDuration: gantt.pomodoroWorkDuration,
       pomodoroShortBreak: gantt.pomodoroShortBreak,
       pomodoroLongBreak: gantt.pomodoroLongBreak,
       pomodoroLongBreakInterval: gantt.pomodoroLongBreakInterval,
+      flowWorkDuration: gantt.flowWorkDuration,
+      flowBreakDuration: gantt.flowBreakDuration,
+      flowContextSwitchingTime: gantt.flowContextSwitchingTime,
     };
 
     onUpdate({
@@ -57,7 +72,8 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
 
   const handleDeletePreset = (presetId: string) => {
     // Don't allow deleting default presets
-    if (["focus", "planning", "realistic", "pomodoro", "pomodoro-long"].includes(presetId)) return;
+    const defaultIds = defaultGanttPresets.map((p) => p.id);
+    if (defaultIds.includes(presetId)) return;
 
     onUpdate({
       ...gantt,
@@ -72,13 +88,40 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
 
   const presets = gantt.presets || defaultGanttPresets;
 
+  // Group presets by technique
+  const sequentialPresets = presets.filter((p) => p.technique === "sequential");
+  const pomodoroPresets = presets.filter((p) => p.technique === "pomodoro");
+  const flowPresets = presets.filter((p) => p.technique === "flow");
+
+  const getTechniqueIcon = (technique: SchedulingTechnique) => {
+    switch (technique) {
+      case "sequential":
+        return "📋";
+      case "pomodoro":
+        return "🍅";
+      case "flow":
+        return "🌊";
+    }
+  };
+
+  const getPresetTooltip = (preset: GanttPreset) => {
+    switch (preset.technique) {
+      case "sequential":
+        return `Context: ${preset.contextSwitchingTime}m, Duration: ${preset.defaultTaskDuration}m, Multiplier: ${preset.durationMultiplier}x`;
+      case "pomodoro":
+        return `${preset.pomodoroWorkDuration}m work, ${preset.pomodoroShortBreak}m short break, ${preset.pomodoroLongBreak}m long break every ${preset.pomodoroLongBreakInterval} sessions`;
+      case "flow":
+        return `${preset.flowWorkDuration}m work, ${preset.flowBreakDuration}m break, ${preset.flowContextSwitchingTime}m context switch`;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Gantt View Settings</h3>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-            Configure settings for task planning and scheduling in the Gantt view.
+            Configure scheduling techniques and settings for the Gantt view.
           </p>
         </div>
         <button
@@ -89,103 +132,14 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
         </button>
       </div>
 
-      {/* Presets */}
+      {/* Common Settings */}
       <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Quick Presets</h4>
-          <button
-            onClick={() => setShowNewPresetForm(!showNewPresetForm)}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            {showNewPresetForm ? "Cancel" : "Save Current as Preset"}
-          </button>
-        </div>
-
-        {showNewPresetForm && (
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newPresetName}
-              onChange={(e) => setNewPresetName(e.target.value)}
-              placeholder="Preset name..."
-              className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={handleSaveCurrentAsPreset}
-              disabled={!newPresetName.trim()}
-              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Save
-            </button>
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          {presets.map((preset) => {
-            const isActive = gantt.activePresetId === preset.id;
-            const isCustom = !["focus", "planning", "realistic", "pomodoro", "pomodoro-long"].includes(preset.id);
-            const tooltipText = preset.pomodoroEnabled
-              ? `Pomodoro: ${preset.pomodoroWorkDuration}m work, ${preset.pomodoroShortBreak}m short break, ${preset.pomodoroLongBreak}m long break every ${preset.pomodoroLongBreakInterval} sessions`
-              : `Context: ${preset.contextSwitchingTime}m, Duration: ${preset.defaultTaskDuration}m, Multiplier: ${preset.durationMultiplier}x`;
-
-            return (
-              <div key={preset.id} className="relative group">
-                <button
-                  onClick={() => handleApplyPreset(preset)}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${
-                    isActive
-                      ? "bg-blue-600 text-white"
-                      : "bg-white dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-600 border border-zinc-200 dark:border-zinc-600"
-                  }`}
-                  title={tooltipText}
-                >
-                  {preset.pomodoroEnabled && <span className="text-base">🍅</span>}
-                  {preset.name}
-                </button>
-                {isCustom && (
-                  <button
-                    onClick={() => handleDeletePreset(preset.id)}
-                    className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                    title="Delete preset"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Hover over a preset to see its settings. Click to apply.
+        <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Common Settings</h4>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          These settings apply to all scheduling techniques. Switch between techniques in the Gantt view toolbar.
         </p>
-      </div>
 
-      {/* Planning Settings */}
-      <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
-        <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Planning Settings</h4>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              Context Switching Time
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="0"
-                max="60"
-                value={gantt.contextSwitchingTime}
-                onChange={(e) =>
-                  onUpdate({ ...gantt, contextSwitchingTime: parseInt(e.target.value) || 0, activePresetId: undefined })
-                }
-                className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <span className="text-sm text-zinc-500 dark:text-zinc-400">min</span>
-            </div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Buffer between tasks (when Pomodoro is off)</p>
-          </div>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
               Default Task Duration
@@ -234,20 +188,135 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
         </div>
       </div>
 
-      {/* Pomodoro Settings */}
+      {/* Sequential Technique */}
       <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
         <div className="flex items-center gap-2">
-          <span className="text-xl">🍅</span>
-          <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Pomodoro Technique</h4>
-          <InfoTooltip content={tooltipContent.pomodoro} />
+          <span className="text-xl">📋</span>
+          <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Sequential</h4>
+          {gantt.schedulingTechnique === "sequential" && (
+            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
+              Active
+            </span>
+          )}
         </div>
 
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Configure Pomodoro timing settings. Enable/disable Pomodoro mode from the Gantt view toolbar using the 🍅
-          button. When Pomodoro is enabled, these break durations replace the context switching time between tasks.
+          Simple task-to-task scheduling with a fixed context switching buffer between tasks. Good for when you want
+          predictable spacing without structured breaks.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+        {/* Sequential Presets */}
+        {sequentialPresets.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {sequentialPresets.map((preset) => {
+              const isActive = gantt.activePresetId === preset.id;
+              const isCustom = !defaultGanttPresets.map((p) => p.id).includes(preset.id);
+
+              return (
+                <div key={preset.id} className="relative group">
+                  <button
+                    onClick={() => handleApplyPreset(preset)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      isActive
+                        ? "bg-blue-600 text-white"
+                        : "bg-white dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-600 border border-zinc-200 dark:border-zinc-600"
+                    }`}
+                    title={getPresetTooltip(preset)}
+                  >
+                    {preset.name}
+                  </button>
+                  {isCustom && (
+                    <button
+                      onClick={() => handleDeletePreset(preset.id)}
+                      className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      title="Delete preset"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              Context Switching Time
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="0"
+                max="60"
+                value={gantt.contextSwitchingTime}
+                onChange={(e) =>
+                  onUpdate({ ...gantt, contextSwitchingTime: parseInt(e.target.value) || 0, activePresetId: undefined })
+                }
+                className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">min</span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Buffer between tasks (0-60)</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Pomodoro Technique */}
+      <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🍅</span>
+          <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Pomodoro</h4>
+          <InfoTooltip content={tooltipContent.pomodoro} />
+          {gantt.schedulingTechnique === "pomodoro" && (
+            <span className="px-2 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-full">
+              Active
+            </span>
+          )}
+        </div>
+
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          Work in focused sessions with short breaks, and longer breaks after every few sessions. Great for maintaining
+          focus and preventing burnout.
+        </p>
+
+        {/* Pomodoro Presets */}
+        {pomodoroPresets.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {pomodoroPresets.map((preset) => {
+              const isActive = gantt.activePresetId === preset.id;
+              const isCustom = !defaultGanttPresets.map((p) => p.id).includes(preset.id);
+
+              return (
+                <div key={preset.id} className="relative group">
+                  <button
+                    onClick={() => handleApplyPreset(preset)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+                      isActive
+                        ? "bg-red-500 text-white"
+                        : "bg-white dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-600 border border-zinc-200 dark:border-zinc-600"
+                    }`}
+                    title={getPresetTooltip(preset)}
+                  >
+                    {preset.name}
+                  </button>
+                  {isCustom && (
+                    <button
+                      onClick={() => handleDeletePreset(preset.id)}
+                      className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      title="Delete preset"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Work Duration</label>
             <div className="flex items-center gap-2">
@@ -338,12 +407,12 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
           </div>
         </div>
 
-        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-          <p className="text-sm text-blue-800 dark:text-blue-200">
+        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+          <p className="text-sm text-red-800 dark:text-red-200">
             <strong>Schedule preview:</strong> {gantt.pomodoroWorkDuration}min work → {gantt.pomodoroShortBreak}min
             break, repeat {gantt.pomodoroLongBreakInterval - 1}× then {gantt.pomodoroLongBreak}min long break
           </p>
-          <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+          <p className="text-xs text-red-600 dark:text-red-300 mt-1">
             One cycle ={" "}
             {(gantt.pomodoroWorkDuration + gantt.pomodoroShortBreak) * (gantt.pomodoroLongBreakInterval - 1) +
               gantt.pomodoroWorkDuration +
@@ -418,6 +487,179 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Flow Technique */}
+      <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🌊</span>
+          <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Flow</h4>
+          {gantt.schedulingTechnique === "flow" && (
+            <span className="px-2 py-0.5 text-xs font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 rounded-full">
+              Active
+            </span>
+          )}
+        </div>
+
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          A simplified version of Pomodoro with just work time, break, and context switching. Great for longer focus
+          sessions like the 52/17 method or Ultradian rhythm cycles.
+        </p>
+
+        {/* Flow Presets */}
+        {flowPresets.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {flowPresets.map((preset) => {
+              const isActive = gantt.activePresetId === preset.id;
+              const isCustom = !defaultGanttPresets.map((p) => p.id).includes(preset.id);
+
+              return (
+                <div key={preset.id} className="relative group">
+                  <button
+                    onClick={() => handleApplyPreset(preset)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+                      isActive
+                        ? "bg-cyan-500 text-white"
+                        : "bg-white dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-600 border border-zinc-200 dark:border-zinc-600"
+                    }`}
+                    title={getPresetTooltip(preset)}
+                  >
+                    {preset.name}
+                  </button>
+                  {isCustom && (
+                    <button
+                      onClick={() => handleDeletePreset(preset.id)}
+                      className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      title="Delete preset"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Work Duration</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="10"
+                max="120"
+                step="5"
+                value={gantt.flowWorkDuration}
+                onChange={(e) =>
+                  onUpdate({
+                    ...gantt,
+                    flowWorkDuration: parseInt(e.target.value) || 52,
+                    activePresetId: undefined,
+                  })
+                }
+                className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">min</span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Focus time per session</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Break Duration</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="5"
+                max="60"
+                value={gantt.flowBreakDuration}
+                onChange={(e) =>
+                  onUpdate({
+                    ...gantt,
+                    flowBreakDuration: parseInt(e.target.value) || 17,
+                    activePresetId: undefined,
+                  })
+                }
+                className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">min</span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Rest between sessions</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Context Switch</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="0"
+                max="30"
+                value={gantt.flowContextSwitchingTime}
+                onChange={(e) =>
+                  onUpdate({
+                    ...gantt,
+                    flowContextSwitchingTime: parseInt(e.target.value) || 10,
+                    activePresetId: undefined,
+                  })
+                }
+                className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">min</span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Buffer between tasks</p>
+          </div>
+        </div>
+
+        <div className="mt-4 p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg border border-cyan-200 dark:border-cyan-800">
+          <p className="text-sm text-cyan-800 dark:text-cyan-200">
+            <strong>Schedule preview:</strong> {gantt.flowWorkDuration}min work → {gantt.flowBreakDuration}min break →{" "}
+            {gantt.flowContextSwitchingTime}min context switch
+          </p>
+          <p className="text-xs text-cyan-600 dark:text-cyan-300 mt-1">
+            One cycle = {gantt.flowWorkDuration + gantt.flowBreakDuration + gantt.flowContextSwitchingTime} minutes (
+            {Math.round(
+              ((gantt.flowWorkDuration + gantt.flowBreakDuration + gantt.flowContextSwitchingTime) / 60) * 10,
+            ) / 10}{" "}
+            hours)
+          </p>
+        </div>
+      </div>
+
+      {/* Save Custom Preset */}
+      <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Save Current Settings</h4>
+          <button
+            onClick={() => setShowNewPresetForm(!showNewPresetForm)}
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            {showNewPresetForm ? "Cancel" : "Save as Preset"}
+          </button>
+        </div>
+
+        {showNewPresetForm && (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newPresetName}
+              onChange={(e) => setNewPresetName(e.target.value)}
+              placeholder="Preset name..."
+              className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={handleSaveCurrentAsPreset}
+              disabled={!newPresetName.trim()}
+              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Save
+            </button>
+          </div>
+        )}
+
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Current technique: {getTechniqueIcon(gantt.schedulingTechnique)}{" "}
+          {gantt.schedulingTechnique.charAt(0).toUpperCase() + gantt.schedulingTechnique.slice(1)}
+        </p>
       </div>
 
       {/* View Settings */}

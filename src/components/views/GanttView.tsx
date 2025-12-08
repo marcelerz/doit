@@ -3,7 +3,14 @@
 import React from "react";
 import { TodoMetadata } from "@/types/todo";
 import { TodoModel } from "@/models/TodoModel";
-import { MarkerColors, WorkHoursSettings, GanttZoomLevel, DEFAULT_BLOCK_TYPES, TimeBlockType } from "@/types/settings";
+import {
+  MarkerColors,
+  WorkHoursSettings,
+  GanttZoomLevel,
+  DEFAULT_BLOCK_TYPES,
+  TimeBlockType,
+  SchedulingTechnique,
+} from "@/types/settings";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
@@ -321,7 +328,7 @@ export function GanttView({
   // Pomodoro break notification effect
   useEffect(() => {
     const {
-      pomodoroEnabled,
+      schedulingTechnique,
       pomodoroNotifications,
       pomodoroSound,
       pomodoroShortBreak,
@@ -329,8 +336,8 @@ export function GanttView({
       pomodoroLongBreakInterval,
     } = settings.gantt;
 
-    // Only check if Pomodoro is enabled and today is selected
-    if (!pomodoroEnabled || selectedDate.toDateString() !== new Date().toDateString()) {
+    // Only check if not sequential and today is selected
+    if (schedulingTechnique === "sequential" || selectedDate.toDateString() !== new Date().toDateString()) {
       return;
     }
 
@@ -808,17 +815,28 @@ export function GanttView({
           color: getProjectColor(todo),
         });
 
-        // Calculate break time based on Pomodoro settings or context switching
-        const { pomodoroEnabled, pomodoroWorkDuration, contextSwitchingTime } = settings.gantt;
+        // Calculate break time based on scheduling technique
+        const { schedulingTechnique, pomodoroWorkDuration, contextSwitchingTime } = settings.gantt;
         let breakMinutes = contextSwitchingTime ?? 5;
 
-        if (pomodoroEnabled) {
+        if (schedulingTechnique === "pomodoro") {
           workTimeSinceBreak += durationMinutes;
           const workDuration = pomodoroWorkDuration ?? 25;
           if (workTimeSinceBreak >= workDuration) {
             pomodoroSessions++;
             breakMinutes = getPomodoroBreakDuration(pomodoroSessions, settings.gantt);
             workTimeSinceBreak = 0;
+          }
+        } else if (schedulingTechnique === "flow") {
+          // Flow uses simpler work/break/context cycle
+          workTimeSinceBreak += durationMinutes;
+          const workDuration = settings.gantt.flowWorkDuration ?? 52;
+          if (workTimeSinceBreak >= workDuration) {
+            // Flow break + context switching time
+            breakMinutes = (settings.gantt.flowBreakDuration ?? 17) + (settings.gantt.flowContextSwitchingTime ?? 10);
+            workTimeSinceBreak = 0;
+          } else {
+            breakMinutes = settings.gantt.flowContextSwitchingTime ?? 10;
           }
         }
 
@@ -939,31 +957,68 @@ export function GanttView({
               </button>
             </div>
 
-            {/* Pomodoro Toggle */}
+            {/* Technique Toggle */}
             <div className="flex items-center gap-1 sm:gap-2 sm:ml-2 sm:pl-2 sm:border-l border-zinc-200 dark:border-zinc-700">
-              <button
-                onClick={() => {
-                  if (onUpdateGanttSettings) {
-                    onUpdateGanttSettings({
-                      ...settings.gantt,
-                      pomodoroEnabled: !settings.gantt.pomodoroEnabled,
-                    });
-                  }
-                }}
-                aria-pressed={settings.gantt.pomodoroEnabled}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors flex items-center gap-1.5 ${
-                  settings.gantt.pomodoroEnabled
-                    ? "bg-red-500 text-white"
-                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                }`}
-                title={
-                  settings.gantt.pomodoroEnabled ? "Pomodoro mode active - click to disable" : "Enable Pomodoro mode"
-                }
-              >
-                <span>🍅</span>
-                <span className="hidden sm:inline">Pomodoro</span>
-              </button>
-              {settings.gantt.pomodoroEnabled &&
+              <div className="flex gap-1" role="group" aria-label="Scheduling technique">
+                <button
+                  onClick={() => {
+                    if (onUpdateGanttSettings) {
+                      onUpdateGanttSettings({
+                        ...settings.gantt,
+                        schedulingTechnique: "sequential",
+                      });
+                    }
+                  }}
+                  aria-pressed={settings.gantt.schedulingTechnique === "sequential"}
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors flex items-center gap-1 ${
+                    settings.gantt.schedulingTechnique === "sequential"
+                      ? "bg-blue-600 text-white"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  }`}
+                  title="Sequential: Simple context switching between tasks"
+                >
+                  <span>📋</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (onUpdateGanttSettings) {
+                      onUpdateGanttSettings({
+                        ...settings.gantt,
+                        schedulingTechnique: "pomodoro",
+                      });
+                    }
+                  }}
+                  aria-pressed={settings.gantt.schedulingTechnique === "pomodoro"}
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors flex items-center gap-1 ${
+                    settings.gantt.schedulingTechnique === "pomodoro"
+                      ? "bg-red-500 text-white"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  }`}
+                  title="Pomodoro: Work sessions with short/long breaks"
+                >
+                  <span>🍅</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (onUpdateGanttSettings) {
+                      onUpdateGanttSettings({
+                        ...settings.gantt,
+                        schedulingTechnique: "flow",
+                      });
+                    }
+                  }}
+                  aria-pressed={settings.gantt.schedulingTechnique === "flow"}
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors flex items-center gap-1 ${
+                    settings.gantt.schedulingTechnique === "flow"
+                      ? "bg-cyan-500 text-white"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  }`}
+                  title="Flow: Work/break/context cycles (52/17, Ultradian)"
+                >
+                  <span>🌊</span>
+                </button>
+              </div>
+              {settings.gantt.schedulingTechnique !== "sequential" &&
                 settings.gantt.pomodoroNotifications &&
                 notificationPermission !== "granted" && (
                   <button
@@ -977,7 +1032,7 @@ export function GanttView({
                     🔔<span className="hidden sm:inline">Alerts</span>
                   </button>
                 )}
-              {settings.gantt.pomodoroEnabled &&
+              {settings.gantt.schedulingTechnique !== "sequential" &&
                 settings.gantt.pomodoroNotifications &&
                 notificationPermission === "granted" && (
                   <span className="text-xs text-green-600 dark:text-green-400" title="Notifications enabled">
