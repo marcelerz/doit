@@ -745,7 +745,10 @@ export function GanttView({
       <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-2 sm:p-3 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            <span className="text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300">Prioritization:</span>
+            <span className="text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1">
+              Prioritization:
+              <InfoTooltip content={tooltipContent.prioritization} />
+            </span>
             <div className="flex gap-1 sm:gap-2" role="group" aria-label="Prioritization mode">
               <button
                 onClick={() => setSchedulingMode("asap")}

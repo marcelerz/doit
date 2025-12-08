@@ -642,6 +642,12 @@ export interface FocusSettings {
   soundEnabled: boolean; // Master sound toggle
   soundVolume: number; // Volume level 0-1 (default 0.3)
 
+  // Ambient Sound Settings
+  ambientSoundEnabled: boolean; // Enable ambient sounds during focus
+  ambientWorkSound: string; // Sound file for work phase (empty = none)
+  ambientBreakSound: string; // Sound file for break phase (empty = none)
+  ambientVolume: number; // Volume level 0-1 (default 0.3)
+
   // Display Settings
   showNextTask: boolean; // Show preview of next task during breaks
   showSessionStats: boolean; // Show session statistics (tasks done, time worked)
@@ -667,6 +673,12 @@ export const defaultFocusSettings: FocusSettings = {
   notificationsEnabled: true,
   soundEnabled: true,
   soundVolume: 0.3,
+
+  // Ambient Sound Settings
+  ambientSoundEnabled: false,
+  ambientWorkSound: "",
+  ambientBreakSound: "",
+  ambientVolume: 0.3,
 
   // Display Settings
   showNextTask: true,

@@ -14,6 +14,9 @@ import {
   sendNotification,
   requestNotificationPermission,
   getNotificationPermission,
+  playAmbientSound,
+  stopAmbientSound,
+  getAmbientSoundFile,
 } from "@/utils/notifications";
 import { ScheduledTask, parseDuration } from "@/utils/ganttScheduler";
 
@@ -107,12 +110,45 @@ export function FocusView({
   // Confirmation repeat timer ref
   const confirmationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Cleanup sound queue on unmount
+  // Cleanup sound queue and ambient sounds on unmount
   useEffect(() => {
     return () => {
       clearSoundQueue();
+      stopAmbientSound();
     };
   }, []);
+
+  // Manage ambient sounds based on phase and settings
+  useEffect(() => {
+    if (!focusSettings.ambientSoundEnabled || !state.isRunning) {
+      stopAmbientSound();
+      return;
+    }
+
+    const isWorkPhase = state.phase === "work";
+    const isBreakPhase = state.phase === "short-break" || state.phase === "long-break";
+
+    if (isWorkPhase && focusSettings.ambientWorkSound) {
+      const soundFile = getAmbientSoundFile(focusSettings.ambientWorkSound);
+      if (soundFile) {
+        playAmbientSound(soundFile, focusSettings.ambientVolume);
+      }
+    } else if (isBreakPhase && focusSettings.ambientBreakSound) {
+      const soundFile = getAmbientSoundFile(focusSettings.ambientBreakSound);
+      if (soundFile) {
+        playAmbientSound(soundFile, focusSettings.ambientVolume);
+      }
+    } else {
+      stopAmbientSound();
+    }
+  }, [
+    state.phase,
+    state.isRunning,
+    focusSettings.ambientSoundEnabled,
+    focusSettings.ambientWorkSound,
+    focusSettings.ambientBreakSound,
+    focusSettings.ambientVolume,
+  ]);
 
   // Current task
   const currentTask = scheduledTasks[state.currentTaskIndex];

@@ -1,7 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { FocusSettings, defaultFocusSettings } from "@/types/settings";
-import { playNotificationSound } from "@/utils/notifications";
+import { playNotificationSound, AMBIENT_SOUNDS, playAmbientSound, stopAmbientSound } from "@/utils/notifications";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface FocusTabProps {
@@ -10,6 +11,31 @@ interface FocusTabProps {
 }
 
 export function FocusTab({ focus, onUpdate }: FocusTabProps) {
+  // Track which ambient sound is being previewed
+  const [previewingSound, setPreviewingSound] = useState<string | null>(null);
+
+  // Stop ambient sound when component unmounts or preview ends
+  useEffect(() => {
+    return () => {
+      stopAmbientSound();
+    };
+  }, []);
+
+  const handlePreviewAmbientSound = (soundId: string) => {
+    if (previewingSound === soundId) {
+      // Stop if same sound is clicked
+      stopAmbientSound();
+      setPreviewingSound(null);
+    } else {
+      // Play the new sound
+      const sound = AMBIENT_SOUNDS.find((s) => s.id === soundId);
+      if (sound) {
+        playAmbientSound(sound.file, focus.ambientVolume);
+        setPreviewingSound(soundId);
+      }
+    }
+  };
+
   const handleResetToDefaults = () => {
     onUpdate(defaultFocusSettings);
   };
@@ -254,7 +280,10 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
 
       {/* Notifications & Sound Settings Section */}
       <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
-        <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Notifications & Sound</h4>
+        <h4 className="font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+          Notifications & Sound
+          <InfoTooltip content={tooltipContent.focusSounds} />
+        </h4>
 
         {/* Browser Notifications */}
         <div className="flex items-center justify-between">
@@ -362,6 +391,123 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
                 </button>
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-2">Click to preview each sound effect</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Ambient Sounds Section */}
+      <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              🎧 Ambient Sounds
+              <InfoTooltip content={tooltipContent.ambientSounds} />
+            </h4>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+              Play background sounds during work and break periods.
+            </p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={focus.ambientSoundEnabled}
+              onChange={(e) => onUpdate({ ...focus, ambientSoundEnabled: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
+          </label>
+        </div>
+
+        {focus.ambientSoundEnabled && (
+          <div className="space-y-4 pt-2 border-t border-zinc-200 dark:border-zinc-700">
+            {/* Volume Control */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Ambient Volume</label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={focus.ambientVolume}
+                  onChange={(e) => onUpdate({ ...focus, ambientVolume: parseFloat(e.target.value) })}
+                  className="flex-1 h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+                <span className="text-sm text-zinc-600 dark:text-zinc-400 w-12 text-right">
+                  {Math.round(focus.ambientVolume * 100)}%
+                </span>
+              </div>
+            </div>
+
+            {/* Work Phase Sound */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                🎯 Work Phase Sound
+              </label>
+              <div className="flex items-center gap-2">
+                <select
+                  value={focus.ambientWorkSound}
+                  onChange={(e) => onUpdate({ ...focus, ambientWorkSound: e.target.value })}
+                  className="flex-1 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-sm"
+                >
+                  <option value="">None</option>
+                  {AMBIENT_SOUNDS.map((sound) => (
+                    <option key={sound.id} value={sound.id}>
+                      {sound.name}
+                    </option>
+                  ))}
+                </select>
+                {focus.ambientWorkSound && (
+                  <button
+                    type="button"
+                    onClick={() => handlePreviewAmbientSound(focus.ambientWorkSound)}
+                    className={`px-3 py-2 text-sm rounded-md transition-colors ${
+                      previewingSound === focus.ambientWorkSound
+                        ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
+                        : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+                    }`}
+                  >
+                    {previewingSound === focus.ambientWorkSound ? "⏹ Stop" : "▶ Preview"}
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">Plays during work sessions</p>
+            </div>
+
+            {/* Break Phase Sound */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                ☕ Break Phase Sound
+              </label>
+              <div className="flex items-center gap-2">
+                <select
+                  value={focus.ambientBreakSound}
+                  onChange={(e) => onUpdate({ ...focus, ambientBreakSound: e.target.value })}
+                  className="flex-1 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-sm"
+                >
+                  <option value="">None</option>
+                  {AMBIENT_SOUNDS.map((sound) => (
+                    <option key={sound.id} value={sound.id}>
+                      {sound.name}
+                    </option>
+                  ))}
+                </select>
+                {focus.ambientBreakSound && (
+                  <button
+                    type="button"
+                    onClick={() => handlePreviewAmbientSound(focus.ambientBreakSound)}
+                    className={`px-3 py-2 text-sm rounded-md transition-colors ${
+                      previewingSound === focus.ambientBreakSound
+                        ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
+                        : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50"
+                    }`}
+                  >
+                    {previewingSound === focus.ambientBreakSound ? "⏹ Stop" : "▶ Preview"}
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">Plays during short and long breaks</p>
             </div>
           </div>
         )}

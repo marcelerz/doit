@@ -6,6 +6,111 @@ export type SoundType = "short-break" | "long-break" | "task-complete" | "task-s
 // Audio context for playing sounds
 let audioContext: AudioContext | null = null;
 
+// Ambient sound player
+let ambientAudio: HTMLAudioElement | null = null;
+let currentAmbientSound: string | null = null;
+
+// Available ambient sounds in the public/sounds folder
+export const AMBIENT_SOUNDS = [
+  { id: "swedish-summer", name: "Swedish Summer Evening", file: "10-minutes-swedish-summer-evening-19559.mp3" },
+  { id: "wind-bushes", name: "Wind in Bushes", file: "bushes-medium-heavy-wind-in-dry-vegetation-19537.mp3" },
+  { id: "crickets", name: "Crickets at Night", file: "crickets_night_2-19628.mp3" },
+  { id: "crickets-frogs", name: "Crickets and Frogs", file: "cricketsandfrogs-19596.mp3" },
+  { id: "backyard-ny", name: "Backyard New York", file: "field-recording-backyard-new-york-19524.mp3" },
+  { id: "rain-window", name: "Rain on Window", file: "gentle-rain-on-window-for-sleep-422420.mp3" },
+  { id: "rain-metal-roof", name: "Rain on Metal Roof", file: "light-rain-on-metal-roof-114527.mp3" },
+  { id: "rain-thunder-distant", name: "Rain & Distant Thunder", file: "rain-and-distant-thunder-60230.mp3" },
+  { id: "rain-thunder", name: "Rain & Thunder", file: "rain-and-thunder-61426.mp3" },
+  { id: "relaxing-rain-1", name: "Relaxing Rain", file: "relaxing-rain-387677.mp3" },
+  { id: "relaxing-rain-2", name: "Relaxing Rain 2", file: "relaxing-rain-444802.mp3" },
+  {
+    id: "rooftop-city",
+    name: "Rooftop City Morning",
+    file: "rooftop-city-neighbourhood-morning-distant-traffic-residents-activity-19574.mp3",
+  },
+  { id: "sea", name: "Ocean Waves", file: "sea-sound-4-19385.mp3" },
+  { id: "small-town", name: "Small Town Ambiance", file: "small-town-ambiance-60015.mp3" },
+  { id: "spring-birds", name: "Springtime Birds", file: "sweden-springtime-birds-field-recording-190420-19629.mp3" },
+  { id: "tranquil-flow", name: "Tranquil Flow", file: "tranquil-flow-387676.mp3" },
+  { id: "tranquil-stream", name: "Tranquil Stream", file: "tranquil-stream-387678.mp3" },
+  { id: "winter-morning", name: "Winter Morning", file: "winter-morning-60210.mp3" },
+] as const;
+
+export type AmbientSoundId = (typeof AMBIENT_SOUNDS)[number]["id"] | "";
+
+/**
+ * Play ambient sound (looping)
+ * @param soundFile - The sound file name from public/sounds
+ * @param volume - Volume level 0-1
+ */
+export function playAmbientSound(soundFile: string, volume: number = 0.3): void {
+  if (typeof window === "undefined" || !soundFile) return;
+
+  // If same sound is already playing, just adjust volume
+  if (ambientAudio && currentAmbientSound === soundFile) {
+    ambientAudio.volume = Math.max(0, Math.min(1, volume));
+    if (ambientAudio.paused) {
+      ambientAudio.play().catch(console.error);
+    }
+    return;
+  }
+
+  // Stop current sound if different
+  stopAmbientSound();
+
+  try {
+    ambientAudio = new Audio(`/sounds/${soundFile}`);
+    ambientAudio.loop = true;
+    ambientAudio.volume = Math.max(0, Math.min(1, volume));
+    currentAmbientSound = soundFile;
+
+    ambientAudio.play().catch((error) => {
+      console.error("Failed to play ambient sound:", error);
+      ambientAudio = null;
+      currentAmbientSound = null;
+    });
+  } catch (error) {
+    console.error("Failed to create ambient audio:", error);
+  }
+}
+
+/**
+ * Stop the currently playing ambient sound
+ */
+export function stopAmbientSound(): void {
+  if (ambientAudio) {
+    ambientAudio.pause();
+    ambientAudio.src = "";
+    ambientAudio = null;
+    currentAmbientSound = null;
+  }
+}
+
+/**
+ * Set ambient sound volume
+ * @param volume - Volume level 0-1
+ */
+export function setAmbientVolume(volume: number): void {
+  if (ambientAudio) {
+    ambientAudio.volume = Math.max(0, Math.min(1, volume));
+  }
+}
+
+/**
+ * Check if ambient sound is currently playing
+ */
+export function isAmbientPlaying(): boolean {
+  return ambientAudio !== null && !ambientAudio.paused;
+}
+
+/**
+ * Get the file name for an ambient sound ID
+ */
+export function getAmbientSoundFile(soundId: string): string {
+  const sound = AMBIENT_SOUNDS.find((s) => s.id === soundId);
+  return sound?.file || "";
+}
+
 // Sound queue system
 const soundQueue: SoundType[] = [];
 let isProcessingQueue = false;

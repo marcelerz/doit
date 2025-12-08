@@ -368,6 +368,22 @@ export const tooltipContent = {
     </div>
   ),
 
+  // Gantt Prioritization modes
+  prioritization: (
+    <div className="space-y-2">
+      <p>How tasks are ordered for scheduling.</p>
+      <ul className="space-y-1">
+        <li>
+          • <strong>Priority</strong>: High-priority tasks scheduled first
+        </li>
+        <li>
+          • <strong>Due Date</strong>: Earliest deadlines scheduled first
+        </li>
+      </ul>
+      <p className="text-zinc-400 dark:text-zinc-600 pt-1">Affects order on timeline, not task completion.</p>
+    </div>
+  ),
+
   // Sequential (Gantt scheduling technique)
   sequential: (
     <div className="space-y-2">
@@ -388,8 +404,8 @@ export const tooltipContent = {
       <ul className="space-y-1">
         <li>• Short breaks between tasks</li>
         <li>• Long breaks after N tasks</li>
-        <li>• Audio and visual notifications</li>
         <li>• Presets: Standard (25/5/15/4)</li>
+        <li>• Use Focus Mode for timer & sounds</li>
       </ul>
     </div>
   ),
@@ -719,12 +735,13 @@ export const tooltipContent = {
   // Focus Mode
   focusMode: (
     <div className="space-y-2">
-      <p>Distraction-free task view.</p>
+      <p>Timer-based task execution with breaks.</p>
       <ul className="space-y-1">
-        <li>• Shows one task at a time</li>
-        <li>• Hides filters and sidebar</li>
-        <li>• Navigate with arrow keys</li>
-        <li>• Great for deep work sessions</li>
+        <li>• Work through tasks one at a time</li>
+        <li>• Built-in timer with sound alerts</li>
+        <li>• Short/long breaks between tasks</li>
+        <li>• Auto time tracking option</li>
+        <li>• Launch from Gantt toolbar</li>
       </ul>
     </div>
   ),
@@ -781,6 +798,35 @@ export const tooltipContent = {
         <li>• Manual order persists</li>
         <li>• Disable to use automatic sorting</li>
       </ul>
+    </div>
+  ),
+
+  // Focus Sounds
+  focusSounds: (
+    <div className="space-y-2">
+      <p>Audio cues for Focus Mode transitions.</p>
+      <ul className="space-y-1">
+        <li>• 🎯 Task Start - begin work</li>
+        <li>• ✅ Task Complete - finished</li>
+        <li>• ☕ Short Break - quick rest</li>
+        <li>• 🧘 Long Break - extended rest</li>
+        <li>• ⏰ Break End - back to work</li>
+      </ul>
+      <p className="text-zinc-400 dark:text-zinc-600 pt-1">3 second delay between sounds for natural flow.</p>
+    </div>
+  ),
+
+  // Ambient Sounds
+  ambientSounds: (
+    <div className="space-y-2">
+      <p>Background sounds for focus sessions.</p>
+      <ul className="space-y-1">
+        <li>• Choose different sounds for work & breaks</li>
+        <li>• Rain, nature, city ambiance, and more</li>
+        <li>• Sounds loop continuously</li>
+        <li>• Separate volume control</li>
+      </ul>
+      <p className="text-zinc-400 dark:text-zinc-600 pt-1">Only plays during active Focus Mode.</p>
     </div>
   ),
 

@@ -51,7 +51,14 @@ export function useEntityManager<T extends BaseEntity, M>(
     // Wait for storage to be initialized before loading data
     waitForStorageInit().then(() => {
       return loadFromStorage<T[]>(config.storageKey, []).then((loaded) => {
-        setRawEntities(loaded);
+        // Migrate entities to ensure all required fields exist
+        const migrated = loaded.map((entity) => ({
+          ...entity,
+          alternatives: entity.alternatives || [],
+          comments: entity.comments || [],
+          activity: entity.activity || [],
+        }));
+        setRawEntities(migrated as T[]);
         setIsLoaded(true);
       });
     });
