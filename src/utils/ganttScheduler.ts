@@ -18,6 +18,17 @@ export interface TaskSegment {
   durationMinutes: number;
 }
 
+// Break type after a task
+export type BreakType = "context" | "short" | "long" | "none";
+
+// Break info to display after a task
+export interface BreakInfo {
+  type: BreakType;
+  durationMinutes: number;
+  icon: string; // 🍅, 🌊, or empty
+  label: string; // "short break", "long break", "break", "context switch"
+}
+
 export interface ScheduledTask {
   todo: TodoModel;
   startTime: Date; // Overall start time (first segment)
@@ -28,6 +39,8 @@ export interface ScheduledTask {
   hasBuffer: boolean;
   bufferMinutes: number;
   isOverdue: boolean;
+  // Break info for the gap after this task (if any)
+  nextBreak: BreakInfo | null;
 }
 
 export interface BreakBlock {
@@ -135,16 +148,6 @@ export function getPomodoroBreakType(sessionCount: number, ganttSettings: Gantt)
     return "long";
   }
 
-  return "short";
-}
-
-/**
- * Get break type based on actual gap duration (for UI display)
- * Always returns "short" to show blue indicators consistently
- */
-export function getBreakTypeFromDuration(): "context" | "short" | "long" {
-  // Always return "short" for consistent blue coloring
-  // The actual break duration is shown in the tooltip
   return "short";
 }
 
@@ -431,6 +434,7 @@ export function scheduleDayTasks(
     pomodoroWorkDuration,
     contextSwitchingTime,
     pomodoroLongBreak,
+    pomodoroLongBreakInterval,
     flowWorkDuration,
     flowBreakDuration,
     flowContextSwitchingTime,
@@ -438,6 +442,7 @@ export function scheduleDayTasks(
   const pomodoroWorkMinutes = pomodoroWorkDuration ?? 25;
   const contextSwitchMinutes = contextSwitchingTime ?? 5;
   const longBreakDuration = pomodoroLongBreak ?? 15;
+  const longBreakInterval = pomodoroLongBreakInterval ?? 4;
   const flowWorkMinutes = flowWorkDuration ?? 52;
   const flowBreakMinutes = flowBreakDuration ?? 17;
   const flowContextMinutes = flowContextSwitchingTime ?? 10;
@@ -475,6 +480,7 @@ export function scheduleDayTasks(
       const isOverdue = timeDiff < 0;
       const bufferMinutes = Math.abs(Math.floor(timeDiff / 60000));
 
+      // Completed tasks don't have breaks after them
       tasks.push({
         todo,
         startTime: taskStartTime,
@@ -485,6 +491,7 @@ export function scheduleDayTasks(
         hasBuffer,
         bufferMinutes,
         isOverdue,
+        nextBreak: null,
       });
 
       continue;
@@ -652,18 +659,63 @@ export function scheduleDayTasks(
       hasBuffer,
       bufferMinutes,
       isOverdue,
+      nextBreak: null, // Will be computed after all tasks are scheduled
     });
 
-    // Add break time between tasks based on scheduling technique
+    // Track Pomodoro session count for break computation
     if (schedulingTechnique === "pomodoro") {
-      // Pomodoro handles breaks within the loop
-      currentTime = new Date(overallEndTime);
+      pomodoroSessionCount++;
+    }
+
+    // Add break time between tasks based on scheduling technique
+    // AND compute nextBreak info at the same time (scheduler is authoritative source)
+    if (schedulingTechnique === "pomodoro") {
+      // Pomodoro adds short/long break after each task
+      const breakDuration = getPomodoroBreakDuration(pomodoroSessionCount, ganttSettings);
+      const isLongBreak = pomodoroSessionCount > 0 && pomodoroSessionCount % longBreakInterval === 0;
+
+      tasks[tasks.length - 1].nextBreak = {
+        type: isLongBreak ? "long" : "short",
+        durationMinutes: breakDuration,
+        icon: "🍅",
+        label: isLongBreak ? "long break" : "short break",
+      };
+
+      currentTime = new Date(overallEndTime.getTime() + breakDuration * 60000);
     } else if (schedulingTechnique === "flow") {
       // Flow adds context switch between tasks
+      if (flowContextMinutes > 0) {
+        tasks[tasks.length - 1].nextBreak = {
+          type: "context",
+          durationMinutes: flowContextMinutes,
+          icon: "🌊",
+          label: "context switch",
+        };
+      }
       currentTime = new Date(overallEndTime.getTime() + flowContextMinutes * 60000);
     } else {
       // Sequential uses context switch time
+      if (contextSwitchMinutes > 0) {
+        tasks[tasks.length - 1].nextBreak = {
+          type: "context",
+          durationMinutes: contextSwitchMinutes,
+          icon: "",
+          label: "context switch",
+        };
+      }
       currentTime = new Date(overallEndTime.getTime() + contextSwitchMinutes * 60000);
+    }
+  }
+
+  // Clear nextBreak for the last task (no break after final task)
+  if (tasks.length > 0) {
+    const lastActiveIndex = tasks.length - 1;
+    // Find the last active (non-completed) task
+    for (let i = tasks.length - 1; i >= 0; i--) {
+      if (!tasks[i].todo.isCompleted && !tasks[i].todo.isArchived) {
+        tasks[i].nextBreak = null; // No break after the last active task
+        break;
+      }
     }
   }
 

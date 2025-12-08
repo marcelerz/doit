@@ -29,10 +29,10 @@ import {
   ScheduledTask,
   TaskSegment,
   BreakBlock as SchedulerBreakBlock,
+  BreakInfo,
   parseTime,
   parseDuration,
   getScheduleForDate,
-  getBreakTypeFromDuration,
   getPomodoroBreakDuration,
   sortTodosForScheduling,
   createTaskSchedulingMap,
@@ -1543,18 +1543,14 @@ export function GanttView({
                                   const isSelected = selectedTaskIndex === globalIndex;
                                   const hasConflict = taskConflicts.has(task.todo.id);
 
-                                  // Check if there's a break after this task
+                                  // Use nextBreak from the scheduler (authoritative source)
+                                  const breakInfo = task.nextBreak;
+                                  const hasBreak = breakInfo !== null && !isCompletedTask;
                                   const taskIndexInProject = projectTasks.indexOf(task);
                                   const nextTask =
                                     taskIndexInProject < projectTasks.length - 1
                                       ? projectTasks[taskIndexInProject + 1]
                                       : null;
-                                  // Calculate actual gap duration between tasks
-                                  const gapMinutes = nextTask
-                                    ? (nextTask.startTime.getTime() - task.endTime.getTime()) / 60000
-                                    : 0;
-                                  const breakType = getBreakTypeFromDuration();
-                                  const hasBreak = nextTask && gapMinutes > 0 && !isCompletedTask;
                                   const breakStartPos = endPos;
                                   const breakEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
                                   const breakWidth = breakEndPos - breakStartPos;
@@ -1729,7 +1725,7 @@ export function GanttView({
                                       </div>
 
                                       {/* Break/context switch indicator between tasks - positioned on timeline */}
-                                      {hasBreak && breakWidth > 0 && (
+                                      {hasBreak && breakInfo && breakWidth > 0 && (
                                         <div className="relative h-3">
                                           <div
                                             className="absolute top-0 bottom-0 flex items-center justify-center"
@@ -1737,18 +1733,12 @@ export function GanttView({
                                               left: `${breakStartPos}%`,
                                               width: `${breakWidth}%`,
                                             }}
-                                            title={
-                                              breakType === "long"
-                                                ? `🍅 ${Math.round(gapMinutes)}min long break`
-                                                : breakType === "short"
-                                                ? `🍅 ${Math.round(gapMinutes)}min short break`
-                                                : `${Math.round(gapMinutes)}min context switch`
-                                            }
+                                            title={`${breakInfo.icon} ${breakInfo.durationMinutes}min ${breakInfo.label}`.trim()}
                                           >
                                             <div className="flex items-center w-full">
                                               <svg
                                                 className={`w-2 h-2 flex-shrink-0 ${
-                                                  breakType === "long"
+                                                  breakInfo.type === "long"
                                                     ? "text-green-500 dark:text-green-400"
                                                     : "text-blue-500 dark:text-blue-400"
                                                 }`}
@@ -1759,14 +1749,14 @@ export function GanttView({
                                               </svg>
                                               <div
                                                 className={`flex-1 h-px ${
-                                                  breakType === "long"
+                                                  breakInfo.type === "long"
                                                     ? "bg-green-500 dark:bg-green-400"
                                                     : "bg-blue-500 dark:bg-blue-400"
                                                 }`}
                                               />
                                               <svg
                                                 className={`w-2 h-2 flex-shrink-0 ${
-                                                  breakType === "long"
+                                                  breakInfo.type === "long"
                                                     ? "text-green-500 dark:text-green-400"
                                                     : "text-blue-500 dark:text-blue-400"
                                                 }`}
@@ -1795,14 +1785,10 @@ export function GanttView({
                           const isSelected = selectedTaskIndex === index;
                           const hasConflict = taskConflicts.has(task.todo.id);
 
-                          // Check if there's a break after this task
+                          // Use nextBreak from the scheduler (authoritative source)
+                          const breakInfo = task.nextBreak;
+                          const hasBreak = breakInfo !== null && !isCompletedTask;
                           const nextTask = index < activeTasks.length - 1 ? activeTasks[index + 1] : null;
-                          // Calculate actual gap duration between tasks
-                          const gapMinutes = nextTask
-                            ? (nextTask.startTime.getTime() - task.endTime.getTime()) / 60000
-                            : 0;
-                          const breakType = getBreakTypeFromDuration();
-                          const hasBreak = nextTask && gapMinutes > 0 && !isCompletedTask;
                           const breakStartPos = endPos;
                           const breakEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
                           const breakWidth = breakEndPos - breakStartPos;
@@ -2046,7 +2032,7 @@ export function GanttView({
                                           )}
                                         </div>
 
-                                        {/* Context switch indicator between segments - shows the gap after break block */}
+                                        {/* Break indicator between segments - shows the gap after break block */}
                                         {nextSegment && contextSwitchWidth > 0 && contextSwitchDuration > 0 && (
                                           <div
                                             className="absolute top-0 bottom-0 flex items-center z-5"
@@ -2054,7 +2040,13 @@ export function GanttView({
                                               left: `${contextSwitchStartPos}%`,
                                               width: `${contextSwitchWidth}%`,
                                             }}
-                                            title={`${contextSwitchDuration}min context switch`}
+                                            title={
+                                              settings.gantt.schedulingTechnique === "pomodoro"
+                                                ? `🍅 ${contextSwitchDuration}min break`
+                                                : settings.gantt.schedulingTechnique === "flow"
+                                                ? `🌊 ${contextSwitchDuration}min break`
+                                                : `${contextSwitchDuration}min context switch`
+                                            }
                                           >
                                             <div className="flex items-center w-full">
                                               <svg
@@ -2144,7 +2136,7 @@ export function GanttView({
                               </div>
 
                               {/* Break/context switch indicator between tasks - positioned on timeline */}
-                              {hasBreak && breakWidth > 0 && (
+                              {hasBreak && breakInfo && breakWidth > 0 && (
                                 <div className="relative h-3">
                                   <div
                                     className="absolute top-0 bottom-0 flex items-center justify-center"
@@ -2152,18 +2144,12 @@ export function GanttView({
                                       left: `${breakStartPos}%`,
                                       width: `${breakWidth}%`,
                                     }}
-                                    title={
-                                      breakType === "long"
-                                        ? `🍅 ${Math.round(gapMinutes)}min long break`
-                                        : breakType === "short"
-                                        ? `🍅 ${Math.round(gapMinutes)}min short break`
-                                        : `${Math.round(gapMinutes)}min context switch`
-                                    }
+                                    title={`${breakInfo.icon} ${breakInfo.durationMinutes}min ${breakInfo.label}`.trim()}
                                   >
                                     <div className="flex items-center w-full">
                                       <svg
                                         className={`w-2 h-2 flex-shrink-0 ${
-                                          breakType === "long"
+                                          breakInfo.type === "long"
                                             ? "text-green-500 dark:text-green-400"
                                             : "text-blue-500 dark:text-blue-400"
                                         }`}
@@ -2174,14 +2160,14 @@ export function GanttView({
                                       </svg>
                                       <div
                                         className={`flex-1 h-px ${
-                                          breakType === "long"
+                                          breakInfo.type === "long"
                                             ? "bg-green-500 dark:bg-green-400"
                                             : "bg-blue-500 dark:bg-blue-400"
                                         }`}
                                       />
                                       <svg
                                         className={`w-2 h-2 flex-shrink-0 ${
-                                          breakType === "long"
+                                          breakInfo.type === "long"
                                             ? "text-green-500 dark:text-green-400"
                                             : "text-blue-500 dark:text-blue-400"
                                         }`}
