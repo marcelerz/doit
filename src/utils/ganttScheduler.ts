@@ -871,13 +871,50 @@ export function scheduleWeekTasks(
 
     // Calculate total technique break time (Pomodoro, Flow, context switching)
     // Include breaks after tasks AND breaks between segments within tasks
-    const techniqueBreakMinutes = scheduledTasks.reduce((sum, task) => {
-      // Add break after this task
-      let taskBreaks = task.nextBreak?.durationMinutes ?? 0;
+    // For segment breaks, compute actual gap minus time block duration
+    const techniqueBreakMinutes = scheduledTasks.reduce((sum, task, taskIndex) => {
+      let taskBreaks = 0;
+
       // Add breaks between segments within this task
-      task.segments.forEach((segment) => {
-        taskBreaks += segment.nextBreak?.durationMinutes ?? 0;
+      task.segments.forEach((segment, segIndex) => {
+        if (segment.nextBreak && segIndex < task.segments.length - 1) {
+          const nextSegment = task.segments[segIndex + 1];
+          const gapMinutes = (nextSegment.startTime.getTime() - segment.endTime.getTime()) / 60000;
+
+          // Subtract any time block break that falls within this gap
+          const timeBlockInGap = breakBlocks.reduce((blockSum, b) => {
+            const overlapStart = Math.max(segment.endTime.getTime(), b.startTime.getTime());
+            const overlapEnd = Math.min(nextSegment.startTime.getTime(), b.endTime.getTime());
+            const overlapMinutes = Math.max(0, (overlapEnd - overlapStart) / 60000);
+            return blockSum + overlapMinutes;
+          }, 0);
+
+          // Technique break = total gap - time block duration
+          const techniqueBreakInGap = Math.max(0, gapMinutes - timeBlockInGap);
+          taskBreaks += techniqueBreakInGap;
+        }
       });
+
+      // Add break after this task (between tasks)
+      if (task.nextBreak && task.nextBreak.durationMinutes > 0) {
+        const nextTask = scheduledTasks[taskIndex + 1];
+        if (nextTask) {
+          const gapMinutes = (nextTask.startTime.getTime() - task.endTime.getTime()) / 60000;
+
+          // Subtract any time block break that falls within this gap
+          const timeBlockInGap = breakBlocks.reduce((blockSum, b) => {
+            const overlapStart = Math.max(task.endTime.getTime(), b.startTime.getTime());
+            const overlapEnd = Math.min(nextTask.startTime.getTime(), b.endTime.getTime());
+            const overlapMinutes = Math.max(0, (overlapEnd - overlapStart) / 60000);
+            return blockSum + overlapMinutes;
+          }, 0);
+
+          // Technique break = total gap - time block duration
+          const techniqueBreakInGap = Math.max(0, gapMinutes - timeBlockInGap);
+          taskBreaks += techniqueBreakInGap;
+        }
+      }
+
       return sum + taskBreaks;
     }, 0);
 
