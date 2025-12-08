@@ -621,6 +621,57 @@ export const defaultKanbanSettings: KanbanSettings = {
   cardDisplayFields: ["assignedPeople", "priority", "dueDate", "projects"],
 };
 
+// Focus View Settings - Timer, sounds, and tracking for focus mode
+export interface FocusSettings {
+  // Sound Confirmation
+  requireConfirmation: boolean; // Require user to confirm break start / work start
+  confirmationRepeatInterval: number; // Seconds between reminder sounds (default 30)
+  confirmationMaxRepeats: number; // Max times to repeat before auto-proceeding (0 = infinite, default 5)
+
+  // Auto Time Tracking
+  autoTimeTracking: boolean; // Automatically track time for tasks in focus mode
+  trackActualVsEstimated: boolean; // Store actual time vs estimated for analytics
+
+  // Timer Controls
+  defaultExtendMinutes: number; // Default time to add when extending (default 5)
+  extendOptions: number[]; // Quick extend options in minutes (default [5, 10, 15, 30])
+  showEarlyCompletePrompt: boolean; // Ask to record actual time when completing early
+
+  // Sound Settings
+  soundEnabled: boolean; // Master sound toggle
+  soundVolume: number; // Volume level 0-1 (default 0.3)
+
+  // Display Settings
+  showNextTask: boolean; // Show preview of next task during breaks
+  showSessionStats: boolean; // Show session statistics (tasks done, time worked)
+  showKeyboardHints: boolean; // Show keyboard shortcut hints
+}
+
+export const defaultFocusSettings: FocusSettings = {
+  // Sound Confirmation
+  requireConfirmation: false,
+  confirmationRepeatInterval: 30,
+  confirmationMaxRepeats: 5,
+
+  // Auto Time Tracking
+  autoTimeTracking: false,
+  trackActualVsEstimated: true,
+
+  // Timer Controls
+  defaultExtendMinutes: 5,
+  extendOptions: [5, 10, 15, 30],
+  showEarlyCompletePrompt: true,
+
+  // Sound Settings
+  soundEnabled: true,
+  soundVolume: 0.3,
+
+  // Display Settings
+  showNextTask: true,
+  showSessionStats: true,
+  showKeyboardHints: true,
+};
+
 // Feature Toggles - Allow users to simplify the interface by disabling features
 export interface FeatureSettings {
   // Views
@@ -680,6 +731,8 @@ export interface Settings {
   sprints: SprintSettings;
   // Categories Tab - Project categories for organizing work types
   categories: ProjectCategory[];
+  // Focus Tab - Focus mode timer and tracking settings
+  focus: FocusSettings;
   // Feature Toggles - Enable/disable features to simplify interface
   features: FeatureSettings;
 }
@@ -723,5 +776,6 @@ export const defaultSettings: Settings = {
   kanban: defaultKanbanSettings,
   sprints: defaultSprintSettings,
   categories: defaultCategories,
+  focus: defaultFocusSettings,
   features: defaultFeatureSettings,
 };

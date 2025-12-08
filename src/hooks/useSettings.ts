@@ -423,6 +423,14 @@ export function useSettings() {
     }));
   };
 
+  // Focus settings methods
+  const updateFocusSettings = (focus: Settings["focus"]) => {
+    setSettings((prev) => ({
+      ...prev,
+      focus,
+    }));
+  };
+
   // Feature settings methods
   const updateFeatureSettings = (features: Partial<FeatureSettings>) => {
     setSettings((prev) => ({
@@ -472,6 +480,8 @@ export function useSettings() {
     deleteCategory,
     // Sprint methods
     updateSprintSettings,
+    // Focus methods
+    updateFocusSettings,
     // Feature methods
     updateFeatureSettings,
   };

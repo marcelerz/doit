@@ -16,6 +16,7 @@ import { GanttTab } from "@/components/settings/GanttTab";
 import { CalendarTab } from "@/components/settings/CalendarTab";
 import { KanbanTab } from "@/components/settings/KanbanTab";
 import { SprintsTab } from "@/components/settings/SprintsTab";
+import { FocusTab } from "@/components/settings/FocusTab";
 import { AutoAssignTab } from "@/components/settings/AutoAssignTab";
 import { BackupTab } from "@/components/settings/BackupTab";
 import { StorageTab } from "@/components/settings/StorageTab";
@@ -46,6 +47,7 @@ const tabGroups = [
       { key: "kanban", label: "Kanban", feature: "kanbanView" },
       { key: "calendar", label: "Calendar", feature: "calendarView" },
       { key: "sprints", label: "Sprints", feature: "sprintsView" },
+      { key: "focus", label: "Focus", feature: "focusMode" },
     ],
   },
   {
@@ -80,6 +82,7 @@ type Tab =
   | "gantt"
   | "kanban"
   | "sprints"
+  | "focus"
   | "calendar"
   | "categories"
   | "autoassign"
@@ -111,6 +114,7 @@ export default function SettingsPage() {
     updateGantt,
     updateKanbanSettings,
     updateSprintSettings,
+    updateFocusSettings,
     updateCalendar,
     updateNotificationSettings,
     updateAutoAssignSettings,
@@ -275,6 +279,8 @@ export default function SettingsPage() {
                   return <KanbanTab kanban={settings.kanban} onUpdate={updateKanbanSettings} />;
                 case "sprints":
                   return <SprintsTab sprints={settings.sprints} onUpdate={updateSprintSettings} />;
+                case "focus":
+                  return <FocusTab focus={settings.focus} onUpdate={updateFocusSettings} />;
                 case "calendar":
                   return <CalendarTab calendar={settings.calendar} onUpdate={updateCalendar} />;
                 case "categories":
