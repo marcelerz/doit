@@ -14,10 +14,6 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
     onUpdate(defaultFocusSettings);
   };
 
-  const handleTestSound = () => {
-    playNotificationSound("task-start");
-  };
-
   const handleUpdateExtendOptions = (index: number, value: number) => {
     const newOptions = [...focus.extendOptions];
     newOptions[index] = value;
@@ -256,13 +252,37 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
         </div>
       </div>
 
-      {/* Sound Settings Section */}
+      {/* Notifications & Sound Settings Section */}
       <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
+        <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Notifications & Sound</h4>
+
+        {/* Browser Notifications */}
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Sound Settings</h4>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-              Configure notification sounds for focus mode.
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              🔔 Browser Notifications
+            </label>
+            <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
+              Show browser notifications for breaks and task events
+            </p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={focus.notificationsEnabled}
+              onChange={(e) => onUpdate({ ...focus, notificationsEnabled: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
+          </label>
+        </div>
+
+        {/* Sound Toggle */}
+        <div className="flex items-center justify-between pt-2 border-t border-zinc-200 dark:border-zinc-700">
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">🔊 Sound Effects</label>
+            <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
+              Play audio cues for task and break transitions
             </p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
@@ -276,36 +296,80 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
           </label>
         </div>
 
+        {/* Volume Control & Sound Tests */}
         {focus.soundEnabled && (
-          <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700">
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Volume</label>
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={focus.soundVolume}
-                onChange={(e) => onUpdate({ ...focus, soundVolume: parseFloat(e.target.value) })}
-                className="flex-1 h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <span className="text-sm text-zinc-600 dark:text-zinc-400 w-12 text-right">
-                {Math.round(focus.soundVolume * 100)}%
-              </span>
-              <button
-                onClick={handleTestSound}
-                className="px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors flex items-center gap-1"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                  />
-                </svg>
-                Test
-              </button>
+          <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Volume</label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={focus.soundVolume}
+                  onChange={(e) => onUpdate({ ...focus, soundVolume: parseFloat(e.target.value) })}
+                  className="flex-1 h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+                <span className="text-sm text-zinc-600 dark:text-zinc-400 w-12 text-right">
+                  {Math.round(focus.soundVolume * 100)}%
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Test Sounds</label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => playNotificationSound("task-start")}
+                  className="px-3 py-1.5 text-xs rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors"
+                  title="Played when starting a new task"
+                >
+                  🎯 Task Start
+                </button>
+                <button
+                  type="button"
+                  onClick={() => playNotificationSound("task-complete")}
+                  className="px-3 py-1.5 text-xs rounded bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/50 transition-colors"
+                  title="Played when completing a task"
+                >
+                  ✅ Task Complete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => playNotificationSound("short-break")}
+                  className="px-3 py-1.5 text-xs rounded bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-200 dark:hover:bg-cyan-800/50 transition-colors"
+                  title="Played when a short break starts"
+                >
+                  ☕ Short Break
+                </button>
+                <button
+                  type="button"
+                  onClick={() => playNotificationSound("long-break")}
+                  className="px-3 py-1.5 text-xs rounded bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/50 transition-colors"
+                  title="Played when a long break starts"
+                >
+                  🧘 Long Break
+                </button>
+                <button
+                  type="button"
+                  onClick={() => playNotificationSound("break-end")}
+                  className="px-3 py-1.5 text-xs rounded bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-colors"
+                  title="Played when a break ends"
+                >
+                  ⏰ Break End
+                </button>
+                <button
+                  type="button"
+                  onClick={() => playNotificationSound("work-start")}
+                  className="px-3 py-1.5 text-xs rounded bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors"
+                  title="Played when resuming work after a break"
+                >
+                  💪 Work Start
+                </button>
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-2">Click to preview each sound effect</p>
             </div>
           </div>
         )}

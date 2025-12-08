@@ -930,27 +930,6 @@ export function GanttView({
                   <span className="hidden sm:inline">Flow</span>
                 </button>
               </div>
-              {settings.gantt.schedulingTechnique !== "sequential" &&
-                settings.gantt.pomodoroNotifications &&
-                notificationPermission !== "granted" && (
-                  <button
-                    onClick={async () => {
-                      const permission = await requestNotificationPermission();
-                      setNotificationPermission(permission);
-                    }}
-                    className="p-1 sm:px-2 sm:py-1 text-xs rounded bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-colors flex items-center gap-1"
-                    title="Enable browser notifications for break reminders"
-                  >
-                    🔔<span className="hidden sm:inline">Alerts</span>
-                  </button>
-                )}
-              {settings.gantt.schedulingTechnique !== "sequential" &&
-                settings.gantt.pomodoroNotifications &&
-                notificationPermission === "granted" && (
-                  <span className="text-xs text-green-600 dark:text-green-400" title="Notifications enabled">
-                    🔔
-                  </span>
-                )}
             </div>
           </div>
 

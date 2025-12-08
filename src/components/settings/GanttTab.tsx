@@ -1,7 +1,7 @@
 "use client";
 
 import { Gantt, GanttZoomLevel, GanttPreset, defaultGantt, defaultGanttPresets } from "@/types/settings";
-import { playNotificationSound } from "@/utils/notifications";
+
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface GanttTabProps {
@@ -379,65 +379,6 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
             ) / 10}{" "}
             hours)
           </p>
-        </div>
-
-        {/* Pomodoro Notifications */}
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <label className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-600 transition-colors">
-            <input
-              type="checkbox"
-              checked={gantt.pomodoroNotifications ?? true}
-              onChange={(e) =>
-                onUpdate({
-                  ...gantt,
-                  pomodoroNotifications: e.target.checked,
-                })
-              }
-              className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
-            />
-            <div>
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">🔔 Notifications</span>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Browser notifications for breaks</p>
-            </div>
-          </label>
-
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600">
-            <label className="flex items-center gap-3 cursor-pointer flex-1">
-              <input
-                type="checkbox"
-                checked={gantt.pomodoroSound ?? true}
-                onChange={(e) =>
-                  onUpdate({
-                    ...gantt,
-                    pomodoroSound: e.target.checked,
-                  })
-                }
-                className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
-              />
-              <div>
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">🔊 Sound</span>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">Play audio for break alerts</p>
-              </div>
-            </label>
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={() => playNotificationSound("short-break")}
-                className="px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors"
-                title="Test short break sound"
-              >
-                Short
-              </button>
-              <button
-                type="button"
-                onClick={() => playNotificationSound("long-break")}
-                className="px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/50 transition-colors"
-                title="Test long break sound"
-              >
-                Long
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 

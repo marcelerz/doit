@@ -637,7 +637,8 @@ export interface FocusSettings {
   extendOptions: number[]; // Quick extend options in minutes (default [5, 10, 15, 30])
   showEarlyCompletePrompt: boolean; // Ask to record actual time when completing early
 
-  // Sound Settings
+  // Notifications & Sound Settings
+  notificationsEnabled: boolean; // Browser notifications for breaks/task events
   soundEnabled: boolean; // Master sound toggle
   soundVolume: number; // Volume level 0-1 (default 0.3)
 
@@ -662,7 +663,8 @@ export const defaultFocusSettings: FocusSettings = {
   extendOptions: [5, 10, 15, 30],
   showEarlyCompletePrompt: true,
 
-  // Sound Settings
+  // Notifications & Sound Settings
+  notificationsEnabled: true,
   soundEnabled: true,
   soundVolume: 0.3,
 
