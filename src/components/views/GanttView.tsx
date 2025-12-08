@@ -1109,7 +1109,19 @@ export function GanttView({
                       scheduled.length
                     } tasks, ${utilizationPercent}% utilized`}
                   >
-                    {/* Time block breaks (lunch, meetings, etc.) */}
+                    {/* Technique breaks (Pomodoro, Flow, context switching) - rendered first as background */}
+                    {techniqueBreaks.map((tb, tbi) => (
+                      <div
+                        key={`tech-break-${tbi}`}
+                        className="absolute top-0 bottom-0 bg-blue-400 dark:bg-blue-600"
+                        style={{
+                          left: `${tb.startPercent}%`,
+                          width: `${tb.widthPercent}%`,
+                          opacity: 0.6,
+                        }}
+                      />
+                    ))}
+                    {/* Time block breaks (lunch, meetings, etc.) - rendered on top with custom colors */}
                     {dayBreaks.map((breakBlock, bi) => (
                       <div
                         key={`break-${bi}`}
@@ -1120,24 +1132,6 @@ export function GanttView({
                           backgroundColor: breakBlock.color,
                         }}
                         title={`${breakBlock.icon} ${breakBlock.name}`}
-                      />
-                    ))}
-                    {/* Technique breaks (Pomodoro, Flow, context switching) */}
-                    {techniqueBreaks.map((tb, tbi) => (
-                      <div
-                        key={`tech-break-${tbi}`}
-                        className={`absolute top-0 bottom-0 ${
-                          tb.type === "long"
-                            ? "bg-green-400 dark:bg-green-600"
-                            : tb.type === "short"
-                            ? "bg-blue-400 dark:bg-blue-600"
-                            : "bg-zinc-300 dark:bg-zinc-600"
-                        }`}
-                        style={{
-                          left: `${tb.startPercent}%`,
-                          width: `${tb.widthPercent}%`,
-                          opacity: 0.6,
-                        }}
                       />
                     ))}
                     {/* Task segments (more accurate than whole tasks) */}
@@ -1653,29 +1647,15 @@ export function GanttView({
                                           >
                                             <div className="flex items-center w-full">
                                               <svg
-                                                className={`w-2 h-2 flex-shrink-0 ${
-                                                  breakInfo.type === "long"
-                                                    ? "text-green-500 dark:text-green-400"
-                                                    : "text-blue-500 dark:text-blue-400"
-                                                }`}
+                                                className="w-2 h-2 flex-shrink-0 text-blue-500 dark:text-blue-400"
                                                 fill="currentColor"
                                                 viewBox="0 0 8 8"
                                               >
                                                 <path d="M4 0 L0 4 L4 8 Z" />
                                               </svg>
-                                              <div
-                                                className={`flex-1 h-px ${
-                                                  breakInfo.type === "long"
-                                                    ? "bg-green-500 dark:bg-green-400"
-                                                    : "bg-blue-500 dark:bg-blue-400"
-                                                }`}
-                                              />
+                                              <div className="flex-1 h-px bg-blue-500 dark:bg-blue-400" />
                                               <svg
-                                                className={`w-2 h-2 flex-shrink-0 ${
-                                                  breakInfo.type === "long"
-                                                    ? "text-green-500 dark:text-green-400"
-                                                    : "text-blue-500 dark:text-blue-400"
-                                                }`}
+                                                className="w-2 h-2 flex-shrink-0 text-blue-500 dark:text-blue-400"
                                                 fill="currentColor"
                                                 viewBox="0 0 8 8"
                                               >
@@ -1960,29 +1940,15 @@ export function GanttView({
                                           >
                                             <div className="flex items-center w-full">
                                               <svg
-                                                className={`w-2 h-2 flex-shrink-0 ${
-                                                  segment.nextBreak.type === "long"
-                                                    ? "text-green-500 dark:text-green-400"
-                                                    : "text-blue-500 dark:text-blue-400"
-                                                }`}
+                                                className="w-2 h-2 flex-shrink-0 text-blue-500 dark:text-blue-400"
                                                 fill="currentColor"
                                                 viewBox="0 0 8 8"
                                               >
                                                 <path d="M4 0 L0 4 L4 8 Z" />
                                               </svg>
-                                              <div
-                                                className={`flex-1 h-px ${
-                                                  segment.nextBreak.type === "long"
-                                                    ? "bg-green-500 dark:bg-green-400"
-                                                    : "bg-blue-500 dark:bg-blue-400"
-                                                }`}
-                                              />
+                                              <div className="flex-1 h-px bg-blue-500 dark:bg-blue-400" />
                                               <svg
-                                                className={`w-2 h-2 flex-shrink-0 ${
-                                                  segment.nextBreak.type === "long"
-                                                    ? "text-green-500 dark:text-green-400"
-                                                    : "text-blue-500 dark:text-blue-400"
-                                                }`}
+                                                className="w-2 h-2 flex-shrink-0 text-blue-500 dark:text-blue-400"
                                                 fill="currentColor"
                                                 viewBox="0 0 8 8"
                                               >
@@ -2072,29 +2038,15 @@ export function GanttView({
                                   >
                                     <div className="flex items-center w-full">
                                       <svg
-                                        className={`w-2 h-2 flex-shrink-0 ${
-                                          breakInfo.type === "long"
-                                            ? "text-green-500 dark:text-green-400"
-                                            : "text-blue-500 dark:text-blue-400"
-                                        }`}
+                                        className="w-2 h-2 flex-shrink-0 text-blue-500 dark:text-blue-400"
                                         fill="currentColor"
                                         viewBox="0 0 8 8"
                                       >
                                         <path d="M4 0 L0 4 L4 8 Z" />
                                       </svg>
-                                      <div
-                                        className={`flex-1 h-px ${
-                                          breakInfo.type === "long"
-                                            ? "bg-green-500 dark:bg-green-400"
-                                            : "bg-blue-500 dark:bg-blue-400"
-                                        }`}
-                                      />
+                                      <div className="flex-1 h-px bg-blue-500 dark:bg-blue-400" />
                                       <svg
-                                        className={`w-2 h-2 flex-shrink-0 ${
-                                          breakInfo.type === "long"
-                                            ? "text-green-500 dark:text-green-400"
-                                            : "text-blue-500 dark:text-blue-400"
-                                        }`}
+                                        className="w-2 h-2 flex-shrink-0 text-blue-500 dark:text-blue-400"
                                         fill="currentColor"
                                         viewBox="0 0 8 8"
                                       >
