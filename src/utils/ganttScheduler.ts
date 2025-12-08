@@ -6,7 +6,14 @@
  */
 
 import { TodoModel } from "@/models/TodoModel";
-import { Priority, WorkHoursSettings, Gantt, DaySchedule, SchedulingTechnique } from "@/types/settings";
+import {
+  Priority,
+  WorkHoursSettings,
+  Gantt,
+  DaySchedule,
+  SchedulingTechnique,
+  DEFAULT_BLOCK_TYPES,
+} from "@/types/settings";
 
 // ============================================================================
 // Types
@@ -69,6 +76,14 @@ export interface DayScheduleResult {
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
+/**
+ * Get icon for a block type (break, meeting, focus, etc.)
+ */
+function getBlockIcon(blockType?: string): string {
+  const config = DEFAULT_BLOCK_TYPES.find((t) => t.id === blockType);
+  return config?.icon || "☕";
+}
 
 /**
  * Parse a time string (HH:MM) into a Date object for a given base date
@@ -795,13 +810,21 @@ export interface WeekDaySchedule {
     widthPercent: number;
     color: string;
   }>;
+  breakBlocks: Array<{
+    startPercent: number;
+    widthPercent: number;
+    color: string;
+    name: string;
+    icon: string;
+  }>;
   dayStart: Date;
   dayEnd: Date;
   totalMinutes: number;
+  techniqueBreakMinutes: number; // Total break time from scheduling technique (Pomodoro, Flow, etc.)
 }
 
 /**
- * Schedule tasks for a week view (simplified without segments)
+ * Schedule tasks for a week view - reuses scheduleDayTasks for consistency
  */
 export function scheduleWeekTasks(
   dates: Date[],
@@ -811,8 +834,6 @@ export function scheduleWeekTasks(
   ganttSettings: Gantt,
   getProjectColor: (todo: TodoModel) => string,
 ): WeekDaySchedule[] {
-  const now = new Date();
-
   return dates.map((date) => {
     const dateStr = date.toISOString().split("T")[0];
     const daySchedule = getScheduleForDate(date, workHours);
@@ -820,124 +841,71 @@ export function scheduleWeekTasks(
     const dayEnd = parseTime(daySchedule.endTime, date);
     const totalMinutes = (dayEnd.getTime() - dayStart.getTime()) / 60000;
 
-    const dayBreaks = daySchedule.breaks.map((b) => ({
-      startTime: parseTime(b.startTime, date),
-      endTime: parseTime(b.endTime, date),
-    }));
-
+    // Get tasks for this day
     const tasksForDay = allTodos.filter((todo) => taskSchedulingMap.get(todo.id) === dateStr);
 
-    const isCurrentDay = date.toDateString() === now.toDateString();
+    // Build break blocks from work hours settings
+    const breakBlocks: BreakBlock[] = daySchedule.breaks.map((b) => ({
+      name: b.name || "Break",
+      startTime: parseTime(b.startTime, date),
+      endTime: parseTime(b.endTime, date),
+      color: b.color || "#9ca3af",
+      icon: getBlockIcon(b.blockType),
+    }));
 
-    const scheduled: Array<{
-      todo: TodoModel;
-      startPercent: number;
-      widthPercent: number;
-      color: string;
-    }> = [];
+    // Use the main scheduler for consistent scheduling
+    const { tasks: scheduledTasks } = scheduleDayTasks(tasksForDay, dayStart, dayEnd, breakBlocks, date, ganttSettings);
 
-    let currentTime = new Date(dayStart);
-    if (isCurrentDay && now > dayStart && now < dayEnd) {
-      currentTime = new Date(now);
-    }
+    // Calculate total technique break time (Pomodoro, Flow, context switching)
+    // Include breaks after tasks AND breaks between segments within tasks
+    const techniqueBreakMinutes = scheduledTasks.reduce((sum, task) => {
+      // Add break after this task
+      let taskBreaks = task.nextBreak?.durationMinutes ?? 0;
+      // Add breaks between segments within this task
+      task.segments.forEach((segment) => {
+        taskBreaks += segment.nextBreak?.durationMinutes ?? 0;
+      });
+      return sum + taskBreaks;
+    }, 0);
 
-    let workTimeSinceBreak = 0;
-    let pomodoroSessions = 0;
-
-    for (const todo of tasksForDay) {
-      // For completed/archived tasks, schedule based on their actual completion time
-      if ((todo.isCompleted || todo.isArchived) && todo.completedAt) {
-        const completionDate = new Date(todo.completedAt);
-        const durationMinutes = parseDuration(todo.metadata.duration);
-        const taskStartTime = new Date(completionDate.getTime() - durationMinutes * 60 * 1000);
-
-        const startMinutes = (taskStartTime.getTime() - dayStart.getTime()) / 60000;
-        const startPercent = (startMinutes / totalMinutes) * 100;
-        const widthPercent = (durationMinutes / totalMinutes) * 100;
-
-        scheduled.push({
-          todo,
-          startPercent,
-          widthPercent,
-          color: getProjectColor(todo),
-        });
-
-        continue;
-      }
-
-      // For active tasks, use ASAP scheduling
-      if (isCurrentDay && currentTime < now) {
-        currentTime = new Date(now);
-      }
-
-      // Skip breaks
-      let inBreak = true;
-      while (inBreak && currentTime < dayEnd) {
-        inBreak = false;
-        for (const breakBlock of dayBreaks) {
-          if (currentTime >= breakBlock.startTime && currentTime < breakBlock.endTime) {
-            currentTime = new Date(breakBlock.endTime);
-            if (isCurrentDay && currentTime < now) {
-              currentTime = new Date(now);
-            }
-            inBreak = true;
-            break;
-          }
-        }
-      }
-
-      if (currentTime >= dayEnd) break;
-
-      const durationMinutes = parseDuration(todo.metadata.duration) * ganttSettings.durationMultiplier;
-      const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
-
-      if (taskEnd > dayEnd) break;
-
-      const startMinutes = (currentTime.getTime() - dayStart.getTime()) / 60000;
+    // Convert to percentage-based format for week view
+    const scheduled = scheduledTasks.map((task) => {
+      const startMinutes = (task.startTime.getTime() - dayStart.getTime()) / 60000;
       const startPercent = (startMinutes / totalMinutes) * 100;
-      const widthPercent = (durationMinutes / totalMinutes) * 100;
+      const widthPercent = (task.durationMinutes / totalMinutes) * 100;
 
-      scheduled.push({
-        todo,
+      return {
+        todo: task.todo,
         startPercent,
         widthPercent,
-        color: getProjectColor(todo),
-      });
+        color: getProjectColor(task.todo),
+      };
+    });
 
-      // Calculate break time based on scheduling technique
-      const {
-        schedulingTechnique,
-        pomodoroWorkDuration,
-        contextSwitchingTime,
-        flowWorkDuration,
-        flowBreakDuration,
-        flowContextSwitchingTime,
-      } = ganttSettings;
-      let breakMinutes = contextSwitchingTime ?? 5;
+    // Convert break blocks to percentage-based format
+    const breakBlocksPercent = breakBlocks.map((b) => {
+      const startMinutes = (b.startTime.getTime() - dayStart.getTime()) / 60000;
+      const endMinutes = (b.endTime.getTime() - dayStart.getTime()) / 60000;
+      const startPercent = (startMinutes / totalMinutes) * 100;
+      const widthPercent = ((endMinutes - startMinutes) / totalMinutes) * 100;
 
-      if (schedulingTechnique === "pomodoro") {
-        workTimeSinceBreak += durationMinutes;
-        const workDuration = pomodoroWorkDuration ?? 25;
-        if (workTimeSinceBreak >= workDuration) {
-          pomodoroSessions++;
-          breakMinutes = getPomodoroBreakDuration(pomodoroSessions, ganttSettings);
-          workTimeSinceBreak = 0;
-        }
-      } else if (schedulingTechnique === "flow") {
-        workTimeSinceBreak += durationMinutes;
-        const workDuration = flowWorkDuration ?? 52;
-        if (workTimeSinceBreak >= workDuration) {
-          // Flow break + context switching time
-          breakMinutes = (flowBreakDuration ?? 17) + (flowContextSwitchingTime ?? 10);
-          workTimeSinceBreak = 0;
-        } else {
-          breakMinutes = flowContextSwitchingTime ?? 10;
-        }
-      }
+      return {
+        startPercent,
+        widthPercent,
+        color: b.color,
+        name: b.name,
+        icon: b.icon || "☕",
+      };
+    });
 
-      currentTime = new Date(taskEnd.getTime() + breakMinutes * 60000);
-    }
-
-    return { date, scheduled, dayStart, dayEnd, totalMinutes };
+    return {
+      date,
+      scheduled,
+      breakBlocks: breakBlocksPercent,
+      dayStart,
+      dayEnd,
+      totalMinutes,
+      techniqueBreakMinutes,
+    };
   });
 }

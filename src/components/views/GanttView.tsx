@@ -449,14 +449,28 @@ export function GanttView({
     const completedMinutes = completedTasks.reduce((sum, task) => sum + task.durationMinutes, 0);
     const totalWorkMinutes = (dayEndTime.getTime() - dayStartTime.getTime()) / 60000;
 
-    // Calculate break time
-    const breakMinutes = breakBlocks.reduce((sum, block) => {
+    // Calculate time block breaks (lunch, meetings, etc.)
+    const timeBlockBreakMinutes = breakBlocks.reduce((sum, block) => {
       return sum + (block.endTime.getTime() - block.startTime.getTime()) / 60000;
     }, 0);
 
-    const availableMinutes = totalWorkMinutes - breakMinutes;
-    const utilizationPercent =
-      availableMinutes > 0 ? Math.round(((totalPlannedMinutes + completedMinutes) / availableMinutes) * 100) : 0;
+    // Calculate technique breaks (Pomodoro, Flow, context switching)
+    // Include breaks after tasks AND breaks between segments within tasks
+    const techniqueBreakMinutes = [...activeTasks, ...completedTasks].reduce((sum, task) => {
+      // Add break after this task
+      let taskBreaks = task.nextBreak?.durationMinutes ?? 0;
+      // Add breaks between segments within this task
+      task.segments.forEach((segment) => {
+        taskBreaks += segment.nextBreak?.durationMinutes ?? 0;
+      });
+      return sum + taskBreaks;
+    }, 0);
+
+    // Available = total work time - time blocks (lunch, meetings)
+    const availableMinutes = totalWorkMinutes - timeBlockBreakMinutes;
+    // Utilized = tasks + technique breaks between them
+    const utilizedMinutes = totalPlannedMinutes + completedMinutes + techniqueBreakMinutes;
+    const utilizationPercent = availableMinutes > 0 ? Math.round((utilizedMinutes / availableMinutes) * 100) : 0;
 
     return {
       totalPlannedMinutes,
@@ -464,6 +478,7 @@ export function GanttView({
       availableMinutes,
       utilizationPercent,
       conflictCount: taskConflicts.size,
+      techniqueBreakMinutes,
     };
   }, [activeTasks, completedTasks, dayStartTime, dayEndTime, breakBlocks, taskConflicts]);
 
@@ -715,136 +730,14 @@ export function GanttView({
 
   // Get scheduled tasks for each day of the week for mini Gantt
   const weekScheduledTasks = useMemo(() => {
-    return currentWeekDates.map((date) => {
-      const dateStr = date.toISOString().split("T")[0];
-      const daySchedule = getScheduleForDate(date, workHours);
-      const dayStart = parseTime(daySchedule.startTime, date);
-      const dayEnd = parseTime(daySchedule.endTime, date);
-      const totalMinutes = (dayEnd.getTime() - dayStart.getTime()) / 60000;
-      const dayBreaks = daySchedule.breaks.map((b) => ({
-        startTime: parseTime(b.startTime, date),
-        endTime: parseTime(b.endTime, date),
-      }));
-
-      // Get tasks scheduled for this day from the map
-      const tasksForDay = allActiveTodos.filter((todo) => taskSchedulingMap.get(todo.id) === dateStr);
-
-      const now = new Date();
-      const isCurrentDay = date.toDateString() === now.toDateString();
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Schedule tasks for this day
-      const scheduled: Array<{
-        todo: TodoModel;
-        startPercent: number;
-        widthPercent: number;
-        color: string;
-      }> = [];
-
-      let currentTime = new Date(dayStart);
-      if (isCurrentDay && now > dayStart && now < dayEnd) {
-        currentTime = new Date(now);
-      }
-
-      // Track work time for Pomodoro-style break calculation
-      let workTimeSinceBreak = 0;
-      let pomodoroSessions = 0;
-
-      for (const todo of tasksForDay) {
-        // For completed/archived tasks, schedule based on their actual completion time
-        if ((todo.isCompleted || todo.isArchived) && todo.completedAt) {
-          const completionDate = new Date(todo.completedAt);
-          const durationMinutes = parseDuration(todo.metadata.duration);
-
-          // Calculate when task would have started (completion time - duration)
-          const taskStartTime = new Date(completionDate.getTime() - durationMinutes * 60 * 1000);
-
-          // Use work hours for positioning (same as active tasks)
-          const startMinutes = (taskStartTime.getTime() - dayStart.getTime()) / 60000;
-          const startPercent = (startMinutes / totalMinutes) * 100;
-          const widthPercent = (durationMinutes / totalMinutes) * 100;
-
-          scheduled.push({
-            todo,
-            startPercent,
-            widthPercent,
-            color: getProjectColor(todo),
-          });
-
-          continue;
-        }
-
-        // For active tasks, use ASAP scheduling
-        // Ensure not in the past
-        if (isCurrentDay && currentTime < now) {
-          currentTime = new Date(now);
-        }
-
-        // Skip breaks
-        let inBreak = true;
-        while (inBreak && currentTime < dayEnd) {
-          inBreak = false;
-          for (const breakBlock of dayBreaks) {
-            if (currentTime >= breakBlock.startTime && currentTime < breakBlock.endTime) {
-              currentTime = new Date(breakBlock.endTime);
-              if (isCurrentDay && currentTime < now) {
-                currentTime = new Date(now);
-              }
-              inBreak = true;
-              break;
-            }
-          }
-        }
-
-        if (currentTime >= dayEnd) break;
-
-        const durationMinutes = parseDuration(todo.metadata.duration) * settings.gantt.durationMultiplier;
-        const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
-
-        if (taskEnd > dayEnd) break;
-
-        const startMinutes = (currentTime.getTime() - dayStart.getTime()) / 60000;
-        const startPercent = (startMinutes / totalMinutes) * 100;
-        const widthPercent = (durationMinutes / totalMinutes) * 100;
-
-        scheduled.push({
-          todo,
-          startPercent,
-          widthPercent,
-          color: getProjectColor(todo),
-        });
-
-        // Calculate break time based on scheduling technique
-        const { schedulingTechnique, pomodoroWorkDuration, contextSwitchingTime } = settings.gantt;
-        let breakMinutes = contextSwitchingTime ?? 5;
-
-        if (schedulingTechnique === "pomodoro") {
-          workTimeSinceBreak += durationMinutes;
-          const workDuration = pomodoroWorkDuration ?? 25;
-          if (workTimeSinceBreak >= workDuration) {
-            pomodoroSessions++;
-            breakMinutes = getPomodoroBreakDuration(pomodoroSessions, settings.gantt);
-            workTimeSinceBreak = 0;
-          }
-        } else if (schedulingTechnique === "flow") {
-          // Flow uses simpler work/break/context cycle
-          workTimeSinceBreak += durationMinutes;
-          const workDuration = settings.gantt.flowWorkDuration ?? 52;
-          if (workTimeSinceBreak >= workDuration) {
-            // Flow break + context switching time
-            breakMinutes = (settings.gantt.flowBreakDuration ?? 17) + (settings.gantt.flowContextSwitchingTime ?? 10);
-            workTimeSinceBreak = 0;
-          } else {
-            breakMinutes = settings.gantt.flowContextSwitchingTime ?? 10;
-          }
-        }
-
-        currentTime = new Date(taskEnd.getTime() + breakMinutes * 60000);
-      }
-
-      return { date, scheduled, dayStart, dayEnd, totalMinutes };
-    });
+    return scheduleWeekTasks(
+      currentWeekDates,
+      allActiveTodos,
+      taskSchedulingMap,
+      workHours,
+      settings.gantt,
+      getProjectColor,
+    );
   }, [currentWeekDates, allActiveTodos, taskSchedulingMap, workHours, settings.gantt]);
 
   const navigateWeek = (direction: number) => {
@@ -1051,10 +944,12 @@ export function GanttView({
             >
               <span
                 className="text-zinc-500 dark:text-zinc-400"
-                title="Total duration of active tasks scheduled for today"
+                title={`Tasks: ${Math.round((timeStats.totalPlannedMinutes / 60) * 10) / 10}h + Breaks: ${
+                  Math.round((timeStats.techniqueBreakMinutes / 60) * 10) / 10
+                }h`}
               >
                 <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                  {Math.round((timeStats.totalPlannedMinutes / 60) * 10) / 10}h
+                  {Math.round(((timeStats.totalPlannedMinutes + timeStats.techniqueBreakMinutes) / 60) * 10) / 10}h
                 </span>{" "}
                 <span className="hidden sm:inline">planned</span>
               </span>
@@ -1072,9 +967,9 @@ export function GanttView({
                     ? "text-amber-600 dark:text-amber-400"
                     : "text-zinc-600 dark:text-zinc-400"
                 }`}
-                title={`Capacity utilization: (${
-                  Math.round((timeStats.totalPlannedMinutes / 60) * 10) / 10
-                }h planned + ${Math.round((timeStats.completedMinutes / 60) * 10) / 10}h done) / ${
+                title={`Capacity utilization: (${Math.round((timeStats.totalPlannedMinutes / 60) * 10) / 10}h tasks + ${
+                  Math.round((timeStats.techniqueBreakMinutes / 60) * 10) / 10
+                }h breaks + ${Math.round((timeStats.completedMinutes / 60) * 10) / 10}h done) / ${
                   Math.round((timeStats.availableMinutes / 60) * 10) / 10
                 }h available = ${timeStats.utilizationPercent}%`}
               >
@@ -1204,96 +1099,130 @@ export function GanttView({
 
         {/* Mini Gantt Timeline with Utilization */}
         <div className="mt-3 grid grid-cols-7 gap-2" role="img" aria-label="Weekly task distribution overview">
-          {weekScheduledTasks.map(({ date, scheduled, dayStart, dayEnd, totalMinutes }, index) => {
-            const isToday = date.toDateString() === new Date().toDateString();
-            const isSelected = date.toDateString() === selectedDate.toDateString();
+          {weekScheduledTasks.map(
+            (
+              { date, scheduled, breakBlocks: dayBreaks, dayStart, dayEnd, totalMinutes, techniqueBreakMinutes },
+              index,
+            ) => {
+              const isToday = date.toDateString() === new Date().toDateString();
+              const isSelected = date.toDateString() === selectedDate.toDateString();
 
-            // Calculate daily utilization
-            const totalTaskMinutes = scheduled.reduce((sum, t) => {
-              const dur = (t.widthPercent * totalMinutes) / 100;
-              return sum + dur;
-            }, 0);
-            const utilizationPercent = totalMinutes > 0 ? Math.round((totalTaskMinutes / totalMinutes) * 100) : 0;
+              // Calculate total break time from time blocks (lunch, meetings, etc.)
+              const timeBlockBreakMinutes = dayBreaks.reduce((sum, b) => {
+                const breakDur = (b.widthPercent * totalMinutes) / 100;
+                return sum + breakDur;
+              }, 0);
 
-            return (
-              <div key={index} className="space-y-1">
-                <div
-                  className={`relative h-3 bg-zinc-100 dark:bg-zinc-800 rounded-sm overflow-hidden ${
-                    isSelected ? "ring-1 ring-blue-500" : ""
-                  }`}
-                  aria-label={`${date.toLocaleDateString("en-US", { weekday: "short" })}: ${
-                    scheduled.length
-                  } tasks, ${utilizationPercent}% utilized`}
-                >
-                  {scheduled.map((task, i) => {
-                    const isCompleted = task.todo.isCompleted || task.todo.isArchived;
+              // Calculate total task time
+              const totalTaskMinutes = scheduled.reduce((sum, t) => {
+                const dur = (t.widthPercent * totalMinutes) / 100;
+                return sum + dur;
+              }, 0);
 
-                    // Handle tasks outside work hours
-                    let clampedStart = task.startPercent;
-                    let clampedWidth = task.widthPercent;
+              // Utilization = tasks + technique breaks (Pomodoro, Flow, etc.)
+              // Time blocks (lunch, meetings) are already blocked out and not "available"
+              // Available time = total - time blocks
+              const availableMinutes = totalMinutes - timeBlockBreakMinutes;
+              // Utilized = tasks + technique breaks between them
+              const utilizedMinutes = totalTaskMinutes + techniqueBreakMinutes;
+              const utilizationPercent =
+                availableMinutes > 0 ? Math.round((utilizedMinutes / availableMinutes) * 100) : 0;
 
-                    // If task starts before work hours, clamp to start
-                    if (task.startPercent < 0) {
-                      clampedStart = 0;
-                      clampedWidth = Math.min(task.widthPercent + task.startPercent, 100);
-                    }
-                    // If task starts after work hours, show at the end
-                    else if (task.startPercent >= 100) {
-                      clampedStart = 95; // Show at 95% to indicate it's beyond
-                      clampedWidth = 5; // Small indicator width
-                    }
-                    // If task extends beyond work hours
-                    else if (task.startPercent + task.widthPercent > 100) {
-                      clampedStart = task.startPercent;
-                      clampedWidth = 100 - task.startPercent;
-                    }
-
-                    // Only render if there's valid width
-                    if (clampedWidth <= 0) return null;
-
-                    return (
+              return (
+                <div key={index} className="space-y-1">
+                  <div
+                    className={`relative h-3 bg-zinc-100 dark:bg-zinc-800 rounded-sm overflow-hidden ${
+                      isSelected ? "ring-1 ring-blue-500" : ""
+                    }`}
+                    aria-label={`${date.toLocaleDateString("en-US", { weekday: "short" })}: ${
+                      scheduled.length
+                    } tasks, ${utilizationPercent}% utilized`}
+                  >
+                    {/* Break blocks */}
+                    {dayBreaks.map((breakBlock, bi) => (
                       <div
-                        key={i}
-                        className="absolute top-0 bottom-0"
+                        key={`break-${bi}`}
+                        className="absolute top-0 bottom-0 opacity-70"
                         style={{
-                          left: `${clampedStart}%`,
-                          width: `${clampedWidth}%`,
-                          backgroundColor: task.color,
-                          opacity: isCompleted ? 0.5 : 1,
+                          left: `${breakBlock.startPercent}%`,
+                          width: `${breakBlock.widthPercent}%`,
+                          backgroundColor: breakBlock.color,
                         }}
-                        title={`${task.todo.plainText}${
-                          task.startPercent >= 100 ? " (after hours)" : task.startPercent < 0 ? " (before hours)" : ""
-                        }`}
+                        title={`${breakBlock.icon} ${breakBlock.name}`}
                       />
-                    );
-                  })}
-                  {isToday && (
-                    <div
-                      className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
-                      style={{
-                        left: `${
-                          ((new Date().getTime() - dayStart.getTime()) / (dayEnd.getTime() - dayStart.getTime())) * 100
-                        }%`,
-                      }}
-                      title="Current time"
-                    />
-                  )}
+                    ))}
+                    {/* Tasks */}
+                    {scheduled.map((task, i) => {
+                      const isCompleted = task.todo.isCompleted || task.todo.isArchived;
+
+                      // Handle tasks outside work hours
+                      let clampedStart = task.startPercent;
+                      let clampedWidth = task.widthPercent;
+
+                      // If task starts before work hours, clamp to start
+                      if (task.startPercent < 0) {
+                        clampedStart = 0;
+                        clampedWidth = Math.min(task.widthPercent + task.startPercent, 100);
+                      }
+                      // If task starts after work hours, show at the end
+                      else if (task.startPercent >= 100) {
+                        clampedStart = 95; // Show at 95% to indicate it's beyond
+                        clampedWidth = 5; // Small indicator width
+                      }
+                      // If task extends beyond work hours
+                      else if (task.startPercent + task.widthPercent > 100) {
+                        clampedStart = task.startPercent;
+                        clampedWidth = 100 - task.startPercent;
+                      }
+
+                      // Only render if there's valid width
+                      if (clampedWidth <= 0) return null;
+
+                      return (
+                        <div
+                          key={i}
+                          className="absolute top-0 bottom-0"
+                          style={{
+                            left: `${clampedStart}%`,
+                            width: `${clampedWidth}%`,
+                            backgroundColor: task.color,
+                            opacity: isCompleted ? 0.5 : 1,
+                          }}
+                          title={`${task.todo.plainText}${
+                            task.startPercent >= 100 ? " (after hours)" : task.startPercent < 0 ? " (before hours)" : ""
+                          }`}
+                        />
+                      );
+                    })}
+                    {isToday && (
+                      <div
+                        className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
+                        style={{
+                          left: `${
+                            ((new Date().getTime() - dayStart.getTime()) / (dayEnd.getTime() - dayStart.getTime())) *
+                            100
+                          }%`,
+                        }}
+                        title="Current time"
+                      />
+                    )}
+                  </div>
+                  {/* Utilization indicator */}
+                  <div
+                    className={`h-1 rounded-full ${
+                      utilizationPercent > 100
+                        ? "bg-red-400 dark:bg-red-500"
+                        : utilizationPercent > 80
+                        ? "bg-amber-400 dark:bg-amber-500"
+                        : "bg-green-400 dark:bg-green-500"
+                    }`}
+                    style={{ width: `${Math.min(utilizationPercent, 100)}%` }}
+                    title={`${utilizationPercent}% capacity used`}
+                  />
                 </div>
-                {/* Utilization indicator */}
-                <div
-                  className={`h-1 rounded-full ${
-                    utilizationPercent > 100
-                      ? "bg-red-400 dark:bg-red-500"
-                      : utilizationPercent > 80
-                      ? "bg-amber-400 dark:bg-amber-500"
-                      : "bg-green-400 dark:bg-green-500"
-                  }`}
-                  style={{ width: `${Math.min(utilizationPercent, 100)}%` }}
-                  title={`${utilizationPercent}% capacity used`}
-                />
-              </div>
-            );
-          })}
+              );
+            },
+          )}
         </div>
       </div>
 
