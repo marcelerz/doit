@@ -359,18 +359,20 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
 
         <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
           <p className="text-sm text-red-800 dark:text-red-200">
-            <strong>Schedule preview:</strong> {gantt.pomodoroWorkDuration}min work → {gantt.pomodoroShortBreak}min
-            break, repeat {gantt.pomodoroLongBreakInterval - 1}× then {gantt.pomodoroLongBreak}min long break
+            <strong>Schedule preview:</strong> ({gantt.pomodoroWorkDuration}min work → {gantt.pomodoroShortBreak}min
+            short break) × {gantt.pomodoroLongBreakInterval - 1}, then {gantt.pomodoroWorkDuration}min work →{" "}
+            {gantt.pomodoroLongBreak}min long break
           </p>
           <p className="text-xs text-red-600 dark:text-red-300 mt-1">
-            One cycle ={" "}
-            {(gantt.pomodoroWorkDuration + gantt.pomodoroShortBreak) * (gantt.pomodoroLongBreakInterval - 1) +
-              gantt.pomodoroWorkDuration +
+            One cycle = {gantt.pomodoroLongBreakInterval} work sessions, {gantt.pomodoroLongBreakInterval - 1} short
+            breaks, 1 long break ={" "}
+            {gantt.pomodoroWorkDuration * gantt.pomodoroLongBreakInterval +
+              gantt.pomodoroShortBreak * (gantt.pomodoroLongBreakInterval - 1) +
               gantt.pomodoroLongBreak}{" "}
             minutes (
             {Math.round(
-              (((gantt.pomodoroWorkDuration + gantt.pomodoroShortBreak) * (gantt.pomodoroLongBreakInterval - 1) +
-                gantt.pomodoroWorkDuration +
+              ((gantt.pomodoroWorkDuration * gantt.pomodoroLongBreakInterval +
+                gantt.pomodoroShortBreak * (gantt.pomodoroLongBreakInterval - 1) +
                 gantt.pomodoroLongBreak) /
                 60) *
                 10,
