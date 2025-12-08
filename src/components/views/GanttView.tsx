@@ -1339,13 +1339,16 @@ export function GanttView({
               role="status"
               aria-label="Daily statistics"
             >
-              <span className="text-zinc-500 dark:text-zinc-400">
+              <span
+                className="text-zinc-500 dark:text-zinc-400"
+                title="Total duration of active tasks scheduled for today"
+              >
                 <span className="font-medium text-zinc-700 dark:text-zinc-300">
                   {Math.round((timeStats.totalPlannedMinutes / 60) * 10) / 10}h
                 </span>{" "}
                 <span className="hidden sm:inline">planned</span>
               </span>
-              <span className="text-zinc-500 dark:text-zinc-400">
+              <span className="text-zinc-500 dark:text-zinc-400" title="Total duration of completed tasks today">
                 <span className="font-medium text-green-600 dark:text-green-400">
                   {Math.round((timeStats.completedMinutes / 60) * 10) / 10}h
                 </span>{" "}
@@ -1359,6 +1362,11 @@ export function GanttView({
                     ? "text-amber-600 dark:text-amber-400"
                     : "text-zinc-600 dark:text-zinc-400"
                 }`}
+                title={`Capacity utilization: (${
+                  Math.round((timeStats.totalPlannedMinutes / 60) * 10) / 10
+                }h planned + ${Math.round((timeStats.completedMinutes / 60) * 10) / 10}h done) / ${
+                  Math.round((timeStats.availableMinutes / 60) * 10) / 10
+                }h available = ${timeStats.utilizationPercent}%`}
               >
                 {timeStats.utilizationPercent}%
               </span>
