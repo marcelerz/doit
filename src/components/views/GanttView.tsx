@@ -889,8 +889,8 @@ export function GanttView({
       <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-2 sm:p-3 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            <span className="text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300">Mode:</span>
-            <div className="flex gap-1 sm:gap-2" role="group" aria-label="Scheduling mode">
+            <span className="text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300">Prioritization:</span>
+            <div className="flex gap-1 sm:gap-2" role="group" aria-label="Prioritization mode">
               <button
                 onClick={() => setSchedulingMode("asap")}
                 aria-pressed={schedulingMode === "asap"}
@@ -939,16 +939,33 @@ export function GanttView({
               </button>
             </div>
 
-            {/* Pomodoro Status */}
-            {settings.gantt.pomodoroEnabled && (
-              <div className="flex items-center gap-1 sm:gap-2 sm:ml-2 sm:pl-2 sm:border-l border-zinc-200 dark:border-zinc-700">
-                <span
-                  className="text-sm text-red-500 dark:text-red-400 flex items-center gap-1"
-                  title="Pomodoro mode active"
-                >
-                  🍅
-                </span>
-                {settings.gantt.pomodoroNotifications && notificationPermission !== "granted" && (
+            {/* Pomodoro Toggle */}
+            <div className="flex items-center gap-1 sm:gap-2 sm:ml-2 sm:pl-2 sm:border-l border-zinc-200 dark:border-zinc-700">
+              <button
+                onClick={() => {
+                  if (onUpdateGanttSettings) {
+                    onUpdateGanttSettings({
+                      ...settings.gantt,
+                      pomodoroEnabled: !settings.gantt.pomodoroEnabled,
+                    });
+                  }
+                }}
+                aria-pressed={settings.gantt.pomodoroEnabled}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors flex items-center gap-1.5 ${
+                  settings.gantt.pomodoroEnabled
+                    ? "bg-red-500 text-white"
+                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                }`}
+                title={
+                  settings.gantt.pomodoroEnabled ? "Pomodoro mode active - click to disable" : "Enable Pomodoro mode"
+                }
+              >
+                <span>🍅</span>
+                <span className="hidden sm:inline">Pomodoro</span>
+              </button>
+              {settings.gantt.pomodoroEnabled &&
+                settings.gantt.pomodoroNotifications &&
+                notificationPermission !== "granted" && (
                   <button
                     onClick={async () => {
                       const permission = await requestNotificationPermission();
@@ -960,13 +977,14 @@ export function GanttView({
                     🔔<span className="hidden sm:inline">Alerts</span>
                   </button>
                 )}
-                {settings.gantt.pomodoroNotifications && notificationPermission === "granted" && (
+              {settings.gantt.pomodoroEnabled &&
+                settings.gantt.pomodoroNotifications &&
+                notificationPermission === "granted" && (
                   <span className="text-xs text-green-600 dark:text-green-400" title="Notifications enabled">
                     🔔
                   </span>
                 )}
-              </div>
-            )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">

@@ -183,7 +183,7 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
               />
               <span className="text-sm text-zinc-500 dark:text-zinc-400">min</span>
             </div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Buffer between tasks (0-60)</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Buffer between tasks (when Pomodoro is off)</p>
           </div>
 
           <div>
@@ -236,213 +236,188 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
 
       {/* Pomodoro Settings */}
       <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🍅</span>
-            <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Pomodoro Technique</h4>
-            <InfoTooltip content={tooltipContent.pomodoro} />
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={gantt.pomodoroEnabled}
-              onChange={(e) =>
-                onUpdate({
-                  ...gantt,
-                  pomodoroEnabled: e.target.checked,
-                  activePresetId: undefined,
-                })
-              }
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-zinc-300 dark:bg-zinc-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
-          </label>
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🍅</span>
+          <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Pomodoro Technique</h4>
+          <InfoTooltip content={tooltipContent.pomodoro} />
         </div>
 
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Use the Pomodoro technique to schedule automatic breaks between tasks. When enabled, breaks replace context
-          switching time.
+          Configure Pomodoro timing settings. Enable/disable Pomodoro mode from the Gantt view toolbar using the 🍅
+          button. When Pomodoro is enabled, these break durations replace the context switching time between tasks.
         </p>
 
-        {gantt.pomodoroEnabled && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Work Duration</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="10"
-                  max="90"
-                  step="5"
-                  value={gantt.pomodoroWorkDuration}
-                  onChange={(e) =>
-                    onUpdate({
-                      ...gantt,
-                      pomodoroWorkDuration: parseInt(e.target.value) || 25,
-                      activePresetId: undefined,
-                    })
-                  }
-                  className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">min</span>
-              </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Focus time per session</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Short Break</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  max="30"
-                  value={gantt.pomodoroShortBreak}
-                  onChange={(e) =>
-                    onUpdate({
-                      ...gantt,
-                      pomodoroShortBreak: parseInt(e.target.value) || 5,
-                      activePresetId: undefined,
-                    })
-                  }
-                  className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">min</span>
-              </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Between sessions</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Long Break</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="5"
-                  max="60"
-                  value={gantt.pomodoroLongBreak}
-                  onChange={(e) =>
-                    onUpdate({
-                      ...gantt,
-                      pomodoroLongBreak: parseInt(e.target.value) || 15,
-                      activePresetId: undefined,
-                    })
-                  }
-                  className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">min</span>
-              </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">After interval</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Long Break Every
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="2"
-                  max="10"
-                  value={gantt.pomodoroLongBreakInterval}
-                  onChange={(e) =>
-                    onUpdate({
-                      ...gantt,
-                      pomodoroLongBreakInterval: parseInt(e.target.value) || 4,
-                      activePresetId: undefined,
-                    })
-                  }
-                  className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">tasks</span>
-              </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Sessions before long break</p>
-            </div>
-          </div>
-        )}
-
-        {gantt.pomodoroEnabled && (
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
-              <strong>Current schedule:</strong> {gantt.pomodoroWorkDuration}min work → {gantt.pomodoroShortBreak}min
-              break, repeat {gantt.pomodoroLongBreakInterval - 1}× then {gantt.pomodoroLongBreak}min long break
-            </p>
-            <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
-              One cycle ={" "}
-              {(gantt.pomodoroWorkDuration + gantt.pomodoroShortBreak) * (gantt.pomodoroLongBreakInterval - 1) +
-                gantt.pomodoroWorkDuration +
-                gantt.pomodoroLongBreak}{" "}
-              minutes (
-              {Math.round(
-                (((gantt.pomodoroWorkDuration + gantt.pomodoroShortBreak) * (gantt.pomodoroLongBreakInterval - 1) +
-                  gantt.pomodoroWorkDuration +
-                  gantt.pomodoroLongBreak) /
-                  60) *
-                  10,
-              ) / 10}{" "}
-              hours)
-            </p>
-          </div>
-        )}
-
-        {/* Pomodoro Notifications */}
-        {gantt.pomodoroEnabled && (
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-600 transition-colors">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Work Duration</label>
+            <div className="flex items-center gap-2">
               <input
-                type="checkbox"
-                checked={gantt.pomodoroNotifications ?? true}
+                type="number"
+                min="10"
+                max="90"
+                step="5"
+                value={gantt.pomodoroWorkDuration}
                 onChange={(e) =>
                   onUpdate({
                     ...gantt,
-                    pomodoroNotifications: e.target.checked,
+                    pomodoroWorkDuration: parseInt(e.target.value) || 25,
+                    activePresetId: undefined,
+                  })
+                }
+                className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">min</span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Focus time per session</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Short Break</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="1"
+                max="30"
+                value={gantt.pomodoroShortBreak}
+                onChange={(e) =>
+                  onUpdate({
+                    ...gantt,
+                    pomodoroShortBreak: parseInt(e.target.value) || 5,
+                    activePresetId: undefined,
+                  })
+                }
+                className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">min</span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Between sessions</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Long Break</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="5"
+                max="60"
+                value={gantt.pomodoroLongBreak}
+                onChange={(e) =>
+                  onUpdate({
+                    ...gantt,
+                    pomodoroLongBreak: parseInt(e.target.value) || 15,
+                    activePresetId: undefined,
+                  })
+                }
+                className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">min</span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">After interval</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Long Break Every</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="2"
+                max="10"
+                value={gantt.pomodoroLongBreakInterval}
+                onChange={(e) =>
+                  onUpdate({
+                    ...gantt,
+                    pomodoroLongBreakInterval: parseInt(e.target.value) || 4,
+                    activePresetId: undefined,
+                  })
+                }
+                className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">sessions</span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Sessions before long break</p>
+          </div>
+        </div>
+
+        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            <strong>Schedule preview:</strong> {gantt.pomodoroWorkDuration}min work → {gantt.pomodoroShortBreak}min
+            break, repeat {gantt.pomodoroLongBreakInterval - 1}× then {gantt.pomodoroLongBreak}min long break
+          </p>
+          <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+            One cycle ={" "}
+            {(gantt.pomodoroWorkDuration + gantt.pomodoroShortBreak) * (gantt.pomodoroLongBreakInterval - 1) +
+              gantt.pomodoroWorkDuration +
+              gantt.pomodoroLongBreak}{" "}
+            minutes (
+            {Math.round(
+              (((gantt.pomodoroWorkDuration + gantt.pomodoroShortBreak) * (gantt.pomodoroLongBreakInterval - 1) +
+                gantt.pomodoroWorkDuration +
+                gantt.pomodoroLongBreak) /
+                60) *
+                10,
+            ) / 10}{" "}
+            hours)
+          </p>
+        </div>
+
+        {/* Pomodoro Notifications */}
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-600 transition-colors">
+            <input
+              type="checkbox"
+              checked={gantt.pomodoroNotifications ?? true}
+              onChange={(e) =>
+                onUpdate({
+                  ...gantt,
+                  pomodoroNotifications: e.target.checked,
+                })
+              }
+              className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+            />
+            <div>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">🔔 Notifications</span>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">Browser notifications for breaks</p>
+            </div>
+          </label>
+
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600">
+            <label className="flex items-center gap-3 cursor-pointer flex-1">
+              <input
+                type="checkbox"
+                checked={gantt.pomodoroSound ?? true}
+                onChange={(e) =>
+                  onUpdate({
+                    ...gantt,
+                    pomodoroSound: e.target.checked,
                   })
                 }
                 className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
               />
               <div>
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">🔔 Notifications</span>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">Browser notifications for breaks</p>
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">🔊 Sound</span>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Play audio for break alerts</p>
               </div>
             </label>
-
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600">
-              <label className="flex items-center gap-3 cursor-pointer flex-1">
-                <input
-                  type="checkbox"
-                  checked={gantt.pomodoroSound ?? true}
-                  onChange={(e) =>
-                    onUpdate({
-                      ...gantt,
-                      pomodoroSound: e.target.checked,
-                    })
-                  }
-                  className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
-                />
-                <div>
-                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">🔊 Sound</span>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Play audio for break alerts</p>
-                </div>
-              </label>
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => playNotificationSound("short-break")}
-                  className="px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors"
-                  title="Test short break sound"
-                >
-                  Short
-                </button>
-                <button
-                  type="button"
-                  onClick={() => playNotificationSound("long-break")}
-                  className="px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/50 transition-colors"
-                  title="Test long break sound"
-                >
-                  Long
-                </button>
-              </div>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => playNotificationSound("short-break")}
+                className="px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors"
+                title="Test short break sound"
+              >
+                Short
+              </button>
+              <button
+                type="button"
+                onClick={() => playNotificationSound("long-break")}
+                className="px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/50 transition-colors"
+                title="Test long break sound"
+              >
+                Long
+              </button>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* View Settings */}
