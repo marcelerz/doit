@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { TodoMetadata } from "@/types/todo";
 import { TodoModel } from "@/models/TodoModel";
 import { MarkerColors, WorkHoursSettings, GanttZoomLevel, DEFAULT_BLOCK_TYPES, TimeBlockType } from "@/types/settings";
@@ -53,11 +54,18 @@ interface GanttViewProps {
   onDuplicate?: (id: string) => string | undefined;
 }
 
-interface ScheduledTask {
-  todo: TodoModel;
+interface TaskSegment {
   startTime: Date;
   endTime: Date;
   durationMinutes: number;
+}
+
+interface ScheduledTask {
+  todo: TodoModel;
+  startTime: Date; // Overall start time (first segment)
+  endTime: Date; // Overall end time (last segment)
+  durationMinutes: number; // Total duration across all segments
+  segments: TaskSegment[]; // Individual work segments (split by breaks)
   targetDate: Date;
   hasBuffer: boolean;
   bufferMinutes: number;
@@ -560,6 +568,35 @@ export function GanttView({
       currentTime = new Date(now);
     }
 
+    // Helper to find the next break that starts after or overlaps with a given time
+    const findNextBreak = (fromTime: Date): BreakBlock | null => {
+      const sorted = [...breakBlocks].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+      for (const b of sorted) {
+        // Break overlaps or is after fromTime
+        if (b.endTime > fromTime) {
+          return b;
+        }
+      }
+      return null;
+    };
+
+    // Helper to skip past any break we're currently in
+    const skipCurrentBreak = (time: Date): Date => {
+      let result = new Date(time);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const breakBlock of breakBlocks) {
+          if (result >= breakBlock.startTime && result < breakBlock.endTime) {
+            result = new Date(breakBlock.endTime);
+            changed = true;
+            break;
+          }
+        }
+      }
+      return result;
+    };
+
     let activeTaskIndex = 0; // Track active task index for Pomodoro breaks
 
     for (const todo of todosForDate) {
@@ -600,6 +637,7 @@ export function GanttView({
           startTime: taskStartTime,
           endTime: taskEndTime,
           durationMinutes,
+          segments: [{ startTime: taskStartTime, endTime: taskEndTime, durationMinutes }],
           targetDate,
           hasBuffer,
           bufferMinutes,
@@ -609,36 +647,76 @@ export function GanttView({
         continue;
       }
 
-      // For active tasks, use ASAP scheduling
+      // For active tasks, use ASAP scheduling with break splitting
       // If today, ensure currentTime is not in the past
       if (isToday && currentTime < now) {
         currentTime = new Date(now);
       }
 
-      // Check if we're in a break
-      let inBreak = true;
-      while (inBreak && currentTime < dayEndTime) {
-        inBreak = false;
-        for (const breakBlock of breakBlocks) {
-          if (currentTime >= breakBlock.startTime && currentTime < breakBlock.endTime) {
-            currentTime = new Date(breakBlock.endTime);
-            // After skipping break, check again if we're still not in the past
-            if (isToday && currentTime < now) {
-              currentTime = new Date(now);
-            }
-            inBreak = true;
-            break;
+      // Skip past any break we're currently in
+      currentTime = skipCurrentBreak(currentTime);
+
+      if (currentTime >= dayEndTime) break;
+
+      const totalDurationMinutes = parseDuration(todo.metadata.duration) * settings.gantt.durationMultiplier;
+      let remainingMinutes = totalDurationMinutes;
+      const segments: TaskSegment[] = [];
+      let segmentStartTime = new Date(currentTime);
+      const contextSwitchMinutes = settings.gantt.contextSwitchingTime ?? 5;
+
+      // Schedule segments, splitting across breaks
+      while (remainingMinutes > 0 && currentTime < dayEndTime) {
+        // Skip any break we might be in
+        currentTime = skipCurrentBreak(currentTime);
+        if (currentTime >= dayEndTime) break;
+
+        segmentStartTime = new Date(currentTime);
+
+        // Find how much time until the next break or end of day
+        let availableMinutes = (dayEndTime.getTime() - currentTime.getTime()) / 60000;
+        const nextBreak = findNextBreak(currentTime);
+
+        if (nextBreak && nextBreak.startTime > currentTime && nextBreak.startTime < dayEndTime) {
+          const minutesToBreak = (nextBreak.startTime.getTime() - currentTime.getTime()) / 60000;
+          availableMinutes = Math.min(availableMinutes, minutesToBreak);
+        }
+
+        // Use as much time as available or remaining, whichever is less
+        const segmentMinutes = Math.min(remainingMinutes, availableMinutes);
+
+        if (segmentMinutes <= 0) break;
+
+        const segmentEnd = new Date(currentTime.getTime() + segmentMinutes * 60000);
+
+        segments.push({
+          startTime: new Date(currentTime),
+          endTime: segmentEnd,
+          durationMinutes: segmentMinutes,
+        });
+
+        remainingMinutes -= segmentMinutes;
+        currentTime = new Date(segmentEnd);
+
+        // If we hit a break and there's more work to do, skip the break and add context switch time
+        if (remainingMinutes > 0) {
+          const wasInBreak =
+            currentTime < dayEndTime && breakBlocks.some((b) => currentTime >= b.startTime && currentTime < b.endTime);
+          currentTime = skipCurrentBreak(currentTime);
+          // Add context switch time after resuming from break
+          if (wasInBreak || (nextBreak && segmentEnd.getTime() === nextBreak.startTime.getTime())) {
+            currentTime = new Date(currentTime.getTime() + contextSwitchMinutes * 60000);
+            currentTime = skipCurrentBreak(currentTime); // Skip if context switch puts us in another break
           }
         }
       }
 
-      if (currentTime >= dayEndTime) break;
+      // If we couldn't schedule any segments, skip this task
+      if (segments.length === 0) continue;
 
-      const durationMinutes = parseDuration(todo.metadata.duration) * settings.gantt.durationMultiplier;
-      const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
-
-      // Don't schedule if it would go past end of day
-      if (taskEnd > dayEndTime) break;
+      // Calculate overall start and end time
+      const overallStartTime = segments[0].startTime;
+      const overallEndTime = segments[segments.length - 1].endTime;
+      const scheduledMinutes = segments.reduce((sum, s) => sum + s.durationMinutes, 0);
 
       // Calculate target date from the actual due date
       let targetDate: Date;
@@ -655,30 +733,30 @@ export function GanttView({
         }
       } else {
         // No due date - use end of selected day or now if today
-        const isToday = selectedDate.toDateString() === new Date().toDateString();
         targetDate = isToday && now > dayStartTime && now < dayEndTime ? now : dayEndTime;
       }
 
-      // Calculate buffer/overdue
-      const timeDiff = targetDate.getTime() - taskEnd.getTime();
+      // Calculate buffer/overdue based on when the task actually finishes
+      const timeDiff = targetDate.getTime() - overallEndTime.getTime();
       const hasBuffer = timeDiff > 0;
       const isOverdue = timeDiff < 0;
       const bufferMinutes = Math.abs(Math.floor(timeDiff / 60000));
 
       tasks.push({
         todo,
-        startTime: new Date(currentTime),
-        endTime: taskEnd,
-        durationMinutes,
+        startTime: overallStartTime,
+        endTime: overallEndTime,
+        durationMinutes: scheduledMinutes,
+        segments,
         targetDate,
         hasBuffer,
         bufferMinutes,
         isOverdue,
       });
 
-      // Add break time (Pomodoro or context switching)
+      // Add break time (Pomodoro or context switching) after the task
       const breakDuration = getBreakDuration(activeTaskIndex);
-      currentTime = new Date(taskEnd.getTime() + breakDuration * 60000);
+      currentTime = new Date(overallEndTime.getTime() + breakDuration * 60000);
       activeTaskIndex++;
     }
 
@@ -1859,181 +1937,214 @@ export function GanttView({
                                   const showBufferZones = settings.gantt.showBufferZones !== false;
 
                                   return (
-                                    <div
-                                      key={task.todo.id}
-                                      role="listitem"
-                                      aria-label={`Task: ${task.todo.plainText}, ${Math.round(
-                                        task.durationMinutes,
-                                      )} minutes${hasConflict ? ", has scheduling conflict" : ""}`}
-                                      className={`relative ${
-                                        isSelected ? "ring-2 ring-blue-500 ring-offset-1 rounded-lg" : ""
-                                      } ${hasConflict ? "animate-pulse" : ""}`}
-                                      style={{ marginBottom: hasBreak ? "0" : "2px" }}
-                                    >
-                                      {/* Conflict indicator */}
-                                      {hasConflict && (
-                                        <div
-                                          className="absolute -left-6 top-1/2 -translate-y-1/2 z-20"
-                                          title="Scheduling conflict - overlaps with another task"
-                                        >
-                                          <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                                            <path
-                                              fillRule="evenodd"
-                                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                              clipRule="evenodd"
-                                            />
-                                          </svg>
-                                        </div>
-                                      )}
-                                      {/* Task row */}
+                                    <React.Fragment key={task.todo.id}>
                                       <div
-                                        className={`relative ${rowHeight} bg-zinc-50 dark:bg-zinc-800 rounded-lg ${
-                                          hasConflict ? "ring-2 ring-red-400 ring-opacity-50" : ""
-                                        }`}
+                                        role="listitem"
+                                        aria-label={`Task: ${task.todo.plainText}, ${Math.round(
+                                          task.durationMinutes,
+                                        )} minutes${hasConflict ? ", has scheduling conflict" : ""}`}
+                                        className={`relative ${
+                                          isSelected ? "ring-2 ring-blue-500 ring-offset-1 rounded-lg" : ""
+                                        } ${hasConflict ? "animate-pulse" : ""}`}
+                                        style={{ marginBottom: "2px" }}
                                       >
-                                        {/* Break blocks */}
-                                        {breakBlocks.map((breakBlock, bi) => {
-                                          const breakStart = getTimePosition(breakBlock.startTime);
-                                          const breakEnd = getTimePosition(breakBlock.endTime);
-                                          return (
-                                            <div
-                                              key={bi}
-                                              className="absolute top-0 bottom-0 opacity-70"
-                                              style={{
-                                                left: `${breakStart}%`,
-                                                width: `${breakEnd - breakStart}%`,
-                                                backgroundColor: breakBlock.color,
-                                              }}
-                                              title={`${breakBlock.icon} ${breakBlock.name}`}
-                                            />
-                                          );
-                                        })}
-
-                                        {/* Task bar */}
-                                        <div
-                                          className={`absolute top-0.5 bottom-0.5 shadow-md flex items-center justify-between px-2 overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:z-20 transition-all duration-150 z-10 ${
-                                            isSelected ? "ring-2 ring-blue-500" : ""
-                                          }`}
-                                          style={{
-                                            left: `${Math.max(0, startPos)}%`,
-                                            width: `${Math.min(width, 100 - Math.max(0, startPos))}%`,
-                                            backgroundColor: taskColor,
-                                            color: textColor,
-                                            borderRadius:
-                                              startPos < 0
-                                                ? "0 0.375rem 0.375rem 0"
-                                                : endPos > 100
-                                                ? "0.375rem 0 0 0.375rem"
-                                                : "0.375rem",
-                                            clipPath:
-                                              endPos > 100
-                                                ? "polygon(0 0, calc(100% - 8px) 0, 100% 10%, 100% 30%, calc(100% - 8px) 50%, 100% 70%, 100% 90%, calc(100% - 8px) 100%, 0 100%)"
-                                                : "none",
-                                          }}
-                                          onMouseEnter={(e) => handleTaskMouseEnter(e, task.todo.id)}
-                                          onMouseLeave={handleTaskMouseLeave}
-                                          onClick={() => {
-                                            setShowClickHint(false);
-                                            setDetailsOverlayTodo(task.todo);
-                                          }}
-                                          title="Click to view details"
-                                        >
-                                          <span className="text-xs font-medium truncate">{task.todo.plainText}</span>
-                                          <span className="text-xs opacity-80 whitespace-nowrap ml-2">
-                                            {formatDuration(task.durationMinutes)}
-                                          </span>
-                                        </div>
-
-                                        {/* Buffer indicator (green dotted line to the right) */}
-                                        {showBufferZones && task.hasBuffer && (
-                                          <>
-                                            <div
-                                              className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-green-500"
-                                              style={{
-                                                left: `${endPos}%`,
-                                                width: `${Math.min(targetPos - endPos, 100 - endPos)}%`,
-                                              }}
-                                            />
-                                            <div
-                                              className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-green-600 dark:text-green-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
-                                              style={{
-                                                left:
-                                                  100 - endPos < 15
-                                                    ? `${startPos}%`
-                                                    : `${(endPos + Math.min(targetPos, 100)) / 2}%`,
-                                                transform:
-                                                  100 - endPos < 15
-                                                    ? "translate(-100%, -50%)"
-                                                    : "translate(-50%, -50%)",
-                                              }}
-                                            >
-                                              +{formatDuration(task.bufferMinutes)} buffer
-                                            </div>
-                                          </>
-                                        )}
-
-                                        {/* Overdue indicator (red dotted line to the left) */}
-                                        {showBufferZones && task.isOverdue && (
-                                          <>
-                                            <div
-                                              className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-red-500"
-                                              style={{
-                                                left: `${Math.max(targetPos, 0)}%`,
-                                                width: `${Math.min(endPos - targetPos, endPos)}%`,
-                                              }}
-                                            />
-                                            <div
-                                              className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-red-600 dark:text-red-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
-                                              style={{
-                                                left:
-                                                  startPos < 15
-                                                    ? `${endPos}%`
-                                                    : `${(Math.max(targetPos, 0) + startPos) / 2}%`,
-                                                transform:
-                                                  startPos < 15 ? "translate(0%, -50%)" : "translate(-50%, -50%)",
-                                              }}
-                                            >
-                                              -{formatDuration(task.bufferMinutes)} overdue
-                                            </div>
-                                          </>
-                                        )}
-
-                                        {/* Target marker */}
-                                        {targetPos >= 0 && targetPos <= 100 && (
+                                        {/* Conflict indicator */}
+                                        {hasConflict && (
                                           <div
-                                            className={`absolute top-0 bottom-0 w-0.5 ${
-                                              task.isOverdue ? "bg-red-500" : "bg-green-500"
-                                            } z-10`}
-                                            style={{ left: `${targetPos}%` }}
-                                            title={task.isOverdue ? "Overdue point" : "Target time"}
-                                          />
+                                            className="absolute -left-6 top-1/2 -translate-y-1/2 z-20"
+                                            title="Scheduling conflict - overlaps with another task"
+                                          >
+                                            <svg
+                                              className="w-4 h-4 text-red-500"
+                                              fill="currentColor"
+                                              viewBox="0 0 20 20"
+                                            >
+                                              <path
+                                                fillRule="evenodd"
+                                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                clipRule="evenodd"
+                                              />
+                                            </svg>
+                                          </div>
                                         )}
+                                        {/* Task row */}
+                                        <div
+                                          className={`relative ${rowHeight} bg-zinc-50 dark:bg-zinc-800 rounded-lg ${
+                                            hasConflict ? "ring-2 ring-red-400 ring-opacity-50" : ""
+                                          }`}
+                                        >
+                                          {/* Break blocks */}
+                                          {breakBlocks.map((breakBlock, bi) => {
+                                            const breakStart = getTimePosition(breakBlock.startTime);
+                                            const breakEnd = getTimePosition(breakBlock.endTime);
+                                            return (
+                                              <div
+                                                key={bi}
+                                                className="absolute top-0 bottom-0 opacity-70"
+                                                style={{
+                                                  left: `${breakStart}%`,
+                                                  width: `${breakEnd - breakStart}%`,
+                                                  backgroundColor: breakBlock.color,
+                                                }}
+                                                title={`${breakBlock.icon} ${breakBlock.name}`}
+                                              />
+                                            );
+                                          })}
+
+                                          {/* Task bar */}
+                                          <div
+                                            className={`absolute top-0.5 bottom-0.5 shadow-md flex items-center justify-between px-2 overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:z-20 transition-all duration-150 z-10 ${
+                                              isSelected ? "ring-2 ring-blue-500" : ""
+                                            }`}
+                                            style={{
+                                              left: `${Math.max(0, startPos)}%`,
+                                              width: `${Math.min(width, 100 - Math.max(0, startPos))}%`,
+                                              backgroundColor: taskColor,
+                                              color: textColor,
+                                              borderRadius:
+                                                startPos < 0
+                                                  ? "0 0.375rem 0.375rem 0"
+                                                  : endPos > 100
+                                                  ? "0.375rem 0 0 0.375rem"
+                                                  : "0.375rem",
+                                              clipPath:
+                                                endPos > 100
+                                                  ? "polygon(0 0, calc(100% - 8px) 0, 100% 10%, 100% 30%, calc(100% - 8px) 50%, 100% 70%, 100% 90%, calc(100% - 8px) 100%, 0 100%)"
+                                                  : "none",
+                                            }}
+                                            onMouseEnter={(e) => handleTaskMouseEnter(e, task.todo.id)}
+                                            onMouseLeave={handleTaskMouseLeave}
+                                            onClick={() => {
+                                              setShowClickHint(false);
+                                              setDetailsOverlayTodo(task.todo);
+                                            }}
+                                            title="Click to view details"
+                                          >
+                                            <span className="text-xs font-medium truncate">{task.todo.plainText}</span>
+                                            <span className="text-xs opacity-80 whitespace-nowrap ml-2">
+                                              {formatDuration(task.durationMinutes)}
+                                            </span>
+                                          </div>
+
+                                          {/* Buffer indicator (green dotted line to the right) */}
+                                          {showBufferZones && task.hasBuffer && (
+                                            <>
+                                              <div
+                                                className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-green-500"
+                                                style={{
+                                                  left: `${endPos}%`,
+                                                  width: `${Math.min(targetPos - endPos, 100 - endPos)}%`,
+                                                }}
+                                              />
+                                              <div
+                                                className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-green-600 dark:text-green-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
+                                                style={{
+                                                  left:
+                                                    100 - endPos < 15
+                                                      ? `${startPos}%`
+                                                      : `${(endPos + Math.min(targetPos, 100)) / 2}%`,
+                                                  transform:
+                                                    100 - endPos < 15
+                                                      ? "translate(-100%, -50%)"
+                                                      : "translate(-50%, -50%)",
+                                                }}
+                                              >
+                                                +{formatDuration(task.bufferMinutes)} buffer
+                                              </div>
+                                            </>
+                                          )}
+
+                                          {/* Overdue indicator (red dotted line to the left) */}
+                                          {showBufferZones && task.isOverdue && (
+                                            <>
+                                              <div
+                                                className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-red-500"
+                                                style={{
+                                                  left: `${Math.max(targetPos, 0)}%`,
+                                                  width: `${Math.min(endPos - targetPos, endPos)}%`,
+                                                }}
+                                              />
+                                              <div
+                                                className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-red-600 dark:text-red-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
+                                                style={{
+                                                  left:
+                                                    startPos < 15
+                                                      ? `${endPos}%`
+                                                      : `${(Math.max(targetPos, 0) + startPos) / 2}%`,
+                                                  transform:
+                                                    startPos < 15 ? "translate(0%, -50%)" : "translate(-50%, -50%)",
+                                                }}
+                                              >
+                                                -{formatDuration(task.bufferMinutes)} overdue
+                                              </div>
+                                            </>
+                                          )}
+
+                                          {/* Target marker */}
+                                          {targetPos >= 0 && targetPos <= 100 && (
+                                            <div
+                                              className={`absolute top-0 bottom-0 w-0.5 ${
+                                                task.isOverdue ? "bg-red-500" : "bg-green-500"
+                                              } z-10`}
+                                              style={{ left: `${targetPos}%` }}
+                                              title={task.isOverdue ? "Overdue point" : "Target time"}
+                                            />
+                                          )}
+                                        </div>
                                       </div>
 
-                                      {/* Break indicator (Pomodoro or context switch) */}
+                                      {/* Break/context switch indicator between tasks - positioned on timeline */}
                                       {hasBreak && breakWidth > 0 && (
-                                        <div
-                                          className={`h-2 rounded-b opacity-60 ${
-                                            breakType === "long"
-                                              ? "bg-gradient-to-r from-green-300 to-green-200 dark:from-green-700 dark:to-green-800"
-                                              : breakType === "short"
-                                              ? "bg-gradient-to-r from-blue-200 to-blue-100 dark:from-blue-700 dark:to-blue-800"
-                                              : "bg-gradient-to-r from-zinc-200 to-zinc-100 dark:from-zinc-700 dark:to-zinc-800"
-                                          }`}
-                                          style={{
-                                            marginLeft: `${breakStartPos}%`,
-                                            width: `${breakWidth}%`,
-                                          }}
-                                          title={
-                                            breakType === "long"
-                                              ? `🍅 ${breakDuration}min long break`
-                                              : breakType === "short"
-                                              ? `🍅 ${breakDuration}min short break`
-                                              : `${breakDuration}min context switch`
-                                          }
-                                        />
+                                        <div className="relative h-3">
+                                          <div
+                                            className="absolute top-0 bottom-0 flex items-center justify-center"
+                                            style={{
+                                              left: `${breakStartPos}%`,
+                                              width: `${breakWidth}%`,
+                                            }}
+                                            title={
+                                              breakType === "long"
+                                                ? `🍅 ${breakDuration}min long break`
+                                                : breakType === "short"
+                                                ? `🍅 ${breakDuration}min short break`
+                                                : `${breakDuration}min context switch`
+                                            }
+                                          >
+                                            <div className="flex items-center w-full">
+                                              <svg
+                                                className={`w-2 h-2 flex-shrink-0 ${
+                                                  breakType === "long"
+                                                    ? "text-green-500 dark:text-green-400"
+                                                    : "text-blue-500 dark:text-blue-400"
+                                                }`}
+                                                fill="currentColor"
+                                                viewBox="0 0 8 8"
+                                              >
+                                                <path d="M4 0 L0 4 L4 8 Z" />
+                                              </svg>
+                                              <div
+                                                className={`flex-1 h-px ${
+                                                  breakType === "long"
+                                                    ? "bg-green-500 dark:bg-green-400"
+                                                    : "bg-blue-500 dark:bg-blue-400"
+                                                }`}
+                                              />
+                                              <svg
+                                                className={`w-2 h-2 flex-shrink-0 ${
+                                                  breakType === "long"
+                                                    ? "text-green-500 dark:text-green-400"
+                                                    : "text-blue-500 dark:text-blue-400"
+                                                }`}
+                                                fill="currentColor"
+                                                viewBox="0 0 8 8"
+                                              >
+                                                <path d="M4 0 L8 4 L4 8 Z" />
+                                              </svg>
+                                            </div>
+                                          </div>
+                                        </div>
                                       )}
-                                    </div>
+                                    </React.Fragment>
                                   );
                                 })}
                             </div>
@@ -2071,280 +2182,351 @@ export function GanttView({
                           const showBufferZones = settings.gantt.showBufferZones !== false;
 
                           return (
-                            <div
-                              key={task.todo.id}
-                              role="listitem"
-                              aria-label={`Task: ${task.todo.plainText}, ${Math.round(task.durationMinutes)} minutes${
-                                hasConflict ? ", has scheduling conflict" : ""
-                              }`}
-                              className={`relative ${
-                                isSelected ? "ring-2 ring-blue-500 ring-offset-1 rounded-lg" : ""
-                              } ${hasConflict ? "animate-pulse" : ""}`}
-                              style={{ marginBottom: hasBreak ? "0" : "2px" }}
-                            >
-                              {/* Conflict indicator */}
-                              {hasConflict && (
-                                <div
-                                  className="absolute -left-6 top-1/2 -translate-y-1/2 z-20"
-                                  title="Scheduling conflict - overlaps with another task"
-                                >
-                                  <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                </div>
-                              )}
-                              {/* Task row */}
+                            <React.Fragment key={task.todo.id}>
                               <div
-                                className={`relative ${rowHeight} bg-zinc-50 dark:bg-zinc-800 rounded-lg ${
-                                  hasConflict ? "ring-2 ring-red-400 ring-opacity-50" : ""
+                                role="listitem"
+                                aria-label={`Task: ${task.todo.plainText}, ${Math.round(task.durationMinutes)} minutes${
+                                  hasConflict ? ", has scheduling conflict" : ""
                                 }`}
+                                className={`relative ${
+                                  isSelected ? "ring-2 ring-blue-500 ring-offset-1 rounded-lg" : ""
+                                } ${hasConflict ? "animate-pulse" : ""}`}
+                                style={{ marginBottom: "2px" }}
                               >
-                                {/* Break blocks */}
-                                {breakBlocks.map((breakBlock, bi) => {
-                                  const breakStart = getTimePosition(breakBlock.startTime);
-                                  const breakEnd = getTimePosition(breakBlock.endTime);
-                                  return (
-                                    <div
-                                      key={bi}
-                                      className="absolute top-0 bottom-0 opacity-70"
-                                      style={{
-                                        left: `${breakStart}%`,
-                                        width: `${breakEnd - breakStart}%`,
-                                        backgroundColor: breakBlock.color,
-                                      }}
-                                      title={`${breakBlock.icon} ${breakBlock.name}`}
-                                    />
-                                  );
-                                })}
-
-                                {/* Task bar */}
-                                <div
-                                  className={`absolute top-0.5 bottom-0.5 shadow-md flex items-center justify-between px-2 overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:z-20 transition-all duration-150 z-10 ${
-                                    isSelected ? "ring-2 ring-blue-500" : ""
-                                  }`}
-                                  style={{
-                                    left: `${Math.max(0, startPos)}%`,
-                                    width: `${Math.min(width, 100 - Math.max(0, startPos))}%`,
-                                    backgroundColor: taskColor,
-                                    color: textColor,
-                                    borderRadius:
-                                      startPos < 0
-                                        ? "0 0.375rem 0.375rem 0"
-                                        : endPos > 100
-                                        ? "0.375rem 0 0 0.375rem"
-                                        : "0.375rem",
-                                    clipPath:
-                                      endPos > 100
-                                        ? "polygon(0 0, calc(100% - 8px) 0, 100% 10%, 100% 30%, calc(100% - 8px) 50%, 100% 70%, 100% 90%, calc(100% - 8px) 100%, 0 100%)"
-                                        : "none",
-                                  }}
-                                  onMouseEnter={(e) => handleTaskMouseEnter(e, task.todo.id)}
-                                  onMouseLeave={handleTaskMouseLeave}
-                                  onClick={() => {
-                                    setShowClickHint(false);
-                                    setDetailsOverlayTodo(task.todo);
-                                  }}
-                                  title="Click to view details"
-                                >
-                                  <span className="text-xs font-medium truncate">{task.todo.plainText}</span>
-                                  <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-                                    {/* Comment/activity indicators */}
-                                    {(task.todo.hasComments || task.todo.hasActivity) && (
-                                      <div className="flex items-center gap-0.5 opacity-70">
-                                        {task.todo.hasComments && (
-                                          <span
-                                            className="flex items-center text-[10px]"
-                                            title={`${task.todo.commentCount} comment${
-                                              task.todo.commentCount !== 1 ? "s" : ""
-                                            }`}
-                                          >
-                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                              <path
-                                                fillRule="evenodd"
-                                                d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
-                                                clipRule="evenodd"
-                                              />
-                                            </svg>
-                                            {task.todo.commentCount > 1 && <span>{task.todo.commentCount}</span>}
-                                          </span>
-                                        )}
-                                        {task.todo.hasActivity && (
-                                          <span
-                                            className="flex items-center text-[10px]"
-                                            title={`${task.todo.activityCount} activity entries`}
-                                          >
-                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                              <path
-                                                fillRule="evenodd"
-                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                                                clipRule="evenodd"
-                                              />
-                                            </svg>
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                    {/* Recurring indicator */}
-                                    {task.todo.metadata.recurring && (
-                                      <span
-                                        className="text-[10px] opacity-70"
-                                        title={`Recurring: ${task.todo.metadata.recurring}`}
-                                      >
-                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                          <path
-                                            fillRule="evenodd"
-                                            d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-                                            clipRule="evenodd"
-                                          />
-                                        </svg>
-                                      </span>
-                                    )}
-                                    {/* Dependencies indicator */}
-                                    {task.todo.metadata.dependencies && task.todo.metadata.dependencies.length > 0 && (
-                                      <span
-                                        className="text-[10px] opacity-70"
-                                        title={`Has ${task.todo.metadata.dependencies.length} dependency(ies)`}
-                                      >
-                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                          <path
-                                            fillRule="evenodd"
-                                            d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
-                                            clipRule="evenodd"
-                                          />
-                                        </svg>
-                                      </span>
-                                    )}
-                                    <span className="text-xs opacity-80 whitespace-nowrap">
-                                      {formatDuration(task.durationMinutes)}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Buffer indicator (green dotted line to the right) */}
-                                {showBufferZones && task.hasBuffer && (
-                                  <>
-                                    <div
-                                      className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-green-500"
-                                      style={{
-                                        left: `${endPos}%`,
-                                        width: `${Math.min(targetPos - endPos, 100 - endPos)}%`,
-                                      }}
-                                    />
-                                    <div
-                                      className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-green-600 dark:text-green-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
-                                      style={{
-                                        // If not enough space on right (< 15%), position on left of task
-                                        left:
-                                          100 - endPos < 15
-                                            ? `${startPos}%`
-                                            : `${(endPos + Math.min(targetPos, 100)) / 2}%`,
-                                        transform:
-                                          100 - endPos < 15 ? "translate(-100%, -50%)" : "translate(-50%, -50%)",
-                                      }}
-                                    >
-                                      +{formatDuration(task.bufferMinutes)} buffer
-                                    </div>
-                                  </>
-                                )}
-
-                                {/* Overdue indicator (red dotted line to the left) */}
-                                {showBufferZones && task.isOverdue && (
-                                  <>
-                                    <div
-                                      className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-red-500"
-                                      style={{
-                                        left: `${Math.max(targetPos, 0)}%`,
-                                        width: `${Math.min(endPos - targetPos, endPos)}%`,
-                                      }}
-                                    />
-                                    <div
-                                      className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-red-600 dark:text-red-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
-                                      style={{
-                                        // If not enough space on left (< 15%), position on right of task
-                                        left:
-                                          startPos < 15 ? `${endPos}%` : `${(Math.max(targetPos, 0) + startPos) / 2}%`,
-                                        transform: startPos < 15 ? "translate(0%, -50%)" : "translate(-50%, -50%)",
-                                      }}
-                                    >
-                                      -{formatDuration(task.bufferMinutes)} overdue
-                                    </div>
-                                  </>
-                                )}
-
-                                {/* Target marker */}
-                                {targetPos >= 0 && targetPos <= 100 && (
+                                {/* Conflict indicator */}
+                                {hasConflict && (
                                   <div
-                                    className={`absolute top-0 bottom-0 w-0.5 ${
-                                      task.isOverdue ? "bg-red-500" : "bg-green-500"
-                                    } z-10`}
-                                    style={{ left: `${targetPos}%` }}
-                                    title={task.isOverdue ? "Overdue point" : "Target time"}
-                                  />
+                                    className="absolute -left-6 top-1/2 -translate-y-1/2 z-20"
+                                    title="Scheduling conflict - overlaps with another task"
+                                  >
+                                    <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  </div>
                                 )}
+                                {/* Task row */}
+                                <div
+                                  className={`relative ${rowHeight} bg-zinc-50 dark:bg-zinc-800 rounded-lg ${
+                                    hasConflict ? "ring-2 ring-red-400 ring-opacity-50" : ""
+                                  }`}
+                                >
+                                  {/* Break blocks */}
+                                  {breakBlocks.map((breakBlock, bi) => {
+                                    const breakStart = getTimePosition(breakBlock.startTime);
+                                    const breakEnd = getTimePosition(breakBlock.endTime);
+                                    return (
+                                      <div
+                                        key={bi}
+                                        className="absolute top-0 bottom-0 opacity-70"
+                                        style={{
+                                          left: `${breakStart}%`,
+                                          width: `${breakEnd - breakStart}%`,
+                                          backgroundColor: breakBlock.color,
+                                        }}
+                                        title={`${breakBlock.icon} ${breakBlock.name}`}
+                                      />
+                                    );
+                                  })}
+
+                                  {/* Task bar segments */}
+                                  {task.segments.map((segment, segIdx) => {
+                                    const segStartPos = getTimePosition(segment.startTime);
+                                    const segEndPos = getTimePosition(segment.endTime);
+                                    const segWidth = segEndPos - segStartPos;
+                                    const isFirstSegment = segIdx === 0;
+                                    const isLastSegment = segIdx === task.segments.length - 1;
+                                    const hasMultipleSegments = task.segments.length > 1;
+
+                                    // Calculate context switch gap between this segment and the next
+                                    const nextSegment =
+                                      segIdx < task.segments.length - 1 ? task.segments[segIdx + 1] : null;
+
+                                    // Find the break block that overlaps with the gap between segments
+                                    // Break could start at segment end and extend into the gap
+                                    const breakInGap = nextSegment
+                                      ? breakBlocks.find(
+                                          (b) =>
+                                            b.startTime.getTime() <= segment.endTime.getTime() &&
+                                            b.endTime.getTime() > segment.endTime.getTime() &&
+                                            b.endTime.getTime() <= nextSegment.startTime.getTime(),
+                                        )
+                                      : null;
+
+                                    // Context switch starts after the break block ends (or after segment ends if no break)
+                                    const contextSwitchStart = breakInGap ? breakInGap.endTime : segment.endTime;
+                                    const contextSwitchEnd = nextSegment ? nextSegment.startTime : segment.endTime;
+                                    const contextSwitchStartPos = getTimePosition(contextSwitchStart);
+                                    const contextSwitchEndPos = nextSegment ? getTimePosition(contextSwitchEnd) : 0;
+                                    const contextSwitchWidth = contextSwitchEndPos - contextSwitchStartPos;
+                                    const contextSwitchDuration = nextSegment
+                                      ? Math.round((contextSwitchEnd.getTime() - contextSwitchStart.getTime()) / 60000)
+                                      : 0;
+
+                                    return (
+                                      <React.Fragment key={segIdx}>
+                                        <div
+                                          className={`absolute top-0.5 bottom-0.5 shadow-md flex items-center ${
+                                            isFirstSegment ? "justify-between px-2" : "justify-center px-1"
+                                          } overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:z-20 transition-all duration-150 z-10 ${
+                                            isSelected ? "ring-2 ring-blue-500" : ""
+                                          }`}
+                                          style={{
+                                            left: `${Math.max(0, segStartPos)}%`,
+                                            width: `${Math.min(segWidth, 100 - Math.max(0, segStartPos))}%`,
+                                            backgroundColor: taskColor,
+                                            color: textColor,
+                                            borderRadius: hasMultipleSegments
+                                              ? isFirstSegment
+                                                ? "0.375rem 0 0 0.375rem"
+                                                : isLastSegment
+                                                ? "0 0.375rem 0.375rem 0"
+                                                : "0"
+                                              : "0.375rem",
+                                            // Add dashed right border for non-last segments to indicate continuation
+                                            borderRight: !isLastSegment ? `2px dashed ${textColor}40` : undefined,
+                                          }}
+                                          onMouseEnter={(e) => handleTaskMouseEnter(e, task.todo.id)}
+                                          onMouseLeave={handleTaskMouseLeave}
+                                          onClick={() => {
+                                            setShowClickHint(false);
+                                            setDetailsOverlayTodo(task.todo);
+                                          }}
+                                          title={
+                                            hasMultipleSegments
+                                              ? `Segment ${segIdx + 1}/${task.segments.length}: ${formatDuration(
+                                                  segment.durationMinutes,
+                                                )} (Total: ${formatDuration(task.durationMinutes)})`
+                                              : "Click to view details"
+                                          }
+                                        >
+                                          {isFirstSegment ? (
+                                            <>
+                                              <span className="text-xs font-medium truncate">
+                                                {task.todo.plainText}
+                                              </span>
+                                              <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                                                {/* Comment/activity indicators */}
+                                                {(task.todo.hasComments || task.todo.hasActivity) && (
+                                                  <div className="flex items-center gap-0.5 opacity-70">
+                                                    {task.todo.hasComments && (
+                                                      <span
+                                                        className="flex items-center text-[10px]"
+                                                        title={`${task.todo.commentCount} comment${
+                                                          task.todo.commentCount !== 1 ? "s" : ""
+                                                        }`}
+                                                      >
+                                                        <svg
+                                                          className="w-3 h-3"
+                                                          fill="currentColor"
+                                                          viewBox="0 0 20 20"
+                                                        >
+                                                          <path
+                                                            fillRule="evenodd"
+                                                            d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
+                                                            clipRule="evenodd"
+                                                          />
+                                                        </svg>
+                                                        {task.todo.commentCount > 1 && (
+                                                          <span>{task.todo.commentCount}</span>
+                                                        )}
+                                                      </span>
+                                                    )}
+                                                    {task.todo.hasActivity && (
+                                                      <span
+                                                        className="flex items-center text-[10px]"
+                                                        title={`${task.todo.activityCount} activity entries`}
+                                                      >
+                                                        <svg
+                                                          className="w-3 h-3"
+                                                          fill="currentColor"
+                                                          viewBox="0 0 20 20"
+                                                        >
+                                                          <path
+                                                            fillRule="evenodd"
+                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                                            clipRule="evenodd"
+                                                          />
+                                                        </svg>
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                )}
+                                                {/* Segments indicator */}
+                                                {hasMultipleSegments && (
+                                                  <span
+                                                    className="text-[10px] opacity-70"
+                                                    title={`Split across ${task.segments.length} segments`}
+                                                  >
+                                                    📋{task.segments.length}
+                                                  </span>
+                                                )}
+                                                {/* Recurring indicator */}
+                                                {task.todo.metadata.recurring && (
+                                                  <span
+                                                    className="text-[10px] opacity-70"
+                                                    title={`Recurring: ${task.todo.metadata.recurring}`}
+                                                  >
+                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                      <path
+                                                        fillRule="evenodd"
+                                                        d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                                                        clipRule="evenodd"
+                                                      />
+                                                    </svg>
+                                                  </span>
+                                                )}
+                                                {/* Dependencies indicator */}
+                                                {task.todo.metadata.dependencies &&
+                                                  task.todo.metadata.dependencies.length > 0 && (
+                                                    <span
+                                                      className="text-[10px] opacity-70"
+                                                      title={`Has ${task.todo.metadata.dependencies.length} dependency(ies)`}
+                                                    >
+                                                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path
+                                                          fillRule="evenodd"
+                                                          d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
+                                                          clipRule="evenodd"
+                                                        />
+                                                      </svg>
+                                                    </span>
+                                                  )}
+                                                <span className="text-xs opacity-80 whitespace-nowrap">
+                                                  {formatDuration(task.durationMinutes)}
+                                                </span>
+                                              </div>
+                                            </>
+                                          ) : (
+                                            // For continuation segments, just show duration
+                                            <span className="text-[10px] opacity-70">
+                                              +{formatDuration(segment.durationMinutes)}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </React.Fragment>
+                                    );
+                                  })}
+
+                                  {/* Buffer indicator (green dotted line to the right) */}
+                                  {showBufferZones && task.hasBuffer && (
+                                    <>
+                                      <div
+                                        className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-green-500"
+                                        style={{
+                                          left: `${endPos}%`,
+                                          width: `${Math.min(targetPos - endPos, 100 - endPos)}%`,
+                                        }}
+                                      />
+                                      <div
+                                        className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-green-600 dark:text-green-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
+                                        style={{
+                                          left:
+                                            100 - endPos < 15
+                                              ? `${startPos}%`
+                                              : `${(endPos + Math.min(targetPos, 100)) / 2}%`,
+                                          transform:
+                                            100 - endPos < 15 ? "translate(-100%, -50%)" : "translate(-50%, -50%)",
+                                        }}
+                                      >
+                                        +{formatDuration(task.bufferMinutes)} buffer
+                                      </div>
+                                    </>
+                                  )}
+
+                                  {/* Overdue indicator (red dotted line to the left) */}
+                                  {showBufferZones && task.isOverdue && (
+                                    <>
+                                      <div
+                                        className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-red-500"
+                                        style={{
+                                          left: `${Math.max(targetPos, 0)}%`,
+                                          width: `${Math.min(endPos - targetPos, endPos)}%`,
+                                        }}
+                                      />
+                                      <div
+                                        className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-red-600 dark:text-red-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
+                                        style={{
+                                          left:
+                                            startPos < 15
+                                              ? `${endPos}%`
+                                              : `${(Math.max(targetPos, 0) + startPos) / 2}%`,
+                                          transform: startPos < 15 ? "translate(0%, -50%)" : "translate(-50%, -50%)",
+                                        }}
+                                      >
+                                        -{formatDuration(task.bufferMinutes)} overdue
+                                      </div>
+                                    </>
+                                  )}
+
+                                  {/* Target marker */}
+                                  {targetPos >= 0 && targetPos <= 100 && (
+                                    <div
+                                      className={`absolute top-0 bottom-0 w-0.5 ${
+                                        task.isOverdue ? "bg-red-500" : "bg-green-500"
+                                      } z-10`}
+                                      style={{ left: `${targetPos}%` }}
+                                      title={task.isOverdue ? "Overdue point" : "Target time"}
+                                    />
+                                  )}
+                                </div>
                               </div>
 
-                              {/* Break indicator (Pomodoro or context switch) - line with arrows */}
+                              {/* Break/context switch indicator between tasks - positioned on timeline */}
                               {hasBreak && breakWidth > 0 && (
-                                <div
-                                  className="absolute flex items-center justify-center z-5"
-                                  style={{
-                                    top: "100%",
-                                    left: `${breakStartPos}%`,
-                                    width: `${breakWidth}%`,
-                                    height: "8px",
-                                  }}
-                                  title={
-                                    breakType === "long"
-                                      ? `🍅 ${breakDuration}min long break`
-                                      : breakType === "short"
-                                      ? `🍅 ${breakDuration}min short break`
-                                      : `${breakDuration}min context switch`
-                                  }
-                                >
-                                  <div className="flex items-center w-full">
-                                    <svg
-                                      className={`w-2 h-2 flex-shrink-0 ${
-                                        breakType === "long"
-                                          ? "text-green-500 dark:text-green-400"
-                                          : breakType === "short"
-                                          ? "text-blue-500 dark:text-blue-400"
-                                          : "text-zinc-400 dark:text-zinc-500"
-                                      }`}
-                                      fill="currentColor"
-                                      viewBox="0 0 8 8"
-                                    >
-                                      <path d="M4 0 L0 4 L4 8 Z" />
-                                    </svg>
-                                    <div
-                                      className={`flex-1 h-px ${
-                                        breakType === "long"
-                                          ? "bg-green-500 dark:bg-green-400"
-                                          : breakType === "short"
-                                          ? "bg-blue-500 dark:bg-blue-400"
-                                          : "bg-zinc-400 dark:bg-zinc-500"
-                                      }`}
-                                    />
-                                    <svg
-                                      className={`w-2 h-2 flex-shrink-0 ${
-                                        breakType === "long"
-                                          ? "text-green-500 dark:text-green-400"
-                                          : breakType === "short"
-                                          ? "text-blue-500 dark:text-blue-400"
-                                          : "text-zinc-400 dark:text-zinc-500"
-                                      }`}
-                                      fill="currentColor"
-                                      viewBox="0 0 8 8"
-                                    >
-                                      <path d="M4 0 L8 4 L4 8 Z" />
-                                    </svg>
+                                <div className="relative h-3">
+                                  <div
+                                    className="absolute top-0 bottom-0 flex items-center justify-center"
+                                    style={{
+                                      left: `${breakStartPos}%`,
+                                      width: `${breakWidth}%`,
+                                    }}
+                                    title={
+                                      breakType === "long"
+                                        ? `🍅 ${breakDuration}min long break`
+                                        : breakType === "short"
+                                        ? `🍅 ${breakDuration}min short break`
+                                        : `${breakDuration}min context switch`
+                                    }
+                                  >
+                                    <div className="flex items-center w-full">
+                                      <svg
+                                        className={`w-2 h-2 flex-shrink-0 ${
+                                          breakType === "long"
+                                            ? "text-green-500 dark:text-green-400"
+                                            : "text-blue-500 dark:text-blue-400"
+                                        }`}
+                                        fill="currentColor"
+                                        viewBox="0 0 8 8"
+                                      >
+                                        <path d="M4 0 L0 4 L4 8 Z" />
+                                      </svg>
+                                      <div
+                                        className={`flex-1 h-px ${
+                                          breakType === "long"
+                                            ? "bg-green-500 dark:bg-green-400"
+                                            : "bg-blue-500 dark:bg-blue-400"
+                                        }`}
+                                      />
+                                      <svg
+                                        className={`w-2 h-2 flex-shrink-0 ${
+                                          breakType === "long"
+                                            ? "text-green-500 dark:text-green-400"
+                                            : "text-blue-500 dark:text-blue-400"
+                                        }`}
+                                        fill="currentColor"
+                                        viewBox="0 0 8 8"
+                                      >
+                                        <path d="M4 0 L8 4 L4 8 Z" />
+                                      </svg>
+                                    </div>
                                   </div>
                                 </div>
                               )}
-                            </div>
+                            </React.Fragment>
                           );
                         })}
 
