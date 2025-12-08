@@ -25,10 +25,10 @@ function getAudioContext(): AudioContext | null {
 
 /**
  * Play a notification sound using Web Audio API
- * @param type - Type of sound: 'short-break', 'long-break', 'work-start', 'task-complete'
+ * @param type - Type of sound
  */
 export function playNotificationSound(
-  type: "short-break" | "long-break" | "work-start" | "task-complete" = "short-break",
+  type: "short-break" | "long-break" | "work-start" | "task-complete" | "task-start" | "break-end",
 ): void {
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -48,7 +48,7 @@ export function playNotificationSound(
     // Different sound patterns for different notification types
     switch (type) {
       case "short-break":
-        // Two gentle high tones
+        // Two gentle high tones (break starting)
         oscillator.frequency.setValueAtTime(880, ctx.currentTime); // A5
         oscillator.frequency.setValueAtTime(1047, ctx.currentTime + 0.15); // C6
         gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
@@ -58,7 +58,7 @@ export function playNotificationSound(
         break;
 
       case "long-break":
-        // Three descending tones (more celebratory)
+        // Three descending tones (more celebratory - long break starting)
         oscillator.frequency.setValueAtTime(1047, ctx.currentTime); // C6
         oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
         oscillator.frequency.setValueAtTime(698, ctx.currentTime + 0.3); // F5
@@ -69,7 +69,8 @@ export function playNotificationSound(
         break;
 
       case "work-start":
-        // Single decisive tone
+      case "break-end":
+        // Single decisive tone (back to work)
         oscillator.frequency.setValueAtTime(523, ctx.currentTime); // C5
         gainNode.gain.setValueAtTime(0.25, ctx.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
@@ -77,8 +78,18 @@ export function playNotificationSound(
         oscillator.stop(ctx.currentTime + 0.2);
         break;
 
+      case "task-start":
+        // Rising tone (starting fresh task)
+        oscillator.frequency.setValueAtTime(392, ctx.currentTime); // G4
+        oscillator.frequency.linearRampToValueAtTime(523, ctx.currentTime + 0.15); // C5
+        gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.2);
+        break;
+
       case "task-complete":
-        // Ascending two tones (success sound)
+        // Ascending two tones (success sound - task finished)
         oscillator.frequency.setValueAtTime(523, ctx.currentTime); // C5
         oscillator.frequency.setValueAtTime(659, ctx.currentTime + 0.1); // E5
         gainNode.gain.setValueAtTime(0.25, ctx.currentTime);
