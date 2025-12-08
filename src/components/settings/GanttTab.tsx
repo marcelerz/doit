@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Gantt,
-  GanttZoomLevel,
-  GanttPreset,
-  defaultGantt,
-  defaultGanttPresets,
-  SchedulingTechnique,
-} from "@/types/settings";
-import { useState } from "react";
+import { Gantt, GanttZoomLevel, GanttPreset, defaultGantt, defaultGanttPresets } from "@/types/settings";
 import { playNotificationSound } from "@/utils/notifications";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
@@ -18,9 +10,6 @@ interface GanttTabProps {
 }
 
 export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
-  const [newPresetName, setNewPresetName] = useState("");
-  const [showNewPresetForm, setShowNewPresetForm] = useState(false);
-
   const handleApplyPreset = (preset: GanttPreset) => {
     onUpdate({
       ...gantt,
@@ -39,35 +28,6 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
       flowContextSwitchingTime: preset.flowContextSwitchingTime ?? gantt.flowContextSwitchingTime,
       activePresetId: preset.id,
     });
-  };
-
-  const handleSaveCurrentAsPreset = () => {
-    if (!newPresetName.trim()) return;
-
-    const newPreset: GanttPreset = {
-      id: `custom-${Date.now()}`,
-      name: newPresetName.trim(),
-      technique: gantt.schedulingTechnique,
-      contextSwitchingTime: gantt.contextSwitchingTime,
-      defaultTaskDuration: gantt.defaultTaskDuration,
-      durationMultiplier: gantt.durationMultiplier,
-      pomodoroWorkDuration: gantt.pomodoroWorkDuration,
-      pomodoroShortBreak: gantt.pomodoroShortBreak,
-      pomodoroLongBreak: gantt.pomodoroLongBreak,
-      pomodoroLongBreakInterval: gantt.pomodoroLongBreakInterval,
-      flowWorkDuration: gantt.flowWorkDuration,
-      flowBreakDuration: gantt.flowBreakDuration,
-      flowContextSwitchingTime: gantt.flowContextSwitchingTime,
-    };
-
-    onUpdate({
-      ...gantt,
-      presets: [...(gantt.presets || defaultGanttPresets), newPreset],
-      activePresetId: newPreset.id,
-    });
-
-    setNewPresetName("");
-    setShowNewPresetForm(false);
   };
 
   const handleDeletePreset = (presetId: string) => {
@@ -92,17 +52,6 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
   const sequentialPresets = presets.filter((p) => p.technique === "sequential");
   const pomodoroPresets = presets.filter((p) => p.technique === "pomodoro");
   const flowPresets = presets.filter((p) => p.technique === "flow");
-
-  const getTechniqueIcon = (technique: SchedulingTechnique) => {
-    switch (technique) {
-      case "sequential":
-        return "📋";
-      case "pomodoro":
-        return "🍅";
-      case "flow":
-        return "🌊";
-    }
-  };
 
   const getPresetTooltip = (preset: GanttPreset) => {
     switch (preset.technique) {
@@ -193,6 +142,7 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
         <div className="flex items-center gap-2">
           <span className="text-xl">📋</span>
           <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Sequential</h4>
+          <InfoTooltip content={tooltipContent.sequential} />
           {gantt.schedulingTechnique === "sequential" && (
             <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
               Active
@@ -494,6 +444,7 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
         <div className="flex items-center gap-2">
           <span className="text-xl">🌊</span>
           <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Flow</h4>
+          <InfoTooltip content={tooltipContent.flow} />
           {gantt.schedulingTechnique === "flow" && (
             <span className="px-2 py-0.5 text-xs font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 rounded-full">
               Active
@@ -623,43 +574,6 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
             hours)
           </p>
         </div>
-      </div>
-
-      {/* Save Custom Preset */}
-      <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Save Current Settings</h4>
-          <button
-            onClick={() => setShowNewPresetForm(!showNewPresetForm)}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            {showNewPresetForm ? "Cancel" : "Save as Preset"}
-          </button>
-        </div>
-
-        {showNewPresetForm && (
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newPresetName}
-              onChange={(e) => setNewPresetName(e.target.value)}
-              placeholder="Preset name..."
-              className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={handleSaveCurrentAsPreset}
-              disabled={!newPresetName.trim()}
-              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Save
-            </button>
-          </div>
-        )}
-
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Current technique: {getTechniqueIcon(gantt.schedulingTechnique)}{" "}
-          {gantt.schedulingTechnique.charAt(0).toUpperCase() + gantt.schedulingTechnique.slice(1)}
-        </p>
       </div>
 
       {/* View Settings */}

@@ -16,6 +16,7 @@ import { createPortal } from "react-dom";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
 import { MarkedText } from "@/components/shared/MarkedText";
+import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { getTextColor } from "@/utils/colors";
 import {
@@ -779,6 +780,17 @@ export function GanttView({
             <div className="flex items-center gap-1 sm:gap-2 sm:ml-2 sm:pl-2 sm:border-l border-zinc-200 dark:border-zinc-700">
               <span className="hidden lg:inline text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 mr-1">
                 Technique:
+              </span>
+              <span className="hidden lg:inline">
+                <InfoTooltip
+                  content={
+                    settings.gantt.schedulingTechnique === "sequential"
+                      ? tooltipContent.sequential
+                      : settings.gantt.schedulingTechnique === "pomodoro"
+                      ? tooltipContent.pomodoro
+                      : tooltipContent.flow
+                  }
+                />
               </span>
               <div className="flex" role="group" aria-label="Scheduling technique">
                 <button

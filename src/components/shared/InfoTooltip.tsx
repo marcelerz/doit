@@ -368,6 +368,19 @@ export const tooltipContent = {
     </div>
   ),
 
+  // Sequential (Gantt scheduling technique)
+  sequential: (
+    <div className="space-y-2">
+      <p>Simple task-to-task scheduling.</p>
+      <ul className="space-y-1">
+        <li>• Fixed buffer between tasks</li>
+        <li>• No structured breaks</li>
+        <li>• Predictable, even spacing</li>
+        <li>• Good for varied task lengths</li>
+      </ul>
+    </div>
+  ),
+
   // Pomodoro
   pomodoro: (
     <div className="space-y-2">
@@ -376,7 +389,20 @@ export const tooltipContent = {
         <li>• Short breaks between tasks</li>
         <li>• Long breaks after N tasks</li>
         <li>• Audio and visual notifications</li>
-        <li>• Presets: Pomodoro, Deep Work, etc.</li>
+        <li>• Presets: Standard (25/5/15/4)</li>
+      </ul>
+    </div>
+  ),
+
+  // Flow (Gantt scheduling technique)
+  flow: (
+    <div className="space-y-2">
+      <p>Work/break/context cycles for deep focus.</p>
+      <ul className="space-y-1">
+        <li>• Extended work sessions</li>
+        <li>• Fixed break after each session</li>
+        <li>• Context switch time between tasks</li>
+        <li>• Presets: 52/17, Ultradian (90/20)</li>
       </ul>
     </div>
   ),

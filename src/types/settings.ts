@@ -272,7 +272,7 @@ export const defaultGanttPresets: GanttPreset[] = [
   // Pomodoro presets
   {
     id: "pomodoro-standard",
-    name: "Standard (25/5/15)",
+    name: "Standard (25/5/15/4)",
     technique: "pomodoro",
     contextSwitchingTime: 0,
     defaultTaskDuration: 25,
@@ -284,7 +284,7 @@ export const defaultGanttPresets: GanttPreset[] = [
   },
   {
     id: "pomodoro-long",
-    name: "Long Sessions (50/10/30)",
+    name: "Long Sessions (50/10/30/4)",
     technique: "pomodoro",
     contextSwitchingTime: 0,
     defaultTaskDuration: 50,
@@ -297,7 +297,7 @@ export const defaultGanttPresets: GanttPreset[] = [
   // Flow presets
   {
     id: "flow-5217",
-    name: "52/17 Method",
+    name: "52/17 Method (52/17/10)",
     technique: "flow",
     contextSwitchingTime: 0,
     defaultTaskDuration: 52,
@@ -308,7 +308,7 @@ export const defaultGanttPresets: GanttPreset[] = [
   },
   {
     id: "flow-ultradian",
-    name: "Ultradian Rhythm (90/20)",
+    name: "Ultradian Rhythm (90/20/10)",
     technique: "flow",
     contextSwitchingTime: 0,
     defaultTaskDuration: 90,
