@@ -4922,6 +4922,8 @@ export function TodoApp() {
             setDetailsOverlayTodo(todo);
           }}
           onClose={() => setIsFocusMode(false)}
+          onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
+          onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
         />
       )}
 

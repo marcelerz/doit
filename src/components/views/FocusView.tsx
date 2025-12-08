@@ -32,6 +32,9 @@ interface FocusViewProps {
   linkPatterns: LinkPattern[];
   onOpenDetails: (todo: TodoModel) => void;
   onClose: () => void;
+  // Time tracking
+  onStartTimeTracking?: (todoId: string, note?: string) => void;
+  onStopTimeTracking?: (todoId: string) => void;
 }
 
 type FocusPhase = "work" | "short-break" | "long-break" | "paused" | "completed" | "pending-break" | "pending-work";
@@ -66,6 +69,8 @@ export function FocusView({
   linkPatterns,
   onOpenDetails,
   onClose,
+  onStartTimeTracking,
+  onStopTimeTracking,
 }: FocusViewProps) {
   // Filter scheduled tasks to only include non-actual-time, non-completed tasks
   const scheduledTasks = useMemo(() => {
@@ -109,14 +114,74 @@ export function FocusView({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   // Confirmation repeat timer ref
   const confirmationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Track previous phase for time tracking transitions
+  const prevPhaseRef = useRef<FocusPhase>(state.phase);
+  // Track if time tracking is active for current task
+  const timeTrackingActiveRef = useRef<string | null>(null);
+
+  // Track previous running state for time tracking transitions
+  const prevIsRunningRef = useRef<boolean>(state.isRunning);
+
+  // Current task - defined early for use in effects
+  const currentTask = scheduledTasks[state.currentTaskIndex];
+  const currentTodo = currentTask?.todo;
 
   // Cleanup sound queue and ambient sounds on unmount
   useEffect(() => {
+    // Stop any active time tracking when unmounting
+    if (timeTrackingActiveRef.current && onStopTimeTracking) {
+      onStopTimeTracking(timeTrackingActiveRef.current);
+      timeTrackingActiveRef.current = null;
+    }
     return () => {
       clearSoundQueue();
       stopAmbientSound();
     };
-  }, []);
+  }, [onStopTimeTracking]);
+
+  // Handle time tracking based on phase transitions
+  useEffect(() => {
+    const prevPhase = prevPhaseRef.current;
+    const prevIsRunning = prevIsRunningRef.current;
+    const currentPhase = state.phase;
+    const currentIsRunning = state.isRunning;
+
+    // Update refs for next comparison
+    prevPhaseRef.current = currentPhase;
+    prevIsRunningRef.current = currentIsRunning;
+
+    if (!focusSettings.autoTimeTracking || !currentTodo) return;
+
+    // Start tracking when: work phase becomes running (either by phase change or play button)
+    const shouldStartTracking =
+      currentPhase === "work" &&
+      currentIsRunning &&
+      !timeTrackingActiveRef.current &&
+      (prevPhase !== "work" || !prevIsRunning);
+
+    if (shouldStartTracking && onStartTimeTracking) {
+      onStartTimeTracking(currentTodo.id, "Focus Mode session");
+      timeTrackingActiveRef.current = currentTodo.id;
+    }
+
+    // Stop tracking when: leaving work phase OR stopping timer while in work
+    const shouldStopTracking =
+      timeTrackingActiveRef.current &&
+      ((prevPhase === "work" && currentPhase !== "work") ||
+        (currentPhase === "work" && prevIsRunning && !currentIsRunning));
+
+    if (shouldStopTracking && onStopTimeTracking && timeTrackingActiveRef.current) {
+      onStopTimeTracking(timeTrackingActiveRef.current);
+      timeTrackingActiveRef.current = null;
+    }
+  }, [
+    state.phase,
+    state.isRunning,
+    currentTodo,
+    focusSettings.autoTimeTracking,
+    onStartTimeTracking,
+    onStopTimeTracking,
+  ]);
 
   // Manage ambient sounds based on phase and settings
   useEffect(() => {
@@ -149,10 +214,6 @@ export function FocusView({
     focusSettings.ambientBreakSound,
     focusSettings.ambientVolume,
   ]);
-
-  // Current task
-  const currentTask = scheduledTasks[state.currentTaskIndex];
-  const currentTodo = currentTask?.todo;
 
   // Calculate work time for current task
   const currentTaskDuration = useMemo(() => {
@@ -442,12 +503,14 @@ export function FocusView({
         if (soundEnabled) {
           playNotificationSound("task-start");
         }
+        // Time tracking is handled by the phase transition effect
         return {
           ...s,
           isRunning: true,
           taskStartTime: focusSettings.autoTimeTracking && !s.taskStartTime ? new Date() : s.taskStartTime,
         };
       }
+      // Time tracking stop is handled by the phase transition effect
       return { ...s, isRunning: !s.isRunning };
     });
   }, [soundEnabled, focusSettings.autoTimeTracking]);
@@ -464,6 +527,12 @@ export function FocusView({
   // Complete current task
   const completeTask = useCallback(() => {
     if (!currentTodo) return;
+
+    // Stop time tracking before completing (using ref to get active tracking ID)
+    if (timeTrackingActiveRef.current && onStopTimeTracking) {
+      onStopTimeTracking(timeTrackingActiveRef.current);
+      timeTrackingActiveRef.current = null;
+    }
 
     if (soundEnabled) {
       playNotificationSound("task-complete");
@@ -498,10 +567,17 @@ export function FocusView({
     technique,
     pomodoroWorkMinutes,
     currentTaskDuration,
+    onStopTimeTracking,
   ]);
 
   // Skip to next task
   const skipTask = useCallback(() => {
+    // Stop time tracking for current task when skipping (using ref to get active tracking ID)
+    if (timeTrackingActiveRef.current && onStopTimeTracking) {
+      onStopTimeTracking(timeTrackingActiveRef.current);
+      timeTrackingActiveRef.current = null;
+    }
+
     if (state.currentTaskIndex < scheduledTasks.length - 1) {
       if (soundEnabled) {
         playNotificationSound("task-start");
@@ -523,6 +599,7 @@ export function FocusView({
     technique,
     pomodoroWorkMinutes,
     currentTaskDuration,
+    onStopTimeTracking,
   ]);
 
   // Skip break

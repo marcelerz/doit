@@ -661,7 +661,7 @@ export const defaultFocusSettings: FocusSettings = {
   confirmationMaxRepeats: 5,
 
   // Auto Time Tracking
-  autoTimeTracking: false,
+  autoTimeTracking: true,
   trackActualVsEstimated: true,
 
   // Timer Controls
