@@ -519,7 +519,18 @@ export function scheduleDayTasks(
       currentTime = new Date(now);
     }
 
+    const beforeSkipBetweenTasks = new Date(currentTime);
     currentTime = skipCurrentBreak(currentTime);
+
+    // Check if we skipped a time block break that's >= long break duration
+    // If so, reset the Pomodoro session count (like taking a long break)
+    if (schedulingTechnique === "pomodoro") {
+      const skippedDuration = (currentTime.getTime() - beforeSkipBetweenTasks.getTime()) / 60000;
+      if (skippedDuration >= longBreakDuration) {
+        pomodoroSessionCount = 0;
+        workTimeSinceLastPomodoroBreak = 0;
+      }
+    }
 
     if (currentTime >= dayEndTime) break;
 
@@ -529,7 +540,19 @@ export function scheduleDayTasks(
 
     // Schedule segments, splitting across breaks AND at Pomodoro work duration boundaries
     while (remainingMinutes > 0 && currentTime < dayEndTime) {
+      const beforeSkipInSegment = new Date(currentTime);
       currentTime = skipCurrentBreak(currentTime);
+
+      // Check if we skipped a time block break that's >= long break duration
+      // If so, reset the Pomodoro session count (like taking a long break)
+      if (schedulingTechnique === "pomodoro") {
+        const skippedDuration = (currentTime.getTime() - beforeSkipInSegment.getTime()) / 60000;
+        if (skippedDuration >= longBreakDuration) {
+          pomodoroSessionCount = 0;
+          workTimeSinceLastPomodoroBreak = 0;
+        }
+      }
+
       if (currentTime >= dayEndTime) break;
 
       // If using Pomodoro or Flow and we've accumulated enough work time, take a break FIRST
@@ -537,7 +560,13 @@ export function scheduleDayTasks(
         pomodoroSessionCount++;
         const pomodoroBreakDuration = getPomodoroBreakDuration(pomodoroSessionCount, ganttSettings);
         currentTime = new Date(currentTime.getTime() + pomodoroBreakDuration * 60000);
+        const beforeSkipAfterPomodoroBreak = new Date(currentTime);
         currentTime = skipCurrentBreak(currentTime);
+        // Check if we skipped a time block break after the Pomodoro break
+        const skippedAfterPomodoroBreak = (currentTime.getTime() - beforeSkipAfterPomodoroBreak.getTime()) / 60000;
+        if (skippedAfterPomodoroBreak >= longBreakDuration) {
+          pomodoroSessionCount = 0;
+        }
         workTimeSinceLastPomodoroBreak = 0;
         if (currentTime >= dayEndTime) break;
       } else if (schedulingTechnique === "flow" && workTimeSinceLastPomodoroBreak >= flowWorkMinutes) {
