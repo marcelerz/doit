@@ -146,10 +146,10 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
         <div className="flex items-center justify-between pt-2 border-t border-zinc-200 dark:border-zinc-700">
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Track Actual vs Estimated
+              Compare Actual vs Estimated Time
             </label>
             <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-              Store actual time spent vs estimated duration for analytics
+              Record how long tasks actually took compared to estimated duration
             </p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">

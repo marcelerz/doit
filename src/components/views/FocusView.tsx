@@ -60,8 +60,8 @@ export function FocusView({
   onOpenDetails,
   onClose,
 }: FocusViewProps) {
-  // Only show active todos with duration in focus mode
-  const activeTodos = useMemo(() => todos.filter((t) => t.isActive && t.metadata.duration), [todos]);
+  // Show all active todos in focus mode (duration optional)
+  const activeTodos = useMemo(() => todos.filter((t) => t.isActive), [todos]);
 
   // Schedule tasks using the Gantt scheduler
   const scheduledTasks = useMemo(() => {
@@ -648,20 +648,43 @@ export function FocusView({
   const techniqueIcon = technique === "pomodoro" ? "🍅" : technique === "flow" ? "🌊" : "📋";
   const techniqueName = technique === "pomodoro" ? "Pomodoro" : technique === "flow" ? "Flow" : "Sequential";
 
-  // Empty state
+  // Empty state - no active tasks
   if (activeTodos.length === 0) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800">
         <div className="text-center p-8">
           <div className="text-6xl mb-4">🎉</div>
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">All caught up!</h2>
-          <p className="text-zinc-600 dark:text-zinc-400 mb-2">No active tasks with duration to focus on.</p>
-          <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-6">
-            Add a duration to your tasks to use Focus Mode.
-          </p>
+          <p className="text-zinc-600 dark:text-zinc-400 mb-2">No active tasks to focus on.</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-6">Create some tasks to use Focus Mode.</p>
           <button
             onClick={onClose}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          >
+            Exit Focus Mode
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // No scheduled tasks (e.g., outside work hours)
+  if (scheduledTasks.length === 0) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 dark:from-zinc-900 dark:to-zinc-800">
+        <div className="text-center p-8">
+          <div className="text-6xl mb-4">⏰</div>
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">Outside work hours</h2>
+          <p className="text-zinc-600 dark:text-zinc-400 mb-2">
+            You have {activeTodos.length} active task{activeTodos.length !== 1 ? "s" : ""}, but it&apos;s outside your
+            scheduled work hours.
+          </p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-6">
+            Adjust your work hours in Settings → Work Hours, or try again during your scheduled hours.
+          </p>
+          <button
+            onClick={onClose}
+            className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors"
           >
             Exit Focus Mode
           </button>
