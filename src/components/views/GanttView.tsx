@@ -1062,7 +1062,17 @@ export function GanttView({
         <div className="mt-3 grid grid-cols-7 gap-2" role="img" aria-label="Weekly task distribution overview">
           {weekScheduledTasks.map(
             (
-              { date, scheduled, breakBlocks: dayBreaks, dayStart, dayEnd, totalMinutes, techniqueBreakMinutes },
+              {
+                date,
+                scheduled,
+                segments,
+                techniqueBreaks,
+                breakBlocks: dayBreaks,
+                dayStart,
+                dayEnd,
+                totalMinutes,
+                techniqueBreakMinutes,
+              },
               index,
             ) => {
               const isToday = date.toDateString() === new Date().toDateString();
@@ -1099,7 +1109,7 @@ export function GanttView({
                       scheduled.length
                     } tasks, ${utilizationPercent}% utilized`}
                   >
-                    {/* Break blocks */}
+                    {/* Time block breaks (lunch, meetings, etc.) */}
                     {dayBreaks.map((breakBlock, bi) => (
                       <div
                         key={`break-${bi}`}
@@ -1112,28 +1122,44 @@ export function GanttView({
                         title={`${breakBlock.icon} ${breakBlock.name}`}
                       />
                     ))}
-                    {/* Tasks */}
-                    {scheduled.map((task, i) => {
-                      const isCompleted = task.todo.isCompleted || task.todo.isArchived;
+                    {/* Technique breaks (Pomodoro, Flow, context switching) */}
+                    {techniqueBreaks.map((tb, tbi) => (
+                      <div
+                        key={`tech-break-${tbi}`}
+                        className={`absolute top-0 bottom-0 ${
+                          tb.type === "long"
+                            ? "bg-green-400 dark:bg-green-600"
+                            : tb.type === "short"
+                            ? "bg-blue-400 dark:bg-blue-600"
+                            : "bg-zinc-300 dark:bg-zinc-600"
+                        }`}
+                        style={{
+                          left: `${tb.startPercent}%`,
+                          width: `${tb.widthPercent}%`,
+                          opacity: 0.6,
+                        }}
+                      />
+                    ))}
+                    {/* Task segments (more accurate than whole tasks) */}
+                    {segments.map((segment, i) => {
+                      // Handle segments outside work hours
+                      let clampedStart = segment.startPercent;
+                      let clampedWidth = segment.widthPercent;
 
-                      // Handle tasks outside work hours
-                      let clampedStart = task.startPercent;
-                      let clampedWidth = task.widthPercent;
-
-                      // If task starts before work hours, clamp to start
-                      if (task.startPercent < 0) {
+                      // If segment starts before work hours, clamp to start
+                      if (segment.startPercent < 0) {
                         clampedStart = 0;
-                        clampedWidth = Math.min(task.widthPercent + task.startPercent, 100);
+                        clampedWidth = Math.min(segment.widthPercent + segment.startPercent, 100);
                       }
-                      // If task starts after work hours, show at the end
-                      else if (task.startPercent >= 100) {
-                        clampedStart = 95; // Show at 95% to indicate it's beyond
-                        clampedWidth = 5; // Small indicator width
+                      // If segment starts after work hours, show at the end
+                      else if (segment.startPercent >= 100) {
+                        clampedStart = 95;
+                        clampedWidth = 5;
                       }
-                      // If task extends beyond work hours
-                      else if (task.startPercent + task.widthPercent > 100) {
-                        clampedStart = task.startPercent;
-                        clampedWidth = 100 - task.startPercent;
+                      // If segment extends beyond work hours
+                      else if (segment.startPercent + segment.widthPercent > 100) {
+                        clampedStart = segment.startPercent;
+                        clampedWidth = 100 - segment.startPercent;
                       }
 
                       // Only render if there's valid width
@@ -1141,17 +1167,13 @@ export function GanttView({
 
                       return (
                         <div
-                          key={i}
+                          key={`seg-${i}`}
                           className="absolute top-0 bottom-0"
                           style={{
                             left: `${clampedStart}%`,
                             width: `${clampedWidth}%`,
-                            backgroundColor: task.color,
-                            opacity: isCompleted ? 0.5 : 1,
+                            backgroundColor: segment.color,
                           }}
-                          title={`${task.todo.plainText}${
-                            task.startPercent >= 100 ? " (after hours)" : task.startPercent < 0 ? " (before hours)" : ""
-                          }`}
                         />
                       );
                     })}

@@ -810,6 +810,19 @@ export interface WeekDaySchedule {
     widthPercent: number;
     color: string;
   }>;
+  // Individual segments for more accurate visualization
+  segments: Array<{
+    todoId: string;
+    startPercent: number;
+    widthPercent: number;
+    color: string;
+  }>;
+  // Technique breaks (Pomodoro, Flow, context switching) as visual blocks
+  techniqueBreaks: Array<{
+    startPercent: number;
+    widthPercent: number;
+    type: BreakType;
+  }>;
   breakBlocks: Array<{
     startPercent: number;
     widthPercent: number;
@@ -882,6 +895,65 @@ export function scheduleWeekTasks(
       };
     });
 
+    // Convert segments to percentage-based format for accurate visualization
+    const segments: WeekDaySchedule["segments"] = [];
+    scheduledTasks.forEach((task) => {
+      const color = getProjectColor(task.todo);
+      task.segments.forEach((segment) => {
+        const startMinutes = (segment.startTime.getTime() - dayStart.getTime()) / 60000;
+        const startPercent = (startMinutes / totalMinutes) * 100;
+        const widthPercent = (segment.durationMinutes / totalMinutes) * 100;
+        segments.push({
+          todoId: task.todo.id,
+          startPercent,
+          widthPercent,
+          color,
+        });
+      });
+    });
+
+    // Collect technique breaks (between tasks and between segments) as visual blocks
+    const techniqueBreaks: WeekDaySchedule["techniqueBreaks"] = [];
+    scheduledTasks.forEach((task, taskIndex) => {
+      // Add breaks between segments within this task
+      task.segments.forEach((segment, segIndex) => {
+        if (segment.nextBreak && segment.nextBreak.durationMinutes > 0) {
+          const nextSegment = task.segments[segIndex + 1];
+          if (nextSegment) {
+            const startMinutes = (segment.endTime.getTime() - dayStart.getTime()) / 60000;
+            const endMinutes = (nextSegment.startTime.getTime() - dayStart.getTime()) / 60000;
+            const startPercent = (startMinutes / totalMinutes) * 100;
+            const widthPercent = ((endMinutes - startMinutes) / totalMinutes) * 100;
+            if (widthPercent > 0) {
+              techniqueBreaks.push({
+                startPercent,
+                widthPercent,
+                type: segment.nextBreak.type,
+              });
+            }
+          }
+        }
+      });
+
+      // Add break after this task (between tasks)
+      if (task.nextBreak && task.nextBreak.durationMinutes > 0) {
+        const nextTask = scheduledTasks[taskIndex + 1];
+        if (nextTask) {
+          const startMinutes = (task.endTime.getTime() - dayStart.getTime()) / 60000;
+          const endMinutes = (nextTask.startTime.getTime() - dayStart.getTime()) / 60000;
+          const startPercent = (startMinutes / totalMinutes) * 100;
+          const widthPercent = ((endMinutes - startMinutes) / totalMinutes) * 100;
+          if (widthPercent > 0) {
+            techniqueBreaks.push({
+              startPercent,
+              widthPercent,
+              type: task.nextBreak.type,
+            });
+          }
+        }
+      }
+    });
+
     // Convert break blocks to percentage-based format
     const breakBlocksPercent = breakBlocks.map((b) => {
       const startMinutes = (b.startTime.getTime() - dayStart.getTime()) / 60000;
@@ -901,6 +973,8 @@ export function scheduleWeekTasks(
     return {
       date,
       scheduled,
+      segments,
+      techniqueBreaks,
       breakBlocks: breakBlocksPercent,
       dayStart,
       dayEnd,
