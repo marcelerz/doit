@@ -241,42 +241,37 @@ export function GanttView({
     }
   };
 
-  // Calculate break duration based on Pomodoro settings or context switching time
-  const getBreakDuration = (taskIndex: number): number => {
-    const { pomodoroEnabled, pomodoroShortBreak, pomodoroLongBreak, pomodoroLongBreakInterval, contextSwitchingTime } =
-      settings.gantt;
+  // Calculate Pomodoro break duration based on session count
+  const getPomodoroBreakDuration = (sessionCount: number): number => {
+    const { pomodoroShortBreak, pomodoroLongBreak, pomodoroLongBreakInterval } = settings.gantt;
 
-    if (!pomodoroEnabled) {
-      return contextSwitchingTime;
-    }
-
-    // Pomodoro is enabled - check if this is a long break position
-    // Long break after every N tasks (taskIndex is 0-indexed, so check if (taskIndex + 1) % N === 0)
-    const taskNumber = taskIndex + 1;
     const tasksForLongBreak = pomodoroLongBreakInterval ?? 4;
 
-    if (taskNumber > 0 && taskNumber % tasksForLongBreak === 0) {
+    // Long break after every N sessions
+    if (sessionCount > 0 && sessionCount % tasksForLongBreak === 0) {
       return pomodoroLongBreak ?? 15;
     }
 
     return pomodoroShortBreak ?? 5;
   };
 
-  // Get break type label for display
-  const getBreakType = (taskIndex: number): "context" | "short" | "long" => {
-    const { pomodoroEnabled, pomodoroLongBreakInterval } = settings.gantt;
-
-    if (!pomodoroEnabled) {
-      return "context";
-    }
-
-    const taskNumber = taskIndex + 1;
+  // Get break type label for display based on session count
+  const getPomodoroBreakType = (sessionCount: number): "short" | "long" => {
+    const { pomodoroLongBreakInterval } = settings.gantt;
     const tasksForLongBreak = pomodoroLongBreakInterval ?? 4;
 
-    if (taskNumber > 0 && taskNumber % tasksForLongBreak === 0) {
+    if (sessionCount > 0 && sessionCount % tasksForLongBreak === 0) {
       return "long";
     }
 
+    return "short";
+  };
+
+  // Get break type based on actual gap duration (for UI display)
+  // Always returns "short" to show blue indicators consistently
+  const getBreakTypeFromDuration = (gapMinutes: number): "context" | "short" | "long" => {
+    // Always return "short" for consistent blue coloring
+    // The actual break duration is shown in the tooltip
     return "short";
   };
 
@@ -441,7 +436,10 @@ export function GanttView({
       }
 
       const scheduledToday: string[] = [];
-      let dailyTaskIndex = 0; // Track task index for Pomodoro breaks
+      let dailyTaskIndex = 0; // Track task index for break time estimation
+      // Track work time for Pomodoro-style break calculation
+      let workTimeSinceBreak = 0;
+      let pomodoroSessions = 0;
 
       for (const todo of remainingTodos) {
         // For active tasks, schedule ASAP
@@ -476,9 +474,22 @@ export function GanttView({
           const dateKey = currentDay.toISOString().split("T")[0];
           map.set(todo.id, dateKey);
           scheduledToday.push(todo.id);
-          // Use Pomodoro breaks if enabled, otherwise context switching time
-          const breakDuration = getBreakDuration(dailyTaskIndex);
-          currentTime = new Date(taskEnd.getTime() + breakDuration * 60000);
+
+          // Calculate break time based on Pomodoro settings or context switching
+          const { pomodoroEnabled, pomodoroWorkDuration, contextSwitchingTime } = settings.gantt;
+          let breakMinutes = contextSwitchingTime ?? 5;
+
+          if (pomodoroEnabled) {
+            workTimeSinceBreak += durationMinutes;
+            const workDuration = pomodoroWorkDuration ?? 25;
+            if (workTimeSinceBreak >= workDuration) {
+              pomodoroSessions++;
+              breakMinutes = getPomodoroBreakDuration(pomodoroSessions);
+              workTimeSinceBreak = 0;
+            }
+          }
+
+          currentTime = new Date(taskEnd.getTime() + breakMinutes * 60000);
           dailyTaskIndex++;
         } else {
           // Task doesn't fit - stop scheduling for this day, will try next day
@@ -597,7 +608,15 @@ export function GanttView({
       return result;
     };
 
-    let activeTaskIndex = 0; // Track active task index for Pomodoro breaks
+    // Pomodoro state tracking (time-based, not task-count based)
+    const { pomodoroEnabled, pomodoroWorkDuration, contextSwitchingTime } = settings.gantt;
+    const workDurationMinutes = pomodoroWorkDuration ?? 25;
+    const contextSwitchMinutes = contextSwitchingTime ?? 5;
+
+    // Track work time since last Pomodoro break (in minutes)
+    let workTimeSinceLastPomodoroBreak = 0;
+    // Track Pomodoro session count for long break calculation
+    let pomodoroSessionCount = 0;
 
     for (const todo of todosForDate) {
       // For completed/archived tasks, schedule based on their actual completion time
@@ -647,7 +666,7 @@ export function GanttView({
         continue;
       }
 
-      // For active tasks, use ASAP scheduling with break splitting
+      // For active tasks, use ASAP scheduling with break splitting and Pomodoro time-based breaks
       // If today, ensure currentTime is not in the past
       if (isToday && currentTime < now) {
         currentTime = new Date(now);
@@ -661,24 +680,36 @@ export function GanttView({
       const totalDurationMinutes = parseDuration(todo.metadata.duration) * settings.gantt.durationMultiplier;
       let remainingMinutes = totalDurationMinutes;
       const segments: TaskSegment[] = [];
-      let segmentStartTime = new Date(currentTime);
-      const contextSwitchMinutes = settings.gantt.contextSwitchingTime ?? 5;
 
-      // Schedule segments, splitting across breaks
+      // Schedule segments, splitting across breaks AND at Pomodoro work duration boundaries
       while (remainingMinutes > 0 && currentTime < dayEndTime) {
         // Skip any break we might be in
         currentTime = skipCurrentBreak(currentTime);
         if (currentTime >= dayEndTime) break;
 
-        segmentStartTime = new Date(currentTime);
+        // If Pomodoro is enabled and we've accumulated enough work time, take a break FIRST
+        if (pomodoroEnabled && workTimeSinceLastPomodoroBreak >= workDurationMinutes) {
+          pomodoroSessionCount++;
+          const pomodoroBreakDuration = getPomodoroBreakDuration(pomodoroSessionCount);
+          currentTime = new Date(currentTime.getTime() + pomodoroBreakDuration * 60000);
+          currentTime = skipCurrentBreak(currentTime);
+          workTimeSinceLastPomodoroBreak = 0;
+          if (currentTime >= dayEndTime) break;
+        }
 
-        // Find how much time until the next break or end of day
+        // Find how much time until the next break block or end of day
         let availableMinutes = (dayEndTime.getTime() - currentTime.getTime()) / 60000;
         const nextBreak = findNextBreak(currentTime);
 
         if (nextBreak && nextBreak.startTime > currentTime && nextBreak.startTime < dayEndTime) {
           const minutesToBreak = (nextBreak.startTime.getTime() - currentTime.getTime()) / 60000;
           availableMinutes = Math.min(availableMinutes, minutesToBreak);
+        }
+
+        // When Pomodoro is enabled, also limit by remaining work duration before next Pomodoro break
+        if (pomodoroEnabled) {
+          const minutesToPomodoroBreak = workDurationMinutes - workTimeSinceLastPomodoroBreak;
+          availableMinutes = Math.min(availableMinutes, minutesToPomodoroBreak);
         }
 
         // Use as much time as available or remaining, whichever is less
@@ -697,16 +728,58 @@ export function GanttView({
         remainingMinutes -= segmentMinutes;
         currentTime = new Date(segmentEnd);
 
-        // If we hit a break and there's more work to do, skip the break and add context switch time
+        // Track work time for Pomodoro
+        if (pomodoroEnabled) {
+          workTimeSinceLastPomodoroBreak += segmentMinutes;
+        }
+
+        // Check if we need to handle a time block break (Pomodoro breaks handled at start of loop)
         if (remainingMinutes > 0) {
-          const wasInBreak =
-            currentTime < dayEndTime && breakBlocks.some((b) => currentTime >= b.startTime && currentTime < b.endTime);
-          currentTime = skipCurrentBreak(currentTime);
-          // Add context switch time after resuming from break
-          if (wasInBreak || (nextBreak && segmentEnd.getTime() === nextBreak.startTime.getTime())) {
-            currentTime = new Date(currentTime.getTime() + contextSwitchMinutes * 60000);
-            currentTime = skipCurrentBreak(currentTime); // Skip if context switch puts us in another break
+          const wasAtTimeBlockBreak =
+            currentTime < dayEndTime &&
+            (breakBlocks.some((b) => currentTime >= b.startTime && currentTime < b.endTime) ||
+              (nextBreak && segmentEnd.getTime() === nextBreak.startTime.getTime()));
+
+          if (wasAtTimeBlockBreak) {
+            // Hit a time block break - skip it
+            const beforeSkip = new Date(currentTime);
+            currentTime = skipCurrentBreak(currentTime);
+            const timeBlockBreakDuration = (currentTime.getTime() - beforeSkip.getTime()) / 60000;
+
+            if (pomodoroEnabled) {
+              const { pomodoroLongBreak } = settings.gantt;
+              const longBreakDuration = pomodoroLongBreak ?? 15;
+
+              // If time block break is >= long break duration, reset session count entirely
+              // (user got a proper long rest like lunch)
+              if (timeBlockBreakDuration >= longBreakDuration) {
+                pomodoroSessionCount = 0;
+                workTimeSinceLastPomodoroBreak = 0;
+              } else if (workTimeSinceLastPomodoroBreak >= workDurationMinutes) {
+                // Time block break counts as rest time for Pomodoro
+                // If we've accumulated enough work time, the time block counts toward the break
+                pomodoroSessionCount++;
+                const requiredBreak = getPomodoroBreakDuration(pomodoroSessionCount);
+                // Time block already provided some break time
+                const additionalBreakNeeded = Math.max(0, requiredBreak - timeBlockBreakDuration);
+                if (additionalBreakNeeded > 0) {
+                  currentTime = new Date(currentTime.getTime() + additionalBreakNeeded * 60000);
+                  currentTime = skipCurrentBreak(currentTime);
+                }
+                workTimeSinceLastPomodoroBreak = 0;
+              } else {
+                // Time block wasn't long enough and we haven't hit work duration yet
+                // But it still counts as rest - reset work time
+                workTimeSinceLastPomodoroBreak = 0;
+              }
+              // No context switching when Pomodoro is enabled
+            } else {
+              // Pomodoro disabled - add context switch time after time block break
+              currentTime = new Date(currentTime.getTime() + contextSwitchMinutes * 60000);
+              currentTime = skipCurrentBreak(currentTime);
+            }
           }
+          // Pomodoro breaks are now handled at the start of the loop
         }
       }
 
@@ -754,10 +827,15 @@ export function GanttView({
         isOverdue,
       });
 
-      // Add break time (Pomodoro or context switching) after the task
-      const breakDuration = getBreakDuration(activeTaskIndex);
-      currentTime = new Date(overallEndTime.getTime() + breakDuration * 60000);
-      activeTaskIndex++;
+      // Add break time between tasks
+      if (pomodoroEnabled) {
+        // Pomodoro mode: breaks are handled at the start of the segment loop
+        // Just move currentTime to the end of this task
+        currentTime = new Date(overallEndTime);
+      } else {
+        // Pomodoro disabled - use context switching time between tasks
+        currentTime = new Date(overallEndTime.getTime() + contextSwitchMinutes * 60000);
+      }
     }
 
     return tasks;
@@ -1194,7 +1272,9 @@ export function GanttView({
         currentTime = new Date(now);
       }
 
-      let weekTaskIndex = 0; // Track task index for Pomodoro breaks
+      // Track work time for Pomodoro-style break calculation
+      let workTimeSinceBreak = 0;
+      let pomodoroSessions = 0;
 
       for (const todo of tasksForDay) {
         // For completed/archived tasks, schedule based on their actual completion time
@@ -1260,10 +1340,21 @@ export function GanttView({
           color: getProjectColor(todo),
         });
 
-        // Add break time (Pomodoro or context switching)
-        const breakDuration = getBreakDuration(weekTaskIndex);
-        currentTime = new Date(taskEnd.getTime() + breakDuration * 60000);
-        weekTaskIndex++;
+        // Calculate break time based on Pomodoro settings or context switching
+        const { pomodoroEnabled, pomodoroWorkDuration, contextSwitchingTime } = settings.gantt;
+        let breakMinutes = contextSwitchingTime ?? 5;
+
+        if (pomodoroEnabled) {
+          workTimeSinceBreak += durationMinutes;
+          const workDuration = pomodoroWorkDuration ?? 25;
+          if (workTimeSinceBreak >= workDuration) {
+            pomodoroSessions++;
+            breakMinutes = getPomodoroBreakDuration(pomodoroSessions);
+            workTimeSinceBreak = 0;
+          }
+        }
+
+        currentTime = new Date(taskEnd.getTime() + breakMinutes * 60000);
       }
 
       return { date, scheduled, dayStart, dayEnd, totalMinutes };
@@ -1917,9 +2008,12 @@ export function GanttView({
                                     taskIndexInProject < projectTasks.length - 1
                                       ? projectTasks[taskIndexInProject + 1]
                                       : null;
-                                  const breakDuration = getBreakDuration(globalIndex);
-                                  const breakType = getBreakType(globalIndex);
-                                  const hasBreak = nextTask && breakDuration > 0 && !isCompletedTask;
+                                  // Calculate actual gap duration between tasks
+                                  const gapMinutes = nextTask
+                                    ? (nextTask.startTime.getTime() - task.endTime.getTime()) / 60000
+                                    : 0;
+                                  const breakType = getBreakTypeFromDuration(gapMinutes);
+                                  const hasBreak = nextTask && gapMinutes > 0 && !isCompletedTask;
                                   const breakStartPos = endPos;
                                   const breakEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
                                   const breakWidth = breakEndPos - breakStartPos;
@@ -2104,10 +2198,10 @@ export function GanttView({
                                             }}
                                             title={
                                               breakType === "long"
-                                                ? `🍅 ${breakDuration}min long break`
+                                                ? `🍅 ${Math.round(gapMinutes)}min long break`
                                                 : breakType === "short"
-                                                ? `🍅 ${breakDuration}min short break`
-                                                : `${breakDuration}min context switch`
+                                                ? `🍅 ${Math.round(gapMinutes)}min short break`
+                                                : `${Math.round(gapMinutes)}min context switch`
                                             }
                                           >
                                             <div className="flex items-center w-full">
@@ -2162,9 +2256,12 @@ export function GanttView({
 
                           // Check if there's a break after this task
                           const nextTask = index < activeTasks.length - 1 ? activeTasks[index + 1] : null;
-                          const breakDuration = getBreakDuration(index);
-                          const breakType = getBreakType(index);
-                          const hasBreak = nextTask && breakDuration > 0 && !isCompletedTask;
+                          // Calculate actual gap duration between tasks
+                          const gapMinutes = nextTask
+                            ? (nextTask.startTime.getTime() - task.endTime.getTime()) / 60000
+                            : 0;
+                          const breakType = getBreakTypeFromDuration(gapMinutes);
+                          const hasBreak = nextTask && gapMinutes > 0 && !isCompletedTask;
                           const breakStartPos = endPos;
                           const breakEndPos = nextTask ? getTimePosition(nextTask.startTime) : 0;
                           const breakWidth = breakEndPos - breakStartPos;
@@ -2516,10 +2613,10 @@ export function GanttView({
                                     }}
                                     title={
                                       breakType === "long"
-                                        ? `🍅 ${breakDuration}min long break`
+                                        ? `🍅 ${Math.round(gapMinutes)}min long break`
                                         : breakType === "short"
-                                        ? `🍅 ${breakDuration}min short break`
-                                        : `${breakDuration}min context switch`
+                                        ? `🍅 ${Math.round(gapMinutes)}min short break`
+                                        : `${Math.round(gapMinutes)}min context switch`
                                     }
                                   >
                                     <div className="flex items-center w-full">
