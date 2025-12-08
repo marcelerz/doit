@@ -1944,15 +1944,68 @@ export function GanttView({
                                           </span>
                                         </div>
 
-                                        {/* Due date target indicator */}
-                                        {showBufferZones && targetPos >= 0 && targetPos <= 100 && (
+                                        {/* Buffer indicator (green dotted line to the right) */}
+                                        {showBufferZones && task.hasBuffer && (
+                                          <>
+                                            <div
+                                              className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-green-500"
+                                              style={{
+                                                left: `${endPos}%`,
+                                                width: `${Math.min(targetPos - endPos, 100 - endPos)}%`,
+                                              }}
+                                            />
+                                            <div
+                                              className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-green-600 dark:text-green-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
+                                              style={{
+                                                left:
+                                                  100 - endPos < 15
+                                                    ? `${startPos}%`
+                                                    : `${(endPos + Math.min(targetPos, 100)) / 2}%`,
+                                                transform:
+                                                  100 - endPos < 15
+                                                    ? "translate(-100%, -50%)"
+                                                    : "translate(-50%, -50%)",
+                                              }}
+                                            >
+                                              +{formatDuration(task.bufferMinutes)} buffer
+                                            </div>
+                                          </>
+                                        )}
+
+                                        {/* Overdue indicator (red dotted line to the left) */}
+                                        {showBufferZones && task.isOverdue && (
+                                          <>
+                                            <div
+                                              className="absolute top-1/2 h-0.5 border-t-2 border-dotted border-red-500"
+                                              style={{
+                                                left: `${Math.max(targetPos, 0)}%`,
+                                                width: `${Math.min(endPos - targetPos, endPos)}%`,
+                                              }}
+                                            />
+                                            <div
+                                              className="absolute top-1/2 -translate-y-1/2 text-xs font-medium text-red-600 dark:text-red-400 bg-white/80 dark:bg-zinc-900/80 px-1 whitespace-nowrap"
+                                              style={{
+                                                left:
+                                                  startPos < 15
+                                                    ? `${endPos}%`
+                                                    : `${(Math.max(targetPos, 0) + startPos) / 2}%`,
+                                                transform:
+                                                  startPos < 15 ? "translate(0%, -50%)" : "translate(-50%, -50%)",
+                                              }}
+                                            >
+                                              -{formatDuration(task.bufferMinutes)} overdue
+                                            </div>
+                                          </>
+                                        )}
+
+                                        {/* Target marker */}
+                                        {targetPos >= 0 && targetPos <= 100 && (
                                           <div
-                                            className="absolute top-0 bottom-0 w-0.5 bg-orange-500 dark:bg-orange-400 z-15 opacity-70"
+                                            className={`absolute top-0 bottom-0 w-0.5 ${
+                                              task.isOverdue ? "bg-red-500" : "bg-green-500"
+                                            } z-10`}
                                             style={{ left: `${targetPos}%` }}
-                                            title={`Target: ${task.targetDate.toLocaleTimeString([], {
-                                              hour: "2-digit",
-                                              minute: "2-digit",
-                                            })}`}
+                                            title={task.isOverdue ? "Overdue point" : "Target time"}
                                           />
                                         )}
                                       </div>
