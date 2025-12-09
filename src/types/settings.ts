@@ -638,6 +638,8 @@ export interface FocusSettings {
   defaultExtendMinutes: number; // Default time to add when extending (default 5)
   extendOptions: number[]; // Quick extend options in minutes (default [5, 10, 15, 30])
   showEarlyCompletePrompt: boolean; // Ask to record actual time when completing early
+  autoExtendOnOvertime: boolean; // Auto-extend duration when tracked time exceeds estimate (default true)
+  useTrackedTimeForDuration: boolean; // Subtract already-tracked time from duration (default true)
 
   // Notifications & Sound Settings
   notificationsEnabled: boolean; // Browser notifications for breaks/task events
@@ -670,6 +672,8 @@ export const defaultFocusSettings: FocusSettings = {
   defaultExtendMinutes: 5,
   extendOptions: [5, 10, 15, 30],
   showEarlyCompletePrompt: true,
+  autoExtendOnOvertime: true,
+  useTrackedTimeForDuration: true,
 
   // Notifications & Sound Settings
   notificationsEnabled: true,

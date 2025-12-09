@@ -220,11 +220,37 @@ export function FocusView({
     focusSettings.ambientVolume,
   ]);
 
-  // Calculate work time for current task
+  // Calculate already-tracked time for current task (from previous sessions)
+  const alreadyTrackedSeconds = useMemo(() => {
+    if (!currentTodo || !currentTodo.hasTimeTracking || !currentTodo.timeTracking) return 0;
+    // Sum up all completed time entries (with endTime)
+    return currentTodo.timeTracking.entries.reduce((sum, entry) => {
+      if (entry.endTime && entry.duration) {
+        return sum + entry.duration * 60; // Convert minutes to seconds
+      }
+      return sum;
+    }, 0);
+  }, [currentTodo]);
+
+  // Calculate work time for current task (considering already-tracked time if enabled)
   const currentTaskDuration = useMemo(() => {
     if (!currentTodo) return pomodoroWorkMinutes * 60;
-    const duration = parseDuration(currentTodo.metadata.duration);
-    return duration * 60; // Convert to seconds
+    const originalDuration = parseDuration(currentTodo.metadata.duration) * 60; // Convert to seconds
+
+    // If useTrackedTimeForDuration is enabled, subtract already-tracked time
+    if (focusSettings.useTrackedTimeForDuration !== false && alreadyTrackedSeconds > 0) {
+      const remaining = originalDuration - alreadyTrackedSeconds;
+      // Allow negative time to show overtime
+      return remaining;
+    }
+
+    return originalDuration;
+  }, [currentTodo, pomodoroWorkMinutes, alreadyTrackedSeconds, focusSettings.useTrackedTimeForDuration]);
+
+  // Original task duration (without subtracting tracked time) - for display
+  const originalTaskDuration = useMemo(() => {
+    if (!currentTodo) return pomodoroWorkMinutes * 60;
+    return parseDuration(currentTodo.metadata.duration) * 60;
   }, [currentTodo, pomodoroWorkMinutes]);
 
   // Initialize work time when task changes
@@ -232,17 +258,20 @@ export function FocusView({
     // Calculate the initial session time (Pomodoro session or task duration for sequential/flow)
     const sessionTime = technique === "pomodoro" ? pomodoroWorkMinutes * 60 : currentTaskDuration;
     // For Pomodoro, start with min of session time and task duration remaining
-    const initialWorkTime = technique === "pomodoro" ? Math.min(sessionTime, currentTaskDuration) : currentTaskDuration;
+    // If task duration is negative (overtime), still allow work to continue
+    const effectiveTaskDuration = Math.max(0, currentTaskDuration);
+    const initialWorkTime =
+      technique === "pomodoro" ? Math.min(sessionTime, Math.max(0, currentTaskDuration)) : effectiveTaskDuration;
 
     setState((s) => ({
       ...s,
-      workTimeRemaining: initialWorkTime,
-      taskTimeRemaining: currentTaskDuration,
-      taskTotalDuration: currentTaskDuration,
+      workTimeRemaining: initialWorkTime > 0 ? initialWorkTime : 0,
+      taskTimeRemaining: currentTaskDuration, // Can be negative for overtime display
+      taskTotalDuration: originalTaskDuration, // Original duration for progress calculation
       taskStartTime: null,
       actualTimeSpent: 0,
     }));
-  }, [state.currentTaskIndex, technique, pomodoroWorkMinutes, currentTaskDuration]);
+  }, [state.currentTaskIndex, technique, pomodoroWorkMinutes, currentTaskDuration, originalTaskDuration]);
 
   // Confirmation repeat timer
   useEffect(() => {
@@ -548,14 +577,55 @@ export function FocusView({
           taskStartTime: focusSettings.autoTimeTracking && !s.taskStartTime ? new Date() : s.taskStartTime,
         };
       }
+
+      // When pausing, check if we need to auto-extend
+      // Auto-extend if: autoExtendOnOvertime is enabled AND task time remaining would be <= 0
+      if (s.isRunning && s.phase === "work" && focusSettings.autoExtendOnOvertime !== false) {
+        // If task time remaining is 0 or negative, auto-extend to give at least 1 minute of wrap-up
+        if (s.taskTimeRemaining <= 0) {
+          // Extend by the actual time spent in this session (rounded up to next minute)
+          const extensionMinutes = Math.ceil(s.actualTimeSpent / 60);
+          const additionalTimeSeconds = Math.max(60, extensionMinutes * 60); // At least 1 minute
+          const additionalMinutes = Math.ceil(additionalTimeSeconds / 60);
+
+          // Update the actual todo's duration - get fresh todo from todos array
+          const freshTodo = currentTodo ? todos.find((t) => t.id === currentTodo.id) : null;
+          if (freshTodo) {
+            const currentDurationMinutes = parseDuration(freshTodo.metadata.duration);
+            const newDurationMinutes = currentDurationMinutes + additionalMinutes;
+            const newDurationStr = `${newDurationMinutes}m`;
+
+            // Schedule the todo update for after setState (use setTimeout to escape setState)
+            setTimeout(() => {
+              onEdit(freshTodo.id, freshTodo.text, freshTodo.plainText, {
+                ...freshTodo.metadata,
+                duration: newDurationStr,
+              });
+            }, 0);
+          }
+
+          return {
+            ...s,
+            isRunning: false,
+            taskTimeRemaining: additionalTimeSeconds,
+            taskTotalDuration: s.taskTotalDuration + additionalTimeSeconds,
+          };
+        }
+      }
+
       // Time tracking stop is handled by the phase transition effect
       return { ...s, isRunning: !s.isRunning };
     });
-  }, [soundEnabled, focusSettings.autoTimeTracking]);
+  }, [soundEnabled, focusSettings.autoTimeTracking, focusSettings.autoExtendOnOvertime, currentTodo, todos, onEdit]);
 
-  // Extend current task time (only extends task duration, not session/break timers)
+  // Extend current task time (extends both local state AND the actual todo duration)
   const extendTime = useCallback(
     (minutes: number) => {
+      // Get fresh todo from todos array to avoid stale closure
+      const freshTodo = currentTodo ? todos.find((t) => t.id === currentTodo.id) : null;
+      if (!freshTodo) return;
+
+      // Update local state
       setState((s) => {
         const additionalTime = minutes * 60;
         const newTaskTimeRemaining = s.taskTimeRemaining + additionalTime;
@@ -581,9 +651,20 @@ export function FocusView({
           taskTotalDuration: newTaskTotalDuration,
         };
       });
+
+      // Update the actual todo's duration using fresh data
+      const currentDurationMinutes = parseDuration(freshTodo.metadata.duration);
+      const newDurationMinutes = currentDurationMinutes + minutes;
+      const newDurationStr = `${newDurationMinutes}m`;
+
+      onEdit(freshTodo.id, freshTodo.text, freshTodo.plainText, {
+        ...freshTodo.metadata,
+        duration: newDurationStr,
+      });
+
       setShowExtendMenu(false);
     },
-    [technique, pomodoroWorkMinutes],
+    [technique, pomodoroWorkMinutes, currentTodo, todos, onEdit],
   );
 
   // Complete current task
@@ -673,11 +754,13 @@ export function FocusView({
     setNotificationsEnabled(permission === "granted");
   }, []);
 
-  // Format time as MM:SS
+  // Format time as MM:SS (with negative sign for overtime)
   const formatTime = (seconds: number): string => {
+    const isNegative = seconds < 0;
     const mins = Math.floor(Math.abs(seconds) / 60);
     const secs = Math.abs(seconds) % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    const timeStr = `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    return isNegative ? `-${timeStr}` : timeStr;
   };
 
   // Format time as HH:MM AM/PM
@@ -1398,44 +1481,48 @@ export function FocusView({
 
           {/* Timer Display */}
           <div className="text-center mb-6">
-            {/* Main Timer - Session (Pomodoro) or Task (other modes) */}
-            <div className="text-6xl font-mono font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-              {formatTime(state.workTimeRemaining)}
+            {/* Main Timer - Time remaining on task */}
+            <div
+              className={`text-6xl font-mono font-bold mb-2 ${
+                state.taskTimeRemaining < 0 ? "text-red-600 dark:text-red-400" : "text-zinc-900 dark:text-zinc-100"
+              }`}
+            >
+              {formatTime(state.taskTimeRemaining)}
             </div>
-            <p className="text-zinc-500 dark:text-zinc-400 mb-4">
-              {technique === "pomodoro"
-                ? `${state.workTimeRemaining > 0 ? "Session time remaining" : "Session complete"} • Session ${
-                    state.sessionCount + 1
-                  }`
-                : "Time remaining on task"}
+            <p className="text-zinc-500 dark:text-zinc-400 mb-2">
+              {state.taskTimeRemaining < 0 ? "⏱️ Overtime" : "Time remaining"}
             </p>
 
-            {/* Task Progress - shown in Pomodoro mode to separate task from session */}
-            {technique === "pomodoro" && state.taskTotalDuration > 0 && (
-              <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
-                <div className="flex items-center justify-center gap-4 mb-2">
-                  <span className="text-sm text-zinc-500 dark:text-zinc-400">Task Progress:</span>
-                  <span className="text-lg font-mono font-semibold text-zinc-700 dark:text-zinc-300">
-                    {formatTime(state.taskTotalDuration - state.taskTimeRemaining)} /{" "}
-                    {formatTime(state.taskTotalDuration)}
-                  </span>
-                </div>
-                {/* Task progress bar */}
-                <div className="w-full max-w-md mx-auto h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 transition-all duration-500"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        ((state.taskTotalDuration - state.taskTimeRemaining) / state.taskTotalDuration) * 100,
-                      )}%`,
-                    }}
-                  />
-                </div>
-                <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                  {formatTime(state.taskTimeRemaining)} remaining on task
-                </p>
-              </div>
+            {/* Progress bar */}
+            <div className="w-full max-w-md mx-auto h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden mb-2">
+              <div
+                className={`h-full transition-all duration-500 ${
+                  state.taskTimeRemaining < 0 ? "bg-red-500" : "bg-blue-500"
+                }`}
+                style={{
+                  width: `${Math.min(
+                    100,
+                    state.taskTotalDuration > 0
+                      ? ((state.taskTotalDuration - state.taskTimeRemaining) / state.taskTotalDuration) * 100
+                      : 0,
+                  )}%`,
+                }}
+              />
+            </div>
+
+            {/* Time worked this session + total estimate */}
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              {formatTime(state.actualTimeSpent)} worked this session
+              {alreadyTrackedSeconds > 0 && (
+                <span> • {formatTime(alreadyTrackedSeconds + state.actualTimeSpent)} total tracked</span>
+              )}
+            </p>
+
+            {/* Pomodoro session info */}
+            {technique === "pomodoro" && (
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">
+                🍅 Session {state.sessionCount + 1} • {formatTime(state.workTimeRemaining)} until break
+              </p>
             )}
           </div>
 
