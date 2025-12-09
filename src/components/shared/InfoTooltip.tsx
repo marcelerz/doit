@@ -925,10 +925,18 @@ export const tooltipContent = {
       <div className="border-t border-zinc-700 dark:border-zinc-300 pt-2 mt-2">
         <p className="font-medium">How completion works:</p>
         <ul className="space-y-1 text-zinc-400 dark:text-zinc-600">
-          <li>• Tasks <strong>auto-complete</strong> when timer reaches zero</li>
-          <li>• <strong>Complete button</strong>: Finish early &amp; mark done</li>
-          <li>• <strong>Skip to Next</strong>: End segment, move to break (doesn&apos;t mark done)</li>
-          <li>• <strong>Skip Task</strong>: Skip entirely without progress</li>
+          <li>
+            • Tasks <strong>auto-complete</strong> when timer reaches zero
+          </li>
+          <li>
+            • <strong>Complete button</strong>: Finish early &amp; mark done
+          </li>
+          <li>
+            • <strong>Skip to Next</strong>: End segment, move to break (doesn&apos;t mark done)
+          </li>
+          <li>
+            • <strong>Skip Task</strong>: Skip entirely without progress
+          </li>
         </ul>
       </div>
     </div>

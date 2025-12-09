@@ -76,16 +76,16 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
         </button>
       </div>
 
-      {/* Sound Confirmation Section */}
+      {/* Transition Confirmation Section */}
       <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h4 className="font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-              Sound Confirmation
-              <InfoTooltip content="When enabled, sounds will repeat until you confirm you've started working or taking a break. This ensures you don't miss notifications." />
+              Transition Confirmation
+              <InfoTooltip content="When enabled, the timer pauses between work and break phases until you confirm. Reminder sounds will repeat until you acknowledge the transition." />
             </h4>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-              Require confirmation before proceeding to work or break phases.
+              Pause and wait for confirmation when transitioning between work and break phases.
             </p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
