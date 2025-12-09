@@ -558,6 +558,7 @@ export function FocusView({
       playNotificationSound("task-complete");
     }
 
+    // Toggle will handle duration update based on tracked time
     onToggle(currentTodo.id);
 
     setState((s) => ({

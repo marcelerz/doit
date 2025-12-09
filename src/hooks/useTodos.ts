@@ -225,6 +225,21 @@ export function useTodos() {
         ? createActivity("completed", "Task completed")
         : createActivity("uncompleted", "Task marked as active");
 
+    // Update duration to tracked time if completing and setting is enabled
+    let updatedMetadata = todoToToggle.metadata;
+    if (
+      newState === "completed" &&
+      settings.focus?.autoExtendOnOvertime !== false &&
+      todoToToggle.timeTracking?.totalMinutes &&
+      todoToToggle.timeTracking.totalMinutes > 0
+    ) {
+      const trackedMinutes = Math.ceil(todoToToggle.timeTracking.totalMinutes);
+      updatedMetadata = {
+        ...todoToToggle.metadata,
+        duration: `${trackedMinutes}m`,
+      };
+    }
+
     const updatedTodo: Todo = {
       ...todoToToggle,
       state: newState,
@@ -233,6 +248,7 @@ export function useTodos() {
       deletedAt: undefined,
       updatedAt: now,
       activity: [...todoToToggle.activity, activity],
+      metadata: updatedMetadata,
     };
 
     setRawTodos((prev) => prev.map((todo) => (todo.id === id ? updatedTodo : todo)));
