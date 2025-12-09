@@ -1243,8 +1243,8 @@ export function FocusView({
       {(focusSettings.showKeyboardHints ?? true) && (
         <div className="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800">
           <span>
-            Space {state.isRunning ? "Pause" : "Start"} • Shift+Enter Complete • E Extend • S Skip to Break • N Skip
-            Task • M Mute • Esc Exit
+            Space {state.isRunning ? "Pause" : "Start"} • Shift+Enter Complete • E Extend • S Skip to Next • N Skip Task
+            • M Mute • Esc Exit
           </span>
         </div>
       )}
