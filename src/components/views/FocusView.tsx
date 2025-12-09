@@ -151,7 +151,11 @@ export function FocusView({
     return items;
   }, [scheduledTasks]);
 
-  // Get current item
+  // Keep schedule in a ref so it's always fresh in timer callback
+  const scheduleRef = useRef(schedule);
+  scheduleRef.current = schedule;
+
+  // Get current item (for use outside timer)
   const getCurrentItem = useCallback(
     (index: number): ScheduleItem | null => {
       return schedule[index] ?? null;
@@ -214,6 +218,7 @@ export function FocusView({
   // Handle auto-completion when last segment finishes
   useEffect(() => {
     if (pendingAutoComplete) {
+      console.log("[FocusView] Auto-completing todo:", pendingAutoComplete);
       // Stop time tracking if active
       if (timeTrackingActiveRef.current && onStopTimeTracking) {
         onStopTimeTracking(timeTrackingActiveRef.current);
@@ -421,18 +426,34 @@ export function FocusView({
         // Item complete
         if (newTime <= 0) {
           const completingWorkSegment = s.phase === "work";
-          const currentScheduleItem = getCurrentItem(s.currentItemIndex);
+          // Use ref to get fresh schedule data
+          const currentScheduleItem = scheduleRef.current[s.currentItemIndex] ?? null;
           const isLastSegmentOfTask = currentScheduleItem?.isLastSegment ?? true;
           const completingTask = completingWorkSegment && isLastSegmentOfTask;
           const todoToComplete = completingTask ? currentScheduleItem?.task?.todo.id : null;
 
+          console.log("[FocusView] Timer hit zero:", {
+            completingWorkSegment,
+            isLastSegmentOfTask,
+            completingTask,
+            todoToComplete,
+            currentScheduleItem: currentScheduleItem
+              ? {
+                  type: currentScheduleItem.type,
+                  isLastSegment: currentScheduleItem.isLastSegment,
+                  taskId: currentScheduleItem.task?.todo.id,
+                }
+              : null,
+          });
+
           // Schedule auto-completion for last segment (use setTimeout to ensure it runs after state update)
           if (todoToComplete) {
+            console.log("[FocusView] Scheduling auto-complete for:", todoToComplete);
             setTimeout(() => setPendingAutoComplete(todoToComplete), 0);
           }
 
           const nextIndex = s.currentItemIndex + 1;
-          const nextItem = getCurrentItem(nextIndex);
+          const nextItem = scheduleRef.current[nextIndex] ?? null;
 
           if (soundEnabled) {
             if (completingTask) {
@@ -527,14 +548,7 @@ export function FocusView({
         clearInterval(timerRef.current);
       }
     };
-  }, [
-    state.isRunning,
-    state.pendingPhase,
-    soundEnabled,
-    notificationsEnabled,
-    focusSettings.requireConfirmation,
-    getCurrentItem,
-  ]);
+  }, [state.isRunning, state.pendingPhase, soundEnabled, notificationsEnabled, focusSettings.requireConfirmation]);
 
   // Toggle timer
   const toggleTimer = useCallback(() => {
