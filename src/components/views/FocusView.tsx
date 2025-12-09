@@ -549,6 +549,25 @@ export function FocusView({
     });
   }, [soundEnabled]);
 
+  // Open details (pauses timer if running)
+  const openDetails = useCallback(
+    (todo: TodoModel) => {
+      // Pause timer if running
+      if (state.isRunning) {
+        setState((s) => ({
+          ...s,
+          isRunning: false,
+          breakEndTime: null,
+        }));
+        if (soundEnabled && state.phase === "work") {
+          playNotificationSound("pause");
+        }
+      }
+      onOpenDetails(todo);
+    },
+    [state.isRunning, state.phase, soundEnabled, onOpenDetails],
+  );
+
   // Skip break
   const skipBreak = useCallback(() => {
     if (soundEnabled) {
@@ -682,7 +701,7 @@ export function FocusView({
           } else if (e.shiftKey && currentTodo) {
             completeTask();
           } else if (currentTodo) {
-            onOpenDetails(currentTodo);
+            openDetails(currentTodo);
           }
           break;
         case "s":
@@ -735,7 +754,7 @@ export function FocusView({
     skipTask,
     state.phase,
     currentTodo,
-    onOpenDetails,
+    openDetails,
     showExtendMenu,
     extendTime,
     focusSettings.defaultExtendMinutes,
@@ -1174,7 +1193,7 @@ export function FocusView({
               {/* Action Buttons */}
               <div className="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-700">
                 <button
-                  onClick={() => onOpenDetails(currentTodo)}
+                  onClick={() => openDetails(currentTodo)}
                   className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors"
                   title="Details (Enter)"
                 >
@@ -1211,11 +1230,6 @@ export function FocusView({
             </div>
             <p className="text-zinc-500 dark:text-zinc-400 mb-4">
               {state.timeRemaining < 0 ? "⏱️ Overtime" : state.isRunning ? "Time remaining" : "Press Space to start"}
-            </p>
-
-            {/* Time worked this session */}
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              {formatTime(state.actualTimeSpent)} worked this session
             </p>
           </div>
 

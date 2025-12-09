@@ -4923,8 +4923,7 @@ export function TodoApp() {
           settings={settings}
           linkPatterns={settings.linkPatterns}
           onOpenDetails={(todo) => {
-            setIsFocusMode(false);
-            setGanttRefreshKey((k) => k + 1);
+            // Don't close focus mode - it will pause automatically
             setDetailsOverlayTodo(todo);
           }}
           onClose={() => {
