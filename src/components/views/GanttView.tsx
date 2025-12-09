@@ -342,7 +342,7 @@ export function GanttView({
   }, [schedule, selectedDate]);
 
   // Schedule tasks using the utility function
-  const { tasks: scheduledTasks, unscheduledTasks } = useMemo(() => {
+  const { tasks: scheduledTasks } = useMemo(() => {
     return scheduleDayTasks(
       todosForDate,
       dayStartTime,
@@ -1128,9 +1128,7 @@ export function GanttView({
               {activeTasks.length} <span className="hidden sm:inline">active</span>
               <span className="sm:hidden">a</span> • {completedTasks.length}{" "}
               <span className="hidden sm:inline">completed</span>
-              <span className="sm:hidden">c</span> • {unscheduledTasks.length}{" "}
-              <span className="hidden sm:inline">overflow</span>
-              <span className="sm:hidden">o</span>
+              <span className="sm:hidden">c</span>
             </p>
             {/* Keyboard shortcuts hint */}
             <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 print:hidden hidden sm:block">
@@ -1911,54 +1909,6 @@ export function GanttView({
                 </div>
               </div>
             </div>
-
-            {/* Unscheduled Tasks */}
-            {unscheduledTasks.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">
-                  Can't Fit in Schedule ({unscheduledTasks.length})
-                </h4>
-                <div className="space-y-2">
-                  {unscheduledTasks.map((todo) => {
-                    const duration = parseDuration(todo.metadata.duration);
-
-                    return (
-                      <div
-                        key={todo.id}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
-                      >
-                        <svg
-                          className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                          />
-                        </svg>
-                        <div className={`w-1 h-12 rounded-full ${getPriorityColor(todo.metadata.priority)}`} />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{todo.plainText}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-zinc-500 dark:text-zinc-400">{formatDuration(duration)}</span>
-                            {todo.metadata.priority && (
-                              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                                • Priority: {todo.metadata.priority}
-                              </span>
-                            )}
-                            <span className="text-xs text-amber-700 dark:text-amber-300">• No available time slot</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
