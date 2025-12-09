@@ -1,0 +1,820 @@
+/**
+ * Tests for TodoModel Business Logic
+ */
+
+import { TodoModel, createTodoModel, createTodoModels } from "@/models/TodoModel";
+import { Todo, TodoState } from "@/types/todo";
+import { Settings } from "@/types/settings";
+
+// Helper to create minimal settings
+const createSettings = (overrides: Partial<Settings> = {}): Settings => ({
+  priorities: [
+    { name: "urgent", alternatives: ["critical"], order: 1, color: "#ff0000" },
+    { name: "high", alternatives: ["important"], order: 2, color: "#ff6600" },
+    { name: "medium", alternatives: [], order: 3, color: "#ffcc00" },
+    { name: "low", alternatives: [], order: 4, color: "#00cc00" },
+  ],
+  linkPatterns: [],
+  markerColors: {
+    assigned: "#cce5ff",
+    source: "#fff3cd",
+    mentioned: "#ffe8cc",
+    project: "#e2ccff",
+    tag: "#d4edda",
+    dueDate: "#f8d7da",
+    duration: "#e2e3e5",
+    recurring: "#cff4fc",
+    dependency: "#ffcccc",
+    priority: "#ffcccc",
+  },
+  general: { archiveDays: 7, autoDelete: false },
+  dateTime: {
+    morning: "09:00",
+    noon: "12:00",
+    afternoon: "14:00",
+    evening: "18:00",
+    workWeekStart: 1,
+    fiscalYearStart: 1,
+  },
+  workHours: {
+    useCommonSchedule: true,
+    commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
+    weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
+    weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
+    customSchedules: {},
+  },
+  gantt: {
+    schedulingTechnique: "sequential",
+    defaultTaskDuration: 30,
+    durationMultiplier: 1.0,
+    contextSwitchingTime: 5,
+    pomodoroWorkDuration: 25,
+    pomodoroShortBreak: 5,
+    pomodoroLongBreak: 15,
+    pomodoroLongBreakInterval: 4,
+    flowWorkDuration: 52,
+    flowBreakDuration: 17,
+    flowContextSwitchingTime: 10,
+  },
+  kanban: {
+    workflowStates: [],
+    transitions: {},
+    views: [],
+    defaultViewId: undefined,
+    displayOptions: { showEmptyColumns: true, showTaskCount: true },
+  },
+  sprints: { sprints: [], defaultDuration: 14 },
+  autoAssign: {
+    enabled: false,
+    assignedPerson: undefined,
+    sourcePerson: undefined,
+    project: undefined,
+    priority: undefined,
+    dueDate: undefined,
+    duration: undefined,
+    recurring: undefined,
+  },
+  calendar: { showWeekNumbers: false, startOnMonday: true },
+  focus: {
+    enabled: false,
+    defaultDuration: 25,
+    shortBreak: 5,
+    longBreak: 15,
+    longBreakInterval: 4,
+  },
+  categories: { categories: [] },
+  timeTracking: { enabled: false, autoStartOnFocus: false, autoStopOnComplete: false },
+  ...overrides,
+});
+
+// Helper to create a minimal Todo
+const createTodo = (overrides: Partial<Todo> = {}): Todo => ({
+  id: overrides.id || `todo-${Date.now()}`,
+  text: overrides.text || "Test todo",
+  plainText: overrides.plainText || "Test todo",
+  state: overrides.state || "active",
+  createdAt: overrides.createdAt || Date.now(),
+  metadata: {
+    assignedPeople: [],
+    sourcePeople: [],
+    mentionedPeople: [],
+    projects: [],
+    tags: [],
+    dependencies: [],
+    ...overrides.metadata,
+  },
+  comments: overrides.comments || [],
+  activity: overrides.activity || [],
+  ...overrides,
+});
+
+describe("TodoModel", () => {
+  describe("core properties", () => {
+    it("should expose todo properties correctly", () => {
+      const todo = createTodo({
+        id: "test-123",
+        text: "Rich text",
+        plainText: "Plain text",
+        state: "active",
+        createdAt: 1000000,
+      });
+      const settings = createSettings();
+      const model = new TodoModel(todo, settings);
+
+      expect(model.id).toBe("test-123");
+      expect(model.text).toBe("Rich text");
+      expect(model.plainText).toBe("Plain text");
+      expect(model.state).toBe("active");
+      expect(model.createdAt).toBe(1000000);
+    });
+
+    it("should expose raw todo object", () => {
+      const todo = createTodo();
+      const settings = createSettings();
+      const model = new TodoModel(todo, settings);
+
+      expect(model.raw).toBe(todo);
+    });
+  });
+
+  describe("state checks", () => {
+    it("should correctly identify active state", () => {
+      const todo = createTodo({ state: "active" });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.isActive).toBe(true);
+      expect(model.isCompleted).toBe(false);
+      expect(model.isArchived).toBe(false);
+      expect(model.isDeleted).toBe(false);
+    });
+
+    it("should correctly identify completed state", () => {
+      const todo = createTodo({ state: "completed", completedAt: Date.now() });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.isActive).toBe(false);
+      expect(model.isCompleted).toBe(true);
+      expect(model.isArchived).toBe(false);
+      expect(model.isDeleted).toBe(false);
+    });
+
+    it("should correctly identify archived state", () => {
+      const todo = createTodo({ state: "archived", archivedAt: Date.now() });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.isActive).toBe(false);
+      expect(model.isCompleted).toBe(false);
+      expect(model.isArchived).toBe(true);
+      expect(model.isDeleted).toBe(false);
+    });
+
+    it("should correctly identify deleted state", () => {
+      const todo = createTodo({ state: "deleted", deletedAt: Date.now() });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.isActive).toBe(false);
+      expect(model.isCompleted).toBe(false);
+      expect(model.isArchived).toBe(false);
+      expect(model.isDeleted).toBe(true);
+    });
+  });
+
+  describe("auto-assign functionality", () => {
+    it("should not apply auto-assign when disabled", () => {
+      const todo = createTodo();
+      const settings = createSettings({
+        autoAssign: {
+          enabled: false,
+          assignedPerson: "Default Person",
+          project: "Default Project",
+        },
+      });
+      const model = new TodoModel(todo, settings);
+
+      expect(model.assignedPeople).toEqual([]);
+      expect(model.projects).toEqual([]);
+    });
+
+    it("should apply auto-assign for assignedPeople when enabled and empty", () => {
+      const todo = createTodo();
+      const settings = createSettings({
+        autoAssign: {
+          enabled: true,
+          assignedPerson: "Default Person",
+        },
+      });
+      const model = new TodoModel(todo, settings);
+
+      expect(model.assignedPeople).toEqual(["Default Person"]);
+      expect(model.assignedPeopleRaw).toEqual([]); // Raw should be unchanged
+    });
+
+    it("should not apply auto-assign when explicit value exists", () => {
+      const todo = createTodo({
+        metadata: {
+          assignedPeople: ["Explicit Person"],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+        },
+      });
+      const settings = createSettings({
+        autoAssign: {
+          enabled: true,
+          assignedPerson: "Default Person",
+        },
+      });
+      const model = new TodoModel(todo, settings);
+
+      expect(model.assignedPeople).toEqual(["Explicit Person"]);
+    });
+
+    it("should apply auto-assign for multiple fields", () => {
+      const todo = createTodo();
+      const settings = createSettings({
+        autoAssign: {
+          enabled: true,
+          assignedPerson: "Default Person",
+          sourcePerson: "Default Source",
+          project: "Default Project",
+          priority: "medium",
+          duration: "30m",
+        },
+      });
+      const model = new TodoModel(todo, settings);
+
+      expect(model.assignedPeople).toEqual(["Default Person"]);
+      expect(model.sourcePeople).toEqual(["Default Source"]);
+      expect(model.projects).toEqual(["Default Project"]);
+      expect(model.priority).toBe("medium");
+      expect(model.duration).toBe("30m");
+    });
+
+    it("should report wouldAutoAssignApply correctly", () => {
+      const todo = createTodo();
+      const settings = createSettings({
+        autoAssign: {
+          enabled: true,
+          assignedPerson: "Default Person",
+        },
+      });
+      const model = new TodoModel(todo, settings);
+
+      expect(model.wouldAutoAssignApply).toBe(true);
+    });
+
+    it("should report wouldAutoAssignApply false when auto-assign disabled", () => {
+      const todo = createTodo();
+      const settings = createSettings({
+        autoAssign: {
+          enabled: false,
+          assignedPerson: "Default Person",
+        },
+      });
+      const model = new TodoModel(todo, settings);
+
+      expect(model.wouldAutoAssignApply).toBe(false);
+    });
+  });
+
+  describe("duration calculations", () => {
+    it("should parse duration in minutes", () => {
+      const todo = createTodo({
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "30m",
+        },
+      });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.durationMinutes).toBe(30);
+    });
+
+    it("should parse duration in hours", () => {
+      const todo = createTodo({
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "2h",
+        },
+      });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.durationMinutes).toBe(120);
+    });
+
+    it("should parse decimal hours", () => {
+      const todo = createTodo({
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "1.5h",
+        },
+      });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.durationMinutes).toBe(90);
+    });
+
+    it("should return undefined for no duration", () => {
+      const todo = createTodo();
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.durationMinutes).toBeUndefined();
+    });
+
+    it("should format duration display", () => {
+      const shortTodo = createTodo({
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "30m",
+        },
+      });
+      const longTodo = createTodo({
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "90m",
+        },
+      });
+
+      expect(new TodoModel(shortTodo, createSettings()).durationDisplay).toBe("30m");
+      expect(new TodoModel(longTodo, createSettings()).durationDisplay).toBe("1.5h");
+    });
+  });
+
+  describe("date calculations", () => {
+    const mockDate = new Date("2025-12-09T12:00:00");
+
+    beforeAll(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(mockDate);
+    });
+
+    afterAll(() => {
+      jest.useRealTimers();
+    });
+
+    it("should correctly identify overdue tasks", () => {
+      const overdueTodo = createTodo({
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-08", // Yesterday
+        },
+      });
+      const model = new TodoModel(overdueTodo, createSettings());
+
+      expect(model.isOverdue).toBe(true);
+    });
+
+    it("should not mark completed tasks as overdue", () => {
+      const completedTodo = createTodo({
+        state: "completed",
+        completedAt: Date.now(),
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-08", // Yesterday
+        },
+      });
+      const model = new TodoModel(completedTodo, createSettings());
+
+      expect(model.isOverdue).toBe(false);
+    });
+
+    it("should correctly identify tasks due today", () => {
+      // Use explicit ISO datetime to avoid timezone issues
+      const todayTodo = createTodo({
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-09T17:00", // Today with time
+        },
+      });
+      const model = new TodoModel(todayTodo, createSettings());
+
+      expect(model.isDueToday).toBe(true);
+    });
+
+    it("should correctly identify tasks due this week", () => {
+      const thisWeekTodo = createTodo({
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-12", // 3 days from now
+        },
+      });
+      const model = new TodoModel(thisWeekTodo, createSettings());
+
+      expect(model.isDueThisWeek).toBe(true);
+    });
+
+    it("should calculate days until due", () => {
+      const futureTodo = createTodo({
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-14T12:00", // Future date with time
+        },
+      });
+      const model = new TodoModel(futureTodo, createSettings());
+
+      // daysUntilDue calculation may vary slightly based on time component
+      expect(model.daysUntilDue).toBeGreaterThanOrEqual(4);
+      expect(model.daysUntilDue).toBeLessThanOrEqual(5);
+    });
+
+    it("should return negative days for overdue", () => {
+      const overdueTodo = createTodo({
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-07T12:00", // Past date with time
+        },
+      });
+      const model = new TodoModel(overdueTodo, createSettings());
+
+      // daysUntilDue should be negative for overdue
+      expect(model.daysUntilDue).toBeLessThan(0);
+      expect(model.daysUntilDue).toBeGreaterThanOrEqual(-3);
+      expect(model.daysUntilDue).toBeLessThanOrEqual(-2);
+    });
+  });
+
+  describe("validation methods", () => {
+    it("should allow completing active tasks without dependencies", () => {
+      const todo = createTodo({ state: "active" });
+      const model = new TodoModel(todo, createSettings());
+      const allTodos: TodoModel[] = [];
+
+      const result = model.canComplete(allTodos);
+
+      expect(result.canComplete).toBe(true);
+    });
+
+    it("should not allow completing already completed tasks", () => {
+      const todo = createTodo({ state: "completed", completedAt: Date.now() });
+      const model = new TodoModel(todo, createSettings());
+
+      const result = model.canComplete([]);
+
+      expect(result.canComplete).toBe(false);
+      expect(result.reason).toContain("already completed");
+    });
+
+    it("should not allow completing archived tasks", () => {
+      const todo = createTodo({ state: "archived", archivedAt: Date.now() });
+      const model = new TodoModel(todo, createSettings());
+
+      const result = model.canComplete([]);
+
+      expect(result.canComplete).toBe(false);
+      expect(result.reason).toContain("archived");
+    });
+
+    it("should block completion when dependencies are incomplete", () => {
+      const dependency = createTodo({
+        id: "dep-1",
+        state: "active",
+        plainText: "Dependency task",
+      });
+      const todo = createTodo({
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: ["dep-1"],
+        },
+      });
+      const settings = createSettings();
+      const depModel = new TodoModel(dependency, settings);
+      const todoModel = new TodoModel(todo, settings);
+
+      const result = todoModel.canComplete([depModel]);
+
+      expect(result.canComplete).toBe(false);
+      expect(result.reason).toContain("incomplete");
+      expect(result.reason).toContain("Dependency task");
+    });
+
+    it("should allow completion when dependencies are complete", () => {
+      const dependency = createTodo({
+        id: "dep-1",
+        state: "completed",
+        completedAt: Date.now(),
+      });
+      const todo = createTodo({
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: ["dep-1"],
+        },
+      });
+      const settings = createSettings();
+      const depModel = new TodoModel(dependency, settings);
+      const todoModel = new TodoModel(todo, settings);
+
+      const result = todoModel.canComplete([depModel]);
+
+      expect(result.canComplete).toBe(true);
+    });
+
+    it("should allow archiving completed tasks", () => {
+      const todo = createTodo({ state: "completed", completedAt: Date.now() });
+      const model = new TodoModel(todo, createSettings());
+
+      const result = model.canArchive([]);
+
+      expect(result.canArchive).toBe(true);
+    });
+
+    it("should allow deleting active tasks", () => {
+      const todo = createTodo({ state: "active" });
+      const model = new TodoModel(todo, createSettings());
+
+      const result = model.canDelete();
+
+      expect(result.canDelete).toBe(true);
+    });
+
+    it("should not allow deleting already deleted tasks", () => {
+      const todo = createTodo({ state: "deleted", deletedAt: Date.now() });
+      const model = new TodoModel(todo, createSettings());
+
+      const result = model.canDelete();
+
+      expect(result.canDelete).toBe(false);
+    });
+  });
+
+  describe("display helpers", () => {
+    it("should return correct status badge", () => {
+      const settings = createSettings();
+
+      expect(new TodoModel(createTodo({ state: "active" }), settings).statusBadge).toBe("Active");
+      expect(new TodoModel(createTodo({ state: "completed", completedAt: Date.now() }), settings).statusBadge).toBe(
+        "Completed",
+      );
+      expect(new TodoModel(createTodo({ state: "archived", archivedAt: Date.now() }), settings).statusBadge).toBe(
+        "Archived",
+      );
+      expect(new TodoModel(createTodo({ state: "deleted", deletedAt: Date.now() }), settings).statusBadge).toBe(
+        "Deleted",
+      );
+    });
+
+    it("should get priority color from settings", () => {
+      const todo = createTodo({
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          priority: "urgent",
+        },
+      });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.priorityColor).toBe("#ff0000");
+    });
+
+    it("should find priority by alternative name", () => {
+      const todo = createTodo({
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          priority: "critical", // Alternative for "urgent"
+        },
+      });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.priorityColor).toBe("#ff0000");
+      expect(model.priorityOrder).toBe(1);
+    });
+
+    it("should get summary with truncation", () => {
+      const longText = "This is a very long todo text that should be truncated when getting a summary";
+      const todo = createTodo({ plainText: longText });
+      const model = new TodoModel(todo, createSettings());
+
+      const summary = model.getSummary(30);
+
+      expect(summary.length).toBeLessThanOrEqual(33); // 30 + "..."
+      expect(summary).toContain("...");
+    });
+
+    it("should not truncate short text", () => {
+      const shortText = "Short todo";
+      const todo = createTodo({ plainText: shortText });
+      const model = new TodoModel(todo, createSettings());
+
+      const summary = model.getSummary(100);
+
+      expect(summary).toBe(shortText);
+      expect(summary).not.toContain("...");
+    });
+
+    it("should match search text in various fields", () => {
+      const todo = createTodo({
+        plainText: "Buy groceries",
+        metadata: {
+          assignedPeople: ["Alice"],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: ["Shopping"],
+          tags: ["personal"],
+          dependencies: [],
+          priority: "high",
+        },
+      });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.matchesSearch("groceries")).toBe(true);
+      expect(model.matchesSearch("Alice")).toBe(true);
+      expect(model.matchesSearch("Shopping")).toBe(true);
+      expect(model.matchesSearch("personal")).toBe(true);
+      expect(model.matchesSearch("high")).toBe(true);
+      expect(model.matchesSearch("unknown")).toBe(false);
+    });
+  });
+
+  describe("factory functions", () => {
+    it("should create single TodoModel with createTodoModel", () => {
+      const todo = createTodo();
+      const settings = createSettings();
+
+      const model = createTodoModel(todo, settings);
+
+      expect(model).toBeInstanceOf(TodoModel);
+      expect(model.id).toBe(todo.id);
+    });
+
+    it("should create array of TodoModels with createTodoModels", () => {
+      const todos = [createTodo({ id: "1" }), createTodo({ id: "2" }), createTodo({ id: "3" })];
+      const settings = createSettings();
+
+      const models = createTodoModels(todos, settings);
+
+      expect(models).toHaveLength(3);
+      expect(models[0]).toBeInstanceOf(TodoModel);
+      expect(models.map((m) => m.id)).toEqual(["1", "2", "3"]);
+    });
+  });
+
+  describe("subtasks", () => {
+    it("should report subtask count correctly", () => {
+      const todo = createTodo({
+        subtasks: [
+          { id: "1", text: "Subtask 1", completed: false, createdAt: Date.now() },
+          { id: "2", text: "Subtask 2", completed: true, createdAt: Date.now() },
+          { id: "3", text: "Subtask 3", completed: false, createdAt: Date.now() },
+        ],
+      });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.hasSubtasks).toBe(true);
+      expect(model.subtaskCount).toBe(3);
+      expect(model.completedSubtaskCount).toBe(1);
+    });
+
+    it("should calculate subtask progress", () => {
+      const todo = createTodo({
+        subtasks: [
+          { id: "1", text: "Subtask 1", completed: true, createdAt: Date.now() },
+          { id: "2", text: "Subtask 2", completed: true, createdAt: Date.now() },
+          { id: "3", text: "Subtask 3", completed: false, createdAt: Date.now() },
+          { id: "4", text: "Subtask 4", completed: false, createdAt: Date.now() },
+        ],
+      });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.subtaskProgress).toBe(50);
+    });
+
+    it("should handle empty subtasks", () => {
+      const todo = createTodo();
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.hasSubtasks).toBe(false);
+      expect(model.subtaskCount).toBe(0);
+      expect(model.subtaskProgress).toBe(0);
+    });
+  });
+
+  describe("comments and activity", () => {
+    it("should report comment count correctly", () => {
+      const todo = createTodo({
+        comments: [
+          {
+            commentId: 1,
+            history: [{ content: "Comment 1", date: Date.now() }],
+          },
+          {
+            commentId: 2,
+            history: [{ content: "Comment 2", date: Date.now() }],
+          },
+        ],
+      });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.hasComments).toBe(true);
+      expect(model.commentCount).toBe(2);
+    });
+
+    it("should get latest comment", () => {
+      const todo = createTodo({
+        comments: [
+          {
+            commentId: 1,
+            history: [
+              { content: "Original", date: 1000 },
+              { content: "Edited", date: 2000 },
+            ],
+          },
+        ],
+      });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.latestComment?.content).toBe("Edited");
+      expect(model.latestComment?.date).toBe(2000);
+    });
+
+    it("should report activity count", () => {
+      const todo = createTodo({
+        activity: [
+          { id: "1", type: "created" as const, timestamp: 1000, description: "Created" },
+          { id: "2", type: "completed" as const, timestamp: 2000, description: "Completed" },
+        ],
+      });
+      const model = new TodoModel(todo, createSettings());
+
+      expect(model.hasActivity).toBe(true);
+      expect(model.activityCount).toBe(2);
+    });
+  });
+});
