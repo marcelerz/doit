@@ -182,6 +182,7 @@ export function FocusView({
   const [soundEnabled, setSoundEnabled] = useState(focusSettings.soundEnabled ?? true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(getNotificationPermission() === "granted");
   const [showExtendMenu, setShowExtendMenu] = useState(false);
+  const [pendingAutoComplete, setPendingAutoComplete] = useState<string | null>(null);
 
   // Refs
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -209,6 +210,20 @@ export function FocusView({
       }
     };
   }, []);
+
+  // Handle auto-completion when last segment finishes
+  useEffect(() => {
+    if (pendingAutoComplete) {
+      // Stop time tracking if active
+      if (timeTrackingActiveRef.current && onStopTimeTracking) {
+        onStopTimeTracking(timeTrackingActiveRef.current);
+        timeTrackingActiveRef.current = null;
+      }
+      // Mark the task as complete
+      onToggle(pendingAutoComplete);
+      setPendingAutoComplete(null);
+    }
+  }, [pendingAutoComplete, onToggle, onStopTimeTracking]);
 
   // Ambient sound management
   useEffect(() => {
@@ -409,6 +424,12 @@ export function FocusView({
           const currentScheduleItem = getCurrentItem(s.currentItemIndex);
           const isLastSegmentOfTask = currentScheduleItem?.isLastSegment ?? true;
           const completingTask = completingWorkSegment && isLastSegmentOfTask;
+          const todoToComplete = completingTask ? currentScheduleItem?.task?.todo.id : null;
+
+          // Schedule auto-completion for last segment
+          if (todoToComplete) {
+            setPendingAutoComplete(todoToComplete);
+          }
 
           const nextIndex = s.currentItemIndex + 1;
           const nextItem = getCurrentItem(nextIndex);
