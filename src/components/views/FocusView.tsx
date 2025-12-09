@@ -75,10 +75,11 @@ export function FocusView({
   onStartTimeTracking,
   onStopTimeTracking,
 }: FocusViewProps) {
-  // Filter scheduled tasks to only include non-actual-time, non-completed tasks
-  const scheduledTasks = useMemo(() => {
-    return preScheduledTasks.filter((t) => !t.isActualTime && !t.todo.isCompleted && !t.todo.isArchived);
-  }, [preScheduledTasks]);
+  // Filter scheduled tasks to only include non-actual-time tasks at mount time
+  // We filter at initialization and DON'T re-filter when tasks complete to keep indices stable
+  const [scheduledTasks] = useState(() =>
+    preScheduledTasks.filter((t) => !t.isActualTime && !t.todo.isCompleted && !t.todo.isArchived),
+  );
 
   // Get scheduling settings
   const ganttSettings = settings.gantt ?? {};
@@ -247,26 +248,29 @@ export function FocusView({
     }, 0);
   }, [currentTodo]);
 
-  // Calculate work time for current task (considering already-tracked time if enabled)
+  // Calculate work time for current task using the SCHEDULED duration from Gantt
+  // This uses the planned duration, not the todo's metadata duration
   const currentTaskDuration = useMemo(() => {
-    if (!currentTodo) return pomodoroWorkMinutes * 60;
-    const originalDuration = parseDuration(currentTodo.metadata.duration) * 60; // Convert to seconds
+    if (!currentTask) return pomodoroWorkMinutes * 60;
+    // Use the scheduled duration in minutes, converted to seconds
+    const scheduledDuration = currentTask.durationMinutes * 60;
 
     // If useTrackedTimeForDuration is enabled, subtract already-tracked time
     if (focusSettings.useTrackedTimeForDuration !== false && alreadyTrackedSeconds > 0) {
-      const remaining = originalDuration - alreadyTrackedSeconds;
+      const remaining = scheduledDuration - alreadyTrackedSeconds;
       // Allow negative time to show overtime
       return remaining;
     }
 
-    return originalDuration;
-  }, [currentTodo, pomodoroWorkMinutes, alreadyTrackedSeconds, focusSettings.useTrackedTimeForDuration]);
+    return scheduledDuration;
+  }, [currentTask, pomodoroWorkMinutes, alreadyTrackedSeconds, focusSettings.useTrackedTimeForDuration]);
 
   // Original task duration (without subtracting tracked time) - for display
+  // Uses the scheduled duration from Gantt
   const originalTaskDuration = useMemo(() => {
-    if (!currentTodo) return pomodoroWorkMinutes * 60;
-    return parseDuration(currentTodo.metadata.duration) * 60;
-  }, [currentTodo, pomodoroWorkMinutes]);
+    if (!currentTask) return pomodoroWorkMinutes * 60;
+    return currentTask.durationMinutes * 60; // Convert minutes to seconds
+  }, [currentTask, pomodoroWorkMinutes]);
 
   // Initialize work time when task changes
   useEffect(() => {
@@ -485,11 +489,13 @@ export function FocusView({
               };
             }
 
-            // No confirmation required - stop timer and wait for user action
+            // No confirmation required - signal auto-complete and stop timer
+            // The actual completion is handled by the shouldAutoComplete effect
+            setShouldAutoComplete(true);
             return {
               ...s,
               workTimeRemaining: 0,
-              taskTimeRemaining: 0,
+              taskTimeRemaining: newTaskTime,
               totalWorkTime: newTotalWorkTime,
               actualTimeSpent: newActualTime,
               isRunning: false,
@@ -647,6 +653,7 @@ export function FocusView({
   // Start/pause timer
   const toggleTimer = useCallback(() => {
     setState((s) => {
+      // Resuming work phase
       if (!s.isRunning && s.phase === "work") {
         if (soundEnabled) {
           playNotificationSound("task-start");
@@ -656,6 +663,17 @@ export function FocusView({
           ...s,
           isRunning: true,
           taskStartTime: focusSettings.autoTimeTracking && !s.taskStartTime ? new Date() : s.taskStartTime,
+        };
+      }
+
+      // Resuming break phase - recalculate breakEndTime based on remaining time
+      if (!s.isRunning && (s.phase === "short-break" || s.phase === "long-break")) {
+        const newBreakEndTime = new Date();
+        newBreakEndTime.setSeconds(newBreakEndTime.getSeconds() + s.breakTimeRemaining);
+        return {
+          ...s,
+          isRunning: true,
+          breakEndTime: newBreakEndTime,
         };
       }
 
@@ -697,6 +715,11 @@ export function FocusView({
             taskTotalDuration: s.taskTotalDuration + additionalTimeSeconds,
           };
         }
+      }
+
+      // When pausing a break, clear breakEndTime (will be recalculated on resume)
+      if (s.isRunning && (s.phase === "short-break" || s.phase === "long-break")) {
+        return { ...s, isRunning: false, breakEndTime: null };
       }
 
       // Time tracking stop is handled by the phase transition effect
@@ -1306,11 +1329,13 @@ export function FocusView({
             </div>
 
             {/* Continue time */}
-            {state.breakEndTime && (
-              <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8">
-                Continue at {formatClockTime(state.breakEndTime)}
-              </p>
-            )}
+            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8">
+              {state.breakEndTime ? (
+                <>Continue at {formatClockTime(state.breakEndTime)}</>
+              ) : (
+                <span className="text-zinc-400 dark:text-zinc-500">Paused</span>
+              )}
+            </p>
 
             {/* Actions */}
             <div className="flex items-center justify-center gap-4">
