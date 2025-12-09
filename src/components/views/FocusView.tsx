@@ -43,7 +43,7 @@ interface FocusState {
   phase: FocusPhase;
   currentTaskIndex: number;
   currentSegmentIndex: number;
-  workTimeRemaining: number; // seconds
+  workTimeRemaining: number; // seconds - Pomodoro session time or task segment time
   breakTimeRemaining: number; // seconds
   breakEndTime: Date | null;
   sessionCount: number; // Pomodoro sessions completed
@@ -55,6 +55,9 @@ interface FocusState {
   // Time tracking
   taskStartTime: Date | null; // When current task started
   actualTimeSpent: number; // Seconds spent on current task
+  // Task-level time tracking (separate from Pomodoro sessions)
+  taskTimeRemaining: number; // Total time remaining on current task (seconds)
+  taskTotalDuration: number; // Original task duration (seconds) - for progress calculation
 }
 
 export function FocusView({
@@ -98,6 +101,8 @@ export function FocusView({
     totalWorkTime: 0,
     isRunning: false,
     pendingPhase: null,
+    taskTimeRemaining: 0, // Will be set when task loads
+    taskTotalDuration: 0, // Will be set when task loads
     confirmationRepeats: 0,
     taskStartTime: null,
     actualTimeSpent: 0,
@@ -224,21 +229,19 @@ export function FocusView({
 
   // Initialize work time when task changes
   useEffect(() => {
-    if (technique === "pomodoro") {
-      setState((s) => ({
-        ...s,
-        workTimeRemaining: pomodoroWorkMinutes * 60,
-        taskStartTime: null,
-        actualTimeSpent: 0,
-      }));
-    } else {
-      setState((s) => ({
-        ...s,
-        workTimeRemaining: currentTaskDuration,
-        taskStartTime: null,
-        actualTimeSpent: 0,
-      }));
-    }
+    // Calculate the initial session time (Pomodoro session or task duration for sequential/flow)
+    const sessionTime = technique === "pomodoro" ? pomodoroWorkMinutes * 60 : currentTaskDuration;
+    // For Pomodoro, start with min of session time and task duration remaining
+    const initialWorkTime = technique === "pomodoro" ? Math.min(sessionTime, currentTaskDuration) : currentTaskDuration;
+
+    setState((s) => ({
+      ...s,
+      workTimeRemaining: initialWorkTime,
+      taskTimeRemaining: currentTaskDuration,
+      taskTotalDuration: currentTaskDuration,
+      taskStartTime: null,
+      actualTimeSpent: 0,
+    }));
   }, [state.currentTaskIndex, technique, pomodoroWorkMinutes, currentTaskDuration]);
 
   // Confirmation repeat timer
@@ -311,12 +314,15 @@ export function FocusView({
           isRunning: true,
         };
       } else if (s.pendingPhase === "work") {
+        // Calculate next session time based on remaining task time
+        const nextSessionDuration =
+          technique === "pomodoro" ? Math.min(pomodoroWorkMinutes * 60, s.taskTimeRemaining) : s.taskTimeRemaining;
         return {
           ...s,
           phase: "work",
           pendingPhase: null,
           confirmationRepeats: 0,
-          workTimeRemaining: technique === "pomodoro" ? pomodoroWorkMinutes * 60 : currentTaskDuration,
+          workTimeRemaining: nextSessionDuration,
           breakTimeRemaining: 0,
           breakEndTime: null,
           taskStartTime: focusSettings.autoTimeTracking ? new Date() : null,
@@ -331,7 +337,6 @@ export function FocusView({
       pomodoroShortBreak,
       pomodoroWorkMinutes,
       ganttSettings.flowBreakDuration,
-      currentTaskDuration,
       focusSettings.autoTimeTracking,
     ],
   );
@@ -359,30 +364,45 @@ export function FocusView({
       setState((s) => {
         if (s.phase === "work") {
           const newWorkTime = s.workTimeRemaining - 1;
+          const newTaskTime = s.taskTimeRemaining - 1;
           const newTotalWorkTime = s.totalWorkTime + 1;
           const newActualTime = s.actualTimeSpent + 1;
 
-          if (newWorkTime <= 0) {
-            // Work session complete
+          // Task is complete (task time ran out)
+          if (newTaskTime <= 0) {
+            // Play task complete sound
+            if (soundEnabled) {
+              playNotificationSound("task-complete");
+            }
+            // Don't transition here - let the user click Complete or it will auto-complete
+            // Just stop the timer and show task as done
+            return {
+              ...s,
+              workTimeRemaining: 0,
+              taskTimeRemaining: 0,
+              totalWorkTime: newTotalWorkTime,
+              actualTimeSpent: newActualTime,
+              isRunning: false, // Stop timer when task time is up
+            };
+          }
+
+          // Pomodoro session complete but task has more time
+          if (newWorkTime <= 0 && technique === "pomodoro") {
             const newSessionCount = s.sessionCount + 1;
-            const isLongBreak =
-              technique === "pomodoro" && newSessionCount > 0 && newSessionCount % pomodoroLongBreakInterval === 0;
+            const isLongBreak = newSessionCount > 0 && newSessionCount % pomodoroLongBreakInterval === 0;
 
             const pendingPhase = isLongBreak ? "long-break" : "short-break";
-            const breakDuration =
-              technique === "pomodoro"
-                ? isLongBreak
-                  ? pomodoroLongBreak
-                  : pomodoroShortBreak
-                : ganttSettings.flowBreakDuration ?? 17;
+            const breakDuration = isLongBreak ? pomodoroLongBreak : pomodoroShortBreak;
 
-            // Play sounds: task-complete, then break sound after 3s delay
+            // Play sounds: session complete sound, then break sound after 3s delay
             if (soundEnabled) {
-              queueSounds(["task-complete", isLongBreak ? "long-break" : "short-break"]);
+              queueSounds([isLongBreak ? "long-break" : "short-break"]);
             }
             if (notificationsEnabled) {
               sendNotification(isLongBreak ? "🍅 Time for a long break!" : "🍅 Time for a short break!", {
-                body: `Great work! Take a ${breakDuration} minute break.`,
+                body: `Session complete! Take a ${breakDuration} minute break. Task has ${Math.ceil(
+                  newTaskTime / 60,
+                )} min remaining.`,
                 silent: true,
               });
             }
@@ -394,6 +414,7 @@ export function FocusView({
                 phase: "pending-break",
                 pendingPhase: pendingPhase as "short-break" | "long-break",
                 workTimeRemaining: 0,
+                taskTimeRemaining: newTaskTime,
                 sessionCount: newSessionCount,
                 totalWorkTime: newTotalWorkTime,
                 actualTimeSpent: newActualTime,
@@ -410,6 +431,7 @@ export function FocusView({
               ...s,
               phase: pendingPhase as "short-break" | "long-break",
               workTimeRemaining: 0,
+              taskTimeRemaining: newTaskTime,
               breakTimeRemaining: breakDuration * 60,
               breakEndTime,
               sessionCount: newSessionCount,
@@ -418,9 +440,24 @@ export function FocusView({
             };
           }
 
+          // Sequential/Flow: session complete = task complete (handled above)
+          if (newWorkTime <= 0 && technique !== "pomodoro") {
+            // For non-Pomodoro, work time = task time, so this shouldn't happen
+            // but handle it gracefully
+            return {
+              ...s,
+              workTimeRemaining: 0,
+              taskTimeRemaining: newTaskTime,
+              totalWorkTime: newTotalWorkTime,
+              actualTimeSpent: newActualTime,
+              isRunning: false,
+            };
+          }
+
           return {
             ...s,
             workTimeRemaining: newWorkTime,
+            taskTimeRemaining: newTaskTime,
             totalWorkTime: newTotalWorkTime,
             actualTimeSpent: newActualTime,
           };
@@ -429,6 +466,10 @@ export function FocusView({
 
           if (newBreakTime <= 0) {
             // Break complete - back to work
+            // Calculate next session duration: min of pomodoro session and remaining task time
+            const nextSessionDuration =
+              technique === "pomodoro" ? Math.min(pomodoroWorkMinutes * 60, s.taskTimeRemaining) : s.taskTimeRemaining;
+
             // Play sounds: break-end, then task-start after 3s delay
             if (soundEnabled) {
               queueSounds(["break-end", "task-start"]);
@@ -456,11 +497,10 @@ export function FocusView({
             return {
               ...s,
               phase: "work",
-              workTimeRemaining: technique === "pomodoro" ? pomodoroWorkMinutes * 60 : currentTaskDuration,
+              workTimeRemaining: nextSessionDuration,
               breakTimeRemaining: 0,
               breakEndTime: null,
               taskStartTime: focusSettings.autoTimeTracking ? new Date() : null,
-              actualTimeSpent: 0,
             };
           }
 
@@ -487,8 +527,6 @@ export function FocusView({
     pomodoroShortBreak,
     pomodoroLongBreak,
     pomodoroLongBreakInterval,
-    ganttSettings.flowBreakDuration,
-    currentTaskDuration,
     soundEnabled,
     notificationsEnabled,
     currentTodo?.plainText,
@@ -515,14 +553,38 @@ export function FocusView({
     });
   }, [soundEnabled, focusSettings.autoTimeTracking]);
 
-  // Extend current task time
-  const extendTime = useCallback((minutes: number) => {
-    setState((s) => ({
-      ...s,
-      workTimeRemaining: s.workTimeRemaining + minutes * 60,
-    }));
-    setShowExtendMenu(false);
-  }, []);
+  // Extend current task time (only extends task duration, not session/break timers)
+  const extendTime = useCallback(
+    (minutes: number) => {
+      setState((s) => {
+        const additionalTime = minutes * 60;
+        const newTaskTimeRemaining = s.taskTimeRemaining + additionalTime;
+        const newTaskTotalDuration = s.taskTotalDuration + additionalTime;
+
+        // If in work phase and timer stopped (task time was up), restart with new time
+        if (s.phase === "work" && !s.isRunning && s.workTimeRemaining === 0) {
+          // Calculate new work session time
+          const newWorkTime =
+            technique === "pomodoro" ? Math.min(pomodoroWorkMinutes * 60, newTaskTimeRemaining) : newTaskTimeRemaining;
+          return {
+            ...s,
+            taskTimeRemaining: newTaskTimeRemaining,
+            taskTotalDuration: newTaskTotalDuration,
+            workTimeRemaining: newWorkTime,
+          };
+        }
+
+        // Otherwise just add to task time (current session continues as-is)
+        return {
+          ...s,
+          taskTimeRemaining: newTaskTimeRemaining,
+          taskTotalDuration: newTaskTotalDuration,
+        };
+      });
+      setShowExtendMenu(false);
+    },
+    [technique, pomodoroWorkMinutes],
+  );
 
   // Complete current task
   const completeTask = useCallback(() => {
@@ -547,7 +609,8 @@ export function FocusView({
         currentTaskIndex: s.currentTaskIndex + 1,
         currentSegmentIndex: 0,
         phase: "work",
-        workTimeRemaining: technique === "pomodoro" ? pomodoroWorkMinutes * 60 : currentTaskDuration,
+        // Note: workTimeRemaining, taskTimeRemaining, taskTotalDuration will be properly
+        // initialized by the useEffect that watches currentTaskIndex changes
         taskStartTime: null,
         actualTimeSpent: 0,
       }));
@@ -558,17 +621,7 @@ export function FocusView({
         isRunning: false,
       }));
     }
-  }, [
-    currentTodo,
-    soundEnabled,
-    onToggle,
-    state.currentTaskIndex,
-    scheduledTasks.length,
-    technique,
-    pomodoroWorkMinutes,
-    currentTaskDuration,
-    onStopTimeTracking,
-  ]);
+  }, [currentTodo, soundEnabled, onToggle, state.currentTaskIndex, scheduledTasks.length, onStopTimeTracking]);
 
   // Skip to next task
   const skipTask = useCallback(() => {
@@ -587,34 +640,32 @@ export function FocusView({
         currentTaskIndex: s.currentTaskIndex + 1,
         currentSegmentIndex: 0,
         phase: "work",
-        workTimeRemaining: technique === "pomodoro" ? pomodoroWorkMinutes * 60 : currentTaskDuration,
+        // Note: workTimeRemaining, taskTimeRemaining, taskTotalDuration will be properly
+        // initialized by the useEffect that watches currentTaskIndex changes
         breakTimeRemaining: 0,
         breakEndTime: null,
       }));
     }
-  }, [
-    state.currentTaskIndex,
-    scheduledTasks.length,
-    soundEnabled,
-    technique,
-    pomodoroWorkMinutes,
-    currentTaskDuration,
-    onStopTimeTracking,
-  ]);
+  }, [state.currentTaskIndex, scheduledTasks.length, soundEnabled, onStopTimeTracking]);
 
   // Skip break
   const skipBreak = useCallback(() => {
     if (soundEnabled) {
       queueSounds(["break-end", "task-start"]);
     }
-    setState((s) => ({
-      ...s,
-      phase: "work",
-      workTimeRemaining: technique === "pomodoro" ? pomodoroWorkMinutes * 60 : currentTaskDuration,
-      breakTimeRemaining: 0,
-      breakEndTime: null,
-    }));
-  }, [soundEnabled, technique, pomodoroWorkMinutes, currentTaskDuration]);
+    setState((s) => {
+      // Calculate next session time based on remaining task time
+      const nextSessionDuration =
+        technique === "pomodoro" ? Math.min(pomodoroWorkMinutes * 60, s.taskTimeRemaining) : s.taskTimeRemaining;
+      return {
+        ...s,
+        phase: "work",
+        workTimeRemaining: nextSessionDuration,
+        breakTimeRemaining: 0,
+        breakEndTime: null,
+      };
+    });
+  }, [soundEnabled, technique, pomodoroWorkMinutes]);
 
   // Request notification permission
   const enableNotifications = useCallback(async () => {
@@ -1092,6 +1143,32 @@ export function FocusView({
                 <p className="text-zinc-900 dark:text-zinc-100 font-medium">
                   <MarkedText text={currentTodo.plainText} markerColors={markerColors} linkPatterns={linkPatterns} />
                 </p>
+                {/* Task progress during break */}
+                {technique === "pomodoro" && state.taskTotalDuration > 0 && state.taskTimeRemaining > 0 && (
+                  <div className="mt-3 pt-3 border-t border-zinc-200/50 dark:border-zinc-700/50">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-zinc-500 dark:text-zinc-400">Task progress:</span>
+                      <span className="font-mono text-zinc-700 dark:text-zinc-300">
+                        {formatTime(state.taskTotalDuration - state.taskTimeRemaining)} /{" "}
+                        {formatTime(state.taskTotalDuration)}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden mt-2">
+                      <div
+                        className="h-full bg-blue-500"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            ((state.taskTotalDuration - state.taskTimeRemaining) / state.taskTotalDuration) * 100,
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+                      {formatTime(state.taskTimeRemaining)} remaining
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1321,16 +1398,45 @@ export function FocusView({
 
           {/* Timer Display */}
           <div className="text-center mb-6">
+            {/* Main Timer - Session (Pomodoro) or Task (other modes) */}
             <div className="text-6xl font-mono font-bold text-zinc-900 dark:text-zinc-100 mb-2">
               {formatTime(state.workTimeRemaining)}
             </div>
-            <p className="text-zinc-500 dark:text-zinc-400">
+            <p className="text-zinc-500 dark:text-zinc-400 mb-4">
               {technique === "pomodoro"
-                ? `${state.workTimeRemaining > 0 ? "Work time remaining" : "Session complete"} • Session ${
+                ? `${state.workTimeRemaining > 0 ? "Session time remaining" : "Session complete"} • Session ${
                     state.sessionCount + 1
                   }`
                 : "Time remaining on task"}
             </p>
+
+            {/* Task Progress - shown in Pomodoro mode to separate task from session */}
+            {technique === "pomodoro" && state.taskTotalDuration > 0 && (
+              <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                <div className="flex items-center justify-center gap-4 mb-2">
+                  <span className="text-sm text-zinc-500 dark:text-zinc-400">Task Progress:</span>
+                  <span className="text-lg font-mono font-semibold text-zinc-700 dark:text-zinc-300">
+                    {formatTime(state.taskTotalDuration - state.taskTimeRemaining)} /{" "}
+                    {formatTime(state.taskTotalDuration)}
+                  </span>
+                </div>
+                {/* Task progress bar */}
+                <div className="w-full max-w-md mx-auto h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 transition-all duration-500"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        ((state.taskTotalDuration - state.taskTimeRemaining) / state.taskTotalDuration) * 100,
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+                  {formatTime(state.taskTimeRemaining)} remaining on task
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Play/Pause Button */}
