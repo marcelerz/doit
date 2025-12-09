@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { Settings, ProjectCategory, Sprint } from "@/types/settings";
 import { SprintModel } from "@/hooks/useSprints";
-import { loadFromStorageSync, saveToStorageSync, STORAGE_KEYS } from "@/storage/storage";
+import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
 
 type TimePeriod = "today" | "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "all" | "custom";
 type GroupBy = "assigned" | "source" | "project" | "category" | "sprint" | "day";
@@ -104,17 +104,30 @@ const CHART_COLORS = [
 ];
 
 export default function TimeReportsView({ todos, people, projects, settings, sprints }: TimeReportsViewProps) {
-  const [options, setOptions] = useState<TimeReportOptions>(() => {
-    const stored = loadFromStorageSync<TimeReportOptions>(STORAGE_KEYS.TIME_REPORT_OPTIONS, DEFAULT_OPTIONS);
-    return stored;
-  });
+  const [options, setOptions] = useState<TimeReportOptions>(DEFAULT_OPTIONS);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const isInitialMount = useRef(true);
+
+  // Load options from storage on mount
+  useEffect(() => {
+    loadFromStorage<TimeReportOptions>(STORAGE_KEYS.TIME_REPORT_OPTIONS, DEFAULT_OPTIONS).then((stored) => {
+      setOptions(stored);
+      setIsLoaded(true);
+    });
+  }, []);
 
   const { timePeriod, groupBy, customStartDate, customEndDate } = options;
 
-  // Save options when they change
+  // Save options when they change (skip initial mount)
   useEffect(() => {
-    saveToStorageSync(STORAGE_KEYS.TIME_REPORT_OPTIONS, options);
-  }, [options]);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (isLoaded) {
+      saveToStorage(STORAGE_KEYS.TIME_REPORT_OPTIONS, options);
+    }
+  }, [options, isLoaded]);
 
   const setTimePeriod = (value: TimePeriod) => {
     setOptions((prev) => ({ ...prev, timePeriod: value }));
