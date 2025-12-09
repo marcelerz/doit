@@ -394,6 +394,7 @@ export function TodoApp() {
   // Focus mode state
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [focusTasks, setFocusTasks] = useState<ScheduledTask[]>([]);
+  const [ganttRefreshKey, setGanttRefreshKey] = useState(0);
 
   // Close export menu when clicking outside
   useEffect(() => {
@@ -3062,6 +3063,7 @@ export function TodoApp() {
         {/* View Content */}
         {activeView === "gantt" && (
           <GanttView
+            key={ganttRefreshKey}
             todos={todos}
             markerColors={settings.markerColors}
             workHours={settings.workHours}
@@ -4919,9 +4921,13 @@ export function TodoApp() {
           linkPatterns={settings.linkPatterns}
           onOpenDetails={(todo) => {
             setIsFocusMode(false);
+            setGanttRefreshKey((k) => k + 1);
             setDetailsOverlayTodo(todo);
           }}
-          onClose={() => setIsFocusMode(false)}
+          onClose={() => {
+            setIsFocusMode(false);
+            setGanttRefreshKey((k) => k + 1);
+          }}
           onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
           onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
         />
