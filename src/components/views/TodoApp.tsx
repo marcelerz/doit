@@ -4058,52 +4058,52 @@ export function TodoApp() {
                 ))}
               </div>
             )}
-
-            {/* Todo Details Overlay */}
-            {detailsOverlayTodo &&
-              (() => {
-                // Find the current version of the todo from the todos array
-                const currentTodo = todos.find((t) => t.id === detailsOverlayTodo.id);
-                if (!currentTodo) return null;
-
-                return (
-                  <TodoDetailsOverlay
-                    todo={currentTodo}
-                    todos={todos}
-                    isOpen={true}
-                    onClose={() => setDetailsOverlayTodo(null)}
-                    onToggle={toggleTodo}
-                    onDelete={deleteTodo}
-                    onDuplicate={duplicateTodo}
-                    onEdit={editTodo}
-                    onArchive={archiveTodo}
-                    onUnarchive={unarchiveTodo}
-                    markerColors={settings.markerColors}
-                    settings={settings}
-                    linkPatterns={settings.linkPatterns}
-                    availablePeople={sortedPeople}
-                    availableProjects={sortedProjects}
-                    availablePriorities={sortedPriorities}
-                    onAddPerson={handleAddPerson}
-                    onAddProject={handleAddProject}
-                    onAddPriority={handleAddPriority}
-                    onAddComment={addTodoComment}
-                    onAddSubtask={addSubtask}
-                    onToggleSubtask={toggleSubtask}
-                    onEditSubtask={editSubtask}
-                    onDeleteSubtask={deleteSubtask}
-                    onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
-                    onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
-                    onAddManualTimeEntry={settings.features.timeTracking ? addManualTimeEntry : undefined}
-                    onDeleteTimeEntry={settings.features.timeTracking ? deleteTimeEntry : undefined}
-                    onCreateTemplate={handleCreateTemplate}
-                    sprints={sprints.map((s) => s.raw)}
-                    runningSprint={runningSprint?.raw}
-                  />
-                );
-              })()}
           </>
         )}
+
+        {/* Todo Details Overlay - outside activeView check so it works from FocusView too */}
+        {detailsOverlayTodo &&
+          (() => {
+            // Find the current version of the todo from the todos array
+            const currentTodo = todos.find((t) => t.id === detailsOverlayTodo.id);
+            if (!currentTodo) return null;
+
+            return (
+              <TodoDetailsOverlay
+                todo={currentTodo}
+                todos={todos}
+                isOpen={true}
+                onClose={() => setDetailsOverlayTodo(null)}
+                onToggle={toggleTodo}
+                onDelete={deleteTodo}
+                onDuplicate={duplicateTodo}
+                onEdit={editTodo}
+                onArchive={archiveTodo}
+                onUnarchive={unarchiveTodo}
+                markerColors={settings.markerColors}
+                settings={settings}
+                linkPatterns={settings.linkPatterns}
+                availablePeople={sortedPeople}
+                availableProjects={sortedProjects}
+                availablePriorities={sortedPriorities}
+                onAddPerson={handleAddPerson}
+                onAddProject={handleAddProject}
+                onAddPriority={handleAddPriority}
+                onAddComment={addTodoComment}
+                onAddSubtask={addSubtask}
+                onToggleSubtask={toggleSubtask}
+                onEditSubtask={editSubtask}
+                onDeleteSubtask={deleteSubtask}
+                onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
+                onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
+                onAddManualTimeEntry={settings.features.timeTracking ? addManualTimeEntry : undefined}
+                onDeleteTimeEntry={settings.features.timeTracking ? deleteTimeEntry : undefined}
+                onCreateTemplate={handleCreateTemplate}
+                sprints={sprints.map((s) => s.raw)}
+                runningSprint={runningSprint?.raw}
+              />
+            );
+          })()}
 
         {/* Person Details Overlay */}
         {detailsOverlayPersonId &&

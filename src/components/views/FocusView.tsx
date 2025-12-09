@@ -1074,6 +1074,7 @@ export function FocusView({
           </h1>
         </div>
         <div className="flex items-center gap-3">
+          <InfoTooltip content={tooltipContent.focusKeyboard} size="md" />
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={`p-2 rounded-lg transition-colors ${

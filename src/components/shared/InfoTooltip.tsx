@@ -894,4 +894,41 @@ export const tooltipContent = {
       </ul>
     </div>
   ),
+
+  // Focus Mode Keyboard Shortcuts
+  focusKeyboard: (
+    <div className="space-y-2">
+      <p className="font-medium">Keyboard Shortcuts</p>
+      <ul className="space-y-1">
+        <li>
+          <code className="bg-zinc-700 dark:bg-zinc-300 px-1 rounded">Space</code> - Start/pause timer
+        </li>
+        <li>
+          <code className="bg-zinc-700 dark:bg-zinc-300 px-1 rounded">Shift+Enter</code> - Complete task (marks as done)
+        </li>
+        <li>
+          <code className="bg-zinc-700 dark:bg-zinc-300 px-1 rounded">Enter</code> - Open task details
+        </li>
+        <li>
+          <code className="bg-zinc-700 dark:bg-zinc-300 px-1 rounded">S</code> - Skip to Next (counts as progress)
+        </li>
+        <li>
+          <code className="bg-zinc-700 dark:bg-zinc-300 px-1 rounded">N</code> - Skip Task (doesn&apos;t count)
+        </li>
+        <li>
+          <code className="bg-zinc-700 dark:bg-zinc-300 px-1 rounded">M</code> - Toggle sound
+        </li>
+        <li>
+          <code className="bg-zinc-700 dark:bg-zinc-300 px-1 rounded">Esc</code> - Exit focus mode
+        </li>
+      </ul>
+      <div className="border-t border-zinc-700 dark:border-zinc-300 pt-2 mt-2">
+        <p className="font-medium text-zinc-400 dark:text-zinc-600">Skip to Next vs Skip Task:</p>
+        <ul className="space-y-1 text-zinc-400 dark:text-zinc-600">
+          <li>• <strong>Skip to Next</strong>: End work segment early, moves to break, counts toward completed tasks</li>
+          <li>• <strong>Skip Task</strong>: Skip without working on it, doesn&apos;t count as progress</li>
+        </ul>
+      </div>
+    </div>
+  ),
 };
