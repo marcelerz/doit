@@ -772,14 +772,39 @@ export function FocusView({
   const techniqueIcon = technique === "pomodoro" ? "🍅" : technique === "flow" ? "🌊" : "📋";
   const techniqueName = technique === "pomodoro" ? "Pomodoro" : technique === "flow" ? "Flow" : "Sequential";
 
-  // Count tasks in schedule
+  // Count unique tasks in schedule (not segments)
   const totalTasks = scheduledTasks.length;
   const currentTaskNumber = useMemo(() => {
-    let count = 0;
-    for (let i = 0; i <= state.currentItemIndex; i++) {
-      if (schedule[i]?.type === "task") count++;
+    // Find the current task's todo id
+    const currentItem = schedule[state.currentItemIndex];
+    if (!currentItem || currentItem.type !== "task") {
+      // If on a break, find the previous task
+      for (let i = state.currentItemIndex - 1; i >= 0; i--) {
+        if (schedule[i]?.type === "task") {
+          const taskTodoId = schedule[i].task?.todo.id;
+          // Count unique tasks up to this one
+          const seenTasks = new Set<string>();
+          for (let j = 0; j <= i; j++) {
+            const item = schedule[j];
+            if (item?.type === "task" && item.task?.todo.id) {
+              seenTasks.add(item.task.todo.id);
+            }
+          }
+          return seenTasks.size;
+        }
+      }
+      return 0;
     }
-    return count;
+
+    // Count unique tasks up to and including current index
+    const seenTasks = new Set<string>();
+    for (let i = 0; i <= state.currentItemIndex; i++) {
+      const item = schedule[i];
+      if (item?.type === "task" && item.task?.todo.id) {
+        seenTasks.add(item.task.todo.id);
+      }
+    }
+    return seenTasks.size;
   }, [state.currentItemIndex, schedule]);
 
   // Count active todos for display

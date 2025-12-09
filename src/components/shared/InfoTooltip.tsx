@@ -925,8 +925,12 @@ export const tooltipContent = {
       <div className="border-t border-zinc-700 dark:border-zinc-300 pt-2 mt-2">
         <p className="font-medium text-zinc-400 dark:text-zinc-600">Skip to Next vs Skip Task:</p>
         <ul className="space-y-1 text-zinc-400 dark:text-zinc-600">
-          <li>• <strong>Skip to Next</strong>: End work segment early, moves to break, counts toward completed tasks</li>
-          <li>• <strong>Skip Task</strong>: Skip without working on it, doesn&apos;t count as progress</li>
+          <li>
+            • <strong>Skip to Next</strong>: End work segment early, moves to break, counts toward completed tasks
+          </li>
+          <li>
+            • <strong>Skip Task</strong>: Skip without working on it, doesn&apos;t count as progress
+          </li>
         </ul>
       </div>
     </div>
