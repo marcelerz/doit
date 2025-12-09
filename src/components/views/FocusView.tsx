@@ -36,12 +36,14 @@ interface FocusViewProps {
   onStopTimeTracking?: (todoId: string) => void;
 }
 
-// A schedule item is either a task or a break
+// A schedule item is either a task segment or a break
 type ScheduleItemType = "task" | "break";
 
 interface ScheduleItem {
   type: ScheduleItemType;
   task?: ScheduledTask;
+  segmentIndex?: number; // Which segment of the task this is
+  isLastSegment?: boolean; // Whether this is the last segment of the task
   breakInfo?: BreakInfo;
   durationSeconds: number;
 }
@@ -107,26 +109,43 @@ export function FocusView({
     [preScheduledTasks],
   );
 
-  // Build a flat schedule: task, break, task, break, task...
+  // Build a flat schedule from task segments: segment, break, segment, break...
+  // This respects Pomodoro/Flow breaks that split tasks into multiple work sessions
   const schedule = useMemo((): ScheduleItem[] => {
     const items: ScheduleItem[] = [];
 
-    scheduledTasks.forEach((task, index) => {
-      // Add the task
-      items.push({
-        type: "task",
-        task,
-        durationSeconds: task.durationMinutes * 60,
-      });
+    scheduledTasks.forEach((task, taskIndex) => {
+      const segments = task.segments;
+      const isLastTask = taskIndex === scheduledTasks.length - 1;
 
-      // Add break after task if there is one (and not the last task)
-      if (task.nextBreak && task.nextBreak.durationMinutes > 0 && index < scheduledTasks.length - 1) {
+      segments.forEach((segment, segmentIndex) => {
+        const isLastSegment = segmentIndex === segments.length - 1;
+
+        // Add the task segment
         items.push({
-          type: "break",
-          breakInfo: task.nextBreak,
-          durationSeconds: task.nextBreak.durationMinutes * 60,
+          type: "task",
+          task,
+          segmentIndex,
+          isLastSegment,
+          durationSeconds: segment.durationMinutes * 60,
         });
-      }
+
+        // Add break after segment if there is one
+        // Use segment's nextBreak (for intra-task breaks like Pomodoro)
+        // For the last segment, use task's nextBreak (for inter-task breaks)
+        const breakInfo = isLastSegment ? task.nextBreak : segment.nextBreak;
+
+        if (breakInfo && breakInfo.durationMinutes > 0) {
+          // Don't add break after the very last segment of the very last task
+          if (!(isLastTask && isLastSegment)) {
+            items.push({
+              type: "break",
+              breakInfo,
+              durationSeconds: breakInfo.durationMinutes * 60,
+            });
+          }
+        }
+      });
     });
 
     return items;
@@ -386,25 +405,37 @@ export function FocusView({
 
         // Item complete
         if (newTime <= 0) {
-          const completingTask = s.phase === "work";
+          const completingWorkSegment = s.phase === "work";
+          const currentScheduleItem = getCurrentItem(s.currentItemIndex);
+          const isLastSegmentOfTask = currentScheduleItem?.isLastSegment ?? true;
+          const completingTask = completingWorkSegment && isLastSegmentOfTask;
+
           const nextIndex = s.currentItemIndex + 1;
           const nextItem = getCurrentItem(nextIndex);
 
           if (soundEnabled) {
             if (completingTask) {
+              // Task fully complete
               playNotificationSound("task-complete");
+            } else if (completingWorkSegment) {
+              // Work segment done, but more segments remain for this task
+              playNotificationSound("short-break");
             } else {
+              // Break ending
               queueSounds(["break-end", "task-start"]);
             }
           }
 
           if (notificationsEnabled) {
-            if (completingTask && nextItem?.type === "break") {
-              sendNotification("☕ Time for a break!", {
-                body: `Task complete! Take a ${Math.ceil((nextItem.durationSeconds ?? 0) / 60)} minute break.`,
+            if (completingWorkSegment && nextItem?.type === "break") {
+              const breakLabel = nextItem.breakInfo?.label || "break";
+              sendNotification(`☕ Time for a ${breakLabel}!`, {
+                body: completingTask
+                  ? `Task complete! Take a ${Math.ceil((nextItem.durationSeconds ?? 0) / 60)} minute break.`
+                  : `Session complete! Take a ${Math.ceil((nextItem.durationSeconds ?? 0) / 60)} minute break.`,
                 silent: true,
               });
-            } else if (!completingTask) {
+            } else if (!completingWorkSegment) {
               sendNotification("🎯 Break over - back to work!", {
                 body: nextItem?.task?.todo.plainText ?? "Time to focus!",
                 silent: true,
@@ -415,8 +446,8 @@ export function FocusView({
           if (focusSettings.requireConfirmation) {
             return {
               ...s,
-              phase: completingTask ? "pending-break" : "pending-work",
-              pendingPhase: completingTask ? "break" : "work",
+              phase: completingWorkSegment ? "pending-break" : "pending-work",
+              pendingPhase: completingWorkSegment ? "break" : "work",
               timeRemaining: 0,
               totalWorkTime: newTotalWork,
               totalBreakTime: newTotalBreak,
@@ -537,13 +568,17 @@ export function FocusView({
       playNotificationSound("short-break");
     }
 
-    setState((s) => ({
-      ...s,
-      tasksCompleted: s.tasksCompleted + 1,
-    }));
+    // Only increment tasksCompleted if this is the last segment of the task
+    const currentScheduleItem = getCurrentItem(state.currentItemIndex);
+    if (currentScheduleItem?.isLastSegment) {
+      setState((s) => ({
+        ...s,
+        tasksCompleted: s.tasksCompleted + 1,
+      }));
+    }
 
     moveToNextItem();
-  }, [soundEnabled, moveToNextItem, onStopTimeTracking]);
+  }, [soundEnabled, moveToNextItem, onStopTimeTracking, getCurrentItem, state.currentItemIndex]);
 
   // Complete current task manually
   const completeTask = useCallback(() => {
@@ -561,13 +596,17 @@ export function FocusView({
     // Toggle will handle duration update based on tracked time
     onToggle(currentTodo.id);
 
-    setState((s) => ({
-      ...s,
-      tasksCompleted: s.tasksCompleted + 1,
-    }));
+    // Only increment tasksCompleted if this is the last segment (or single segment)
+    const currentScheduleItem = getCurrentItem(state.currentItemIndex);
+    if (currentScheduleItem?.isLastSegment !== false) {
+      setState((s) => ({
+        ...s,
+        tasksCompleted: s.tasksCompleted + 1,
+      }));
+    }
 
     moveToNextItem();
-  }, [currentTodo, soundEnabled, onToggle, moveToNextItem, onStopTimeTracking]);
+  }, [currentTodo, soundEnabled, onToggle, moveToNextItem, onStopTimeTracking, getCurrentItem, state.currentItemIndex]);
 
   // Skip task without completing
   const skipTask = useCallback(() => {
