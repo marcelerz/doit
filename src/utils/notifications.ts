@@ -46,21 +46,16 @@ export type AmbientSoundId = (typeof AMBIENT_SOUNDS)[number]["id"] | "";
  */
 export function playAmbientSound(soundFile: string, volume: number = 0.3): void {
   if (typeof window === "undefined" || !soundFile) {
-    console.log("[Ambient] Skip - no window or soundFile:", { soundFile });
     return;
   }
 
   // Increment instance ID - this invalidates any pending stops for previous instances
   ambientInstanceId++;
-  const myInstanceId = ambientInstanceId;
-
-  console.log("[Ambient] playAmbientSound called:", { soundFile, volume, instanceId: myInstanceId });
 
   // If same sound is already playing, just adjust volume
   if (ambientAudio && currentAmbientSound === soundFile) {
     ambientAudio.volume = Math.max(0, Math.min(1, volume));
     if (ambientAudio.paused) {
-      console.log("[Ambient] Resuming paused audio");
       ambientAudio.play().catch(() => {});
     }
     return;
@@ -68,7 +63,6 @@ export function playAmbientSound(soundFile: string, volume: number = 0.3): void 
 
   // Stop current sound synchronously if different
   if (ambientAudio) {
-    console.log("[Ambient] Stopping different sound");
     ambientAudio.pause();
     ambientAudio.src = "";
     ambientAudio = null;
@@ -76,20 +70,14 @@ export function playAmbientSound(soundFile: string, volume: number = 0.3): void 
   }
 
   try {
-    console.log("[Ambient] Creating new Audio for:", soundFile);
     ambientAudio = new Audio(`/sounds/${soundFile}`);
     ambientAudio.loop = true;
     ambientAudio.volume = Math.max(0, Math.min(1, volume));
     currentAmbientSound = soundFile;
 
-    ambientAudio
-      .play()
-      .then(() => {
-        console.log("[Ambient] Play started successfully, instanceId:", myInstanceId);
-      })
-      .catch(() => {
-        console.log("[Ambient] Play failed for instanceId:", myInstanceId);
-      });
+    ambientAudio.play().catch(() => {
+      // Ignore play errors - may be interrupted
+    });
   } catch (error) {
     console.error("Failed to create ambient audio:", error);
   }
@@ -101,21 +89,15 @@ export function playAmbientSound(soundFile: string, volume: number = 0.3): void 
  */
 export function stopAmbientSound(): void {
   const instanceIdAtCall = ambientInstanceId;
-  console.log("[Ambient] stopAmbientSound called:", { hasAudio: !!ambientAudio, instanceId: instanceIdAtCall });
 
   // Delay the actual stop to let any synchronous play() calls happen first
   setTimeout(() => {
     // If a new play was started (instance ID changed), don't stop
     if (ambientInstanceId !== instanceIdAtCall) {
-      console.log("[Ambient] Stop cancelled - new instance started:", {
-        callId: instanceIdAtCall,
-        currentId: ambientInstanceId,
-      });
       return;
     }
 
     if (ambientAudio) {
-      console.log("[Ambient] Actually stopping audio, instanceId:", instanceIdAtCall);
       ambientAudio.pause();
       ambientAudio.src = "";
       ambientAudio = null;

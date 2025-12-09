@@ -90,7 +90,10 @@ export function FocusView({
   const pomodoroLongBreakInterval = ganttSettings.pomodoroLongBreakInterval ?? 4;
 
   // Focus state
-  const [state, setState] = useState<FocusState>({
+  // Use ref to persist isRunning across Strict Mode remounts
+  const isRunningRef = useRef(false);
+
+  const [state, setState] = useState<FocusState>(() => ({
     phase: "work",
     currentTaskIndex: 0,
     currentSegmentIndex: 0,
@@ -99,14 +102,19 @@ export function FocusView({
     breakEndTime: null,
     sessionCount: 0,
     totalWorkTime: 0,
-    isRunning: false,
+    isRunning: isRunningRef.current, // Restore from ref
     pendingPhase: null,
     taskTimeRemaining: 0, // Will be set when task loads
     taskTotalDuration: 0, // Will be set when task loads
     confirmationRepeats: 0,
     taskStartTime: null,
     actualTimeSpent: 0,
-  });
+  }));
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    isRunningRef.current = state.isRunning;
+  }, [state.isRunning]);
 
   // UI state
   const [showExtendMenu, setShowExtendMenu] = useState(false);
@@ -127,24 +135,27 @@ export function FocusView({
   // Track previous running state for time tracking transitions
   const prevIsRunningRef = useRef<boolean>(state.isRunning);
 
+  // Store callbacks in refs so cleanup can access them without dependencies
+  const onStopTimeTrackingRef = useRef(onStopTimeTracking);
+  onStopTimeTrackingRef.current = onStopTimeTracking;
+
   // Current task - defined early for use in effects
   const currentTask = scheduledTasks[state.currentTaskIndex];
   const currentTodo = currentTask?.todo;
 
-  // Cleanup sound queue on unmount (ambient sounds managed by their own effect)
+  // Cleanup sound queue on unmount only (empty deps = only on unmount)
   useEffect(() => {
-    // Stop any active time tracking when unmounting
-    if (timeTrackingActiveRef.current && onStopTimeTracking) {
-      onStopTimeTracking(timeTrackingActiveRef.current);
-      timeTrackingActiveRef.current = null;
-    }
     return () => {
-      console.log("[Ambient Cleanup] Running cleanup effect");
       clearSoundQueue();
-      // Don't stop ambient sounds here - let the ambient effect manage it
-      // stopAmbientSound will be called when isRunning becomes false
+      stopAmbientSound();
+      // Stop any active time tracking when unmounting
+      if (timeTrackingActiveRef.current && onStopTimeTrackingRef.current) {
+        onStopTimeTrackingRef.current(timeTrackingActiveRef.current);
+        timeTrackingActiveRef.current = null;
+      }
     };
-  }, [onStopTimeTracking]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run on actual unmount
 
   // Handle time tracking based on phase transitions
   useEffect(() => {
@@ -192,13 +203,6 @@ export function FocusView({
 
   // Manage ambient sounds based on phase and settings
   useEffect(() => {
-    console.log("[Ambient Effect] Running:", {
-      isRunning: state.isRunning,
-      phase: state.phase,
-      ambientEnabled: focusSettings.ambientSoundEnabled,
-      workSound: focusSettings.ambientWorkSound,
-    });
-
     if (!focusSettings.ambientSoundEnabled || !state.isRunning) {
       stopAmbientSound();
       return;
@@ -406,8 +410,9 @@ export function FocusView({
           const newTotalWorkTime = s.totalWorkTime + 1;
           const newActualTime = s.actualTimeSpent + 1;
 
-          // Task is complete (task time ran out)
-          if (newTaskTime <= 0) {
+          // Task is complete (task time just crossed from positive to zero or below)
+          // Only trigger if we JUST crossed the threshold, not if we started in overtime
+          if (newTaskTime <= 0 && s.taskTimeRemaining > 0) {
             // Play task complete sound
             if (soundEnabled) {
               playNotificationSound("task-complete");
