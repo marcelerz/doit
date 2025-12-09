@@ -50,7 +50,7 @@ interface FocusState {
   totalWorkTime: number; // seconds worked today
   isRunning: boolean;
   // Confirmation state
-  pendingPhase: "short-break" | "long-break" | "work" | null; // What phase we're transitioning to
+  pendingPhase: "short-break" | "long-break" | "work" | "task-complete" | null; // What phase we're transitioning to
   confirmationRepeats: number; // How many times we've played the reminder
   // Time tracking
   taskStartTime: Date | null; // When current task started
@@ -131,6 +131,8 @@ export function FocusView({
   const prevPhaseRef = useRef<FocusPhase>(state.phase);
   // Track if time tracking is active for current task
   const timeTrackingActiveRef = useRef<string | null>(null);
+  // Track if auto-complete should trigger (for task-complete max repeats)
+  const [shouldAutoComplete, setShouldAutoComplete] = useState(false);
 
   // Track previous running state for time tracking transitions
   const prevIsRunningRef = useRef<boolean>(state.isRunning);
@@ -296,12 +298,14 @@ export function FocusView({
         setState((s) => {
           const newRepeats = s.confirmationRepeats + 1;
 
-          // Play reminder sound
+          // Play reminder sound based on pending phase
           if (soundEnabled) {
             if (s.pendingPhase === "long-break") {
               playNotificationSound("long-break");
             } else if (s.pendingPhase === "short-break") {
               playNotificationSound("short-break");
+            } else if (s.pendingPhase === "task-complete") {
+              playNotificationSound("task-complete");
             } else {
               playNotificationSound("break-end");
             }
@@ -309,6 +313,16 @@ export function FocusView({
 
           // Auto-proceed after max repeats (if not 0 = infinite)
           if (maxRepeats > 0 && newRepeats >= maxRepeats) {
+            // For task-complete, we need to call completeTask which can't be done inside setState
+            // So we signal it with a flag and handle it in a useEffect
+            if (s.pendingPhase === "task-complete") {
+              setShouldAutoComplete(true);
+              return {
+                ...s,
+                pendingPhase: null,
+                confirmationRepeats: 0,
+              };
+            }
             return confirmPhaseTransition(s);
           }
 
@@ -370,6 +384,18 @@ export function FocusView({
           taskStartTime: focusSettings.autoTimeTracking ? new Date() : null,
           isRunning: true,
         };
+      } else if (s.pendingPhase === "task-complete") {
+        // Task complete - move to next task or stop if no more tasks
+        // The actual task completion/toggle and moving to next task is handled
+        // by the caller (completeAndNext or similar)
+        // Here we just clear the pending state and stop the timer
+        return {
+          ...s,
+          pendingPhase: null,
+          confirmationRepeats: 0,
+          isRunning: false,
+          taskTimeRemaining: 0,
+        };
       }
       return s;
     },
@@ -392,9 +418,26 @@ export function FocusView({
     setState((s) => confirmPhaseTransition(s));
   }, [confirmPhaseTransition]);
 
+  // Clear task-complete pending state (used before calling completeTask)
+  const clearTaskCompletePending = useCallback(() => {
+    if (confirmationTimerRef.current) {
+      clearInterval(confirmationTimerRef.current);
+      confirmationTimerRef.current = null;
+    }
+    setState((s) => ({
+      ...s,
+      pendingPhase: null,
+      confirmationRepeats: 0,
+    }));
+  }, []);
+
   // Timer tick
   useEffect(() => {
-    if (!state.isRunning || state.pendingPhase) {
+    // Stop timer if not running, or if pending a break/work transition (but NOT task-complete)
+    // For task-complete, we keep the timer running to track overtime
+    const shouldStopTimer = !state.isRunning || (state.pendingPhase && state.pendingPhase !== "task-complete");
+
+    if (shouldStopTimer) {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
@@ -404,6 +447,16 @@ export function FocusView({
 
     timerRef.current = setInterval(() => {
       setState((s) => {
+        // If in task-complete pending state, just keep tracking time (overtime)
+        if (s.pendingPhase === "task-complete") {
+          return {
+            ...s,
+            taskTimeRemaining: s.taskTimeRemaining - 1, // Goes more negative (overtime)
+            totalWorkTime: s.totalWorkTime + 1,
+            actualTimeSpent: s.actualTimeSpent + 1,
+          };
+        }
+
         if (s.phase === "work") {
           const newWorkTime = s.workTimeRemaining - 1;
           const newTaskTime = s.taskTimeRemaining - 1;
@@ -417,15 +470,29 @@ export function FocusView({
             if (soundEnabled) {
               playNotificationSound("task-complete");
             }
-            // Don't transition here - let the user click Complete or it will auto-complete
-            // Just stop the timer and show task as done
+
+            // If confirmation required, go to pending state but keep timer running
+            if (focusSettings.requireConfirmation) {
+              return {
+                ...s,
+                pendingPhase: "task-complete",
+                workTimeRemaining: 0,
+                taskTimeRemaining: newTaskTime, // Continue tracking (will go negative)
+                totalWorkTime: newTotalWorkTime,
+                actualTimeSpent: newActualTime,
+                confirmationRepeats: 0,
+                // Keep isRunning: true to continue tracking time
+              };
+            }
+
+            // No confirmation required - stop timer and wait for user action
             return {
               ...s,
               workTimeRemaining: 0,
               taskTimeRemaining: 0,
               totalWorkTime: newTotalWorkTime,
               actualTimeSpent: newActualTime,
-              isRunning: false, // Stop timer when task time is up
+              isRunning: false,
             };
           }
 
@@ -696,6 +763,31 @@ export function FocusView({
       timeTrackingActiveRef.current = null;
     }
 
+    // Auto-extend duration if in overtime and setting is enabled
+    // Get state synchronously using a callback to capture current state
+    setState((s) => {
+      if (focusSettings.autoExtendOnOvertime !== false && s.taskTimeRemaining < 0) {
+        // Calculate total time actually spent (original duration + overtime)
+        const totalTimeSpentSeconds = s.taskTotalDuration + Math.abs(s.taskTimeRemaining);
+        const totalMinutes = Math.ceil(totalTimeSpentSeconds / 60);
+
+        // Get fresh todo and update its duration
+        const freshTodo = todos.find((t) => t.id === currentTodo.id);
+        if (freshTodo) {
+          const newDurationStr = `${totalMinutes}m`;
+
+          // Schedule the todo update for after setState
+          setTimeout(() => {
+            onEdit(freshTodo.id, freshTodo.text, freshTodo.plainText, {
+              ...freshTodo.metadata,
+              duration: newDurationStr,
+            });
+          }, 0);
+        }
+      }
+      return s; // Return unchanged state - we only needed to read it
+    });
+
     if (soundEnabled) {
       playNotificationSound("task-complete");
     }
@@ -721,7 +813,30 @@ export function FocusView({
         isRunning: false,
       }));
     }
-  }, [currentTodo, soundEnabled, onToggle, state.currentTaskIndex, scheduledTasks.length, onStopTimeTracking]);
+  }, [
+    currentTodo,
+    soundEnabled,
+    onToggle,
+    state.currentTaskIndex,
+    scheduledTasks.length,
+    onStopTimeTracking,
+    focusSettings.autoExtendOnOvertime,
+    todos,
+    onEdit,
+  ]);
+
+  // Auto-complete task when max repeats reached
+  useEffect(() => {
+    if (shouldAutoComplete) {
+      setShouldAutoComplete(false);
+      // Clear confirmation timer
+      if (confirmationTimerRef.current) {
+        clearInterval(confirmationTimerRef.current);
+        confirmationTimerRef.current = null;
+      }
+      completeTask();
+    }
+  }, [shouldAutoComplete, completeTask]);
 
   // Skip to next task
   const skipTask = useCallback(() => {
@@ -806,7 +921,11 @@ export function FocusView({
           break;
         case " ":
           e.preventDefault();
-          if (state.phase === "pending-break" || state.phase === "pending-work") {
+          if (state.pendingPhase === "task-complete") {
+            // Task complete confirmation - clear pending and complete task
+            clearTaskCompletePending();
+            completeTask();
+          } else if (state.phase === "pending-break" || state.phase === "pending-work") {
             confirmTransition();
           } else if (state.phase === "work" || state.phase === "short-break" || state.phase === "long-break") {
             toggleTimer();
@@ -814,7 +933,11 @@ export function FocusView({
           break;
         case "Enter":
           e.preventDefault();
-          if (state.phase === "pending-break" || state.phase === "pending-work") {
+          if (state.pendingPhase === "task-complete") {
+            // Task complete confirmation - clear pending and complete task
+            clearTaskCompletePending();
+            completeTask();
+          } else if (state.phase === "pending-break" || state.phase === "pending-work") {
             confirmTransition();
           } else if (currentTodo) {
             if (e.shiftKey) {
@@ -863,7 +986,9 @@ export function FocusView({
     currentTodo,
     onOpenDetails,
     completeTask,
+    clearTaskCompletePending,
     state.phase,
+    state.pendingPhase,
     skipBreak,
     skipTask,
     confirmTransition,
@@ -1282,6 +1407,153 @@ export function FocusView({
             className={`h-full transition-all duration-1000 ${isLongBreak ? "bg-green-500" : "bg-blue-500"}`}
             style={{ width: `${progress}%` }}
           />
+        </div>
+      </div>
+    );
+  }
+
+  // Task complete pending state - waiting for user to confirm task completion
+  if (state.pendingPhase === "task-complete") {
+    const maxRepeats = focusSettings.confirmationMaxRepeats ?? 5;
+    const repeatInterval = focusSettings.confirmationRepeatInterval ?? 30;
+    const overtimeSeconds = Math.abs(state.taskTimeRemaining);
+
+    const handleConfirmTaskComplete = () => {
+      clearTaskCompletePending();
+      completeTask();
+    };
+
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-green-50 to-emerald-100 dark:from-emerald-950 dark:to-zinc-900">
+        {/* Header */}
+        <header className="flex items-center justify-between p-4 border-b border-zinc-200/50 dark:border-zinc-800/50">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/50 dark:hover:bg-zinc-700/50 rounded-lg transition-colors"
+              title="Exit focus mode (Esc)"
+            >
+              <svg
+                className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">🎉 Task Complete!</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={`p-2 rounded-lg transition-colors ${
+                soundEnabled
+                  ? "bg-white/50 dark:bg-zinc-700/50 text-zinc-900 dark:text-zinc-100"
+                  : "text-zinc-400 dark:text-zinc-600"
+              }`}
+              title={soundEnabled ? "Mute sounds (M)" : "Enable sounds (M)"}
+            >
+              {soundEnabled ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                  />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
+                  />
+                </svg>
+              )}
+            </button>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center max-w-md">
+            <div className="text-8xl mb-6">✅</div>
+            <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">Task Duration Complete!</h2>
+
+            {/* Task info */}
+            {currentTodo && (
+              <div className="mb-6 p-4 bg-white/50 dark:bg-zinc-800/50 rounded-xl">
+                <p className="text-zinc-900 dark:text-zinc-100 font-medium">
+                  <MarkedText text={currentTodo.plainText} markerColors={markerColors} linkPatterns={linkPatterns} />
+                </p>
+              </div>
+            )}
+
+            {/* Overtime info */}
+            {overtimeSeconds > 0 && (
+              <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-4">
+                ⏱️ Overtime: {formatTime(overtimeSeconds)}
+              </p>
+            )}
+
+            {/* Confirmation reminder info */}
+            {focusSettings.requireConfirmation && (
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+                {maxRepeats > 0 ? (
+                  <>
+                    Reminder {state.confirmationRepeats}
+                    {maxRepeats > 0 && ` of ${maxRepeats}`}
+                    {" • "}Sound plays every {repeatInterval}s
+                  </>
+                ) : (
+                  <>Sound plays every {repeatInterval}s</>
+                )}
+              </p>
+            )}
+
+            {/* Confirm Button */}
+            <button
+              onClick={handleConfirmTaskComplete}
+              className="px-8 py-4 rounded-full font-semibold text-lg transition-all shadow-lg hover:shadow-xl bg-green-600 hover:bg-green-700 text-white"
+            >
+              Complete &amp; Continue (Space/Enter)
+            </button>
+
+            {/* Next task preview */}
+            {state.currentTaskIndex < scheduledTasks.length - 1 && (
+              <div className="mt-8 p-4 bg-white/50 dark:bg-zinc-800/50 rounded-xl">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">Next task:</p>
+                <p className="text-zinc-900 dark:text-zinc-100 font-medium">
+                  <MarkedText
+                    text={scheduledTasks[state.currentTaskIndex + 1]?.todo.plainText ?? ""}
+                    markerColors={markerColors}
+                    linkPatterns={linkPatterns}
+                  />
+                </p>
+              </div>
+            )}
+
+            {/* Last task indicator */}
+            {state.currentTaskIndex >= scheduledTasks.length - 1 && (
+              <div className="mt-8 p-4 bg-white/50 dark:bg-zinc-800/50 rounded-xl">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">🎊 This is your last scheduled task!</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Keyboard Hints */}
+        <div className="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/50 dark:border-zinc-800/50">
+          <span>Space or Enter to complete &amp; continue • Esc to exit</span>
         </div>
       </div>
     );
