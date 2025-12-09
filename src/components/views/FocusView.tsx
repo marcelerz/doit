@@ -18,11 +18,11 @@ import {
   stopAmbientSound,
   getAmbientSoundFile,
 } from "@/utils/notifications";
-import { ScheduledTask, parseDuration } from "@/utils/ganttScheduler";
+import { ScheduledTask, BreakInfo, parseDuration } from "@/utils/ganttScheduler";
 
 interface FocusViewProps {
   todos: TodoModel[];
-  scheduledTasks: ScheduledTask[]; // Pre-scheduled tasks from Gantt view
+  scheduledTasks: ScheduledTask[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
@@ -32,41 +32,63 @@ interface FocusViewProps {
   linkPatterns: LinkPattern[];
   onOpenDetails: (todo: TodoModel) => void;
   onClose: () => void;
-  // Time tracking
   onStartTimeTracking?: (todoId: string, note?: string) => void;
   onStopTimeTracking?: (todoId: string) => void;
 }
 
-type FocusPhase = "work" | "short-break" | "long-break" | "paused" | "completed" | "pending-break" | "pending-work";
+// A schedule item is either a task or a break
+type ScheduleItemType = "task" | "break";
+
+interface ScheduleItem {
+  type: ScheduleItemType;
+  task?: ScheduledTask;
+  breakInfo?: BreakInfo;
+  durationSeconds: number;
+}
+
+type FocusPhase = "work" | "break" | "pending-work" | "pending-break" | "completed";
 
 interface FocusState {
   phase: FocusPhase;
-  currentTaskIndex: number;
-  currentSegmentIndex: number;
-  workTimeRemaining: number; // seconds - Pomodoro session time or task segment time
-  breakTimeRemaining: number; // seconds
-  breakEndTime: Date | null;
-  sessionCount: number; // Pomodoro sessions completed
-  totalWorkTime: number; // seconds worked today
+  currentItemIndex: number;
+  timeRemaining: number;
   isRunning: boolean;
-  // Confirmation state
-  pendingPhase: "short-break" | "long-break" | "work" | "task-complete" | null; // What phase we're transitioning to
-  confirmationRepeats: number; // How many times we've played the reminder
-  // Time tracking
-  taskStartTime: Date | null; // When current task started
-  actualTimeSpent: number; // Seconds spent on current task
-  // Task-level time tracking (separate from Pomodoro sessions)
-  taskTimeRemaining: number; // Total time remaining on current task (seconds)
-  taskTotalDuration: number; // Original task duration (seconds) - for progress calculation
+  totalWorkTime: number;
+  totalBreakTime: number;
+  tasksCompleted: number;
+  breakEndTime: Date | null;
+  pendingPhase: "work" | "break" | null;
+  confirmationRepeats: number;
+  taskStartTime: Date | null;
+  actualTimeSpent: number;
+}
+
+// Format seconds to MM:SS or HH:MM:SS
+function formatTime(seconds: number): string {
+  const isNegative = seconds < 0;
+  const absSeconds = Math.abs(seconds);
+  const hrs = Math.floor(absSeconds / 3600);
+  const mins = Math.floor((absSeconds % 3600) / 60);
+  const secs = absSeconds % 60;
+
+  const timeStr =
+    hrs > 0
+      ? `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+      : `${mins}:${secs.toString().padStart(2, "0")}`;
+
+  return isNegative ? `-${timeStr}` : timeStr;
+}
+
+// Format Date to clock time (e.g., "9:53 PM")
+function formatClockTime(date: Date): string {
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 export function FocusView({
   todos,
   scheduledTasks: preScheduledTasks,
   onToggle,
-  onDelete,
   onEdit,
-  onArchive,
   markerColors,
   settings,
   linkPatterns,
@@ -75,125 +97,146 @@ export function FocusView({
   onStartTimeTracking,
   onStopTimeTracking,
 }: FocusViewProps) {
-  // Filter scheduled tasks to only include non-actual-time tasks at mount time
-  // We filter at initialization and DON'T re-filter when tasks complete to keep indices stable
-  const [scheduledTasks] = useState(() =>
-    preScheduledTasks.filter((t) => !t.isActualTime && !t.todo.isCompleted && !t.todo.isArchived),
+  const focusSettings = settings.focus ?? {};
+  const ganttSettings = settings.gantt ?? {};
+  const technique = ganttSettings.schedulingTechnique ?? "sequential";
+
+  // Filter to only active, non-tracked-time tasks
+  const scheduledTasks = useMemo(
+    () => preScheduledTasks.filter((t) => !t.isActualTime && !t.todo.isCompleted && !t.todo.isArchived),
+    [preScheduledTasks],
   );
 
-  // Get scheduling settings
-  const ganttSettings = settings.gantt ?? {};
-  const focusSettings = settings.focus ?? {};
-  const technique = ganttSettings.schedulingTechnique ?? "sequential";
-  const pomodoroWorkMinutes = ganttSettings.pomodoroWorkDuration ?? 25;
-  const pomodoroShortBreak = ganttSettings.pomodoroShortBreak ?? 5;
-  const pomodoroLongBreak = ganttSettings.pomodoroLongBreak ?? 15;
-  const pomodoroLongBreakInterval = ganttSettings.pomodoroLongBreakInterval ?? 4;
+  // Build a flat schedule: task, break, task, break, task...
+  const schedule = useMemo((): ScheduleItem[] => {
+    const items: ScheduleItem[] = [];
 
-  // Focus state
-  // Use ref to persist isRunning across Strict Mode remounts
-  const isRunningRef = useRef(false);
+    scheduledTasks.forEach((task, index) => {
+      // Add the task
+      items.push({
+        type: "task",
+        task,
+        durationSeconds: task.durationMinutes * 60,
+      });
 
-  const [state, setState] = useState<FocusState>(() => ({
-    phase: "work",
-    currentTaskIndex: 0,
-    currentSegmentIndex: 0,
-    workTimeRemaining: pomodoroWorkMinutes * 60,
-    breakTimeRemaining: 0,
-    breakEndTime: null,
-    sessionCount: 0,
-    totalWorkTime: 0,
-    isRunning: isRunningRef.current, // Restore from ref
-    pendingPhase: null,
-    taskTimeRemaining: 0, // Will be set when task loads
-    taskTotalDuration: 0, // Will be set when task loads
-    confirmationRepeats: 0,
-    taskStartTime: null,
-    actualTimeSpent: 0,
-  }));
+      // Add break after task if there is one (and not the last task)
+      if (task.nextBreak && task.nextBreak.durationMinutes > 0 && index < scheduledTasks.length - 1) {
+        items.push({
+          type: "break",
+          breakInfo: task.nextBreak,
+          durationSeconds: task.nextBreak.durationMinutes * 60,
+        });
+      }
+    });
 
-  // Keep ref in sync with state
-  useEffect(() => {
-    isRunningRef.current = state.isRunning;
-  }, [state.isRunning]);
+    return items;
+  }, [scheduledTasks]);
+
+  // Get current item
+  const getCurrentItem = useCallback(
+    (index: number): ScheduleItem | null => {
+      return schedule[index] ?? null;
+    },
+    [schedule],
+  );
+
+  // State
+  const [state, setState] = useState<FocusState>(() => {
+    const firstItem = schedule[0];
+    return {
+      phase: firstItem?.type === "task" ? "work" : "break",
+      currentItemIndex: 0,
+      timeRemaining: firstItem?.durationSeconds ?? 0,
+      isRunning: false,
+      totalWorkTime: 0,
+      totalBreakTime: 0,
+      tasksCompleted: 0,
+      breakEndTime: null,
+      pendingPhase: null,
+      confirmationRepeats: 0,
+      taskStartTime: null,
+      actualTimeSpent: 0,
+    };
+  });
 
   // UI state
-  const [showExtendMenu, setShowExtendMenu] = useState(false);
-
-  // Sound settings - use from focus settings
   const [soundEnabled, setSoundEnabled] = useState(focusSettings.soundEnabled ?? true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(getNotificationPermission() === "granted");
+  const [showExtendMenu, setShowExtendMenu] = useState(false);
 
-  // Timer interval ref
+  // Refs
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  // Confirmation repeat timer ref
   const confirmationTimerRef = useRef<NodeJS.Timeout | null>(null);
-  // Track previous phase for time tracking transitions
-  const prevPhaseRef = useRef<FocusPhase>(state.phase);
-  // Track if time tracking is active for current task
   const timeTrackingActiveRef = useRef<string | null>(null);
-  // Track if auto-complete should trigger (for task-complete max repeats)
-  const [shouldAutoComplete, setShouldAutoComplete] = useState(false);
-
-  // Track previous running state for time tracking transitions
-  const prevIsRunningRef = useRef<boolean>(state.isRunning);
-
-  // Store callbacks in refs so cleanup can access them without dependencies
   const onStopTimeTrackingRef = useRef(onStopTimeTracking);
   onStopTimeTrackingRef.current = onStopTimeTracking;
 
-  // Current task - defined early for use in effects
-  const currentTask = scheduledTasks[state.currentTaskIndex];
+  // Current item helpers
+  const currentItem = getCurrentItem(state.currentItemIndex);
+  const currentTask = currentItem?.type === "task" ? currentItem.task : null;
   const currentTodo = currentTask?.todo;
+  const currentBreakInfo = currentItem?.type === "break" ? currentItem.breakInfo : null;
 
-  // Cleanup sound queue on unmount only (empty deps = only on unmount)
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       clearSoundQueue();
       stopAmbientSound();
-      // Stop any active time tracking when unmounting
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (confirmationTimerRef.current) clearInterval(confirmationTimerRef.current);
       if (timeTrackingActiveRef.current && onStopTimeTrackingRef.current) {
         onStopTimeTrackingRef.current(timeTrackingActiveRef.current);
         timeTrackingActiveRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps - only run on actual unmount
+  }, []);
 
-  // Handle time tracking based on phase transitions
+  // Ambient sound management
   useEffect(() => {
-    const prevPhase = prevPhaseRef.current;
-    const prevIsRunning = prevIsRunningRef.current;
-    const currentPhase = state.phase;
-    const currentIsRunning = state.isRunning;
-
-    // Update refs for next comparison
-    prevPhaseRef.current = currentPhase;
-    prevIsRunningRef.current = currentIsRunning;
-
-    if (!focusSettings.autoTimeTracking || !currentTodo) return;
-
-    // Start tracking when: work phase becomes running (either by phase change or play button)
-    const shouldStartTracking =
-      currentPhase === "work" &&
-      currentIsRunning &&
-      !timeTrackingActiveRef.current &&
-      (prevPhase !== "work" || !prevIsRunning);
-
-    if (shouldStartTracking && onStartTimeTracking) {
-      onStartTimeTracking(currentTodo.id, "Focus Mode session");
-      timeTrackingActiveRef.current = currentTodo.id;
+    if (!soundEnabled || !focusSettings.ambientSoundEnabled) {
+      stopAmbientSound();
+      return;
     }
 
-    // Stop tracking when: leaving work phase OR stopping timer while in work
-    const shouldStopTracking =
-      timeTrackingActiveRef.current &&
-      ((prevPhase === "work" && currentPhase !== "work") ||
-        (currentPhase === "work" && prevIsRunning && !currentIsRunning));
+    if (state.isRunning && state.phase === "work" && focusSettings.ambientWorkSound) {
+      const soundFile = getAmbientSoundFile(focusSettings.ambientWorkSound);
+      if (soundFile) {
+        playAmbientSound(soundFile, focusSettings.ambientVolume ?? 0.3);
+      }
+    } else if (state.isRunning && state.phase === "break" && focusSettings.ambientBreakSound) {
+      const soundFile = getAmbientSoundFile(focusSettings.ambientBreakSound);
+      if (soundFile) {
+        playAmbientSound(soundFile, focusSettings.ambientVolume ?? 0.3);
+      }
+    } else {
+      stopAmbientSound();
+    }
+  }, [
+    state.phase,
+    state.isRunning,
+    soundEnabled,
+    focusSettings.ambientSoundEnabled,
+    focusSettings.ambientWorkSound,
+    focusSettings.ambientBreakSound,
+    focusSettings.ambientVolume,
+  ]);
 
-    if (shouldStopTracking && onStopTimeTracking && timeTrackingActiveRef.current) {
-      onStopTimeTracking(timeTrackingActiveRef.current);
-      timeTrackingActiveRef.current = null;
+  // Time tracking management
+  useEffect(() => {
+    if (!focusSettings.autoTimeTracking || !currentTodo) return;
+
+    if (state.phase === "work" && state.isRunning && !timeTrackingActiveRef.current) {
+      if (onStartTimeTracking) {
+        onStartTimeTracking(currentTodo.id, "Focus Mode session");
+        timeTrackingActiveRef.current = currentTodo.id;
+      }
+    }
+
+    if (timeTrackingActiveRef.current && (state.phase !== "work" || !state.isRunning)) {
+      if (onStopTimeTracking) {
+        onStopTimeTracking(timeTrackingActiveRef.current);
+        timeTrackingActiveRef.current = null;
+      }
     }
   }, [
     state.phase,
@@ -204,93 +247,82 @@ export function FocusView({
     onStopTimeTracking,
   ]);
 
-  // Manage ambient sounds based on phase and settings
-  useEffect(() => {
-    if (!focusSettings.ambientSoundEnabled || !state.isRunning) {
-      stopAmbientSound();
+  // Move to next item in schedule
+  const moveToNextItem = useCallback(() => {
+    const nextIndex = state.currentItemIndex + 1;
+    const nextItem = getCurrentItem(nextIndex);
+
+    if (!nextItem) {
+      setState((s) => ({
+        ...s,
+        phase: "completed",
+        isRunning: false,
+      }));
       return;
     }
 
-    const isWorkPhase = state.phase === "work";
-    const isBreakPhase = state.phase === "short-break" || state.phase === "long-break";
-
-    if (isWorkPhase && focusSettings.ambientWorkSound) {
-      const soundFile = getAmbientSoundFile(focusSettings.ambientWorkSound);
-      if (soundFile) {
-        playAmbientSound(soundFile, focusSettings.ambientVolume);
-      }
-    } else if (isBreakPhase && focusSettings.ambientBreakSound) {
-      const soundFile = getAmbientSoundFile(focusSettings.ambientBreakSound);
-      if (soundFile) {
-        playAmbientSound(soundFile, focusSettings.ambientVolume);
-      }
-    } else {
-      stopAmbientSound();
-    }
-  }, [
-    state.phase,
-    state.isRunning,
-    focusSettings.ambientSoundEnabled,
-    focusSettings.ambientWorkSound,
-    focusSettings.ambientBreakSound,
-    focusSettings.ambientVolume,
-  ]);
-
-  // Calculate already-tracked time for current task (from previous sessions)
-  const alreadyTrackedSeconds = useMemo(() => {
-    if (!currentTodo || !currentTodo.hasTimeTracking || !currentTodo.timeTracking) return 0;
-    // Sum up all completed time entries (with endTime)
-    return currentTodo.timeTracking.entries.reduce((sum, entry) => {
-      if (entry.endTime && entry.duration) {
-        return sum + entry.duration * 60; // Convert minutes to seconds
-      }
-      return sum;
-    }, 0);
-  }, [currentTodo]);
-
-  // Calculate work time for current task using the SCHEDULED duration from Gantt
-  // This uses the planned duration, not the todo's metadata duration
-  const currentTaskDuration = useMemo(() => {
-    if (!currentTask) return pomodoroWorkMinutes * 60;
-    // Use the scheduled duration in minutes, converted to seconds
-    const scheduledDuration = currentTask.durationMinutes * 60;
-
-    // If useTrackedTimeForDuration is enabled, subtract already-tracked time
-    if (focusSettings.useTrackedTimeForDuration !== false && alreadyTrackedSeconds > 0) {
-      const remaining = scheduledDuration - alreadyTrackedSeconds;
-      // Allow negative time to show overtime
-      return remaining;
-    }
-
-    return scheduledDuration;
-  }, [currentTask, pomodoroWorkMinutes, alreadyTrackedSeconds, focusSettings.useTrackedTimeForDuration]);
-
-  // Original task duration (without subtracting tracked time) - for display
-  // Uses the scheduled duration from Gantt
-  const originalTaskDuration = useMemo(() => {
-    if (!currentTask) return pomodoroWorkMinutes * 60;
-    return currentTask.durationMinutes * 60; // Convert minutes to seconds
-  }, [currentTask, pomodoroWorkMinutes]);
-
-  // Initialize work time when task changes
-  useEffect(() => {
-    // Calculate the initial session time (Pomodoro session or task duration for sequential/flow)
-    const sessionTime = technique === "pomodoro" ? pomodoroWorkMinutes * 60 : currentTaskDuration;
-    // For Pomodoro, start with min of session time and task duration remaining
-    // If task duration is negative (overtime), still allow work to continue
-    const effectiveTaskDuration = Math.max(0, currentTaskDuration);
-    const initialWorkTime =
-      technique === "pomodoro" ? Math.min(sessionTime, Math.max(0, currentTaskDuration)) : effectiveTaskDuration;
-
+    const isTask = nextItem.type === "task";
     setState((s) => ({
       ...s,
-      workTimeRemaining: initialWorkTime > 0 ? initialWorkTime : 0,
-      taskTimeRemaining: currentTaskDuration, // Can be negative for overtime display
-      taskTotalDuration: originalTaskDuration, // Original duration for progress calculation
-      taskStartTime: null,
+      currentItemIndex: nextIndex,
+      phase: isTask ? "work" : "break",
+      timeRemaining: nextItem.durationSeconds,
+      isRunning: true,
+      breakEndTime: isTask
+        ? null
+        : (() => {
+            const end = new Date();
+            end.setSeconds(end.getSeconds() + nextItem.durationSeconds);
+            return end;
+          })(),
+      taskStartTime: isTask ? new Date() : null,
       actualTimeSpent: 0,
+      pendingPhase: null,
+      confirmationRepeats: 0,
     }));
-  }, [state.currentTaskIndex, technique, pomodoroWorkMinutes, currentTaskDuration, originalTaskDuration]);
+  }, [state.currentItemIndex, getCurrentItem]);
+
+  // Confirm transition handler
+  const confirmPhaseTransition = useCallback(
+    (s: FocusState): FocusState => {
+      const nextIndex = s.currentItemIndex + 1;
+      const nextItem = getCurrentItem(nextIndex);
+
+      if (!nextItem) {
+        return { ...s, phase: "completed", isRunning: false, pendingPhase: null, confirmationRepeats: 0 };
+      }
+
+      const isTask = nextItem.type === "task";
+      return {
+        ...s,
+        currentItemIndex: nextIndex,
+        phase: isTask ? "work" : "break",
+        timeRemaining: nextItem.durationSeconds,
+        isRunning: true,
+        breakEndTime: isTask
+          ? null
+          : (() => {
+              const end = new Date();
+              end.setSeconds(end.getSeconds() + nextItem.durationSeconds);
+              return end;
+            })(),
+        taskStartTime: isTask ? new Date() : null,
+        actualTimeSpent: 0,
+        pendingPhase: null,
+        confirmationRepeats: 0,
+      };
+    },
+    [getCurrentItem],
+  );
+
+  // Confirm button handler
+  const confirmTransition = useCallback(() => {
+    if (confirmationTimerRef.current) {
+      clearInterval(confirmationTimerRef.current);
+      confirmationTimerRef.current = null;
+    }
+    setState((s) => confirmPhaseTransition(s));
+  }, [confirmPhaseTransition]);
 
   // Confirmation repeat timer
   useEffect(() => {
@@ -302,31 +334,15 @@ export function FocusView({
         setState((s) => {
           const newRepeats = s.confirmationRepeats + 1;
 
-          // Play reminder sound based on pending phase
           if (soundEnabled) {
-            if (s.pendingPhase === "long-break") {
-              playNotificationSound("long-break");
-            } else if (s.pendingPhase === "short-break") {
+            if (s.pendingPhase === "break") {
               playNotificationSound("short-break");
-            } else if (s.pendingPhase === "task-complete") {
-              playNotificationSound("task-complete");
             } else {
               playNotificationSound("break-end");
             }
           }
 
-          // Auto-proceed after max repeats (if not 0 = infinite)
           if (maxRepeats > 0 && newRepeats >= maxRepeats) {
-            // For task-complete, we need to call completeTask which can't be done inside setState
-            // So we signal it with a flag and handle it in a useEffect
-            if (s.pendingPhase === "task-complete") {
-              setShouldAutoComplete(true);
-              return {
-                ...s,
-                pendingPhase: null,
-                confirmationRepeats: 0,
-              };
-            }
             return confirmPhaseTransition(s);
           }
 
@@ -347,101 +363,12 @@ export function FocusView({
     focusSettings.confirmationRepeatInterval,
     focusSettings.confirmationMaxRepeats,
     soundEnabled,
+    confirmPhaseTransition,
   ]);
-
-  // Helper to complete phase transition after confirmation
-  const confirmPhaseTransition = useCallback(
-    (s: FocusState): FocusState => {
-      if (s.pendingPhase === "short-break" || s.pendingPhase === "long-break") {
-        const isLongBreak = s.pendingPhase === "long-break";
-        const breakDuration =
-          technique === "pomodoro"
-            ? isLongBreak
-              ? pomodoroLongBreak
-              : pomodoroShortBreak
-            : ganttSettings.flowBreakDuration ?? 17;
-
-        const breakEndTime = new Date();
-        breakEndTime.setSeconds(breakEndTime.getSeconds() + breakDuration * 60);
-
-        return {
-          ...s,
-          phase: s.pendingPhase,
-          pendingPhase: null,
-          confirmationRepeats: 0,
-          breakTimeRemaining: breakDuration * 60,
-          breakEndTime,
-          isRunning: true,
-        };
-      } else if (s.pendingPhase === "work") {
-        // Calculate next session time based on remaining task time
-        const nextSessionDuration =
-          technique === "pomodoro" ? Math.min(pomodoroWorkMinutes * 60, s.taskTimeRemaining) : s.taskTimeRemaining;
-        return {
-          ...s,
-          phase: "work",
-          pendingPhase: null,
-          confirmationRepeats: 0,
-          workTimeRemaining: nextSessionDuration,
-          breakTimeRemaining: 0,
-          breakEndTime: null,
-          taskStartTime: focusSettings.autoTimeTracking ? new Date() : null,
-          isRunning: true,
-        };
-      } else if (s.pendingPhase === "task-complete") {
-        // Task complete - move to next task or stop if no more tasks
-        // The actual task completion/toggle and moving to next task is handled
-        // by the caller (completeAndNext or similar)
-        // Here we just clear the pending state and stop the timer
-        return {
-          ...s,
-          pendingPhase: null,
-          confirmationRepeats: 0,
-          isRunning: false,
-          taskTimeRemaining: 0,
-        };
-      }
-      return s;
-    },
-    [
-      technique,
-      pomodoroLongBreak,
-      pomodoroShortBreak,
-      pomodoroWorkMinutes,
-      ganttSettings.flowBreakDuration,
-      focusSettings.autoTimeTracking,
-    ],
-  );
-
-  // Confirm button handler
-  const confirmTransition = useCallback(() => {
-    if (confirmationTimerRef.current) {
-      clearInterval(confirmationTimerRef.current);
-      confirmationTimerRef.current = null;
-    }
-    setState((s) => confirmPhaseTransition(s));
-  }, [confirmPhaseTransition]);
-
-  // Clear task-complete pending state (used before calling completeTask)
-  const clearTaskCompletePending = useCallback(() => {
-    if (confirmationTimerRef.current) {
-      clearInterval(confirmationTimerRef.current);
-      confirmationTimerRef.current = null;
-    }
-    setState((s) => ({
-      ...s,
-      pendingPhase: null,
-      confirmationRepeats: 0,
-    }));
-  }, []);
 
   // Timer tick
   useEffect(() => {
-    // Stop timer if not running, or if pending a break/work transition (but NOT task-complete)
-    // For task-complete, we keep the timer running to track overtime
-    const shouldStopTimer = !state.isRunning || (state.pendingPhase && state.pendingPhase !== "task-complete");
-
-    if (shouldStopTimer) {
+    if (!state.isRunning || state.pendingPhase) {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
@@ -451,182 +378,95 @@ export function FocusView({
 
     timerRef.current = setInterval(() => {
       setState((s) => {
-        // If in task-complete pending state, just keep tracking time (overtime)
-        if (s.pendingPhase === "task-complete") {
-          return {
-            ...s,
-            taskTimeRemaining: s.taskTimeRemaining - 1, // Goes more negative (overtime)
-            totalWorkTime: s.totalWorkTime + 1,
-            actualTimeSpent: s.actualTimeSpent + 1,
-          };
-        }
+        const newTime = s.timeRemaining - 1;
 
-        if (s.phase === "work") {
-          const newWorkTime = s.workTimeRemaining - 1;
-          const newTaskTime = s.taskTimeRemaining - 1;
-          const newTotalWorkTime = s.totalWorkTime + 1;
-          const newActualTime = s.actualTimeSpent + 1;
+        const newTotalWork = s.phase === "work" ? s.totalWorkTime + 1 : s.totalWorkTime;
+        const newTotalBreak = s.phase === "break" ? s.totalBreakTime + 1 : s.totalBreakTime;
+        const newActualTime = s.phase === "work" ? s.actualTimeSpent + 1 : s.actualTimeSpent;
 
-          // Task is complete (task time just crossed from positive to zero or below)
-          // Only trigger if we JUST crossed the threshold, not if we started in overtime
-          if (newTaskTime <= 0 && s.taskTimeRemaining > 0) {
-            // Play task complete sound
-            if (soundEnabled) {
+        // Item complete
+        if (newTime <= 0) {
+          const completingTask = s.phase === "work";
+          const nextIndex = s.currentItemIndex + 1;
+          const nextItem = getCurrentItem(nextIndex);
+
+          if (soundEnabled) {
+            if (completingTask) {
               playNotificationSound("task-complete");
-            }
-
-            // If confirmation required, go to pending state but keep timer running
-            if (focusSettings.requireConfirmation) {
-              return {
-                ...s,
-                pendingPhase: "task-complete",
-                workTimeRemaining: 0,
-                taskTimeRemaining: newTaskTime, // Continue tracking (will go negative)
-                totalWorkTime: newTotalWorkTime,
-                actualTimeSpent: newActualTime,
-                confirmationRepeats: 0,
-                // Keep isRunning: true to continue tracking time
-              };
-            }
-
-            // No confirmation required - signal auto-complete and stop timer
-            // The actual completion is handled by the shouldAutoComplete effect
-            setShouldAutoComplete(true);
-            return {
-              ...s,
-              workTimeRemaining: 0,
-              taskTimeRemaining: newTaskTime,
-              totalWorkTime: newTotalWorkTime,
-              actualTimeSpent: newActualTime,
-              isRunning: false,
-            };
-          }
-
-          // Pomodoro session complete but task has more time
-          if (newWorkTime <= 0 && technique === "pomodoro") {
-            const newSessionCount = s.sessionCount + 1;
-            const isLongBreak = newSessionCount > 0 && newSessionCount % pomodoroLongBreakInterval === 0;
-
-            const pendingPhase = isLongBreak ? "long-break" : "short-break";
-            const breakDuration = isLongBreak ? pomodoroLongBreak : pomodoroShortBreak;
-
-            // Play sounds: session complete sound, then break sound after 3s delay
-            if (soundEnabled) {
-              queueSounds([isLongBreak ? "long-break" : "short-break"]);
-            }
-            if (notificationsEnabled) {
-              sendNotification(isLongBreak ? "🍅 Time for a long break!" : "🍅 Time for a short break!", {
-                body: `Session complete! Take a ${breakDuration} minute break. Task has ${Math.ceil(
-                  newTaskTime / 60,
-                )} min remaining.`,
-                silent: true,
-              });
-            }
-
-            // If confirmation required, go to pending state
-            if (focusSettings.requireConfirmation) {
-              return {
-                ...s,
-                phase: "pending-break",
-                pendingPhase: pendingPhase as "short-break" | "long-break",
-                workTimeRemaining: 0,
-                taskTimeRemaining: newTaskTime,
-                sessionCount: newSessionCount,
-                totalWorkTime: newTotalWorkTime,
-                actualTimeSpent: newActualTime,
-                isRunning: false,
-                confirmationRepeats: 0,
-              };
-            }
-
-            // Otherwise transition immediately
-            const breakEndTime = new Date();
-            breakEndTime.setSeconds(breakEndTime.getSeconds() + breakDuration * 60);
-
-            return {
-              ...s,
-              phase: pendingPhase as "short-break" | "long-break",
-              workTimeRemaining: 0,
-              taskTimeRemaining: newTaskTime,
-              breakTimeRemaining: breakDuration * 60,
-              breakEndTime,
-              sessionCount: newSessionCount,
-              totalWorkTime: newTotalWorkTime,
-              actualTimeSpent: newActualTime,
-            };
-          }
-
-          // Sequential/Flow: session complete = task complete (handled above)
-          if (newWorkTime <= 0 && technique !== "pomodoro") {
-            // For non-Pomodoro, work time = task time, so this shouldn't happen
-            // but handle it gracefully
-            return {
-              ...s,
-              workTimeRemaining: 0,
-              taskTimeRemaining: newTaskTime,
-              totalWorkTime: newTotalWorkTime,
-              actualTimeSpent: newActualTime,
-              isRunning: false,
-            };
-          }
-
-          return {
-            ...s,
-            workTimeRemaining: newWorkTime,
-            taskTimeRemaining: newTaskTime,
-            totalWorkTime: newTotalWorkTime,
-            actualTimeSpent: newActualTime,
-          };
-        } else if (s.phase === "short-break" || s.phase === "long-break") {
-          const newBreakTime = s.breakTimeRemaining - 1;
-
-          if (newBreakTime <= 0) {
-            // Break complete - back to work
-            // Calculate next session duration: min of pomodoro session and remaining task time
-            const nextSessionDuration =
-              technique === "pomodoro" ? Math.min(pomodoroWorkMinutes * 60, s.taskTimeRemaining) : s.taskTimeRemaining;
-
-            // Play sounds: break-end, then task-start after 3s delay
-            if (soundEnabled) {
+            } else {
               queueSounds(["break-end", "task-start"]);
             }
-            if (notificationsEnabled) {
-              sendNotification("🍅 Break over - back to work!", {
-                body: currentTodo?.plainText ?? "Time to focus!",
+          }
+
+          if (notificationsEnabled) {
+            if (completingTask && nextItem?.type === "break") {
+              sendNotification("☕ Time for a break!", {
+                body: `Task complete! Take a ${Math.ceil((nextItem.durationSeconds ?? 0) / 60)} minute break.`,
+                silent: true,
+              });
+            } else if (!completingTask) {
+              sendNotification("🎯 Break over - back to work!", {
+                body: nextItem?.task?.todo.plainText ?? "Time to focus!",
                 silent: true,
               });
             }
+          }
 
-            // If confirmation required, go to pending state
-            if (focusSettings.requireConfirmation) {
-              return {
-                ...s,
-                phase: "pending-work",
-                pendingPhase: "work",
-                breakTimeRemaining: 0,
-                breakEndTime: null,
-                isRunning: false,
-                confirmationRepeats: 0,
-              };
-            }
-
+          if (focusSettings.requireConfirmation) {
             return {
               ...s,
-              phase: "work",
-              workTimeRemaining: nextSessionDuration,
-              breakTimeRemaining: 0,
-              breakEndTime: null,
-              taskStartTime: focusSettings.autoTimeTracking ? new Date() : null,
+              phase: completingTask ? "pending-break" : "pending-work",
+              pendingPhase: completingTask ? "break" : "work",
+              timeRemaining: 0,
+              totalWorkTime: newTotalWork,
+              totalBreakTime: newTotalBreak,
+              actualTimeSpent: newActualTime,
+              tasksCompleted: completingTask ? s.tasksCompleted + 1 : s.tasksCompleted,
+              isRunning: false,
+              confirmationRepeats: 0,
             };
           }
 
+          if (!nextItem) {
+            return {
+              ...s,
+              phase: "completed",
+              isRunning: false,
+              timeRemaining: 0,
+              totalWorkTime: newTotalWork,
+              totalBreakTime: newTotalBreak,
+              tasksCompleted: completingTask ? s.tasksCompleted + 1 : s.tasksCompleted,
+            };
+          }
+
+          const isNextTask = nextItem.type === "task";
           return {
             ...s,
-            breakTimeRemaining: newBreakTime,
+            currentItemIndex: nextIndex,
+            phase: isNextTask ? "work" : "break",
+            timeRemaining: nextItem.durationSeconds,
+            totalWorkTime: newTotalWork,
+            totalBreakTime: newTotalBreak,
+            actualTimeSpent: 0,
+            tasksCompleted: completingTask ? s.tasksCompleted + 1 : s.tasksCompleted,
+            breakEndTime: isNextTask
+              ? null
+              : (() => {
+                  const end = new Date();
+                  end.setSeconds(end.getSeconds() + nextItem.durationSeconds);
+                  return end;
+                })(),
+            taskStartTime: isNextTask ? new Date() : null,
           };
         }
 
-        return s;
+        return {
+          ...s,
+          timeRemaining: newTime,
+          totalWorkTime: newTotalWork,
+          totalBreakTime: newTotalBreak,
+          actualTimeSpent: newActualTime,
+        };
       });
     }, 1000);
 
@@ -638,178 +478,81 @@ export function FocusView({
   }, [
     state.isRunning,
     state.pendingPhase,
-    technique,
-    pomodoroWorkMinutes,
-    pomodoroShortBreak,
-    pomodoroLongBreak,
-    pomodoroLongBreakInterval,
     soundEnabled,
     notificationsEnabled,
-    currentTodo?.plainText,
     focusSettings.requireConfirmation,
-    focusSettings.autoTimeTracking,
+    getCurrentItem,
   ]);
 
-  // Start/pause timer
+  // Toggle timer
   const toggleTimer = useCallback(() => {
     setState((s) => {
-      // Resuming work phase
-      if (!s.isRunning && s.phase === "work") {
-        if (soundEnabled) {
+      if (!s.isRunning) {
+        if (soundEnabled && s.phase === "work") {
           playNotificationSound("task-start");
         }
-        // Time tracking is handled by the phase transition effect
+
         return {
           ...s,
           isRunning: true,
-          taskStartTime: focusSettings.autoTimeTracking && !s.taskStartTime ? new Date() : s.taskStartTime,
+          taskStartTime: s.phase === "work" && !s.taskStartTime ? new Date() : s.taskStartTime,
+          breakEndTime:
+            s.phase === "break"
+              ? (() => {
+                  const end = new Date();
+                  end.setSeconds(end.getSeconds() + s.timeRemaining);
+                  return end;
+                })()
+              : null,
         };
-      }
-
-      // Resuming break phase - recalculate breakEndTime based on remaining time
-      if (!s.isRunning && (s.phase === "short-break" || s.phase === "long-break")) {
-        const newBreakEndTime = new Date();
-        newBreakEndTime.setSeconds(newBreakEndTime.getSeconds() + s.breakTimeRemaining);
-        return {
-          ...s,
-          isRunning: true,
-          breakEndTime: newBreakEndTime,
-        };
-      }
-
-      // Play pause sound when pausing (in work phase)
-      if (s.isRunning && s.phase === "work" && soundEnabled) {
-        playNotificationSound("pause");
-      }
-
-      // When pausing, check if we need to auto-extend
-      // Auto-extend if: autoExtendOnOvertime is enabled AND task time remaining would be <= 0
-      if (s.isRunning && s.phase === "work" && focusSettings.autoExtendOnOvertime !== false) {
-        // If task time remaining is 0 or negative, auto-extend to give at least 1 minute of wrap-up
-        if (s.taskTimeRemaining <= 0) {
-          // Extend by the actual time spent in this session (rounded up to next minute)
-          const extensionMinutes = Math.ceil(s.actualTimeSpent / 60);
-          const additionalTimeSeconds = Math.max(60, extensionMinutes * 60); // At least 1 minute
-          const additionalMinutes = Math.ceil(additionalTimeSeconds / 60);
-
-          // Update the actual todo's duration - get fresh todo from todos array
-          const freshTodo = currentTodo ? todos.find((t) => t.id === currentTodo.id) : null;
-          if (freshTodo) {
-            const currentDurationMinutes = parseDuration(freshTodo.metadata.duration);
-            const newDurationMinutes = currentDurationMinutes + additionalMinutes;
-            const newDurationStr = `${newDurationMinutes}m`;
-
-            // Schedule the todo update for after setState (use setTimeout to escape setState)
-            setTimeout(() => {
-              onEdit(freshTodo.id, freshTodo.text, freshTodo.plainText, {
-                ...freshTodo.metadata,
-                duration: newDurationStr,
-              });
-            }, 0);
-          }
-
-          return {
-            ...s,
-            isRunning: false,
-            taskTimeRemaining: additionalTimeSeconds,
-            taskTotalDuration: s.taskTotalDuration + additionalTimeSeconds,
-          };
+      } else {
+        if (soundEnabled && s.phase === "work") {
+          playNotificationSound("pause");
         }
+        return {
+          ...s,
+          isRunning: false,
+          breakEndTime: null,
+        };
       }
-
-      // When pausing a break, clear breakEndTime (will be recalculated on resume)
-      if (s.isRunning && (s.phase === "short-break" || s.phase === "long-break")) {
-        return { ...s, isRunning: false, breakEndTime: null };
-      }
-
-      // Time tracking stop is handled by the phase transition effect
-      return { ...s, isRunning: !s.isRunning };
     });
-  }, [soundEnabled, focusSettings.autoTimeTracking, focusSettings.autoExtendOnOvertime, currentTodo, todos, onEdit]);
+  }, [soundEnabled]);
 
-  // Extend current task time (extends both local state AND the actual todo duration)
-  const extendTime = useCallback(
-    (minutes: number) => {
-      // Get fresh todo from todos array to avoid stale closure
-      const freshTodo = currentTodo ? todos.find((t) => t.id === currentTodo.id) : null;
-      if (!freshTodo) return;
+  // Skip break
+  const skipBreak = useCallback(() => {
+    if (soundEnabled) {
+      playNotificationSound("task-start");
+    }
+    moveToNextItem();
+  }, [soundEnabled, moveToNextItem]);
 
-      // Update local state
-      setState((s) => {
-        const additionalTime = minutes * 60;
-        const newTaskTimeRemaining = s.taskTimeRemaining + additionalTime;
-        const newTaskTotalDuration = s.taskTotalDuration + additionalTime;
-
-        // If in work phase and timer stopped (task time was up), restart with new time
-        if (s.phase === "work" && !s.isRunning && s.workTimeRemaining === 0) {
-          // Calculate new work session time
-          const newWorkTime =
-            technique === "pomodoro" ? Math.min(pomodoroWorkMinutes * 60, newTaskTimeRemaining) : newTaskTimeRemaining;
-          return {
-            ...s,
-            taskTimeRemaining: newTaskTimeRemaining,
-            taskTotalDuration: newTaskTotalDuration,
-            workTimeRemaining: newWorkTime,
-          };
-        }
-
-        // Otherwise just add to task time (current session continues as-is)
-        return {
-          ...s,
-          taskTimeRemaining: newTaskTimeRemaining,
-          taskTotalDuration: newTaskTotalDuration,
-        };
-      });
-
-      // Update the actual todo's duration using fresh data
-      const currentDurationMinutes = parseDuration(freshTodo.metadata.duration);
-      const newDurationMinutes = currentDurationMinutes + minutes;
-      const newDurationStr = `${newDurationMinutes}m`;
-
-      onEdit(freshTodo.id, freshTodo.text, freshTodo.plainText, {
-        ...freshTodo.metadata,
-        duration: newDurationStr,
-      });
-
-      setShowExtendMenu(false);
-    },
-    [technique, pomodoroWorkMinutes, currentTodo, todos, onEdit],
-  );
-
-  // Complete current task
-  const completeTask = useCallback(() => {
-    if (!currentTodo) return;
-
-    // Stop time tracking before completing (using ref to get active tracking ID)
+  // Skip to break (end work early)
+  const skipToBreak = useCallback(() => {
     if (timeTrackingActiveRef.current && onStopTimeTracking) {
       onStopTimeTracking(timeTrackingActiveRef.current);
       timeTrackingActiveRef.current = null;
     }
 
-    // Auto-extend duration if in overtime and setting is enabled
-    // Get state synchronously using a callback to capture current state
-    setState((s) => {
-      if (focusSettings.autoExtendOnOvertime !== false && s.taskTimeRemaining < 0) {
-        // Calculate total time actually spent (original duration + overtime)
-        const totalTimeSpentSeconds = s.taskTotalDuration + Math.abs(s.taskTimeRemaining);
-        const totalMinutes = Math.ceil(totalTimeSpentSeconds / 60);
+    if (soundEnabled) {
+      playNotificationSound("short-break");
+    }
 
-        // Get fresh todo and update its duration
-        const freshTodo = todos.find((t) => t.id === currentTodo.id);
-        if (freshTodo) {
-          const newDurationStr = `${totalMinutes}m`;
+    setState((s) => ({
+      ...s,
+      tasksCompleted: s.tasksCompleted + 1,
+    }));
 
-          // Schedule the todo update for after setState
-          setTimeout(() => {
-            onEdit(freshTodo.id, freshTodo.text, freshTodo.plainText, {
-              ...freshTodo.metadata,
-              duration: newDurationStr,
-            });
-          }, 0);
-        }
-      }
-      return s; // Return unchanged state - we only needed to read it
-    });
+    moveToNextItem();
+  }, [soundEnabled, moveToNextItem, onStopTimeTracking]);
+
+  // Complete current task manually
+  const completeTask = useCallback(() => {
+    if (!currentTodo) return;
+
+    if (timeTrackingActiveRef.current && onStopTimeTracking) {
+      onStopTimeTracking(timeTrackingActiveRef.current);
+      timeTrackingActiveRef.current = null;
+    }
 
     if (soundEnabled) {
       playNotificationSound("task-complete");
@@ -817,119 +560,61 @@ export function FocusView({
 
     onToggle(currentTodo.id);
 
-    // Move to next task
-    if (state.currentTaskIndex < scheduledTasks.length - 1) {
-      setState((s) => ({
-        ...s,
-        currentTaskIndex: s.currentTaskIndex + 1,
-        currentSegmentIndex: 0,
-        phase: "work",
-        // Note: workTimeRemaining, taskTimeRemaining, taskTotalDuration will be properly
-        // initialized by the useEffect that watches currentTaskIndex changes
-        taskStartTime: null,
-        actualTimeSpent: 0,
-      }));
-    } else {
-      setState((s) => ({
-        ...s,
-        phase: "completed",
-        isRunning: false,
-      }));
-    }
-  }, [
-    currentTodo,
-    soundEnabled,
-    onToggle,
-    state.currentTaskIndex,
-    scheduledTasks.length,
-    onStopTimeTracking,
-    focusSettings.autoExtendOnOvertime,
-    todos,
-    onEdit,
-  ]);
+    setState((s) => ({
+      ...s,
+      tasksCompleted: s.tasksCompleted + 1,
+    }));
 
-  // Auto-complete task when max repeats reached
-  useEffect(() => {
-    if (shouldAutoComplete) {
-      setShouldAutoComplete(false);
-      // Clear confirmation timer
-      if (confirmationTimerRef.current) {
-        clearInterval(confirmationTimerRef.current);
-        confirmationTimerRef.current = null;
-      }
-      completeTask();
-    }
-  }, [shouldAutoComplete, completeTask]);
+    moveToNextItem();
+  }, [currentTodo, soundEnabled, onToggle, moveToNextItem, onStopTimeTracking]);
 
-  // Skip to next task
+  // Skip task without completing
   const skipTask = useCallback(() => {
-    // Stop time tracking for current task when skipping (using ref to get active tracking ID)
     if (timeTrackingActiveRef.current && onStopTimeTracking) {
       onStopTimeTracking(timeTrackingActiveRef.current);
       timeTrackingActiveRef.current = null;
     }
 
-    if (state.currentTaskIndex < scheduledTasks.length - 1) {
-      if (soundEnabled) {
-        playNotificationSound("task-start");
-      }
+    if (soundEnabled) {
+      playNotificationSound("task-start");
+    }
+
+    moveToNextItem();
+  }, [soundEnabled, moveToNextItem, onStopTimeTracking]);
+
+  // Extend time
+  const extendTime = useCallback(
+    (minutes: number) => {
+      const freshTodo = currentTodo ? todos.find((t) => t.id === currentTodo.id) : null;
+      if (!freshTodo) return;
+
       setState((s) => ({
         ...s,
-        currentTaskIndex: s.currentTaskIndex + 1,
-        currentSegmentIndex: 0,
-        phase: "work",
-        // Note: workTimeRemaining, taskTimeRemaining, taskTotalDuration will be properly
-        // initialized by the useEffect that watches currentTaskIndex changes
-        breakTimeRemaining: 0,
-        breakEndTime: null,
+        timeRemaining: s.timeRemaining + minutes * 60,
       }));
-    }
-  }, [state.currentTaskIndex, scheduledTasks.length, soundEnabled, onStopTimeTracking]);
 
-  // Skip break
-  const skipBreak = useCallback(() => {
-    if (soundEnabled) {
-      queueSounds(["break-end", "task-start"]);
-    }
-    setState((s) => {
-      // Calculate next session time based on remaining task time
-      const nextSessionDuration =
-        technique === "pomodoro" ? Math.min(pomodoroWorkMinutes * 60, s.taskTimeRemaining) : s.taskTimeRemaining;
-      return {
-        ...s,
-        phase: "work",
-        workTimeRemaining: nextSessionDuration,
-        breakTimeRemaining: 0,
-        breakEndTime: null,
-      };
-    });
-  }, [soundEnabled, technique, pomodoroWorkMinutes]);
+      const currentDurationMinutes = parseDuration(freshTodo.metadata.duration);
+      const newDurationMinutes = currentDurationMinutes + minutes;
+      onEdit(freshTodo.id, freshTodo.text, freshTodo.plainText, {
+        ...freshTodo.metadata,
+        duration: `${newDurationMinutes}m`,
+      });
 
-  // Request notification permission
+      setShowExtendMenu(false);
+    },
+    [currentTodo, todos, onEdit],
+  );
+
+  // Enable notifications
   const enableNotifications = useCallback(async () => {
-    const permission = await requestNotificationPermission();
-    setNotificationsEnabled(permission === "granted");
+    const result = await requestNotificationPermission();
+    setNotificationsEnabled(result === "granted");
   }, []);
 
-  // Format time as MM:SS (with negative sign for overtime)
-  const formatTime = (seconds: number): string => {
-    const isNegative = seconds < 0;
-    const mins = Math.floor(Math.abs(seconds) / 60);
-    const secs = Math.abs(seconds) % 60;
-    const timeStr = `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-    return isNegative ? `-${timeStr}` : timeStr;
-  };
-
-  // Format time as HH:MM AM/PM
-  const formatClockTime = (date: Date): string => {
-    return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  };
-
-  // Keyboard navigation
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
 
@@ -944,38 +629,35 @@ export function FocusView({
           break;
         case " ":
           e.preventDefault();
-          if (state.pendingPhase === "task-complete") {
-            // Task complete confirmation - clear pending and complete task
-            clearTaskCompletePending();
-            completeTask();
-          } else if (state.phase === "pending-break" || state.phase === "pending-work") {
+          if (state.phase === "pending-break" || state.phase === "pending-work") {
             confirmTransition();
-          } else if (state.phase === "work" || state.phase === "short-break" || state.phase === "long-break") {
+          } else {
             toggleTimer();
           }
           break;
         case "Enter":
           e.preventDefault();
-          if (state.pendingPhase === "task-complete") {
-            // Task complete confirmation - clear pending and complete task
-            clearTaskCompletePending();
-            completeTask();
-          } else if (state.phase === "pending-break" || state.phase === "pending-work") {
+          if (state.phase === "pending-break" || state.phase === "pending-work") {
             confirmTransition();
+          } else if (e.shiftKey && currentTodo) {
+            completeTask();
           } else if (currentTodo) {
-            if (e.shiftKey) {
-              completeTask();
-            } else {
-              onOpenDetails(currentTodo);
-            }
+            onOpenDetails(currentTodo);
           }
           break;
         case "s":
         case "S":
           e.preventDefault();
-          if (state.phase === "short-break" || state.phase === "long-break") {
+          if (state.phase === "break") {
             skipBreak();
-          } else {
+          } else if (state.phase === "work") {
+            skipToBreak();
+          }
+          break;
+        case "n":
+        case "N":
+          e.preventDefault();
+          if (state.phase === "work") {
             skipTask();
           }
           break;
@@ -1006,50 +688,46 @@ export function FocusView({
   }, [
     onClose,
     toggleTimer,
+    confirmTransition,
+    completeTask,
+    skipBreak,
+    skipToBreak,
+    skipTask,
+    state.phase,
     currentTodo,
     onOpenDetails,
-    completeTask,
-    clearTaskCompletePending,
-    state.phase,
-    state.pendingPhase,
-    skipBreak,
-    skipTask,
-    confirmTransition,
     showExtendMenu,
     extendTime,
     focusSettings.defaultExtendMinutes,
   ]);
 
-  // Progress percentage
+  // Progress calculation
   const progress = useMemo(() => {
-    if (state.phase === "work") {
-      const totalWork = technique === "pomodoro" ? pomodoroWorkMinutes * 60 : currentTaskDuration;
-      return ((totalWork - state.workTimeRemaining) / totalWork) * 100;
-    } else if (state.phase === "short-break" || state.phase === "long-break") {
-      const totalBreak = state.phase === "long-break" ? pomodoroLongBreak * 60 : pomodoroShortBreak * 60;
-      return ((totalBreak - state.breakTimeRemaining) / totalBreak) * 100;
-    }
-    return 0;
-  }, [
-    state.phase,
-    state.workTimeRemaining,
-    state.breakTimeRemaining,
-    technique,
-    pomodoroWorkMinutes,
-    pomodoroShortBreak,
-    pomodoroLongBreak,
-    currentTaskDuration,
-  ]);
+    const currentItemData = getCurrentItem(state.currentItemIndex);
+    if (!currentItemData) return 0;
+    const total = currentItemData.durationSeconds;
+    return ((total - state.timeRemaining) / total) * 100;
+  }, [state.currentItemIndex, state.timeRemaining, getCurrentItem]);
 
-  // Technique icon
+  // Technique display
   const techniqueIcon = technique === "pomodoro" ? "🍅" : technique === "flow" ? "🌊" : "📋";
   const techniqueName = technique === "pomodoro" ? "Pomodoro" : technique === "flow" ? "Flow" : "Sequential";
+
+  // Count tasks in schedule
+  const totalTasks = scheduledTasks.length;
+  const currentTaskNumber = useMemo(() => {
+    let count = 0;
+    for (let i = 0; i <= state.currentItemIndex; i++) {
+      if (schedule[i]?.type === "task") count++;
+    }
+    return count;
+  }, [state.currentItemIndex, schedule]);
 
   // Count active todos for display
   const activeTodosCount = todos.filter((t) => t.isActive).length;
 
-  // Empty state - no scheduled tasks
-  if (scheduledTasks.length === 0) {
+  // Empty state
+  if (schedule.length === 0) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800">
         <div className="text-center p-8">
@@ -1057,17 +735,10 @@ export function FocusView({
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
             {activeTodosCount === 0 ? "All caught up!" : "No tasks scheduled for today"}
           </h2>
-          <p className="text-zinc-600 dark:text-zinc-400 mb-2">
+          <p className="text-zinc-600 dark:text-zinc-400 mb-6">
             {activeTodosCount === 0
               ? "No active tasks to focus on."
-              : `You have ${activeTodosCount} active task${
-                  activeTodosCount !== 1 ? "s" : ""
-                }, but none are scheduled for today.`}
-          </p>
-          <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-6">
-            {activeTodosCount === 0
-              ? "Create some tasks to use Focus Mode."
-              : "Set due dates on your tasks or check your scheduling settings."}
+              : `You have ${activeTodosCount} active task${activeTodosCount !== 1 ? "s" : ""}, but none are scheduled.`}
           </p>
           <button
             onClick={onClose}
@@ -1088,11 +759,9 @@ export function FocusView({
           <div className="text-6xl mb-4">🎉</div>
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">All tasks completed!</h2>
           <p className="text-zinc-600 dark:text-zinc-400 mb-2">
-            You worked for {formatTime(state.totalWorkTime)} today.
+            You worked for {formatTime(state.totalWorkTime)} and took {formatTime(state.totalBreakTime)} in breaks.
           </p>
-          <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-6">
-            Completed {state.sessionCount} {technique === "pomodoro" ? "pomodoro sessions" : "work sessions"}.
-          </p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-6">Completed {state.tasksCompleted} tasks.</p>
           <button
             onClick={onClose}
             className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
@@ -1104,10 +773,11 @@ export function FocusView({
     );
   }
 
-  // Pending confirmation state - waiting for user to confirm break or work start
+  // Pending confirmation state
   if (state.phase === "pending-break" || state.phase === "pending-work") {
     const isBreakPending = state.phase === "pending-break";
-    const isLongBreak = state.pendingPhase === "long-break";
+    const nextItem = getCurrentItem(state.currentItemIndex + 1);
+    const nextBreakInfo = nextItem?.breakInfo;
     const maxRepeats = focusSettings.confirmationMaxRepeats ?? 5;
     const repeatInterval = focusSettings.confirmationRepeatInterval ?? 30;
 
@@ -1115,9 +785,7 @@ export function FocusView({
       <div
         className={`fixed inset-0 z-50 flex flex-col ${
           isBreakPending
-            ? isLongBreak
-              ? "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-emerald-950 dark:to-zinc-900"
-              : "bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-cyan-950 dark:to-zinc-900"
+            ? "bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-cyan-950 dark:to-zinc-900"
             : "bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950 dark:to-zinc-900"
         }`}
       >
@@ -1127,7 +795,7 @@ export function FocusView({
             <button
               onClick={onClose}
               className="p-2 hover:bg-white/50 dark:hover:bg-zinc-700/50 rounded-lg transition-colors"
-              title="Exit focus mode (Esc)"
+              title="Exit (Esc)"
             >
               <svg
                 className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
@@ -1139,83 +807,34 @@ export function FocusView({
               </svg>
             </button>
             <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              {techniqueIcon} {isBreakPending ? "Confirm Break" : "Confirm Work Start"}
+              {techniqueIcon} Focus Mode ({techniqueName})
             </h1>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`p-2 rounded-lg transition-colors ${
-                soundEnabled
-                  ? "bg-white/50 dark:bg-zinc-700/50 text-zinc-900 dark:text-zinc-100"
-                  : "text-zinc-400 dark:text-zinc-600"
-              }`}
-              title={soundEnabled ? "Mute sounds (M)" : "Enable sounds (M)"}
-            >
-              {soundEnabled ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                  />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-                  />
-                </svg>
-              )}
-            </button>
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">Session {state.sessionCount}</span>
-          </div>
+          <span className="text-sm text-zinc-600 dark:text-zinc-400">
+            Task {currentTaskNumber} of {totalTasks}
+          </span>
         </header>
 
-        {/* Main Content - Pending Confirmation */}
+        {/* Main Content */}
         <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center max-w-md">
-            <div className="text-8xl mb-6 animate-pulse">{isBreakPending ? (isLongBreak ? "☕" : "💆") : "🔔"}</div>
+          <div className="text-center">
+            <div className="text-8xl mb-6">{isBreakPending ? nextBreakInfo?.icon || "☕" : "🎯"}</div>
             <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">
-              {isBreakPending
-                ? isLongBreak
-                  ? "Time for a long break!"
-                  : "Time for a short break!"
-                : "Break's over - Ready to work?"}
+              {isBreakPending ? `Time for a ${nextBreakInfo?.label || "break"}!` : "Break complete!"}
             </h2>
-            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-2">
-              {isBreakPending
-                ? "Great work! Click below to start your break."
-                : "Click below to start your next work session."}
-            </p>
-            <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-8">
-              {soundEnabled && (
-                <>
-                  Reminder {state.confirmationRepeats + 1}
-                  {maxRepeats > 0 && ` of ${maxRepeats}`}
-                  {" • "}Sound plays every {repeatInterval}s
-                </>
-              )}
+            <p className="text-xl text-zinc-600 dark:text-zinc-400 mb-8">
+              {isBreakPending ? "Great work! Click below to start your break." : "Ready to start the next task?"}
             </p>
 
-            {/* Confirm Button */}
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+              Reminder {state.confirmationRepeats} of {maxRepeats} • Sound plays every {repeatInterval}s
+            </p>
+
             <button
               onClick={confirmTransition}
               className={`px-8 py-4 rounded-full font-semibold text-lg transition-all shadow-lg hover:shadow-xl ${
                 isBreakPending
-                  ? isLongBreak
-                    ? "bg-green-600 hover:bg-green-700 text-white"
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                  ? "bg-blue-600 hover:bg-blue-700 text-white"
                   : "bg-orange-600 hover:bg-orange-700 text-white"
               }`}
             >
@@ -1223,11 +842,15 @@ export function FocusView({
             </button>
 
             {/* Next task preview */}
-            {!isBreakPending && currentTodo && (
-              <div className="mt-12 p-4 bg-white/50 dark:bg-zinc-800/50 rounded-xl">
+            {!isBreakPending && nextItem?.task && (
+              <div className="mt-12 p-4 bg-white/50 dark:bg-zinc-800/50 rounded-xl max-w-md mx-auto">
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">Next task:</p>
                 <p className="text-zinc-900 dark:text-zinc-100 font-medium">
-                  <MarkedText text={currentTodo.plainText} markerColors={markerColors} linkPatterns={linkPatterns} />
+                  <MarkedText
+                    text={nextItem.task.todo.plainText}
+                    markerColors={markerColors}
+                    linkPatterns={linkPatterns}
+                  />
                 </p>
               </div>
             )}
@@ -1236,31 +859,23 @@ export function FocusView({
 
         {/* Keyboard Hints */}
         <div className="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/50 dark:border-zinc-800/50">
-          <span>Space or Enter to confirm • Esc to exit</span>
+          <span>Space/Enter Confirm • Esc Exit</span>
         </div>
       </div>
     );
   }
 
   // Break phase
-  if (state.phase === "short-break" || state.phase === "long-break") {
-    const isLongBreak = state.phase === "long-break";
-
+  if (state.phase === "break" && currentBreakInfo) {
     return (
-      <div
-        className={`fixed inset-0 z-50 flex flex-col ${
-          isLongBreak
-            ? "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-emerald-950 dark:to-zinc-900"
-            : "bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-cyan-950 dark:to-zinc-900"
-        }`}
-      >
+      <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-cyan-950 dark:to-zinc-900">
         {/* Header */}
         <header className="flex items-center justify-between p-4 border-b border-zinc-200/50 dark:border-zinc-800/50">
           <div className="flex items-center gap-4">
             <button
               onClick={onClose}
               className="p-2 hover:bg-white/50 dark:hover:bg-zinc-700/50 rounded-lg transition-colors"
-              title="Exit focus mode (Esc)"
+              title="Exit (Esc)"
             >
               <svg
                 className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
@@ -1272,7 +887,7 @@ export function FocusView({
               </svg>
             </button>
             <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              {techniqueIcon} {isLongBreak ? "Long Break" : "Short Break"}
+              {currentBreakInfo.icon || "☕"} {currentBreakInfo.label || "Break"}
             </h1>
           </div>
           <div className="flex items-center gap-3">
@@ -1283,61 +898,52 @@ export function FocusView({
                   ? "bg-white/50 dark:bg-zinc-700/50 text-zinc-900 dark:text-zinc-100"
                   : "text-zinc-400 dark:text-zinc-600"
               }`}
-              title={soundEnabled ? "Mute sounds (M)" : "Enable sounds (M)"}
+              title={soundEnabled ? "Mute (M)" : "Unmute (M)"}
             >
-              {soundEnabled ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {soundEnabled ? (
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
                     d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
                   />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                ) : (
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                    d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
                   />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-                  />
-                </svg>
-              )}
+                )}
+              </svg>
             </button>
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">Session {state.sessionCount}</span>
+            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+              Task {currentTaskNumber} of {totalTasks}
+            </span>
           </div>
         </header>
 
-        {/* Main Content - Break */}
+        {/* Main Content */}
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center">
-            <div className="text-8xl mb-6">{isLongBreak ? "☕" : "💆"}</div>
+            <div className="text-8xl mb-6">{currentBreakInfo.icon || "☕"}</div>
             <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">
-              {isLongBreak ? "Take a long break!" : "Take a short break!"}
+              {currentBreakInfo.label || "Take a break!"}
             </h2>
 
-            {/* Countdown Timer */}
             <div className="text-7xl font-mono font-bold text-zinc-900 dark:text-zinc-100 mb-4">
-              {formatTime(state.breakTimeRemaining)}
+              {formatTime(state.timeRemaining)}
             </div>
 
-            {/* Continue time */}
             <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8">
               {state.breakEndTime ? (
                 <>Continue at {formatClockTime(state.breakEndTime)}</>
               ) : (
-                <span className="text-zinc-400 dark:text-zinc-500">Paused</span>
+                <span className="text-zinc-400">Paused</span>
               )}
             </p>
 
-            {/* Actions */}
             <div className="flex items-center justify-center gap-4">
               <button
                 onClick={toggleTimer}
@@ -1347,244 +953,61 @@ export function FocusView({
                     : "bg-green-600 hover:bg-green-700 text-white"
                 }`}
               >
-                {state.isRunning ? (
-                  <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    Pause
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    Resume
-                  </>
-                )}
+                {state.isRunning ? "Pause" : "Resume"}
               </button>
-
               <button
                 onClick={skipBreak}
                 className="px-6 py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
               >
-                Skip Break (S)
+                Skip Break
               </button>
             </div>
 
             {/* Next task preview */}
-            {currentTodo && (
-              <div className="mt-12 p-4 bg-white/50 dark:bg-zinc-800/50 rounded-xl max-w-md mx-auto">
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">Up next:</p>
-                <p className="text-zinc-900 dark:text-zinc-100 font-medium">
-                  <MarkedText text={currentTodo.plainText} markerColors={markerColors} linkPatterns={linkPatterns} />
-                </p>
-                {/* Task progress during break */}
-                {technique === "pomodoro" && state.taskTotalDuration > 0 && state.taskTimeRemaining > 0 && (
-                  <div className="mt-3 pt-3 border-t border-zinc-200/50 dark:border-zinc-700/50">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-zinc-500 dark:text-zinc-400">Task progress:</span>
-                      <span className="font-mono text-zinc-700 dark:text-zinc-300">
-                        {formatTime(state.taskTotalDuration - state.taskTimeRemaining)} /{" "}
-                        {formatTime(state.taskTotalDuration)}
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden mt-2">
-                      <div
-                        className="h-full bg-blue-500"
-                        style={{
-                          width: `${Math.min(
-                            100,
-                            ((state.taskTotalDuration - state.taskTimeRemaining) / state.taskTotalDuration) * 100,
-                          )}%`,
-                        }}
+            {(() => {
+              const nextItem = getCurrentItem(state.currentItemIndex + 1);
+              if (nextItem?.task) {
+                return (
+                  <div className="mt-12 p-4 bg-white/50 dark:bg-zinc-800/50 rounded-xl max-w-md mx-auto">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">Up next:</p>
+                    <p className="text-zinc-900 dark:text-zinc-100 font-medium">
+                      <MarkedText
+                        text={nextItem.task.todo.plainText}
+                        markerColors={markerColors}
+                        linkPatterns={linkPatterns}
                       />
-                    </div>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                      {formatTime(state.taskTimeRemaining)} remaining
                     </p>
                   </div>
-                )}
-              </div>
-            )}
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="h-2 bg-zinc-200/50 dark:bg-zinc-700/50">
-          <div
-            className={`h-full transition-all duration-1000 ${isLongBreak ? "bg-green-500" : "bg-blue-500"}`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // Task complete pending state - waiting for user to confirm task completion
-  if (state.pendingPhase === "task-complete") {
-    const maxRepeats = focusSettings.confirmationMaxRepeats ?? 5;
-    const repeatInterval = focusSettings.confirmationRepeatInterval ?? 30;
-    const overtimeSeconds = Math.abs(state.taskTimeRemaining);
-
-    const handleConfirmTaskComplete = () => {
-      clearTaskCompletePending();
-      completeTask();
-    };
-
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-green-50 to-emerald-100 dark:from-emerald-950 dark:to-zinc-900">
-        {/* Header */}
-        <header className="flex items-center justify-between p-4 border-b border-zinc-200/50 dark:border-zinc-800/50">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/50 dark:hover:bg-zinc-700/50 rounded-lg transition-colors"
-              title="Exit focus mode (Esc)"
-            >
-              <svg
-                className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">🎉 Task Complete!</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`p-2 rounded-lg transition-colors ${
-                soundEnabled
-                  ? "bg-white/50 dark:bg-zinc-700/50 text-zinc-900 dark:text-zinc-100"
-                  : "text-zinc-400 dark:text-zinc-600"
-              }`}
-              title={soundEnabled ? "Mute sounds (M)" : "Enable sounds (M)"}
-            >
-              {soundEnabled ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                  />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-                  />
-                </svg>
-              )}
-            </button>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center max-w-md">
-            <div className="text-8xl mb-6">✅</div>
-            <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">Task Duration Complete!</h2>
-
-            {/* Task info */}
-            {currentTodo && (
-              <div className="mb-6 p-4 bg-white/50 dark:bg-zinc-800/50 rounded-xl">
-                <p className="text-zinc-900 dark:text-zinc-100 font-medium">
-                  <MarkedText text={currentTodo.plainText} markerColors={markerColors} linkPatterns={linkPatterns} />
-                </p>
-              </div>
-            )}
-
-            {/* Overtime info */}
-            {overtimeSeconds > 0 && (
-              <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-4">
-                ⏱️ Overtime: {formatTime(overtimeSeconds)}
-              </p>
-            )}
-
-            {/* Confirmation reminder info */}
-            {focusSettings.requireConfirmation && (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-                {maxRepeats > 0 ? (
-                  <>
-                    Reminder {state.confirmationRepeats}
-                    {maxRepeats > 0 && ` of ${maxRepeats}`}
-                    {" • "}Sound plays every {repeatInterval}s
-                  </>
-                ) : (
-                  <>Sound plays every {repeatInterval}s</>
-                )}
-              </p>
-            )}
-
-            {/* Confirm Button */}
-            <button
-              onClick={handleConfirmTaskComplete}
-              className="px-8 py-4 rounded-full font-semibold text-lg transition-all shadow-lg hover:shadow-xl bg-green-600 hover:bg-green-700 text-white"
-            >
-              Complete &amp; Continue (Space/Enter)
-            </button>
-
-            {/* Next task preview */}
-            {state.currentTaskIndex < scheduledTasks.length - 1 && (
-              <div className="mt-8 p-4 bg-white/50 dark:bg-zinc-800/50 rounded-xl">
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">Next task:</p>
-                <p className="text-zinc-900 dark:text-zinc-100 font-medium">
-                  <MarkedText
-                    text={scheduledTasks[state.currentTaskIndex + 1]?.todo.plainText ?? ""}
-                    markerColors={markerColors}
-                    linkPatterns={linkPatterns}
-                  />
-                </p>
-              </div>
-            )}
-
-            {/* Last task indicator */}
-            {state.currentTaskIndex >= scheduledTasks.length - 1 && (
-              <div className="mt-8 p-4 bg-white/50 dark:bg-zinc-800/50 rounded-xl">
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">🎊 This is your last scheduled task!</p>
-              </div>
-            )}
+        {/* Stats */}
+        <div className="p-4 border-t border-zinc-200/50 dark:border-zinc-800/50">
+          <div className="flex justify-center gap-6 text-sm text-zinc-600 dark:text-zinc-400">
+            <span>🎯 Work: {formatTime(state.totalWorkTime)}</span>
+            <span>☕ Break: {formatTime(state.totalBreakTime)}</span>
+            <span>✅ Completed: {state.tasksCompleted}</span>
           </div>
         </div>
 
         {/* Keyboard Hints */}
         <div className="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/50 dark:border-zinc-800/50">
-          <span>Space or Enter to complete &amp; continue • Esc to exit</span>
+          <span>Space {state.isRunning ? "Pause" : "Resume"} • S Skip • M Mute • Esc Exit</span>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="h-2 bg-zinc-200/50 dark:bg-zinc-700/50">
+          <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${progress}%` }} />
         </div>
       </div>
     );
   }
 
-  // Work phase
+  // Work phase (default)
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800">
       {/* Header */}
@@ -1593,7 +1016,7 @@ export function FocusView({
           <button
             onClick={onClose}
             className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
-            title="Exit focus mode (Esc)"
+            title="Exit (Esc)"
           >
             <svg
               className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
@@ -1618,33 +1041,25 @@ export function FocusView({
                 ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
                 : "text-zinc-400 dark:text-zinc-600"
             }`}
-            title={soundEnabled ? "Mute sounds (M)" : "Enable sounds (M)"}
+            title={soundEnabled ? "Mute (M)" : "Unmute (M)"}
           >
-            {soundEnabled ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {soundEnabled ? (
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
                   d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
                 />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              ) : (
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                  d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
                 />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-                />
-              </svg>
-            )}
+              )}
+            </svg>
           </button>
           {!notificationsEnabled && (
             <button
@@ -1663,186 +1078,107 @@ export function FocusView({
             </button>
           )}
           <span className="text-sm text-zinc-600 dark:text-zinc-400">
-            Task {state.currentTaskIndex + 1} of {scheduledTasks.length}
+            Task {currentTaskNumber} of {totalTasks}
           </span>
         </div>
       </header>
 
-      {/* Main Content - Work */}
+      {/* Task Card */}
       <div className="flex-1 flex flex-col items-center justify-center p-8">
         <div className="w-full max-w-2xl">
-          {/* Task Card */}
-          <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl p-8 mb-8">
-            {/* Priority Badge */}
-            {currentTodo?.metadata.priority && (
-              <div className="mb-4">
-                <Badge variant="red" size="md">
-                  {currentTodo.metadata.priority}
-                </Badge>
-              </div>
-            )}
+          {currentTodo && (
+            <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl p-8 mb-8">
+              {/* Priority Badge */}
+              {currentTodo.metadata.priority && (
+                <div className="mb-4">
+                  <Badge variant="red" size="md">
+                    {currentTodo.metadata.priority}
+                  </Badge>
+                </div>
+              )}
 
-            {/* Task Text */}
-            <div className="mb-6">
-              <p className="text-2xl font-medium text-zinc-900 dark:text-zinc-100 leading-relaxed">
-                {currentTodo && (
-                  <MarkedText text={currentTodo.plainText} markerColors={markerColors} linkPatterns={linkPatterns} />
-                )}
+              {/* Task Text */}
+              <p className="text-2xl font-medium text-zinc-900 dark:text-zinc-100 leading-relaxed mb-6">
+                <MarkedText text={currentTodo.plainText} markerColors={markerColors} linkPatterns={linkPatterns} />
               </p>
-            </div>
 
-            {/* Metadata */}
-            <div className="flex flex-wrap gap-3 text-sm mb-6">
-              {currentTodo?.metadata.dueDate && (
-                <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <span>{currentTodo.dueDateDisplay || currentTodo.metadata.dueDate}</span>
-                </div>
-              )}
-              {currentTodo?.metadata.duration && (
-                <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span>{currentTodo.durationDisplay}</span>
-                </div>
-              )}
-              {currentTodo && currentTodo.metadata.assignedPeople.length > 0 && (
-                <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                  <span>{currentTodo.metadata.assignedPeople.join(", ")}</span>
-                </div>
-              )}
-              {currentTodo && currentTodo.metadata.projects.length > 0 && (
-                <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                    />
-                  </svg>
-                  <span>{currentTodo.metadata.projects.join(", ")}</span>
-                </div>
-              )}
-            </div>
+              {/* Metadata */}
+              <div className="flex flex-wrap gap-3 text-sm mb-6">
+                {currentTodo.metadata.dueDate && (
+                  <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                    <span>📅</span>
+                    <span>{currentTodo.dueDateDisplay || currentTodo.metadata.dueDate}</span>
+                  </div>
+                )}
+                {currentTodo.metadata.duration && (
+                  <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                    <span>⏱️</span>
+                    <span>{currentTodo.durationDisplay}</span>
+                  </div>
+                )}
+                {currentTodo.metadata.assignedPeople.length > 0 && (
+                  <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                    <span>👤</span>
+                    <span>{currentTodo.metadata.assignedPeople.join(", ")}</span>
+                  </div>
+                )}
+                {currentTodo.metadata.projects.length > 0 && (
+                  <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                    <span>📁</span>
+                    <span>{currentTodo.metadata.projects.join(", ")}</span>
+                  </div>
+                )}
+              </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-700">
-              <button
-                onClick={() => currentTodo && onOpenDetails(currentTodo)}
-                className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors flex items-center gap-2"
-                title="Open details (Enter)"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
-                Details
-              </button>
-
-              <div className="flex items-center gap-2">
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-700">
                 <button
-                  onClick={skipTask}
-                  disabled={state.currentTaskIndex >= scheduledTasks.length - 1}
-                  className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Skip task (S)"
+                  onClick={() => onOpenDetails(currentTodo)}
+                  className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                  title="Details (Enter)"
                 >
-                  Skip
+                  Details
                 </button>
-
-                <button
-                  onClick={completeTask}
-                  className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                  title="Complete (Shift+Enter)"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Complete
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={skipTask}
+                    className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                    title="Skip (N)"
+                  >
+                    Skip
+                  </button>
+                  <button
+                    onClick={completeTask}
+                    className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                    title="Complete (Shift+Enter)"
+                  >
+                    ✓ Complete
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Timer Display */}
+          {/* Timer */}
           <div className="text-center mb-6">
-            {/* Main Timer - Time remaining on task */}
             <div
               className={`text-6xl font-mono font-bold mb-2 ${
-                state.taskTimeRemaining < 0 ? "text-red-600 dark:text-red-400" : "text-zinc-900 dark:text-zinc-100"
+                state.timeRemaining < 0 ? "text-red-600 dark:text-red-400" : "text-zinc-900 dark:text-zinc-100"
               }`}
             >
-              {formatTime(state.taskTimeRemaining)}
+              {formatTime(state.timeRemaining)}
             </div>
-            <p className="text-zinc-500 dark:text-zinc-400 mb-2">
-              {state.taskTimeRemaining < 0 ? "⏱️ Overtime" : "Time remaining"}
+            <p className="text-zinc-500 dark:text-zinc-400 mb-4">
+              {state.timeRemaining < 0 ? "⏱️ Overtime" : state.isRunning ? "Time remaining" : "Press Space to start"}
             </p>
 
-            {/* Progress bar */}
-            <div className="w-full max-w-md mx-auto h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden mb-2">
-              <div
-                className={`h-full transition-all duration-500 ${
-                  state.taskTimeRemaining < 0 ? "bg-red-500" : "bg-blue-500"
-                }`}
-                style={{
-                  width: `${Math.min(
-                    100,
-                    state.taskTotalDuration > 0
-                      ? ((state.taskTotalDuration - state.taskTimeRemaining) / state.taskTotalDuration) * 100
-                      : 0,
-                  )}%`,
-                }}
-              />
-            </div>
-
-            {/* Time worked this session + total estimate */}
+            {/* Time worked this session */}
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               {formatTime(state.actualTimeSpent)} worked this session
-              {alreadyTrackedSeconds > 0 && (
-                <span> • {formatTime(alreadyTrackedSeconds + state.actualTimeSpent)} total tracked</span>
-              )}
             </p>
-
-            {/* Pomodoro session info */}
-            {technique === "pomodoro" && (
-              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">
-                🍅 Session {state.sessionCount + 1} • {formatTime(state.workTimeRemaining)} until break
-              </p>
-            )}
           </div>
 
-          {/* Play/Pause Button */}
+          {/* Controls */}
           <div className="flex justify-center gap-4">
             <button
               onClick={toggleTimer}
@@ -1852,58 +1188,19 @@ export function FocusView({
                   : "bg-blue-600 hover:bg-blue-700 text-white"
               }`}
             >
-              {state.isRunning ? (
-                <>
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Pause
-                </>
-              ) : (
-                <>
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Start
-                </>
-              )}
+              {state.isRunning ? "⏸ Pause" : "▶ Start"}
             </button>
 
-            {/* Extend Time Button */}
+            {/* Extend Time */}
             <div className="relative">
               <button
                 onClick={() => setShowExtendMenu((prev) => !prev)}
-                className="px-6 py-4 rounded-full font-semibold text-lg transition-all shadow-lg hover:shadow-xl bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-200 flex items-center gap-2"
-                title="Extend time (E)"
+                className="px-6 py-4 rounded-full font-semibold text-lg transition-all shadow-lg hover:shadow-xl bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-200"
+                title="Extend (E)"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6l4 2m4 0a8 8 0 11-16 0 8 8 0 0116 0z"
-                  />
-                </svg>
                 +{focusSettings.defaultExtendMinutes ?? 5}m
               </button>
 
-              {/* Extend Menu Dropdown */}
               {showExtendMenu && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 p-2 min-w-[140px]">
                   <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-2 px-2">Extend by:</div>
@@ -1919,28 +1216,44 @@ export function FocusView({
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Keyboard Hints */}
-          {(focusSettings.showKeyboardHints ?? true) && (
-            <div className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-              <span className="inline-flex items-center gap-4 flex-wrap justify-center">
-                <span>Space {state.isRunning ? "Pause" : "Start"}</span>
-                <span>Shift+Enter Complete</span>
-                <span>E Extend</span>
-                <span>+ Quick extend</span>
-                <span>S Skip</span>
-                <span>M Mute</span>
-                <span>Esc Exit</span>
-              </span>
-            </div>
-          )}
+            {/* Skip to Break */}
+            <button
+              onClick={skipToBreak}
+              className="px-6 py-4 rounded-full font-semibold text-lg transition-all bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-200"
+              title="Skip to Break (S)"
+            >
+              Skip to Break
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* Stats */}
+      <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
+        <div className="flex justify-center gap-6 text-sm text-zinc-600 dark:text-zinc-400">
+          <span>🎯 Work: {formatTime(state.totalWorkTime)}</span>
+          <span>☕ Break: {formatTime(state.totalBreakTime)}</span>
+          <span>✅ Completed: {state.tasksCompleted}</span>
+        </div>
+      </div>
+
+      {/* Keyboard Hints */}
+      {(focusSettings.showKeyboardHints ?? true) && (
+        <div className="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800">
+          <span>
+            Space {state.isRunning ? "Pause" : "Start"} • Shift+Enter Complete • E Extend • S Skip to Break • N Skip
+            Task • M Mute • Esc Exit
+          </span>
+        </div>
+      )}
+
       {/* Progress Bar */}
       <div className="h-2 bg-zinc-200 dark:bg-zinc-700">
-        <div className="h-full bg-blue-600 transition-all duration-1000" style={{ width: `${progress}%` }} />
+        <div
+          className="h-full bg-blue-600 transition-all duration-1000"
+          style={{ width: `${Math.max(0, progress)}%` }}
+        />
       </div>
     </div>
   );
