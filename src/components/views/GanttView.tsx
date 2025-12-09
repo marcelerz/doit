@@ -70,6 +70,8 @@ interface GanttViewProps {
   onDuplicate?: (id: string) => string | undefined;
   // Focus mode handler
   onStartFocusMode?: (tasks: ScheduledTask[]) => void;
+  // Open focus mode handler (task-free)
+  onStartOpenFocusMode?: () => void;
 }
 
 // Local BreakBlock interface extends the scheduler's with TimeBlockType
@@ -122,6 +124,7 @@ export function GanttView({
   onCreateTemplate,
   onDuplicate,
   onStartFocusMode,
+  onStartOpenFocusMode,
 }: GanttViewProps) {
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
@@ -839,6 +842,25 @@ export function GanttView({
                   />
                 </svg>
                 <span className="hidden sm:inline">Focus</span>
+              </button>
+            )}
+
+            {/* Open Focus Mode Button (task-free timer) */}
+            {onStartOpenFocusMode && (
+              <button
+                onClick={onStartOpenFocusMode}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors text-xs sm:text-sm flex items-center gap-1.5"
+                title="Start open focus mode (task-free timer using selected technique)"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Timer</span>
               </button>
             )}
 

@@ -16,6 +16,7 @@ import { CalendarView } from "./CalendarView";
 import { KanbanView } from "./KanbanView";
 import { StatisticsView } from "./StatisticsView";
 import { FocusView } from "./FocusView";
+import { OpenFocusView } from "./OpenFocusView";
 import TimeReportsView from "./TimeReportsView";
 import { ScheduledTask } from "@/utils/ganttScheduler";
 import { MarkerReference } from "@/components/shared/MarkerReference";
@@ -393,6 +394,7 @@ export function TodoApp() {
 
   // Focus mode state
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [isOpenFocusMode, setIsOpenFocusMode] = useState(false);
   const [focusTasks, setFocusTasks] = useState<ScheduledTask[]>([]);
   const [ganttRefreshKey, setGanttRefreshKey] = useState(0);
 
@@ -3100,6 +3102,7 @@ export function TodoApp() {
                   }
                 : undefined
             }
+            onStartOpenFocusMode={features?.focusMode ? () => setIsOpenFocusMode(true) : undefined}
           />
         )}
 
@@ -4932,6 +4935,9 @@ export function TodoApp() {
           onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
         />
       )}
+
+      {/* Open Focus Mode (task-free) */}
+      {isOpenFocusMode && <OpenFocusView settings={settings} onClose={() => setIsOpenFocusMode(false)} />}
 
       {/* Templates Manager */}
       {showTemplatesManager && (
