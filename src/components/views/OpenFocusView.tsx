@@ -75,8 +75,9 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
   const flowWorkMinutes = ganttSettings.flowWorkDuration ?? 52;
   const flowBreakMinutes = ganttSettings.flowBreakDuration ?? 17;
 
-  // Sequential settings (context switch time as break)
-  const sequentialBreakMinutes = Math.ceil((ganttSettings.contextSwitchingTime ?? 5) / 60) || 5;
+  // Sequential settings (use default task duration for work, context switch time for break)
+  const sequentialWorkMinutes = ganttSettings.defaultTaskDuration ?? 30;
+  const sequentialBreakMinutes = ganttSettings.contextSwitchingTime ?? 5;
 
   // Calculate work duration based on technique
   const getWorkDuration = useCallback(() => {
@@ -87,9 +88,9 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
         return flowWorkMinutes * 60;
       case "sequential":
       default:
-        return 25 * 60; // Default 25 minutes for sequential
+        return sequentialWorkMinutes * 60;
     }
-  }, [technique, pomodoroWorkMinutes, flowWorkMinutes]);
+  }, [technique, pomodoroWorkMinutes, flowWorkMinutes, sequentialWorkMinutes]);
 
   // Calculate break duration based on technique and session count
   const getBreakDuration = useCallback(
@@ -202,6 +203,7 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
           breakTimeRemaining: 0,
           breakEndTime: null,
           isRunning: true,
+          breakSessionCount: s.breakSessionCount + 1, // Count completed break
         };
       }
       return s;
@@ -495,6 +497,40 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
     }));
   }, [soundEnabled, getWorkDuration]);
 
+  // Skip to break (end work early)
+  const skipToBreak = useCallback(() => {
+    const newSessionCount = state.sessionCount + 1;
+
+    // Determine break type
+    let isLongBreak = false;
+    let breakPhase: "short-break" | "long-break" = "short-break";
+
+    if (technique === "pomodoro") {
+      isLongBreak = newSessionCount > 0 && newSessionCount % pomodoroLongBreakInterval === 0;
+      breakPhase = isLongBreak ? "long-break" : "short-break";
+    }
+
+    const breakDuration = getBreakDuration(newSessionCount, isLongBreak);
+
+    if (soundEnabled) {
+      playNotificationSound(isLongBreak ? "long-break" : "short-break");
+    }
+
+    const breakEndTime = new Date();
+    breakEndTime.setSeconds(breakEndTime.getSeconds() + breakDuration);
+
+    setState((s) => ({
+      ...s,
+      phase: breakPhase,
+      workTimeRemaining: 0,
+      breakTimeRemaining: breakDuration,
+      breakEndTime,
+      sessionCount: newSessionCount,
+      isRunning: true,
+      lastPauseTime: null,
+    }));
+  }, [state.sessionCount, technique, pomodoroLongBreakInterval, getBreakDuration, soundEnabled]);
+
   // Reset session
   const resetSession = useCallback(() => {
     setState({
@@ -552,6 +588,8 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
           e.preventDefault();
           if (state.phase === "short-break" || state.phase === "long-break") {
             skipBreak();
+          } else if (state.phase === "work") {
+            skipToBreak();
           }
           break;
         case "m":
@@ -559,17 +597,12 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
           e.preventDefault();
           setSoundEnabled((prev) => !prev);
           break;
-        case "r":
-        case "R":
-          e.preventDefault();
-          resetSession();
-          break;
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, toggleTimer, confirmTransition, skipBreak, resetSession, state.phase]);
+  }, [onClose, toggleTimer, confirmTransition, skipBreak, skipToBreak, state.phase]);
 
   // Calculate progress
   const progress = (() => {
@@ -876,7 +909,7 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
                 onClick={skipBreak}
                 className="px-6 py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
               >
-                Skip Break (S)
+                Skip Break
               </button>
             </div>
           </div>
@@ -901,7 +934,6 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
             <span>Space {state.isRunning ? "Pause" : "Resume"}</span>
             <span>S Skip</span>
             <span>M Mute</span>
-            <span>R Reset</span>
             <span>Esc Exit</span>
           </span>
         </div>
@@ -1054,6 +1086,12 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
               </>
             )}
           </button>
+          <button
+            onClick={skipToBreak}
+            className="px-6 py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
+          >
+            Skip to Break
+          </button>
         </div>
       </div>
 
@@ -1074,8 +1112,8 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
       <div className="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800">
         <span className="inline-flex items-center gap-4 flex-wrap justify-center">
           <span>Space {state.isRunning ? "Pause" : "Start"}</span>
+          <span>S Skip</span>
           <span>M Mute</span>
-          <span>R Reset</span>
           <span>Esc Exit</span>
         </span>
       </div>
