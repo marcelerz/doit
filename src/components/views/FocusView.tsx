@@ -426,9 +426,9 @@ export function FocusView({
           const completingTask = completingWorkSegment && isLastSegmentOfTask;
           const todoToComplete = completingTask ? currentScheduleItem?.task?.todo.id : null;
 
-          // Schedule auto-completion for last segment
+          // Schedule auto-completion for last segment (use setTimeout to ensure it runs after state update)
           if (todoToComplete) {
-            setPendingAutoComplete(todoToComplete);
+            setTimeout(() => setPendingAutoComplete(todoToComplete), 0);
           }
 
           const nextIndex = s.currentItemIndex + 1;
