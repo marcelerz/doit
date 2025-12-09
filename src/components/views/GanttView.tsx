@@ -1436,6 +1436,17 @@ export function GanttView({
                                 const isFirstSegment = segIdx === 0;
                                 const isLastSegment = segIdx === task.segments.length - 1;
                                 const hasMultipleSegments = task.segments.length > 1;
+                                const isTrackedSegment = segment.isTrackedTime === true;
+
+                                // For tracked segments, use gray; for scheduled, use task color
+                                const segmentColor = isTrackedSegment ? "#9ca3af" : taskColor;
+                                const segmentTextColor = isTrackedSegment ? "#ffffff" : textColor;
+
+                                // Count scheduled vs tracked segments for proper numbering
+                                const scheduledSegments = task.segments.filter((s) => !s.isTrackedTime);
+                                const trackedSegments = task.segments.filter((s) => s.isTrackedTime);
+                                const isFirstScheduledSegment = !isTrackedSegment && scheduledSegments[0] === segment;
+                                const scheduledSegmentIndex = scheduledSegments.indexOf(segment);
 
                                 // Calculate context switch gap between this segment and the next
                                 const nextSegment =
@@ -1466,15 +1477,17 @@ export function GanttView({
                                   <React.Fragment key={segIdx}>
                                     <div
                                       className={`absolute top-0.5 bottom-0.5 shadow-md flex items-center ${
-                                        isFirstSegment ? "justify-between px-2" : "justify-center px-1"
+                                        isFirstScheduledSegment || (isTrackedSegment && isFirstSegment)
+                                          ? "justify-between px-2"
+                                          : "justify-center px-1"
                                       } overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:z-20 transition-all duration-150 z-10 ${
                                         isSelected ? "ring-2 ring-blue-500" : ""
                                       }`}
                                       style={{
                                         left: `${Math.max(0, segStartPos)}%`,
                                         width: `${Math.min(segWidth, 100 - Math.max(0, segStartPos))}%`,
-                                        backgroundColor: taskColor,
-                                        color: textColor,
+                                        backgroundColor: segmentColor,
+                                        color: segmentTextColor,
                                         borderRadius: hasMultipleSegments
                                           ? isFirstSegment
                                             ? "0.375rem 0 0 0.375rem"
@@ -1483,7 +1496,7 @@ export function GanttView({
                                             : "0"
                                           : "0.375rem",
                                         // Add dashed right border for non-last segments to indicate continuation
-                                        borderRight: !isLastSegment ? `2px dashed ${textColor}40` : undefined,
+                                        borderRight: !isLastSegment ? `2px dashed ${segmentTextColor}40` : undefined,
                                       }}
                                       onMouseEnter={(e) => handleTaskMouseEnter(e, task.todo.id)}
                                       onMouseLeave={handleTaskMouseLeave}
@@ -1492,22 +1505,51 @@ export function GanttView({
                                         setDetailsOverlayTodo(task.todo);
                                       }}
                                       title={
-                                        task.isActualTime
+                                        isTrackedSegment
+                                          ? `⏱ Tracked: ${formatDuration(segment.durationMinutes)}${
+                                              trackedSegments.length > 1
+                                                ? ` (${trackedSegments.indexOf(segment) + 1}/${trackedSegments.length})`
+                                                : ""
+                                            }`
+                                          : task.isActualTime
                                           ? `⏱ Actual time tracked: ${formatDuration(task.durationMinutes)}`
-                                          : hasMultipleSegments
-                                          ? `Segment ${segIdx + 1}/${task.segments.length}: ${formatDuration(
+                                          : scheduledSegments.length > 1
+                                          ? `Remaining ${scheduledSegmentIndex + 1}/${
+                                              scheduledSegments.length
+                                            }: ${formatDuration(
                                               segment.durationMinutes,
-                                            )} (Total: ${formatDuration(task.durationMinutes)})`
-                                          : "Click to view details"
+                                            )} (Total remaining: ${formatDuration(task.durationMinutes)})`
+                                          : `Remaining: ${formatDuration(task.durationMinutes)}${
+                                              task.trackedMinutes
+                                                ? ` (${formatDuration(task.trackedMinutes)} tracked)`
+                                                : ""
+                                            }`
                                       }
                                     >
-                                      {isFirstSegment ? (
+                                      {isTrackedSegment ? (
+                                        // Tracked time segment content
+                                        <div className="flex items-center gap-1 w-full">
+                                          <span className="mr-1">⏱</span>
+                                          <span className="text-xs font-medium truncate flex-1">
+                                            {formatDuration(segment.durationMinutes)}
+                                          </span>
+                                        </div>
+                                      ) : isFirstScheduledSegment ? (
                                         <>
                                           <span className="text-xs font-medium truncate">
                                             {task.isActualTime && <span className="mr-1">⏱</span>}
                                             {task.todo.plainText}
                                           </span>
                                           <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                                            {/* Time tracking indicator */}
+                                            {task.trackedMinutes && task.trackedMinutes > 0 && (
+                                              <span
+                                                className="text-[10px] opacity-70"
+                                                title={`${formatDuration(task.trackedMinutes)} tracked`}
+                                              >
+                                                ⏱{formatDuration(task.trackedMinutes)}
+                                              </span>
+                                            )}
                                             {/* Comment/activity indicators */}
                                             {(task.todo.hasComments || task.todo.hasActivity) && (
                                               <div className="flex items-center gap-0.5 opacity-70">
@@ -1547,12 +1589,12 @@ export function GanttView({
                                               </div>
                                             )}
                                             {/* Segments indicator */}
-                                            {hasMultipleSegments && (
+                                            {scheduledSegments.length > 1 && (
                                               <span
                                                 className="text-[10px] opacity-70"
-                                                title={`Split across ${task.segments.length} segments`}
+                                                title={`Split across ${scheduledSegments.length} segments`}
                                               >
-                                                📋{task.segments.length}
+                                                📋{scheduledSegments.length}
                                               </span>
                                             )}
                                             {/* Recurring indicator */}

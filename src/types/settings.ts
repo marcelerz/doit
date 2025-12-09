@@ -212,6 +212,7 @@ export interface Gantt {
   // Common Settings
   defaultTaskDuration: number; // Default duration in minutes when not specified
   durationMultiplier: number; // Multiplier for task durations during scheduling
+  minimumRemainingDuration: number; // Minimum duration left when time is tracked (default 1 min)
 
   // Sequential Settings
   contextSwitchingTime: number; // Minutes between tasks for context switching
@@ -324,6 +325,7 @@ export const defaultGantt: Gantt = {
   contextSwitchingTime: 15, // 15 minutes between tasks
   defaultTaskDuration: 30, // 30 minutes default
   durationMultiplier: 1.0, // 1.0 = no adjustment
+  minimumRemainingDuration: 1, // 1 minute minimum to keep tasks visible
   // Pomodoro defaults
   pomodoroWorkDuration: 25, // Standard Pomodoro work duration
   pomodoroShortBreak: 5, // Standard short break

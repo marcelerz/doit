@@ -134,6 +134,33 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Safety factor for scheduling (0.5-5.0)</p>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              Minimum Remaining Duration
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="1"
+                max="30"
+                step="1"
+                value={gantt.minimumRemainingDuration ?? 1}
+                onChange={(e) =>
+                  onUpdate({
+                    ...gantt,
+                    minimumRemainingDuration: Math.max(1, parseInt(e.target.value) || 1),
+                    activePresetId: undefined,
+                  })
+                }
+                className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">min</span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              Minimum time left on tasks with tracked time (1-30)
+            </p>
+          </div>
         </div>
       </div>
 

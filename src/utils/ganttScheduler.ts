@@ -25,6 +25,10 @@ export interface TaskSegment {
   durationMinutes: number;
   // Break info for the gap after this segment (if any)
   nextBreak: BreakInfo | null;
+  // Whether this segment represents tracked time (vs scheduled/remaining time)
+  isTrackedTime?: boolean;
+  // Time entry ID if this is a tracked time segment
+  timeEntryId?: string;
 }
 
 // Break type after a task
@@ -54,6 +58,10 @@ export interface ScheduledTask {
   isActualTime?: boolean;
   // Time entry ID if this is actual tracked time
   timeEntryId?: string;
+  // Total tracked time in minutes for this task
+  trackedMinutes?: number;
+  // Original duration before subtracting tracked time
+  originalDurationMinutes?: number;
 }
 
 export interface BreakBlock {
@@ -271,6 +279,7 @@ export function createTaskSchedulingMap(todos: TodoModel[], config: SchedulingCo
   const { ganttSettings, workHours } = config;
 
   // First, schedule all completed/archived tasks at their exact completion time
+  // Also handle tasks with time tracking - they should be scheduled on the date of their latest entry
   const activeTodosOnly = todos.filter((todo) => {
     if (todo.isCompleted && todo.completedAt) {
       const completionDate = new Date(todo.completedAt);
@@ -292,6 +301,63 @@ export function createTaskSchedulingMap(todos: TodoModel[], config: SchedulingCo
         map.set(todo.id, archivedDateKey);
       }
       return false;
+    }
+
+    // For active tasks with time tracking, we need special handling:
+    // - The tracked time segments will be shown on the date(s) they occurred
+    // - The remaining work should be scheduled on the NEXT available work day from now
+    if (todo.hasTimeTracking && todo.timeTracking && todo.timeTracking.entries.length > 0) {
+      // Calculate total tracked time
+      const totalTrackedMinutes = todo.timeTracking.entries.reduce((sum, entry) => {
+        return sum + (entry.duration ?? 0);
+      }, 0);
+
+      // Calculate remaining time
+      const originalDurationMinutes = parseDuration(todo.metadata.duration) * ganttSettings.durationMultiplier;
+      const minimumRemaining = ganttSettings.minimumRemainingDuration ?? 1;
+      const remainingMinutes = Math.max(minimumRemaining, originalDurationMinutes - totalTrackedMinutes);
+
+      // If there's remaining work, schedule it on the next available work day from now
+      // (not on the date of the tracked time)
+      if (remainingMinutes > 0) {
+        // Find the next available work day starting from today
+        let scheduleDate = new Date(today);
+        const todayStr = today.toISOString().split("T")[0];
+
+        // Check if we can still schedule today (if there's time left in work hours)
+        const todaySchedule = getScheduleForDate(today, workHours);
+        const todayEnd = parseTime(todaySchedule.endTime, today);
+
+        // If it's past today's work hours, start looking from tomorrow
+        if (now >= todayEnd) {
+          scheduleDate.setDate(scheduleDate.getDate() + 1);
+        }
+
+        // Find a work day (skip non-work days based on schedule)
+        let attempts = 0;
+        while (attempts < 30) {
+          const daySchedule = getScheduleForDate(scheduleDate, workHours);
+          const dayStart = parseTime(daySchedule.startTime, scheduleDate);
+          const dayEnd = parseTime(daySchedule.endTime, scheduleDate);
+          const workMinutes = (dayEnd.getTime() - dayStart.getTime()) / 60000;
+
+          // If this day has work hours, use it
+          if (workMinutes > 0) {
+            break;
+          }
+
+          scheduleDate.setDate(scheduleDate.getDate() + 1);
+          attempts++;
+        }
+
+        const localYear = scheduleDate.getFullYear();
+        const localMonth = String(scheduleDate.getMonth() + 1).padStart(2, "0");
+        const localDay = String(scheduleDate.getDate()).padStart(2, "0");
+        const scheduleDateKey = `${localYear}-${localMonth}-${localDay}`;
+        map.set(todo.id, scheduleDateKey);
+      }
+
+      return false; // Don't include in normal ASAP scheduling
     }
 
     return true;
@@ -343,7 +409,9 @@ export function createTaskSchedulingMap(todos: TodoModel[], config: SchedulingCo
 
       if (currentTime >= dayEnd) break;
 
+      // Calculate task duration (tasks with tracked time are handled separately above)
       const durationMinutes = parseDuration(todo.metadata.duration) * ganttSettings.durationMultiplier;
+
       const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
 
       if (taskEnd <= dayEnd) {
@@ -586,9 +654,62 @@ export function scheduleDayTasks(
 
     if (currentTime >= dayEndTime) break;
 
-    const totalDurationMinutes = parseDuration(todo.metadata.duration) * ganttSettings.durationMultiplier;
-    let remainingMinutes = totalDurationMinutes;
-    const segments: TaskSegment[] = [];
+    // Calculate tracked time for this task on this date
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(selectedDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const trackedSegments: TaskSegment[] = [];
+    let totalTrackedMinutesForDate = 0;
+    let totalTrackedMinutesAllTime = 0;
+
+    if (todo.hasTimeTracking && todo.timeTracking) {
+      // Calculate total tracked time across ALL dates (for remaining calculation)
+      totalTrackedMinutesAllTime = todo.timeTracking.entries.reduce((sum, entry) => {
+        return sum + (entry.duration ?? 0);
+      }, 0);
+
+      // Get time entries for THIS date only (for display)
+      const entriesForDate = todo.timeTracking.entries.filter((entry) => {
+        const entryStart = new Date(entry.startTime);
+        const entryEnd = entry.endTime ? new Date(entry.endTime) : new Date();
+        return entryStart <= dayEnd && entryEnd >= dayStart;
+      });
+
+      // Add tracked time segments for this date
+      for (const entry of entriesForDate) {
+        const entryStart = new Date(entry.startTime);
+        const entryEnd = entry.endTime ? new Date(entry.endTime) : new Date();
+        const entryDuration = entry.duration ?? Math.round((entryEnd.getTime() - entryStart.getTime()) / 60000);
+
+        if (entryDuration > 0) {
+          totalTrackedMinutesForDate += entryDuration;
+          trackedSegments.push({
+            startTime: entryStart,
+            endTime: entryEnd,
+            durationMinutes: entryDuration,
+            nextBreak: null,
+            isTrackedTime: true,
+            timeEntryId: entry.id,
+          });
+        }
+      }
+    }
+
+    // Determine if this task is actually scheduled for THIS date
+    // (vs just having tracked time on this date from a past session)
+    const isScheduledForThisDate = scheduledTodoIds ? scheduledTodoIds.has(todo.id) : true;
+
+    // Calculate remaining duration considering ALL tracked time (not just this date)
+    const originalDurationMinutes = parseDuration(todo.metadata.duration) * ganttSettings.durationMultiplier;
+    const minimumRemaining = ganttSettings.minimumRemainingDuration ?? 1;
+    const remainingAfterTracking = Math.max(minimumRemaining, originalDurationMinutes - totalTrackedMinutesAllTime);
+
+    // Only schedule remaining work segments if this is the scheduled date for remaining work
+    // (not if we're just viewing a past date with tracked time)
+    let remainingMinutes = isScheduledForThisDate ? remainingAfterTracking : 0;
+    const scheduledSegments: TaskSegment[] = [];
 
     // Schedule segments, splitting across breaks AND at Pomodoro work duration boundaries
     while (remainingMinutes > 0 && currentTime < dayEndTime) {
@@ -710,7 +831,7 @@ export function scheduleDayTasks(
         }
       }
 
-      segments.push({
+      scheduledSegments.push({
         startTime: new Date(currentTime),
         endTime: segmentEnd,
         durationMinutes: segmentMinutes,
@@ -777,82 +898,26 @@ export function scheduleDayTasks(
       }
     }
 
-    // Add actual time tracking entries for active tasks (if they have time tracking)
-    // This runs regardless of whether scheduled segments were created
-    if (todo.hasTimeTracking && todo.timeTracking) {
-      const dayStart = new Date(selectedDate);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(selectedDate);
-      dayEnd.setHours(23, 59, 59, 999);
+    // Combine tracked segments with scheduled segments
+    // Tracked segments go first (at their actual times), then scheduled segments
+    const allSegments: TaskSegment[] = [...trackedSegments, ...scheduledSegments];
 
-      // Filter time entries that overlap with this date
-      const entriesForDate = todo.timeTracking.entries.filter((entry) => {
-        const entryStart = new Date(entry.startTime);
-        const entryEnd = entry.endTime ? new Date(entry.endTime) : new Date();
-        return entryStart <= dayEnd && entryEnd >= dayStart;
-      });
-
-      // Add each time entry as an actual time block (in gray)
-      for (const entry of entriesForDate) {
-        const entryStart = new Date(entry.startTime);
-        const entryEnd = entry.endTime ? new Date(entry.endTime) : new Date();
-        const entryDuration = entry.duration ?? Math.round((entryEnd.getTime() - entryStart.getTime()) / 60000);
-
-        // Skip entries with no meaningful duration
-        if (entryDuration <= 0) continue;
-
-        // Compute targetDate same as main task
-        let targetDate: Date;
-        if (todo.metadata.dueDate) {
-          const dueDateStr = todo.metadata.dueDate;
-          if (dueDateStr.includes("T") || dueDateStr.includes("Z")) {
-            targetDate = new Date(dueDateStr);
-          } else if (dueDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            const [year, month, day] = dueDateStr.split("-").map(Number);
-            targetDate = new Date(year, month - 1, day);
-            targetDate.setHours(23, 59, 59, 999);
-          } else {
-            targetDate = new Date(dueDateStr);
-          }
-        } else {
-          targetDate = isToday && now > dayStartTime && now < dayEndTime ? now : dayEndTime;
-        }
-
-        const timeDiff = targetDate.getTime() - entryEnd.getTime();
-        const hasBuffer = timeDiff > 0;
-        const isOverdue = timeDiff < 0;
-        const bufferMinutes = Math.abs(Math.floor(timeDiff / 60000));
-
-        tasks.push({
-          todo,
-          startTime: entryStart,
-          endTime: entryEnd,
-          durationMinutes: entryDuration,
-          segments: [{ startTime: entryStart, endTime: entryEnd, durationMinutes: entryDuration, nextBreak: null }],
-          targetDate,
-          hasBuffer,
-          bufferMinutes,
-          isOverdue,
-          nextBreak: null,
-          isActualTime: true,
-          timeEntryId: entry.id,
-        });
-      }
-    }
-
-    // If no scheduled segments were created, skip to next task
-    // (but we've already added any time tracking entries above)
-    if (segments.length === 0) continue;
+    // Skip adding task if no segments at all (neither tracked nor scheduled)
+    if (allSegments.length === 0) continue;
 
     // Skip adding scheduled block if this task is only here because of time tracking
     // (not actually scheduled for this date)
-    if (scheduledTodoIds && !scheduledTodoIds.has(todo.id)) {
+    if (scheduledTodoIds && !scheduledTodoIds.has(todo.id) && trackedSegments.length === 0) {
       continue;
     }
 
-    const overallStartTime = segments[0].startTime;
-    const overallEndTime = segments[segments.length - 1].endTime;
-    const scheduledMinutes = segments.reduce((sum, s) => sum + s.durationMinutes, 0);
+    // Calculate overall times based on all segments
+    // Sort by start time to find true start/end
+    const sortedSegments = [...allSegments].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    const overallStartTime = sortedSegments[0].startTime;
+    const overallEndTime = sortedSegments[sortedSegments.length - 1].endTime;
+    const totalMinutes = allSegments.reduce((sum, s) => sum + s.durationMinutes, 0);
+    const scheduledMinutes = scheduledSegments.reduce((sum, s) => sum + s.durationMinutes, 0);
 
     let targetDate: Date;
     if (todo.metadata.dueDate) {
@@ -879,13 +944,15 @@ export function scheduleDayTasks(
       todo,
       startTime: overallStartTime,
       endTime: overallEndTime,
-      durationMinutes: scheduledMinutes,
-      segments,
+      durationMinutes: scheduledMinutes, // Only count scheduled (remaining) time for main duration
+      segments: allSegments,
       targetDate,
       hasBuffer,
       bufferMinutes,
       isOverdue,
       nextBreak: null, // Will be computed after all tasks are scheduled
+      trackedMinutes: totalTrackedMinutesForDate,
+      originalDurationMinutes: originalDurationMinutes,
     });
 
     // Add break time between tasks based on scheduling technique
