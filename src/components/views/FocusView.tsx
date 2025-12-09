@@ -526,8 +526,8 @@ export function FocusView({
     moveToNextItem();
   }, [soundEnabled, moveToNextItem]);
 
-  // Skip to break (end work early)
-  const skipToBreak = useCallback(() => {
+  // Skip to next (end work early)
+  const skipToNext = useCallback(() => {
     if (timeTrackingActiveRef.current && onStopTimeTracking) {
       onStopTimeTracking(timeTrackingActiveRef.current);
       timeTrackingActiveRef.current = null;
@@ -652,7 +652,7 @@ export function FocusView({
           if (state.phase === "break") {
             skipBreak();
           } else if (state.phase === "work") {
-            skipToBreak();
+            skipToNext();
           }
           break;
         case "n":
@@ -692,7 +692,7 @@ export function FocusView({
     confirmTransition,
     completeTask,
     skipBreak,
-    skipToBreak,
+    skipToNext,
     skipTask,
     state.phase,
     currentTodo,
@@ -1218,13 +1218,13 @@ export function FocusView({
               )}
             </div>
 
-            {/* Skip to Break */}
+            {/* Skip to Next */}
             <button
-              onClick={skipToBreak}
+              onClick={skipToNext}
               className="px-6 py-4 rounded-full font-semibold text-lg transition-all bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-200"
-              title="Skip to Break (S)"
+              title="Skip to Next"
             >
-              Skip to Break
+              Skip to Next
             </button>
           </div>
         </div>
