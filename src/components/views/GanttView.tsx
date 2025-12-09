@@ -131,7 +131,7 @@ export function GanttView({
   const [weekOffset, setWeekOffset] = useState(0); // 0 = current week, 1 = next week, -1 = previous week
 
   // View options state - initialized with defaults, loaded from storage in useEffect
-  const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(true);
+
   const [schedulingMode, setSchedulingMode] = useState<"asap" | "dueDate">("asap");
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
@@ -169,13 +169,11 @@ export function GanttView({
     waitForStorageInit()
       .then(() => {
         return loadFromStorage<{
-          showTasksWithoutDates?: boolean;
           schedulingMode?: "asap" | "dueDate";
           completedCollapsed?: boolean;
         }>(STORAGE_KEYS.GANTT_VIEW_OPTIONS, {});
       })
       .then((saved) => {
-        if (saved.showTasksWithoutDates !== undefined) setShowTasksWithoutDates(saved.showTasksWithoutDates);
         if (saved.schedulingMode !== undefined) setSchedulingMode(saved.schedulingMode);
         if (saved.completedCollapsed !== undefined) setCompletedCollapsed(saved.completedCollapsed);
         setGanttOptionsLoaded(true);
@@ -186,12 +184,11 @@ export function GanttView({
   useEffect(() => {
     if (!ganttOptionsLoaded) return;
     const viewOptions = {
-      showTasksWithoutDates,
       schedulingMode,
       completedCollapsed,
     };
     saveToStorage(STORAGE_KEYS.GANTT_VIEW_OPTIONS, viewOptions);
-  }, [ganttOptionsLoaded, showTasksWithoutDates, schedulingMode, completedCollapsed]);
+  }, [ganttOptionsLoaded, schedulingMode, completedCollapsed]);
 
   // Update zoom level and persist to settings
   const handleZoomChange = useCallback(
@@ -269,11 +266,6 @@ export function GanttView({
     });
     return { todosForDate: todos, scheduledTodoIds: scheduled };
   }, [allActiveTodos, taskSchedulingMap, selectedDate]);
-
-  // Count todos without due dates
-  const todosWithoutDates = useMemo(() => {
-    return todos.filter((todo) => !todo.metadata.dueDate && todo.state !== "deleted").length;
-  }, [todos]);
 
   // Get schedule and time bounds, dynamically expanded for completed tasks outside work hours
   const schedule = getScheduleForDate(selectedDate, workHours);
@@ -693,54 +685,6 @@ export function GanttView({
 
   return (
     <div className="space-y-4" role="region" aria-label="Gantt Chart Schedule">
-      {/* Toggle for todos without dates */}
-      {todosWithoutDates > 0 && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-          <div className="flex items-center gap-3">
-            <svg
-              className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                {todosWithoutDates} {todosWithoutDates === 1 ? "task" : "tasks"} without due dates
-              </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
-                {showTasksWithoutDates ? "Included in today's schedule" : "Not shown in schedule"}
-              </p>
-            </div>
-            <button
-              onClick={() => setShowTasksWithoutDates(!showTasksWithoutDates)}
-              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
-              style={{
-                backgroundColor: showTasksWithoutDates ? "rgb(37, 99, 235)" : "rgb(209, 213, 219)",
-              }}
-              role="switch"
-              aria-checked={showTasksWithoutDates}
-            >
-              <span
-                className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                style={{
-                  transform: showTasksWithoutDates ? "translateX(1.5rem)" : "translateX(0.25rem)",
-                }}
-              />
-            </button>
-            <span className="text-xs font-medium text-blue-900 dark:text-blue-100 whitespace-nowrap">
-              Show for today
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Scheduling Mode Toggle */}
       <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-2 sm:p-3 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
