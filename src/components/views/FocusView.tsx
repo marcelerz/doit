@@ -131,7 +131,7 @@ export function FocusView({
   const currentTask = scheduledTasks[state.currentTaskIndex];
   const currentTodo = currentTask?.todo;
 
-  // Cleanup sound queue and ambient sounds on unmount
+  // Cleanup sound queue on unmount (ambient sounds managed by their own effect)
   useEffect(() => {
     // Stop any active time tracking when unmounting
     if (timeTrackingActiveRef.current && onStopTimeTracking) {
@@ -139,8 +139,10 @@ export function FocusView({
       timeTrackingActiveRef.current = null;
     }
     return () => {
+      console.log("[Ambient Cleanup] Running cleanup effect");
       clearSoundQueue();
-      stopAmbientSound();
+      // Don't stop ambient sounds here - let the ambient effect manage it
+      // stopAmbientSound will be called when isRunning becomes false
     };
   }, [onStopTimeTracking]);
 
@@ -190,6 +192,13 @@ export function FocusView({
 
   // Manage ambient sounds based on phase and settings
   useEffect(() => {
+    console.log("[Ambient Effect] Running:", {
+      isRunning: state.isRunning,
+      phase: state.phase,
+      ambientEnabled: focusSettings.ambientSoundEnabled,
+      workSound: focusSettings.ambientWorkSound,
+    });
+
     if (!focusSettings.ambientSoundEnabled || !state.isRunning) {
       stopAmbientSound();
       return;
@@ -576,6 +585,11 @@ export function FocusView({
           isRunning: true,
           taskStartTime: focusSettings.autoTimeTracking && !s.taskStartTime ? new Date() : s.taskStartTime,
         };
+      }
+
+      // Play pause sound when pausing (in work phase)
+      if (s.isRunning && s.phase === "work" && soundEnabled) {
+        playNotificationSound("pause");
       }
 
       // When pausing, check if we need to auto-extend

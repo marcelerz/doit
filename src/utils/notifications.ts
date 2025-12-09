@@ -1,7 +1,7 @@
 import { TodoModel } from "@/models/TodoModel";
 
 export type NotificationPermission = "default" | "granted" | "denied";
-export type SoundType = "short-break" | "long-break" | "task-complete" | "task-start" | "break-end";
+export type SoundType = "short-break" | "long-break" | "task-complete" | "task-start" | "break-end" | "pause";
 
 // Audio context for playing sounds
 let audioContext: AudioContext | null = null;
@@ -9,6 +9,7 @@ let audioContext: AudioContext | null = null;
 // Ambient sound player
 let ambientAudio: HTMLAudioElement | null = null;
 let currentAmbientSound: string | null = null;
+let ambientInstanceId: number = 0;
 
 // Available ambient sounds in the public/sounds folder
 export const AMBIENT_SOUNDS = [
@@ -44,31 +45,51 @@ export type AmbientSoundId = (typeof AMBIENT_SOUNDS)[number]["id"] | "";
  * @param volume - Volume level 0-1
  */
 export function playAmbientSound(soundFile: string, volume: number = 0.3): void {
-  if (typeof window === "undefined" || !soundFile) return;
+  if (typeof window === "undefined" || !soundFile) {
+    console.log("[Ambient] Skip - no window or soundFile:", { soundFile });
+    return;
+  }
+
+  // Increment instance ID - this invalidates any pending stops for previous instances
+  ambientInstanceId++;
+  const myInstanceId = ambientInstanceId;
+
+  console.log("[Ambient] playAmbientSound called:", { soundFile, volume, instanceId: myInstanceId });
 
   // If same sound is already playing, just adjust volume
   if (ambientAudio && currentAmbientSound === soundFile) {
     ambientAudio.volume = Math.max(0, Math.min(1, volume));
     if (ambientAudio.paused) {
-      ambientAudio.play().catch(console.error);
+      console.log("[Ambient] Resuming paused audio");
+      ambientAudio.play().catch(() => {});
     }
     return;
   }
 
-  // Stop current sound if different
-  stopAmbientSound();
+  // Stop current sound synchronously if different
+  if (ambientAudio) {
+    console.log("[Ambient] Stopping different sound");
+    ambientAudio.pause();
+    ambientAudio.src = "";
+    ambientAudio = null;
+    currentAmbientSound = null;
+  }
 
   try {
+    console.log("[Ambient] Creating new Audio for:", soundFile);
     ambientAudio = new Audio(`/sounds/${soundFile}`);
     ambientAudio.loop = true;
     ambientAudio.volume = Math.max(0, Math.min(1, volume));
     currentAmbientSound = soundFile;
 
-    ambientAudio.play().catch((error) => {
-      console.error("Failed to play ambient sound:", error);
-      ambientAudio = null;
-      currentAmbientSound = null;
-    });
+    ambientAudio
+      .play()
+      .then(() => {
+        console.log("[Ambient] Play started successfully, instanceId:", myInstanceId);
+      })
+      .catch(() => {
+        console.log("[Ambient] Play failed for instanceId:", myInstanceId);
+      });
   } catch (error) {
     console.error("Failed to create ambient audio:", error);
   }
@@ -76,14 +97,31 @@ export function playAmbientSound(soundFile: string, volume: number = 0.3): void 
 
 /**
  * Stop the currently playing ambient sound
+ * Only stops if the instance ID matches (hasn't been superseded by a new play call)
  */
 export function stopAmbientSound(): void {
-  if (ambientAudio) {
-    ambientAudio.pause();
-    ambientAudio.src = "";
-    ambientAudio = null;
-    currentAmbientSound = null;
-  }
+  const instanceIdAtCall = ambientInstanceId;
+  console.log("[Ambient] stopAmbientSound called:", { hasAudio: !!ambientAudio, instanceId: instanceIdAtCall });
+
+  // Delay the actual stop to let any synchronous play() calls happen first
+  setTimeout(() => {
+    // If a new play was started (instance ID changed), don't stop
+    if (ambientInstanceId !== instanceIdAtCall) {
+      console.log("[Ambient] Stop cancelled - new instance started:", {
+        callId: instanceIdAtCall,
+        currentId: ambientInstanceId,
+      });
+      return;
+    }
+
+    if (ambientAudio) {
+      console.log("[Ambient] Actually stopping audio, instanceId:", instanceIdAtCall);
+      ambientAudio.pause();
+      ambientAudio.src = "";
+      ambientAudio = null;
+      currentAmbientSound = null;
+    }
+  }, 50); // Small delay to let play() calls happen first
 }
 
 /**
@@ -274,6 +312,17 @@ function playSound(type: SoundType): void {
         gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
         oscillator.start(ctx.currentTime);
         oscillator.stop(ctx.currentTime + 0.3);
+        break;
+
+      case "pause":
+        // Soft descending two-note chime - gentle "pause" indicator
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(523, ctx.currentTime); // C5
+        oscillator.frequency.setValueAtTime(392, ctx.currentTime + 0.12); // G4
+        gainNode.gain.setValueAtTime(0.12, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.25);
         break;
     }
   } catch (error) {
