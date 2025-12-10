@@ -14,6 +14,11 @@ export default function ServiceWorkerProvider() {
   const [showUpdateToast, setShowUpdateToast] = useState(false);
   const [wasOffline, setWasOffline] = useState(false);
 
+  // Debug logging
+  useEffect(() => {
+    console.log("[PWA Provider] State:", { isOffline, isUpdateAvailable, isRegistered });
+  }, [isOffline, isUpdateAvailable, isRegistered]);
+
   // Show offline toast when going offline
   useEffect(() => {
     if (isOffline) {
