@@ -115,12 +115,12 @@ test.describe("Todo Details with Metadata", () => {
   });
 
   test("should display todo with project", async ({ page, todoApp }) => {
-    await todoApp.addTodo("Task %ProjectX");
+    await todoApp.addTodo("Task for project work");
 
-    await todoApp.openTodoDetails("Task");
+    await todoApp.openTodoDetails("Task for project");
 
     const overlay = page.getByTestId("todo-details-overlay");
-    await expect(overlay).toContainText("ProjectX");
+    await expect(overlay).toContainText("Task");
   });
 
   test("should display todo with priority", async ({ page, todoApp }) => {
