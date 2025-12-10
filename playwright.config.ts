@@ -28,6 +28,14 @@ export default defineConfig({
   /* Expect timeout */
   expect: {
     timeout: 10000,
+    /* Visual comparison settings */
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.01, // Allow 1% pixel difference by default
+      animations: "disabled", // Disable animations for consistent screenshots
+    },
+    toMatchSnapshot: {
+      maxDiffPixelRatio: 0.01,
+    },
   },
 
   /* Shared settings for all the projects below */
