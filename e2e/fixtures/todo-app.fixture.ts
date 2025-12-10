@@ -37,6 +37,18 @@ export interface TodoAppFixture {
 
   /** Clear search */
   clearSearch: () => Promise<void>;
+
+  /** Add a subtask to a todo (must have details overlay open) */
+  addSubtask: (text: string) => Promise<void>;
+
+  /** Archive a todo via the details overlay */
+  archiveTodo: (text: string) => Promise<void>;
+
+  /** Duplicate a todo via the details overlay */
+  duplicateTodo: (text: string) => Promise<void>;
+
+  /** Get the count of todos */
+  getTodoCount: () => Promise<number>;
 }
 
 export const test = base.extend<{ todoApp: TodoAppFixture }>({
@@ -147,6 +159,40 @@ export const test = base.extend<{ todoApp: TodoAppFixture }>({
         const searchInput = page.getByTestId("search-input");
         await searchInput.clear();
         await page.waitForTimeout(300);
+      },
+
+      addSubtask: async (text: string) => {
+        const subtaskInput = page.getByTestId("subtask-input");
+        await subtaskInput.fill(text);
+        const addButton = page.getByTestId("subtask-add-button");
+        await addButton.click();
+        await page.waitForTimeout(300);
+      },
+
+      archiveTodo: async (text: string) => {
+        const todoItem = page.locator('[data-testid="todo-item"]').filter({ hasText: text });
+        await todoItem.dblclick();
+        await page.waitForSelector('[data-testid="todo-details-overlay"]', { timeout: 5000 });
+        const archiveButton = page.getByTestId("action-archive");
+        await archiveButton.click();
+        await page.waitForTimeout(500);
+      },
+
+      duplicateTodo: async (text: string) => {
+        const todoItem = page.locator('[data-testid="todo-item"]').filter({ hasText: text });
+        await todoItem.dblclick();
+        await page.waitForSelector('[data-testid="todo-details-overlay"]', { timeout: 5000 });
+        const duplicateButton = page.getByTestId("action-duplicate");
+        await duplicateButton.click();
+        await page.waitForTimeout(500);
+        // Close the overlay
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(300);
+      },
+
+      getTodoCount: async () => {
+        const todoItems = page.locator('[data-testid="todo-item"]');
+        return await todoItems.count();
       },
     };
 

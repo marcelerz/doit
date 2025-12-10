@@ -77,9 +77,9 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
   });
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid="comments-container">
       {/* Add new comment */}
-      <div className="flex gap-2 items-start">
+      <div className="flex gap-2 items-start" data-testid="comment-add-form">
         <div className="flex-1">
           <RichTextEditor
             value={newComment}
@@ -94,15 +94,18 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
           onClick={handleAddComment}
           disabled={isHtmlEmpty(newComment)}
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
+          data-testid="comment-add-button"
         >
           Add
         </button>
       </div>
 
       {/* Comments list */}
-      <div className="space-y-2">
+      <div className="space-y-2" data-testid="comments-list">
         {sortedComments.length === 0 ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-500 italic">No comments yet</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-500 italic" data-testid="comments-empty">
+            No comments yet
+          </p>
         ) : (
           sortedComments.map((comment) => {
             const latestEntry = comment.history[comment.history.length - 1];
@@ -114,6 +117,7 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
               <div
                 key={comment.commentId}
                 className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700"
+                data-testid="comment-item"
               >
                 {isEditing ? (
                   <div className="space-y-2">
@@ -153,6 +157,7 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
                           onClick={() => handleStartEdit(comment)}
                           className="p-1 text-zinc-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           title="Edit comment"
+                          data-testid="comment-edit"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -167,6 +172,7 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
                           onClick={() => onDeleteComment(comment.commentId)}
                           className="p-1 text-zinc-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                           title="Delete comment"
+                          data-testid="comment-delete"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path

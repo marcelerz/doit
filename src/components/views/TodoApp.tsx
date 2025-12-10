@@ -2565,6 +2565,7 @@ export function TodoApp() {
               {features?.batchProcessing && (
                 <button
                   onClick={toggleSelectionMode}
+                  data-testid="selection-mode-button"
                   className={`hidden lg:flex p-2 rounded-lg transition-colors flex-shrink-0 ${
                     isSelectionMode
                       ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"

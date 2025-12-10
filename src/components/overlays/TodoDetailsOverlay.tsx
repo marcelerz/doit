@@ -1234,7 +1234,7 @@ export function TodoDetailsOverlay({
 
           {/* Add comment input */}
           {onAddComment && (
-            <div className="mb-4 flex gap-2 items-start">
+            <div className="mb-4 flex gap-2 items-start" data-testid="comment-add-section">
               <div className="flex-1">
                 <RichTextEditor
                   value={newComment}
@@ -1254,6 +1254,7 @@ export function TodoDetailsOverlay({
                 }}
                 disabled={!newComment.trim()}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
+                data-testid="add-comment-button"
               >
                 Add
               </button>

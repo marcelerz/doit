@@ -24,7 +24,7 @@ export function ActionButtons({
   deleteLabel = "Delete",
 }: ActionButtonsProps) {
   return (
-    <div className="flex items-center justify-end gap-2">
+    <div className="flex items-center justify-end gap-2" data-testid="action-buttons">
       {/* Duplicate button */}
       {onDuplicate && (
         <button
@@ -32,6 +32,7 @@ export function ActionButtons({
           className="p-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-md transition-colors"
           aria-label={duplicateLabel}
           title={duplicateLabel}
+          data-testid="action-duplicate"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -51,6 +52,7 @@ export function ActionButtons({
           className="p-2 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 rounded-md transition-colors"
           aria-label={unarchiveLabel}
           title={unarchiveLabel}
+          data-testid="action-unarchive"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -69,6 +71,7 @@ export function ActionButtons({
             className="p-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-md transition-colors"
             aria-label={archiveLabel}
             title={archiveLabel}
+            data-testid="action-archive"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -89,6 +92,7 @@ export function ActionButtons({
           className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
           aria-label={deleteLabel}
           title={deleteLabel}
+          data-testid="action-delete"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path

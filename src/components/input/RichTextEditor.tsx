@@ -139,6 +139,7 @@ export default function RichTextEditor({
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
+          data-testid="rich-text-editor"
           onInput={(e) => {
             // Call onChange immediately when content changes
             if (editorRef.current) {

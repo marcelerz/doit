@@ -52,15 +52,24 @@ E2E tests are located in the `e2e/` directory:
 e2e/
 ├── fixtures/
 │   └── todo-app.fixture.ts   # Custom test fixtures and helpers
-├── todo-crud.spec.ts         # Todo CRUD operations
-├── smart-input.spec.ts       # Smart input and auto-detection
-├── views.spec.ts             # View navigation tests
-├── search-filter.spec.ts     # Search and filtering
-├── mobile.spec.ts            # Mobile responsiveness
-├── persistence.spec.ts       # Data persistence tests
-├── settings.spec.ts          # Settings page tests
-└── accessibility.spec.ts     # Accessibility tests
+├── accessibility.spec.ts     # Accessibility and ARIA tests (6 tests)
+├── advanced-search.spec.ts   # Advanced search functionality (13 tests)
+├── archive-duplicate.spec.ts # Archive/unarchive and duplicate (8 tests)
+├── bulk-operations.spec.ts   # Bulk selection and operations (7 tests)
+├── comments.spec.ts          # Comments functionality (5 tests)
+├── keyboard.spec.ts          # Keyboard navigation and shortcuts (10 tests)
+├── mobile.spec.ts            # Mobile responsiveness (4 tests)
+├── persistence.spec.ts       # Data persistence tests (5 tests)
+├── search-filter.spec.ts     # Basic search and filtering (5 tests)
+├── settings.spec.ts          # Settings page tests (3 tests)
+├── smart-input.spec.ts       # Smart input and auto-detection (7 tests)
+├── subtasks.spec.ts          # Subtask functionality (7 tests)
+├── todo-crud.spec.ts         # Todo CRUD operations (7 tests)
+├── todo-details.spec.ts      # Todo details overlay (13 tests)
+└── views.spec.ts             # View navigation tests (7 tests)
 ```
+
+**Total: 106 tests** (212 with mobile browser = 106 × 2)
 
 ## Custom Fixtures
 
