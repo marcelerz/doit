@@ -44,6 +44,7 @@ const listViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="search-bar"]',
     position: "bottom",
     spotlightPadding: 8,
+    fallbackHint: "The search bar with filter icon is below the view tabs",
   },
   {
     id: "list-grouping",
@@ -53,6 +54,7 @@ const listViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="group-sort"]',
     position: "bottom",
     spotlightPadding: 8,
+    fallbackHint: "Group and Sort dropdowns are next to the search bar",
   },
   {
     id: "list-presets",
@@ -62,6 +64,7 @@ const listViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="save-preset"]',
     position: "bottom",
     spotlightPadding: 8,
+    fallbackHint: "The save preset button (💾) is in the toolbar area near filters",
   },
   {
     id: "list-selection",
@@ -95,6 +98,7 @@ const peopleViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="add-person-button"]',
     position: "bottom",
     spotlightPadding: 8,
+    fallbackHint: "The + Add Person button is at the top of the People view",
   },
   {
     id: "people-assign",
@@ -134,6 +138,7 @@ const projectsViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="add-project-button"]',
     position: "bottom",
     spotlightPadding: 8,
+    fallbackHint: "The + Add Project button is at the top of the Projects view",
   },
   {
     id: "projects-link",
@@ -173,6 +178,7 @@ const sprintsViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="add-sprint-button"]',
     position: "bottom",
     spotlightPadding: 8,
+    fallbackHint: "The + Add Sprint button is at the top of the Sprints view",
   },
   {
     id: "sprints-assign",
@@ -2335,19 +2341,22 @@ export function TodoApp() {
   // Individual views handle their own internal overflow/scrolling needs
   const containerClass = "max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto";
 
-  // Tutorial button component for views
+  // Tutorial button component for views - uses graduation cap icon to differentiate from info tooltips
   const ViewTutorialButton = ({ view, className = "" }: { view: string; className?: string }) => (
     <button
-      onClick={() => setViewTutorialOpen(view)}
-      className={`p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${className}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        setViewTutorialOpen(view);
+      }}
+      className={`p-0.5 rounded text-blue-400 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors ${className}`}
       title={`Learn about this view`}
     >
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={2}
-          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
         />
       </svg>
     </button>
@@ -2443,6 +2452,7 @@ export function TodoApp() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
                 <span className="hidden lg:inline">List</span>
+                {activeView === "list" && <ViewTutorialButton view="list" />}
               </div>
             </button>
             {features?.kanbanView && (
@@ -2466,6 +2476,7 @@ export function TodoApp() {
                     />
                   </svg>
                   <span className="hidden lg:inline">Kanban</span>
+                  {activeView === "kanban" && <ViewTutorialButton view="kanban" />}
                 </div>
               </button>
             )}
@@ -2486,6 +2497,7 @@ export function TodoApp() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h10M4 12h16M4 18h12" />
                   </svg>
                   <span className="hidden lg:inline">Gantt</span>
+                  {activeView === "gantt" && <ViewTutorialButton view="gantt" />}
                 </div>
               </button>
             )}
@@ -2510,6 +2522,7 @@ export function TodoApp() {
                     />
                   </svg>
                   <span className="hidden lg:inline">Calendar</span>
+                  {activeView === "calendar" && <ViewTutorialButton view="calendar" />}
                 </div>
               </button>
             )}
@@ -2533,6 +2546,7 @@ export function TodoApp() {
                   />
                 </svg>
                 <span className="hidden lg:inline">People</span>
+                {activeView === "people" && <ViewTutorialButton view="people" />}
               </div>
             </button>
             <button
@@ -2555,6 +2569,7 @@ export function TodoApp() {
                   />
                 </svg>
                 <span className="hidden lg:inline">Projects</span>
+                {activeView === "projects" && <ViewTutorialButton view="projects" />}
               </div>
             </button>
             {features?.sprintsView && (
@@ -2572,6 +2587,7 @@ export function TodoApp() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                   <span className="hidden lg:inline">Sprints</span>
+                  {activeView === "sprints" && <ViewTutorialButton view="sprints" />}
                   {runningSprint && (
                     <span className="hidden lg:inline w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                   )}
@@ -3158,9 +3174,6 @@ export function TodoApp() {
                   )}
                 </div>
               )}
-
-              {/* View Tutorial Button */}
-              <ViewTutorialButton view="list" />
             </div>
 
             {showFilters && (
@@ -3343,144 +3356,126 @@ export function TodoApp() {
 
         {/* View Content */}
         {activeView === "gantt" && (
-          <div className="relative">
-            <div className="absolute top-2 right-2 z-10">
-              <ViewTutorialButton view="gantt" className="bg-white/80 dark:bg-zinc-800/80 shadow-sm" />
-            </div>
-            <GanttView
-              key={ganttRefreshKey}
-              todos={todos}
-              markerColors={settings.markerColors}
-              workHours={settings.workHours}
-              onEditTodo={editTodo}
-              availablePeople={sortedPeople}
-              availableProjects={sortedProjects}
-              availablePriorities={sortedPriorities}
-              onAddPerson={handleAddPerson}
-              onAddProject={handleAddProject}
-              onAddPriority={handleAddPriority}
-              onToggle={toggleTodo}
-              onDelete={deleteTodo}
-              onDuplicate={duplicateTodo}
-              onArchive={archiveTodo}
-              onUnarchive={unarchiveTodo}
-              settings={settings}
-              linkPatterns={settings.linkPatterns}
-              onAddComment={addTodoComment}
-              onUpdateGanttSettings={updateGantt}
-              onAddSubtask={addSubtask}
-              onToggleSubtask={toggleSubtask}
-              onEditSubtask={editSubtask}
-              onDeleteSubtask={deleteSubtask}
-              onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
-              onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
-              onAddManualTimeEntry={settings.features.timeTracking ? addManualTimeEntry : undefined}
-              onDeleteTimeEntry={settings.features.timeTracking ? deleteTimeEntry : undefined}
-              onCreateTemplate={handleCreateTemplate}
-              onStartFocusMode={
-                features?.focusMode
-                  ? (tasks) => {
-                      setFocusTasks(tasks);
-                      setIsFocusMode(true);
-                    }
-                  : undefined
-              }
-              onStartOpenFocusMode={features?.focusMode ? () => setIsOpenFocusMode(true) : undefined}
-            />
-          </div>
+          <GanttView
+            key={ganttRefreshKey}
+            todos={todos}
+            markerColors={settings.markerColors}
+            workHours={settings.workHours}
+            onEditTodo={editTodo}
+            availablePeople={sortedPeople}
+            availableProjects={sortedProjects}
+            availablePriorities={sortedPriorities}
+            onAddPerson={handleAddPerson}
+            onAddProject={handleAddProject}
+            onAddPriority={handleAddPriority}
+            onToggle={toggleTodo}
+            onDelete={deleteTodo}
+            onDuplicate={duplicateTodo}
+            onArchive={archiveTodo}
+            onUnarchive={unarchiveTodo}
+            settings={settings}
+            linkPatterns={settings.linkPatterns}
+            onAddComment={addTodoComment}
+            onUpdateGanttSettings={updateGantt}
+            onAddSubtask={addSubtask}
+            onToggleSubtask={toggleSubtask}
+            onEditSubtask={editSubtask}
+            onDeleteSubtask={deleteSubtask}
+            onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
+            onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
+            onAddManualTimeEntry={settings.features.timeTracking ? addManualTimeEntry : undefined}
+            onDeleteTimeEntry={settings.features.timeTracking ? deleteTimeEntry : undefined}
+            onCreateTemplate={handleCreateTemplate}
+            onStartFocusMode={
+              features?.focusMode
+                ? (tasks) => {
+                    setFocusTasks(tasks);
+                    setIsFocusMode(true);
+                  }
+                : undefined
+            }
+            onStartOpenFocusMode={features?.focusMode ? () => setIsOpenFocusMode(true) : undefined}
+          />
         )}
 
         {activeView === "kanban" && (
-          <div className="relative">
-            <div className="absolute top-2 right-2 z-10">
-              <ViewTutorialButton view="kanban" className="bg-white/80 dark:bg-zinc-800/80 shadow-sm" />
-            </div>
-            <KanbanView
-              todos={todos}
-              markerColors={settings.markerColors}
-              kanban={settings.kanban}
-              onEditTodo={editTodo}
-              availablePeople={sortedPeople}
-              availableProjects={sortedProjects}
-              availablePriorities={sortedPriorities}
-              onAddPerson={handleAddPerson}
-              onAddProject={handleAddProject}
-              onAddPriority={handleAddPriority}
-              onToggle={toggleTodo}
-              onDelete={deleteTodo}
-              onDuplicate={duplicateTodo}
-              onArchive={archiveTodo}
-              onUnarchive={unarchiveTodo}
-              onSetWorkflowState={setWorkflowState}
-              settings={settings}
-              linkPatterns={settings.linkPatterns}
-              onAddComment={addTodoComment}
-              onUpdateKanbanSettings={updateKanbanSettings}
-              onAddSubtask={addSubtask}
-              onToggleSubtask={toggleSubtask}
-              onEditSubtask={editSubtask}
-              onDeleteSubtask={deleteSubtask}
-              onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
-              onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
-              onAddManualTimeEntry={settings.features.timeTracking ? addManualTimeEntry : undefined}
-              onDeleteTimeEntry={settings.features.timeTracking ? deleteTimeEntry : undefined}
-              onCreateTemplate={handleCreateTemplate}
-              sprints={sprints.map((s) => s.raw)}
-              runningSprint={runningSprint?.raw}
-            />
-          </div>
+          <KanbanView
+            todos={todos}
+            markerColors={settings.markerColors}
+            kanban={settings.kanban}
+            onEditTodo={editTodo}
+            availablePeople={sortedPeople}
+            availableProjects={sortedProjects}
+            availablePriorities={sortedPriorities}
+            onAddPerson={handleAddPerson}
+            onAddProject={handleAddProject}
+            onAddPriority={handleAddPriority}
+            onToggle={toggleTodo}
+            onDelete={deleteTodo}
+            onDuplicate={duplicateTodo}
+            onArchive={archiveTodo}
+            onUnarchive={unarchiveTodo}
+            onSetWorkflowState={setWorkflowState}
+            settings={settings}
+            linkPatterns={settings.linkPatterns}
+            onAddComment={addTodoComment}
+            onUpdateKanbanSettings={updateKanbanSettings}
+            onAddSubtask={addSubtask}
+            onToggleSubtask={toggleSubtask}
+            onEditSubtask={editSubtask}
+            onDeleteSubtask={deleteSubtask}
+            onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
+            onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
+            onAddManualTimeEntry={settings.features.timeTracking ? addManualTimeEntry : undefined}
+            onDeleteTimeEntry={settings.features.timeTracking ? deleteTimeEntry : undefined}
+            onCreateTemplate={handleCreateTemplate}
+            sprints={sprints.map((s) => s.raw)}
+            runningSprint={runningSprint?.raw}
+          />
         )}
 
         {activeView === "calendar" && (
-          <div className="relative">
-            <div className="absolute top-2 right-2 z-10">
-              <ViewTutorialButton view="calendar" className="bg-white/80 dark:bg-zinc-800/80 shadow-sm" />
-            </div>
-            <CalendarView
-              todos={todos}
-              markerColors={settings.markerColors}
-              settings={settings}
-              linkPatterns={settings.linkPatterns}
-              availablePeople={sortedPeople}
-              availableProjects={sortedProjects}
-              availablePriorities={sortedPriorities}
-              onToggle={toggleTodo}
-              onDelete={deleteTodo}
-              onArchive={archiveTodo}
-              onUnarchive={unarchiveTodo}
-              onEdit={editTodo}
-              onAddPerson={handleAddPerson}
-              onAddProject={handleAddProject}
-              onAddPriority={handleAddPriority}
-              onAddComment={addTodoComment}
-              onEditComment={editTodoComment}
-              onDeleteComment={deleteTodoComment}
-              onAddSubtask={addSubtask}
-              onToggleSubtask={toggleSubtask}
-              onEditSubtask={editSubtask}
-              onDeleteSubtask={deleteSubtask}
-              onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
-              onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
-              onAddManualTimeEntry={settings.features.timeTracking ? addManualTimeEntry : undefined}
-              onDeleteTimeEntry={settings.features.timeTracking ? deleteTimeEntry : undefined}
-              onCreateTemplate={handleCreateTemplate}
-              onDuplicate={duplicateTodo}
-            />
-          </div>
+          <CalendarView
+            todos={todos}
+            markerColors={settings.markerColors}
+            settings={settings}
+            linkPatterns={settings.linkPatterns}
+            availablePeople={sortedPeople}
+            availableProjects={sortedProjects}
+            availablePriorities={sortedPriorities}
+            onToggle={toggleTodo}
+            onDelete={deleteTodo}
+            onArchive={archiveTodo}
+            onUnarchive={unarchiveTodo}
+            onEdit={editTodo}
+            onAddPerson={handleAddPerson}
+            onAddProject={handleAddProject}
+            onAddPriority={handleAddPriority}
+            onAddComment={addTodoComment}
+            onEditComment={editTodoComment}
+            onDeleteComment={deleteTodoComment}
+            onAddSubtask={addSubtask}
+            onToggleSubtask={toggleSubtask}
+            onEditSubtask={editSubtask}
+            onDeleteSubtask={deleteSubtask}
+            onStartTimeTracking={settings.features.timeTracking ? startTimeTracking : undefined}
+            onStopTimeTracking={settings.features.timeTracking ? stopTimeTracking : undefined}
+            onAddManualTimeEntry={settings.features.timeTracking ? addManualTimeEntry : undefined}
+            onDeleteTimeEntry={settings.features.timeTracking ? deleteTimeEntry : undefined}
+            onCreateTemplate={handleCreateTemplate}
+            onDuplicate={duplicateTodo}
+          />
         )}
 
         {/* People View */}
         {activeView === "people" && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-              <div className="flex items-center gap-2">
-                <div>
-                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">People</h2>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                    {filteredPeople.length} of {allPeople.length} {allPeople.length === 1 ? "person" : "people"}
-                  </p>
-                </div>
-                <ViewTutorialButton view="people" />
+              <div>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">People</h2>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                  {filteredPeople.length} of {allPeople.length} {allPeople.length === 1 ? "person" : "people"}
+                </p>
               </div>
               <button
                 onClick={() => setIsAddPersonOverlayOpen(true)}
@@ -3577,15 +3572,11 @@ export function TodoApp() {
         {activeView === "projects" && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-              <div className="flex items-center gap-2">
-                <div>
-                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Projects</h2>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                    {filteredProjects.length} of {allProjects.length}{" "}
-                    {allProjects.length === 1 ? "project" : "projects"}
-                  </p>
-                </div>
-                <ViewTutorialButton view="projects" />
+              <div>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Projects</h2>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                  {filteredProjects.length} of {allProjects.length} {allProjects.length === 1 ? "project" : "projects"}
+                </p>
               </div>
               <button
                 onClick={() => setIsAddProjectOverlayOpen(true)}
@@ -3692,14 +3683,11 @@ export function TodoApp() {
         {activeView === "sprints" && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-              <div className="flex items-center gap-2">
-                <div>
-                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Sprints</h2>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                    {filteredSprints.length} of {sprints.length} {sprints.length === 1 ? "sprint" : "sprints"}
-                  </p>
-                </div>
-                <ViewTutorialButton view="sprints" />
+              <div>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Sprints</h2>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                  {filteredSprints.length} of {sprints.length} {sprints.length === 1 ? "sprint" : "sprints"}
+                </p>
               </div>
               <button
                 onClick={() => setIsAddSprintOverlayOpen(true)}

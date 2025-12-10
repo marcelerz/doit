@@ -30,6 +30,7 @@ export const kanbanViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="kanban-board"]',
     position: "top",
     spotlightPadding: 12,
+    fallbackHint: "The Kanban board shows columns for each workflow state (Backlog, To Do, In Progress, etc.)",
   },
   {
     id: "kanban-drag",
@@ -47,6 +48,7 @@ export const kanbanViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="kanban-view-selector"]',
     position: "bottom",
     spotlightPadding: 8,
+    fallbackHint: "View selector dropdown is in the toolbar above the Kanban columns",
   },
   {
     id: "kanban-sprints",
@@ -56,6 +58,7 @@ export const kanbanViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="kanban-sprint-filter"]',
     position: "bottom",
     spotlightPadding: 8,
+    fallbackHint: "Sprint filter dropdown is next to the view selector in the toolbar",
   },
   {
     id: "kanban-complete",

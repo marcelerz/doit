@@ -28,6 +28,7 @@ export const calendarViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="calendar-grid"]',
     position: "top",
     spotlightPadding: 12,
+    fallbackHint: "The calendar grid shows all days of the month with colored dots for tasks",
   },
   {
     id: "calendar-click",
@@ -44,6 +45,7 @@ export const calendarViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="calendar-nav"]',
     position: "bottom",
     spotlightPadding: 8,
+    fallbackHint: "Navigation arrows and Today button are at the top of the calendar",
   },
   {
     id: "calendar-complete",

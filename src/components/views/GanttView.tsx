@@ -53,6 +53,7 @@ export const ganttViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="gantt-timeline"]',
     position: "top",
     spotlightPadding: 12,
+    fallbackHint: "The timeline grid shows hours of the day with scheduled tasks as colored bars",
   },
   {
     id: "gantt-scheduling",
@@ -62,6 +63,7 @@ export const ganttViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="gantt-scheduling-mode"]',
     position: "bottom",
     spotlightPadding: 8,
+    fallbackHint: "Scheduling mode buttons (Sequential/Pomodoro/Flow) are in the toolbar above the timeline",
   },
   {
     id: "gantt-focus",
@@ -79,6 +81,7 @@ export const ganttViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="gantt-zoom"]',
     position: "bottom",
     spotlightPadding: 8,
+    fallbackHint: "Zoom controls (Day/Week) are in the toolbar area above the timeline",
   },
   {
     id: "gantt-complete",

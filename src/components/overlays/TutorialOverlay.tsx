@@ -11,6 +11,7 @@ export interface TutorialStep {
   position?: "top" | "bottom" | "left" | "right" | "center";
   action?: string; // Optional action hint like "Click here" or "Try typing"
   spotlightPadding?: number; // Padding around the highlighted element
+  fallbackHint?: string; // Hint shown when target element is not found
 }
 
 // Main app tutorial steps (first load)
@@ -31,6 +32,7 @@ export const mainTutorialSteps: TutorialStep[] = [
     position: "bottom",
     action: "Click to add your first task!",
     spotlightPadding: 8,
+    fallbackHint: "Look for the + Add button at the top of the page",
   },
   {
     id: "markers",
@@ -40,6 +42,7 @@ export const mainTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="add-button"]',
     position: "bottom",
     spotlightPadding: 8,
+    fallbackHint: "These markers work in the task input field (click + Add to open it)",
   },
   {
     id: "views",
@@ -50,6 +53,7 @@ export const mainTutorialSteps: TutorialStep[] = [
     position: "bottom",
     action: "Try clicking different tabs",
     spotlightPadding: 8,
+    fallbackHint: "View tabs are located below the header (List, Kanban, Gantt, Calendar, People, Projects)",
   },
   {
     id: "filters",
@@ -60,6 +64,7 @@ export const mainTutorialSteps: TutorialStep[] = [
     position: "bottom",
     action: "Try searching or click the filter button!",
     spotlightPadding: 8,
+    fallbackHint: "The search bar with filter icon is below the view tabs in List view",
   },
   {
     id: "people-projects",
@@ -69,6 +74,7 @@ export const mainTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="view-tabs"]',
     position: "bottom",
     spotlightPadding: 8,
+    fallbackHint: "People and Projects tabs are in the view tabs row (press 5 or 6 to access them)",
   },
   {
     id: "task-details",
@@ -79,6 +85,7 @@ export const mainTutorialSteps: TutorialStep[] = [
     position: "top",
     action: "Click on a task to see more",
     spotlightPadding: 12,
+    fallbackHint: "Create a task first using the + Add button, then click on it to see details",
   },
   {
     id: "keyboard",
@@ -95,6 +102,7 @@ export const mainTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="settings-button"]',
     position: "left",
     spotlightPadding: 8,
+    fallbackHint: "The ⚙️ Settings button is in the top-right corner of the page",
   },
   {
     id: "help",
@@ -104,6 +112,7 @@ export const mainTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="help-button"]',
     position: "left",
     spotlightPadding: 8,
+    fallbackHint: "The ❓ Help button is in the top-right corner, next to Settings",
   },
   {
     id: "complete",
@@ -135,6 +144,7 @@ export function TutorialOverlay({
   const [spotlightRect, setSpotlightRect] = useState<DOMRect | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isAnimating, setIsAnimating] = useState(false);
+  const [targetNotFound, setTargetNotFound] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const step = steps[currentStep];
@@ -145,6 +155,7 @@ export function TutorialOverlay({
   const updateSpotlight = useCallback(() => {
     if (!step.targetSelector) {
       setSpotlightRect(null);
+      setTargetNotFound(false);
       return;
     }
 
@@ -155,12 +166,14 @@ export function TutorialOverlay({
       setSpotlightRect(
         new DOMRect(rect.x - padding, rect.y - padding, rect.width + padding * 2, rect.height + padding * 2),
       );
+      setTargetNotFound(false);
     } else {
       setSpotlightRect(null);
+      setTargetNotFound(true);
     }
   }, [step]);
 
-  // Calculate tooltip position
+  // Calculate tooltip position - smarter positioning that finds visible space
   const updateTooltipPosition = useCallback(() => {
     if (!tooltipRef.current) return;
 
@@ -178,29 +191,99 @@ export function TutorialOverlay({
       x = (viewportWidth - tooltipRect.width) / 2;
       y = (viewportHeight - tooltipRect.height) / 2;
     } else {
-      const spotlightCenterX = spotlightRect.x + spotlightRect.width / 2;
-      const spotlightCenterY = spotlightRect.y + spotlightRect.height / 2;
+      // Calculate available space in each direction
+      const spaceTop = spotlightRect.top;
+      const spaceBottom = viewportHeight - spotlightRect.bottom;
+      const spaceLeft = spotlightRect.left;
+      const spaceRight = viewportWidth - spotlightRect.right;
 
-      switch (step.position) {
-        case "bottom":
-          x = spotlightCenterX - tooltipRect.width / 2;
-          y = spotlightRect.bottom + margin;
-          break;
-        case "top":
-          x = spotlightCenterX - tooltipRect.width / 2;
+      const tooltipWidth = tooltipRect.width + margin * 2;
+      const tooltipHeight = tooltipRect.height + margin * 2;
+
+      // Check if spotlight is too large (takes up most of the screen)
+      const spotlightTooLarge =
+        spotlightRect.width > viewportWidth * 0.7 || spotlightRect.height > viewportHeight * 0.5;
+
+      // If spotlight is very large, position tooltip in a corner or overlay on the spotlight
+      if (spotlightTooLarge) {
+        // Find the best corner with most space
+        const corners = [
+          { x: margin, y: margin }, // top-left
+          { x: viewportWidth - tooltipRect.width - margin, y: margin }, // top-right
+          { x: margin, y: viewportHeight - tooltipRect.height - margin }, // bottom-left
+          { x: viewportWidth - tooltipRect.width - margin, y: viewportHeight - tooltipRect.height - margin }, // bottom-right
+        ];
+
+        // Prefer top corners if there's space above the spotlight
+        if (spaceTop > tooltipHeight) {
+          x = Math.max(
+            margin,
+            Math.min(
+              spotlightRect.x + spotlightRect.width / 2 - tooltipRect.width / 2,
+              viewportWidth - tooltipRect.width - margin,
+            ),
+          );
           y = spotlightRect.top - tooltipRect.height - margin;
-          break;
-        case "left":
-          x = spotlightRect.left - tooltipRect.width - margin;
-          y = spotlightCenterY - tooltipRect.height / 2;
-          break;
-        case "right":
-          x = spotlightRect.right + margin;
-          y = spotlightCenterY - tooltipRect.height / 2;
-          break;
-        default:
-          x = spotlightCenterX - tooltipRect.width / 2;
+        } else if (spaceBottom > tooltipHeight) {
+          x = Math.max(
+            margin,
+            Math.min(
+              spotlightRect.x + spotlightRect.width / 2 - tooltipRect.width / 2,
+              viewportWidth - tooltipRect.width - margin,
+            ),
+          );
           y = spotlightRect.bottom + margin;
+        } else {
+          // Use top-right corner as fallback
+          x = viewportWidth - tooltipRect.width - margin;
+          y = margin;
+        }
+      } else {
+        // Normal positioning based on requested position
+        const spotlightCenterX = spotlightRect.x + spotlightRect.width / 2;
+        const spotlightCenterY = spotlightRect.y + spotlightRect.height / 2;
+
+        // Determine best position - try requested position first, then find alternatives
+        let bestPosition = step.position;
+
+        // Check if requested position has enough space
+        const canFitBottom = spaceBottom >= tooltipHeight;
+        const canFitTop = spaceTop >= tooltipHeight;
+        const canFitLeft = spaceLeft >= tooltipWidth;
+        const canFitRight = spaceRight >= tooltipWidth;
+
+        // If requested position doesn't fit, find alternative
+        if (step.position === "bottom" && !canFitBottom) {
+          bestPosition = canFitTop ? "top" : canFitRight ? "right" : canFitLeft ? "left" : "bottom";
+        } else if (step.position === "top" && !canFitTop) {
+          bestPosition = canFitBottom ? "bottom" : canFitRight ? "right" : canFitLeft ? "left" : "top";
+        } else if (step.position === "left" && !canFitLeft) {
+          bestPosition = canFitRight ? "right" : canFitBottom ? "bottom" : canFitTop ? "top" : "left";
+        } else if (step.position === "right" && !canFitRight) {
+          bestPosition = canFitLeft ? "left" : canFitBottom ? "bottom" : canFitTop ? "top" : "right";
+        }
+
+        switch (bestPosition) {
+          case "bottom":
+            x = spotlightCenterX - tooltipRect.width / 2;
+            y = spotlightRect.bottom + margin;
+            break;
+          case "top":
+            x = spotlightCenterX - tooltipRect.width / 2;
+            y = spotlightRect.top - tooltipRect.height - margin;
+            break;
+          case "left":
+            x = spotlightRect.left - tooltipRect.width - margin;
+            y = spotlightCenterY - tooltipRect.height / 2;
+            break;
+          case "right":
+            x = spotlightRect.right + margin;
+            y = spotlightCenterY - tooltipRect.height / 2;
+            break;
+          default:
+            x = spotlightCenterX - tooltipRect.width / 2;
+            y = spotlightRect.bottom + margin;
+        }
       }
     }
 
@@ -363,7 +446,7 @@ export function TutorialOverlay({
         }}
       />
 
-      {/* Tooltip */}
+      {/* Tooltip - high z-index to always be visible */}
       <div
         ref={tooltipRef}
         className={`absolute bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-zinc-200 dark:border-zinc-700 p-6 max-w-md transition-all duration-300 ${
@@ -372,7 +455,7 @@ export function TutorialOverlay({
         style={{
           left: tooltipPosition.x,
           top: tooltipPosition.y,
-          zIndex: 10,
+          zIndex: 100,
         }}
       >
         {/* Progress indicator */}
@@ -402,8 +485,16 @@ export function TutorialOverlay({
         {/* Description */}
         <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line mb-4">{step.description}</p>
 
+        {/* Fallback hint when target element is not found */}
+        {targetNotFound && step.fallbackHint && (
+          <div className="bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm px-3 py-2 rounded-lg mb-4 flex items-center gap-2 border border-amber-200 dark:border-amber-800">
+            <span className="text-lg">📍</span>
+            <span>{step.fallbackHint}</span>
+          </div>
+        )}
+
         {/* Action hint */}
-        {step.action && (
+        {step.action && !targetNotFound && (
           <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm px-3 py-2 rounded-lg mb-4 flex items-center gap-2">
             <span className="text-lg">👆</span>
             <span>{step.action}</span>
