@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import StorageInitializer from "@/components/StorageInitializer";
+import ServiceWorkerProvider from "@/components/ServiceWorkerProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 const geistSans = Geist({
@@ -17,6 +18,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "DoIt",
   description: "A simple, extensible, local todo app",
+  applicationName: "DoIt",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "DoIt",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     // Classic favicon
     icon: [
@@ -52,6 +62,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}>
         <ThemeProvider>
           <StorageInitializer />
+          <ServiceWorkerProvider />
           <main className="flex-1">{children}</main>
           <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 py-4">
             <div className="container mx-auto px-4 text-center text-sm text-zinc-600 dark:text-zinc-400">

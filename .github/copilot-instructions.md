@@ -48,6 +48,7 @@
 - [x] Add Safari and Safari Private Mode compatibility
 - [x] Create StorageInitializer component for app startup
 - [x] Create TodoModel business logic abstraction layer
+- [x] Add offline PWA support with service worker
 - [x] Refactor useTodos to return TodoModel[] instead of Todo[]
 - [x] Create PersonModel and ProjectModel business logic abstractions
 - [x] Refactor usePeople to return PersonModel[] instead of Person[]
@@ -76,14 +77,53 @@
 ## Project Details
 
 - **Type**: Next.js TypeScript webapp
-- **Features**: Todo app with automatic IndexedDB/localStorage, state-based architecture, multiple views, business logic abstraction (TodoModel, PersonModel, ProjectModel)
-- **Design**: Full-page, mobile-responsive
+- **Features**: Todo app with automatic IndexedDB/localStorage, state-based architecture, multiple views, business logic abstraction (TodoModel, PersonModel, ProjectModel), offline PWA support
+- **Design**: Full-page, mobile-responsive, installable PWA
 - **Status**: Complete and running
 - **Storage**: Automatic IndexedDB with localStorage fallback and migration
 - **Migration Version**: 5 (removed imageUrl field from people and projects)
 - **Business Logic**: Model abstraction layer - useTodos returns TodoModel[], usePeople returns PersonModel[], useProjects returns ProjectModel[]
+- **PWA**: Service worker with offline caching, update notifications, and installable on mobile/desktop
 
 ## Architecture
+
+### PWA & Offline Support
+
+The app is a fully installable PWA with comprehensive offline support:
+
+**Service Worker (`public/sw.js`):**
+
+- Caches static assets (icons, manifest, fonts) on install
+- Caches ambient sound files for offline Pomodoro use
+- Uses different caching strategies based on resource type:
+  - **Network-first** for HTML pages (always get latest, fall back to cache)
+  - **Cache-first** for static assets (icons, sounds, fonts)
+  - **Stale-while-revalidate** for Next.js bundles
+- Handles offline gracefully with fallback to cached content
+- Supports background sync for future enhancements
+- Handles push notifications (infrastructure ready)
+
+**Service Worker Registration (`src/hooks/useServiceWorker.ts`):**
+
+- Registers service worker on app load
+- Tracks online/offline status
+- Detects available updates
+- Provides `applyUpdate()` to activate new service worker
+- Provides `clearCache()` to clear all cached data
+
+**UI Components (`src/components/ServiceWorkerProvider.tsx`):**
+
+- Shows offline toast when connection is lost
+- Shows persistent offline indicator in corner when offline
+- Shows update notification with "Update" button when new version available
+- Smooth animations for toast notifications
+
+**Web Manifest (`public/site.webmanifest`):**
+
+- Full PWA manifest with icons, theme colors, and app metadata
+- Standalone display mode for native-like experience
+- Portrait orientation preferred
+- Launch handler to reuse existing window
 
 ### Storage Abstraction Layer
 

@@ -52,6 +52,22 @@ body {
   animation: slide-up 0.3s ease-out;
 }
 
+/* Slide down animation for toasts from top */
+@keyframes slide-down {
+  from {
+    transform: translate(-50%, -100px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out;
+}
+
 /* Notification animations */
 @keyframes slide-in {
   from {
