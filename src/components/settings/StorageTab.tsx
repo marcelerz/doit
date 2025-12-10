@@ -340,13 +340,13 @@ export function StorageTab() {
 
   const clearAllData = async () => {
     if (clearConfirmText !== "DELETE ALL DATA") return;
-    
+
     setIsClearing(true);
-    
+
     try {
       const adapter = getStorageAdapter();
       const keys = Object.values(STORAGE_KEYS);
-      
+
       // Clear all doit-related data from current storage
       for (const key of keys) {
         if (adapter.removeItem) {
@@ -354,14 +354,14 @@ export function StorageTab() {
           if (result instanceof Promise) await result;
         }
       }
-      
+
       // Also clear from localStorage if using IndexedDB (to ensure complete cleanup)
       if (storageType === "indexedDB") {
         for (const key of keys) {
           localStorage.removeItem(key);
         }
       }
-      
+
       // Clear any backup keys
       const allKeys = adapter.getAllKeys ? adapter.getAllKeys() : [];
       const keysList = allKeys instanceof Promise ? await allKeys : allKeys;
@@ -373,17 +373,17 @@ export function StorageTab() {
           }
         }
       }
-      
+
       // Also clear doit- prefixed keys from localStorage
-      const localStorageKeys = Object.keys(localStorage).filter(k => k.startsWith("doit-"));
+      const localStorageKeys = Object.keys(localStorage).filter((k) => k.startsWith("doit-"));
       for (const key of localStorageKeys) {
         localStorage.removeItem(key);
       }
-      
+
       // Reset confirmation state
       setShowClearConfirm(false);
       setClearConfirmText("");
-      
+
       // Reload the page to start fresh
       window.location.reload();
     } catch (error) {
@@ -635,7 +635,8 @@ export function StorageTab() {
               <div className="flex-1">
                 <h4 className="text-sm font-semibold text-red-900 dark:text-red-100 mb-1">Danger Zone</h4>
                 <p className="text-sm text-red-800 dark:text-red-200 mb-3">
-                  Clear all app data including todos, people, projects, settings, and backups. This action cannot be undone.
+                  Clear all app data including todos, people, projects, settings, and backups. This action cannot be
+                  undone.
                 </p>
                 {!showClearConfirm ? (
                   <button
@@ -657,9 +658,7 @@ export function StorageTab() {
                       </svg>
                       <span className="font-semibold">Are you absolutely sure?</span>
                     </div>
-                    <p className="text-sm text-red-800 dark:text-red-200">
-                      This will permanently delete:
-                    </p>
+                    <p className="text-sm text-red-800 dark:text-red-200">This will permanently delete:</p>
                     <ul className="text-sm text-red-800 dark:text-red-200 list-disc list-inside space-y-1">
                       <li>All your todos (active, completed, and archived)</li>
                       <li>All people and projects</li>
@@ -668,7 +667,8 @@ export function StorageTab() {
                       <li>All view presets and saved filters</li>
                     </ul>
                     <p className="text-sm text-red-800 dark:text-red-200 font-medium">
-                      Type <code className="bg-red-200 dark:bg-red-800 px-1 py-0.5 rounded">DELETE ALL DATA</code> to confirm:
+                      Type <code className="bg-red-200 dark:bg-red-800 px-1 py-0.5 rounded">DELETE ALL DATA</code> to
+                      confirm:
                     </p>
                     <input
                       type="text"
