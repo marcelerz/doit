@@ -61,6 +61,9 @@ export function StorageTab() {
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState<string | null>(null);
   const [indexedDBAvailable, setIndexedDBAvailable] = useState(true);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearConfirmText, setClearConfirmText] = useState("");
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -335,6 +338,62 @@ export function StorageTab() {
     }
   };
 
+  const clearAllData = async () => {
+    if (clearConfirmText !== "DELETE ALL DATA") return;
+    
+    setIsClearing(true);
+    
+    try {
+      const adapter = getStorageAdapter();
+      const keys = Object.values(STORAGE_KEYS);
+      
+      // Clear all doit-related data from current storage
+      for (const key of keys) {
+        if (adapter.removeItem) {
+          const result = adapter.removeItem(key);
+          if (result instanceof Promise) await result;
+        }
+      }
+      
+      // Also clear from localStorage if using IndexedDB (to ensure complete cleanup)
+      if (storageType === "indexedDB") {
+        for (const key of keys) {
+          localStorage.removeItem(key);
+        }
+      }
+      
+      // Clear any backup keys
+      const allKeys = adapter.getAllKeys ? adapter.getAllKeys() : [];
+      const keysList = allKeys instanceof Promise ? await allKeys : allKeys;
+      for (const key of keysList) {
+        if (key && key.startsWith("doit-")) {
+          if (adapter.removeItem) {
+            const result = adapter.removeItem(key);
+            if (result instanceof Promise) await result;
+          }
+        }
+      }
+      
+      // Also clear doit- prefixed keys from localStorage
+      const localStorageKeys = Object.keys(localStorage).filter(k => k.startsWith("doit-"));
+      for (const key of localStorageKeys) {
+        localStorage.removeItem(key);
+      }
+      
+      // Reset confirmation state
+      setShowClearConfirm(false);
+      setClearConfirmText("");
+      
+      // Reload the page to start fresh
+      window.location.reload();
+    } catch (error) {
+      console.error("Failed to clear data:", error);
+      alert("Failed to clear data. Please try again.");
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -553,6 +612,91 @@ export function StorageTab() {
                     </>
                   )}
                 </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Danger Zone - Clear Data */}
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <svg
+                className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-red-900 dark:text-red-100 mb-1">Danger Zone</h4>
+                <p className="text-sm text-red-800 dark:text-red-200 mb-3">
+                  Clear all app data including todos, people, projects, settings, and backups. This action cannot be undone.
+                </p>
+                {!showClearConfirm ? (
+                  <button
+                    onClick={() => setShowClearConfirm(true)}
+                    className="px-4 py-2 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+                  >
+                    Clear All Data
+                  </button>
+                ) : (
+                  <div className="space-y-3 bg-red-100 dark:bg-red-900/30 p-4 rounded-lg">
+                    <div className="flex items-center gap-2 text-red-900 dark:text-red-100">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
+                      </svg>
+                      <span className="font-semibold">Are you absolutely sure?</span>
+                    </div>
+                    <p className="text-sm text-red-800 dark:text-red-200">
+                      This will permanently delete:
+                    </p>
+                    <ul className="text-sm text-red-800 dark:text-red-200 list-disc list-inside space-y-1">
+                      <li>All your todos (active, completed, and archived)</li>
+                      <li>All people and projects</li>
+                      <li>All settings and preferences</li>
+                      <li>All backups stored in the browser</li>
+                      <li>All view presets and saved filters</li>
+                    </ul>
+                    <p className="text-sm text-red-800 dark:text-red-200 font-medium">
+                      Type <code className="bg-red-200 dark:bg-red-800 px-1 py-0.5 rounded">DELETE ALL DATA</code> to confirm:
+                    </p>
+                    <input
+                      type="text"
+                      value={clearConfirmText}
+                      onChange={(e) => setClearConfirmText(e.target.value)}
+                      placeholder="Type DELETE ALL DATA"
+                      className="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={clearAllData}
+                        disabled={clearConfirmText !== "DELETE ALL DATA" || isClearing}
+                        className="px-4 py-2 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {isClearing ? "Clearing..." : "Permanently Delete All Data"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowClearConfirm(false);
+                          setClearConfirmText("");
+                        }}
+                        className="px-4 py-2 text-sm font-medium rounded-md bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
