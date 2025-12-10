@@ -19,6 +19,7 @@ import { MarkedText } from "@/components/shared/MarkedText";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { getTextColor } from "@/utils/colors";
+import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import {
   ScheduledTask,
   TaskSegment,
@@ -34,6 +35,59 @@ import {
   scheduleWeekTasks,
   WeekDaySchedule,
 } from "@/utils/ganttScheduler";
+
+// Gantt View Tutorial Steps
+export const ganttViewTutorialSteps: TutorialStep[] = [
+  {
+    id: "gantt-intro",
+    title: "Gantt Chart 📊",
+    description:
+      "The Gantt View shows your tasks on a timeline. Perfect for planning your day and seeing how tasks fit together.",
+    position: "center",
+  },
+  {
+    id: "gantt-timeline",
+    title: "Timeline View ⏰",
+    description:
+      "Tasks are scheduled automatically based on duration and due dates. The timeline shows work hours (configurable in Settings).\n\nGray bars = breaks and blocked time\nColored bars = your tasks",
+    targetSelector: '[data-tutorial="gantt-timeline"]',
+    position: "top",
+    spotlightPadding: 12,
+  },
+  {
+    id: "gantt-scheduling",
+    title: "Scheduling Modes 🗓️",
+    description:
+      "Choose how tasks are scheduled:\n\n• Sequential - Simple back-to-back\n• Pomodoro - Work sessions with breaks\n• Flow - Extended focus periods\n\nSelect presets or customize timing.",
+    targetSelector: '[data-tutorial="gantt-scheduling-mode"]',
+    position: "bottom",
+    spotlightPadding: 8,
+  },
+  {
+    id: "gantt-focus",
+    title: "Focus Mode 🎯",
+    description:
+      'Click "Focus" on any task to start a focused work session with timer and break reminders.\n\nGreat for staying on track with Pomodoro technique!',
+    position: "center",
+    action: "Try clicking Focus on a task!",
+  },
+  {
+    id: "gantt-zoom",
+    title: "Zoom Levels 🔍",
+    description:
+      "Use zoom controls to see:\n• Day view - detailed hourly planning\n• Week view - see the week ahead\n\nDrag tasks to reschedule them.",
+    targetSelector: '[data-tutorial="gantt-zoom"]',
+    position: "bottom",
+    spotlightPadding: 8,
+  },
+  {
+    id: "gantt-complete",
+    title: "Plan Your Day! 🎉",
+    description:
+      "You're ready to use the Gantt View! Add durations to your tasks for better scheduling, and configure work hours in Settings.",
+    position: "center",
+  },
+];
 
 interface GanttViewProps {
   todos: TodoModel[];
@@ -737,7 +791,7 @@ export function GanttView({
                   }
                 />
               </span>
-              <div className="flex" role="group" aria-label="Scheduling technique">
+              <div className="flex" role="group" aria-label="Scheduling technique" data-tutorial="gantt-scheduling">
                 <button
                   onClick={() => {
                     if (onUpdateGanttSettings) {
@@ -826,6 +880,7 @@ export function GanttView({
                 onClick={() => onStartFocusMode(activeTasks)}
                 className="px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-xs sm:text-sm flex items-center gap-1.5"
                 title="Start focus mode with scheduled tasks for this date"
+                data-tutorial="gantt-focus"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -1289,7 +1344,11 @@ export function GanttView({
                   </div>
 
                   {/* Tasks timeline */}
-                  <div className="relative space-y-0 mx-4 mt-4" style={{ overflow: "visible" }}>
+                  <div
+                    className="relative space-y-0 mx-4 mt-4"
+                    style={{ overflow: "visible" }}
+                    data-tutorial="gantt-timeline"
+                  >
                     {/* Now line across all tasks */}
                     {settings.gantt.showNowLine !== false &&
                       selectedDate.toDateString() === new Date().toDateString() &&

@@ -39,9 +39,10 @@ const sections: HelpSectionData[] = [
 interface HelpOverlayProps {
   isOpen: boolean;
   onClose: () => void;
+  onRestartTutorial?: () => void;
 }
 
-export function HelpOverlay({ isOpen, onClose }: HelpOverlayProps) {
+export function HelpOverlay({ isOpen, onClose, onRestartTutorial }: HelpOverlayProps) {
   const [activeSection, setActiveSection] = useState<HelpSection>("getting-started");
 
   if (!isOpen) return null;
@@ -93,7 +94,7 @@ export function HelpOverlay({ isOpen, onClose }: HelpOverlayProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {activeSection === "getting-started" && <GettingStartedSection />}
+          {activeSection === "getting-started" && <GettingStartedSection onRestartTutorial={onRestartTutorial} />}
           {activeSection === "quick-start" && <QuickStartSection />}
           {activeSection === "views" && <ViewsSection />}
           {activeSection === "input" && <InputSection />}
@@ -110,7 +111,7 @@ export function HelpOverlay({ isOpen, onClose }: HelpOverlayProps) {
   );
 }
 
-function GettingStartedSection() {
+function GettingStartedSection({ onRestartTutorial }: { onRestartTutorial?: () => void }) {
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">🚀 Getting Started</h3>
@@ -261,6 +262,15 @@ function GettingStartedSection() {
               tasks
             </li>
           </ul>
+          {onRestartTutorial && (
+            <button
+              onClick={onRestartTutorial}
+              className="mt-4 w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <span>🎯</span>
+              <span>Start Interactive Tutorial</span>
+            </button>
+          )}
         </div>
 
         <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg mt-4 border border-amber-200 dark:border-amber-800">

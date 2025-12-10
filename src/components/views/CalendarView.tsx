@@ -10,6 +10,49 @@ import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { Settings, Priority } from "@/types/settings";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
+import { TutorialStep } from "@/components/overlays/TutorialOverlay";
+
+// Calendar View Tutorial Steps
+export const calendarViewTutorialSteps: TutorialStep[] = [
+  {
+    id: "calendar-intro",
+    title: "Calendar View 🗓️",
+    description: "The Calendar View shows your tasks on a monthly calendar. See at a glance what's due each day.",
+    position: "center",
+  },
+  {
+    id: "calendar-dots",
+    title: "Task Indicators 🔵",
+    description:
+      "Each dot represents a task due that day. The color indicates:\n\n• Blue - Active task\n• Green - Completed\n• Gray - Archived\n\nMultiple dots = multiple tasks!",
+    targetSelector: '[data-tutorial="calendar-grid"]',
+    position: "top",
+    spotlightPadding: 12,
+  },
+  {
+    id: "calendar-click",
+    title: "Click to Expand 👆",
+    description:
+      "Click any day to see all tasks due on that date. From there you can:\n• View task details\n• Complete tasks\n• Edit due dates",
+    position: "center",
+    action: "Click on a day with tasks!",
+  },
+  {
+    id: "calendar-navigation",
+    title: "Navigate Months 📆",
+    description: 'Use the arrow buttons to navigate between months. Click "Today" to jump back to the current date.',
+    targetSelector: '[data-tutorial="calendar-nav"]',
+    position: "bottom",
+    spotlightPadding: 8,
+  },
+  {
+    id: "calendar-complete",
+    title: "Stay on Schedule! 🎉",
+    description:
+      "You're ready to use the Calendar View! Add due dates to your tasks to see them appear on the calendar.",
+    position: "center",
+  },
+];
 
 interface CalendarViewProps {
   todos: TodoModel[];
@@ -653,7 +696,7 @@ export function CalendarView({
         {/* Header with navigation and controls */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-6 print:mb-2">
           {/* Month navigation */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2" data-tutorial="calendar-nav">
             <button
               onClick={() => navigateMonth(-1)}
               className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors print:hidden"
@@ -767,6 +810,7 @@ export function CalendarView({
             <div
               className={`grid gap-1 ${calendarSettings.showWeekNumbers ? "grid-cols-8" : "grid-cols-7"}`}
               role="grid"
+              data-tutorial="calendar-grid"
             >
               {calendarDays.map((day, i) => (
                 <Fragment key={day.dateKey}>

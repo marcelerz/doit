@@ -11,6 +11,60 @@ import { waitForStorageInit } from "@/storage/storageInit";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { getTextColor } from "@/utils/colors";
+import { TutorialStep } from "@/components/overlays/TutorialOverlay";
+
+// Kanban View Tutorial Steps
+export const kanbanViewTutorialSteps: TutorialStep[] = [
+  {
+    id: "kanban-intro",
+    title: "Kanban Board 📊",
+    description:
+      "The Kanban View lets you visualize your workflow as columns. Drag tasks between columns to update their status.",
+    position: "center",
+  },
+  {
+    id: "kanban-columns",
+    title: "Workflow Columns 📋",
+    description:
+      "Each column represents a workflow state:\n• Backlog - Tasks waiting to be started\n• To Do - Ready to work on\n• In Progress - Currently working\n• Review - Needs review\n• Completed - Done!\n\nCustomize columns in Settings → Kanban.",
+    targetSelector: '[data-tutorial="kanban-board"]',
+    position: "top",
+    spotlightPadding: 12,
+  },
+  {
+    id: "kanban-drag",
+    title: "Drag & Drop 🖱️",
+    description:
+      "Drag tasks between columns to change their status. The task will automatically update its workflow state.\n\nYou can also drag to reorder tasks within a column.",
+    position: "center",
+    action: "Try dragging a task to another column!",
+  },
+  {
+    id: "kanban-views",
+    title: "Kanban Views 👁️",
+    description:
+      "Create custom Kanban views to show only specific columns. Great for:\n• Active Work (To Do + In Progress)\n• Review Queue (Review only)\n• Completed items\n\nSet up views in Settings → Kanban → Views.",
+    targetSelector: '[data-tutorial="kanban-view-selector"]',
+    position: "bottom",
+    spotlightPadding: 8,
+  },
+  {
+    id: "kanban-sprints",
+    title: "Sprint Filtering 🏃",
+    description:
+      "Filter the board by sprint to focus on current work. Select a sprint from the dropdown to see only tasks assigned to that sprint.",
+    targetSelector: '[data-tutorial="kanban-sprint-filter"]',
+    position: "bottom",
+    spotlightPadding: 8,
+  },
+  {
+    id: "kanban-complete",
+    title: "Ready to Go! 🎉",
+    description:
+      "You're ready to use the Kanban Board! Customize your workflow states in Settings to match your process.",
+    position: "center",
+  },
+];
 
 interface KanbanViewProps {
   todos: TodoModel[];
@@ -368,6 +422,7 @@ export function KanbanView({
             onChange={(e) => setViewOptions((prev) => ({ ...prev, activeViewId: e.target.value }))}
             className="flex-1 sm:flex-none px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-base sm:text-sm"
             title="Select view"
+            data-tutorial="kanban-view-selector"
           >
             {kanban.views.map((view) => (
               <option key={view.id} value={view.id}>
@@ -392,6 +447,7 @@ export function KanbanView({
                 }}
                 className="flex-1 sm:flex-none px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-base sm:text-sm"
                 title="Filter by sprint"
+                data-tutorial="kanban-sprint-filter"
               >
                 <option value="all">All Sprints</option>
                 <option value="backlog">📋 Backlog (No Sprint)</option>
@@ -455,7 +511,7 @@ export function KanbanView({
 
       {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="flex h-full p-2 sm:p-4 gap-2 sm:gap-4 min-w-min">
+        <div className="flex h-full p-2 sm:p-4 gap-2 sm:gap-4 min-w-min" data-tutorial="kanban-board">
           {visibleStates.map((state) => {
             const columnTodos = todosByState[state.id] || [];
             const isDropTarget = dragOverColumnId === state.id;
