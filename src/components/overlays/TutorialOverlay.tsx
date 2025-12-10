@@ -142,7 +142,7 @@ export function TutorialOverlay({
 }: TutorialOverlayProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [spotlightRect, setSpotlightRect] = useState<DOMRect | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [targetNotFound, setTargetNotFound] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -200,22 +200,32 @@ export function TutorialOverlay({
       const tooltipWidth = tooltipRect.width + margin * 2;
       const tooltipHeight = tooltipRect.height + margin * 2;
 
-      // Check if spotlight is too large (takes up most of the screen)
+      // Check if spotlight is too large (takes up significant portion of the screen)
+      // or if there's not enough space in any direction
       const spotlightTooLarge =
-        spotlightRect.width > viewportWidth * 0.7 || spotlightRect.height > viewportHeight * 0.5;
+        spotlightRect.width > viewportWidth * 0.6 || spotlightRect.height > viewportHeight * 0.4;
 
-      // If spotlight is very large, position tooltip in a corner or overlay on the spotlight
-      if (spotlightTooLarge) {
-        // Find the best corner with most space
-        const corners = [
-          { x: margin, y: margin }, // top-left
-          { x: viewportWidth - tooltipRect.width - margin, y: margin }, // top-right
-          { x: margin, y: viewportHeight - tooltipRect.height - margin }, // bottom-left
-          { x: viewportWidth - tooltipRect.width - margin, y: viewportHeight - tooltipRect.height - margin }, // bottom-right
-        ];
+      const noSpaceOutside =
+        spaceTop < tooltipHeight &&
+        spaceBottom < tooltipHeight &&
+        spaceLeft < tooltipWidth &&
+        spaceRight < tooltipWidth;
 
-        // Prefer top corners if there's space above the spotlight
-        if (spaceTop > tooltipHeight) {
+      // If spotlight is very large or no space outside, position tooltip INSIDE the spotlight
+      if (spotlightTooLarge || noSpaceOutside) {
+        // Position inside the spotlight - try top-right area first, then other corners
+        const innerMargin = 16;
+
+        // Try positioning in the top-right of the spotlight
+        if (
+          spotlightRect.width > tooltipRect.width + innerMargin * 2 &&
+          spotlightRect.height > tooltipRect.height + innerMargin * 2
+        ) {
+          // Fits inside - position in top-right corner of spotlight
+          x = spotlightRect.right - tooltipRect.width - innerMargin;
+          y = spotlightRect.top + innerMargin;
+        } else if (spaceTop > tooltipHeight) {
+          // Try above the spotlight
           x = Math.max(
             margin,
             Math.min(
@@ -225,6 +235,7 @@ export function TutorialOverlay({
           );
           y = spotlightRect.top - tooltipRect.height - margin;
         } else if (spaceBottom > tooltipHeight) {
+          // Try below the spotlight
           x = Math.max(
             margin,
             Math.min(
@@ -234,7 +245,7 @@ export function TutorialOverlay({
           );
           y = spotlightRect.bottom + margin;
         } else {
-          // Use top-right corner as fallback
+          // Last resort: top-right corner of viewport
           x = viewportWidth - tooltipRect.width - margin;
           y = margin;
         }
@@ -294,25 +305,38 @@ export function TutorialOverlay({
     setTooltipPosition({ x, y });
   }, [spotlightRect, step.position]);
 
-  // Update positions on step change
+  // Update spotlight position on step change
   useEffect(() => {
     if (!isOpen) return;
 
     setIsAnimating(true);
-    const timer1 = setTimeout(() => {
+    setTooltipPosition(null); // Reset position while animating
+    const timer = setTimeout(() => {
       updateSpotlight();
     }, 50);
 
-    const timer2 = setTimeout(() => {
-      updateTooltipPosition();
-      setIsAnimating(false);
-    }, 150);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [isOpen, currentStep, updateSpotlight]);
+
+  // Update tooltip position when spotlight rect changes (separate effect to ensure correct timing)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Give the tooltip time to render before calculating position
+    // Use requestAnimationFrame to ensure DOM has updated
+    const timer = setTimeout(() => {
+      requestAnimationFrame(() => {
+        updateTooltipPosition();
+        setIsAnimating(false);
+      });
+    }, 100);
 
     return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
+      clearTimeout(timer);
     };
-  }, [isOpen, currentStep, updateSpotlight, updateTooltipPosition]);
+  }, [isOpen, spotlightRect, updateTooltipPosition]);
 
   // Update on resize
   useEffect(() => {
@@ -450,11 +474,12 @@ export function TutorialOverlay({
       <div
         ref={tooltipRef}
         className={`absolute bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-zinc-200 dark:border-zinc-700 p-6 max-w-md transition-all duration-300 ${
-          isAnimating ? "opacity-0 scale-95" : "opacity-100 scale-100"
+          isAnimating || !tooltipPosition ? "opacity-0 scale-95" : "opacity-100 scale-100"
         }`}
         style={{
-          left: tooltipPosition.x,
-          top: tooltipPosition.y,
+          left: tooltipPosition?.x ?? "50%",
+          top: tooltipPosition?.y ?? "50%",
+          transform: tooltipPosition ? undefined : "translate(-50%, -50%)",
           zIndex: 100,
         }}
       >
