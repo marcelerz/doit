@@ -1,9 +1,10 @@
 import { TodoModel } from "@/models/TodoModel";
+import { getBrowserApis } from "./browserApis";
 
 export type NotificationPermission = "default" | "granted" | "denied";
 export type SoundType = "short-break" | "long-break" | "task-complete" | "task-start" | "break-end" | "pause";
 
-// Audio context for playing sounds
+// Audio context for playing sounds (cached)
 let audioContext: AudioContext | null = null;
 
 // Ambient sound player
@@ -40,12 +41,26 @@ export const AMBIENT_SOUNDS = [
 export type AmbientSoundId = (typeof AMBIENT_SOUNDS)[number]["id"] | "";
 
 /**
+ * Reset internal state (for testing)
+ */
+export function resetNotificationState(): void {
+  audioContext = null;
+  ambientAudio = null;
+  currentAmbientSound = null;
+  ambientInstanceId = 0;
+  soundQueue.length = 0;
+  isProcessingQueue = false;
+}
+
+/**
  * Play ambient sound (looping)
  * @param soundFile - The sound file name from public/sounds
  * @param volume - Volume level 0-1
  */
 export function playAmbientSound(soundFile: string, volume: number = 0.3): void {
-  if (typeof window === "undefined" || !soundFile) {
+  const apis = getBrowserApis();
+
+  if (!apis.hasWindow() || !soundFile) {
     return;
   }
 
@@ -69,18 +84,17 @@ export function playAmbientSound(soundFile: string, volume: number = 0.3): void 
     currentAmbientSound = null;
   }
 
-  try {
-    ambientAudio = new Audio(`/sounds/${soundFile}`);
-    ambientAudio.loop = true;
-    ambientAudio.volume = Math.max(0, Math.min(1, volume));
-    currentAmbientSound = soundFile;
+  const audio = apis.createAudio(`/sounds/${soundFile}`);
+  if (!audio) return;
 
-    ambientAudio.play().catch(() => {
-      // Ignore play errors - may be interrupted
-    });
-  } catch (error) {
-    console.error("Failed to create ambient audio:", error);
-  }
+  ambientAudio = audio;
+  ambientAudio.loop = true;
+  ambientAudio.volume = Math.max(0, Math.min(1, volume));
+  currentAmbientSound = soundFile;
+
+  ambientAudio.play().catch(() => {
+    // Ignore play errors - may be interrupted
+  });
 }
 
 /**
@@ -88,10 +102,11 @@ export function playAmbientSound(soundFile: string, volume: number = 0.3): void 
  * Only stops if the instance ID matches (hasn't been superseded by a new play call)
  */
 export function stopAmbientSound(): void {
+  const apis = getBrowserApis();
   const instanceIdAtCall = ambientInstanceId;
 
   // Delay the actual stop to let any synchronous play() calls happen first
-  setTimeout(() => {
+  apis.setTimeout(() => {
     // If a new play was started (instance ID changed), don't stop
     if (ambientInstanceId !== instanceIdAtCall) {
       return;
@@ -140,16 +155,12 @@ const SOUND_DELAY_MS = 3000; // 3 seconds between sounds
  * Get or create AudioContext (lazy initialization due to browser autoplay policies)
  */
 function getAudioContext(): AudioContext | null {
-  if (typeof window === "undefined") return null;
+  const apis = getBrowserApis();
+
+  if (!apis.hasWindow()) return null;
 
   if (!audioContext) {
-    try {
-      audioContext = new (window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    } catch (error) {
-      console.error("Failed to create AudioContext:", error);
-      return null;
-    }
+    audioContext = apis.createAudioContext();
   }
   return audioContext;
 }
@@ -160,13 +171,14 @@ function getAudioContext(): AudioContext | null {
 function processQueue(): void {
   if (isProcessingQueue || soundQueue.length === 0) return;
 
+  const apis = getBrowserApis();
   isProcessingQueue = true;
   const sound = soundQueue.shift()!;
   playSound(sound);
 
   if (soundQueue.length > 0) {
     // Wait 3 seconds before playing next sound
-    setTimeout(() => {
+    apis.setTimeout(() => {
       isProcessingQueue = false;
       processQueue();
     }, SOUND_DELAY_MS);
@@ -364,54 +376,43 @@ export function notifyPomodoroWorkStart(
  * Check if browser notifications are supported
  */
 export function isNotificationSupported(): boolean {
-  return typeof window !== "undefined" && "Notification" in window;
+  const apis = getBrowserApis();
+  return apis.hasNotificationSupport();
 }
 
 /**
  * Get current notification permission
  */
 export function getNotificationPermission(): NotificationPermission {
-  if (!isNotificationSupported()) return "denied";
-  return Notification.permission as NotificationPermission;
+  const apis = getBrowserApis();
+  return apis.getNotificationPermission() as NotificationPermission;
 }
 
 /**
  * Request notification permission from user
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
-  if (!isNotificationSupported()) return "denied";
-
-  try {
-    const permission = await Notification.requestPermission();
-    return permission as NotificationPermission;
-  } catch (error) {
-    console.error("Failed to request notification permission:", error);
-    return "denied";
-  }
+  const apis = getBrowserApis();
+  return (await apis.requestNotificationPermission()) as NotificationPermission;
 }
 
 /**
  * Send a notification
  */
 export function sendNotification(title: string, options?: NotificationOptions): Notification | null {
-  if (!isNotificationSupported()) return null;
-  if (Notification.permission !== "granted") return null;
+  const apis = getBrowserApis();
 
-  try {
-    const notification = new Notification(title, {
-      icon: "/favicon.ico",
-      badge: "/favicon.ico",
-      ...options,
-    });
+  if (!apis.hasNotificationSupport()) return null;
+  if (apis.getNotificationPermission() !== "granted") return null;
 
+  const notification = apis.createNotification(title, options);
+
+  if (notification) {
     // Auto-close after 5 seconds
-    setTimeout(() => notification.close(), 5000);
-
-    return notification;
-  } catch (error) {
-    console.error("Failed to send notification:", error);
-    return null;
+    apis.setTimeout(() => notification.close(), 5000);
   }
+
+  return notification;
 }
 
 /**

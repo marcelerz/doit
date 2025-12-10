@@ -407,4 +407,195 @@ describe("dateUtils", () => {
       expect(result).toBe("17:00");
     });
   });
+
+  describe("additional parseShorthand tests", () => {
+    const dateTimeSettings = createDateTimeSettings();
+    const workHours = createWorkHoursSettings();
+
+    beforeAll(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(mockDate);
+    });
+
+    afterAll(() => {
+      jest.useRealTimers();
+    });
+
+    it("should parse 'bow' (beginning of week)", () => {
+      const result = parseShorthand("bow", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+      expect(result?.getDay()).toBe(dateTimeSettings.workWeekStart); // Monday
+    });
+
+    it("should parse 'startofweek'", () => {
+      const result = parseShorthand("startofweek", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+      expect(result?.getDay()).toBe(1); // Monday
+    });
+
+    it("should parse 'eow' (end of week)", () => {
+      const result = parseShorthand("eow", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'endofweek'", () => {
+      const result = parseShorthand("endofweek", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'nextweek'", () => {
+      const result = parseShorthand("nextweek", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+      // Should be at least 7 days in the future
+      expect(result!.getTime()).toBeGreaterThan(mockDate.getTime() + 6 * 24 * 60 * 60 * 1000);
+    });
+
+    it("should parse 'weekend'", () => {
+      const result = parseShorthand("weekend", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+      expect(result?.getDay()).toBe(6); // Saturday
+    });
+
+    it("should parse 'nextsaturday'", () => {
+      const result = parseShorthand("nextsaturday", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+      expect(result?.getDay()).toBe(6);
+    });
+
+    it("should parse 'bom' (beginning of month)", () => {
+      const result = parseShorthand("bom", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+      expect(result?.getDate()).toBe(1);
+    });
+
+    it("should parse 'startofmonth'", () => {
+      const result = parseShorthand("startofmonth", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+      expect(result?.getDate()).toBe(1);
+    });
+
+    it("should parse 'eom' (end of month)", () => {
+      const result = parseShorthand("eom", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+      expect(result?.getDate()).toBe(31); // December has 31 days
+    });
+
+    it("should parse 'endofmonth'", () => {
+      const result = parseShorthand("endofmonth", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'nextmonth'", () => {
+      const result = parseShorthand("nextmonth", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+      expect(result?.getMonth()).toBe(0); // January
+      expect(result?.getFullYear()).toBe(2026);
+    });
+
+    it("should parse 'boq' (beginning of quarter)", () => {
+      const result = parseShorthand("boq", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+      expect(result?.getDate()).toBe(1);
+    });
+
+    it("should parse 'startofquarter'", () => {
+      const result = parseShorthand("startofquarter", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'eoq' (end of quarter)", () => {
+      const result = parseShorthand("eoq", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'endofquarter'", () => {
+      const result = parseShorthand("endofquarter", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'nextquarter'", () => {
+      const result = parseShorthand("nextquarter", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'boh' (beginning of half)", () => {
+      const result = parseShorthand("boh", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'startofhalf'", () => {
+      const result = parseShorthand("startofhalf", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'eoh' (end of half)", () => {
+      const result = parseShorthand("eoh", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'endofhalf'", () => {
+      const result = parseShorthand("endofhalf", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'nexthalf'", () => {
+      const result = parseShorthand("nexthalf", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'boy' (beginning of year)", () => {
+      const result = parseShorthand("boy", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+      expect(result?.getMonth()).toBe(0);
+      expect(result?.getDate()).toBe(1);
+    });
+
+    it("should parse 'startofyear'", () => {
+      const result = parseShorthand("startofyear", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'eoy' (end of year)", () => {
+      const result = parseShorthand("eoy", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+      expect(result?.getMonth()).toBe(11);
+      expect(result?.getDate()).toBe(31);
+    });
+
+    it("should parse 'endofyear'", () => {
+      const result = parseShorthand("endofyear", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+    });
+
+    it("should parse 'nextyear'", () => {
+      const result = parseShorthand("nextyear", dateTimeSettings, workHours);
+      expect(result).not.toBeNull();
+      expect(result?.getFullYear()).toBe(2026);
+    });
+
+    it("should return null for 'bof' (not implemented)", () => {
+      const result = parseShorthand("bof", dateTimeSettings, workHours);
+      expect(result).toBeNull();
+    });
+
+    it("should return null for 'startoffiscal' (not implemented)", () => {
+      const result = parseShorthand("startoffiscal", dateTimeSettings, workHours);
+      expect(result).toBeNull();
+    });
+
+    it("should return null for 'eof' (not implemented)", () => {
+      const result = parseShorthand("eof", dateTimeSettings, workHours);
+      expect(result).toBeNull();
+    });
+
+    it("should return null for 'endoffiscal' (not implemented)", () => {
+      const result = parseShorthand("endoffiscal", dateTimeSettings, workHours);
+      expect(result).toBeNull();
+    });
+
+    it("should return null for unknown shorthand", () => {
+      const result = parseShorthand("unknownshorthand", dateTimeSettings, workHours);
+      expect(result).toBeNull();
+    });
+  });
 });

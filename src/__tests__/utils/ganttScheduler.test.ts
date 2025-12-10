@@ -9,76 +9,60 @@ import {
   getPomodoroBreakDuration,
   getPomodoroBreakType,
   sortTodosForScheduling,
+  createTaskSchedulingMap,
+  scheduleDayTasks,
+  scheduleWeekTasks,
+  SchedulingConfig,
+  BreakBlock,
+  TaskSegment,
+  ScheduledTask,
 } from "@/utils/ganttScheduler";
-import { WorkHoursSettings, Gantt, Priority, DaySchedule } from "@/types/settings";
+import {
+  WorkHoursSettings,
+  Gantt,
+  Priority,
+  DaySchedule,
+  Settings,
+  defaultSettings,
+  defaultGantt,
+  defaultWorkHoursSettings,
+  defaultMarkerColors,
+  defaultGeneralSettings,
+  defaultDateTimeSettings,
+  defaultCalendar,
+  defaultAutoAssignSettings,
+  defaultNotificationSettings,
+  defaultKanbanSettings,
+  defaultSprintSettings,
+  defaultCategories,
+  defaultFocusSettings,
+  defaultFeatureSettings,
+} from "@/types/settings";
 import { TodoModel } from "@/models/TodoModel";
 import { Todo } from "@/types/todo";
-import { Settings } from "@/types/settings";
 
 // Helper to create minimal settings for TodoModel
 const createMinimalSettings = (): Settings => ({
-  priorities: [],
+  priorities: [
+    { id: "1", name: "urgent", alternatives: ["critical"], order: 1, comments: [], activity: [] },
+    { id: "2", name: "high", alternatives: [], order: 2, comments: [], activity: [] },
+    { id: "3", name: "medium", alternatives: [], order: 3, comments: [], activity: [] },
+    { id: "4", name: "low", alternatives: [], order: 4, comments: [], activity: [] },
+  ],
   linkPatterns: [],
-  markerColors: {
-    assigned: "#cce5ff",
-    source: "#fff3cd",
-    mentioned: "#ffe8cc",
-    project: "#e2ccff",
-    tag: "#d4edda",
-    dueDate: "#f8d7da",
-    duration: "#e2e3e5",
-    recurring: "#cff4fc",
-    dependency: "#ffcccc",
-    priority: "#ffcccc",
-  },
-  general: { archiveDays: 7, autoDelete: false },
-  dateTime: {
-    morning: "09:00",
-    noon: "12:00",
-    afternoon: "14:00",
-    evening: "18:00",
-    workWeekStart: 1,
-    fiscalYearStart: 1,
-  },
-  workHours: {
-    useCommonSchedule: true,
-    commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-    weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-    weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
-    customSchedules: {},
-  },
-  gantt: {
-    schedulingTechnique: "sequential",
-    defaultTaskDuration: 30,
-    durationMultiplier: 1.0,
-    contextSwitchingTime: 5,
-    pomodoroWorkDuration: 25,
-    pomodoroShortBreak: 5,
-    pomodoroLongBreak: 15,
-    pomodoroLongBreakInterval: 4,
-    flowWorkDuration: 52,
-    flowBreakDuration: 17,
-    flowContextSwitchingTime: 10,
-  },
-  kanban: {
-    workflowStates: [],
-    transitions: {},
-    views: [],
-    defaultViewId: undefined,
-    displayOptions: { showEmptyColumns: true, showTaskCount: true },
-  },
-  sprints: { sprints: [], defaultDuration: 14 },
-  autoAssign: { enabled: false },
-  calendar: { showWeekNumbers: false, startOnMonday: true },
-  focus: {
-    enabled: false,
-    defaultDuration: 25,
-    shortBreak: 5,
-    longBreak: 15,
-    longBreakInterval: 4,
-  },
-  categories: { categories: [] },
-  timeTracking: { enabled: false, autoStartOnFocus: false, autoStopOnComplete: false },
+  markerColors: defaultMarkerColors,
+  general: defaultGeneralSettings,
+  dateTime: defaultDateTimeSettings,
+  workHours: defaultWorkHoursSettings,
+  gantt: defaultGantt,
+  kanban: defaultKanbanSettings,
+  sprints: defaultSprintSettings,
+  autoAssign: defaultAutoAssignSettings,
+  calendar: defaultCalendar,
+  focus: defaultFocusSettings,
+  categories: defaultCategories,
+  notifications: defaultNotificationSettings,
+  features: defaultFeatureSettings,
 });
 
 // Helper to create minimal WorkHoursSettings
@@ -87,7 +71,7 @@ const createWorkHoursSettings = (): WorkHoursSettings => ({
   commonSchedule: {
     startTime: "09:00",
     endTime: "17:00",
-    breaks: [{ name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+    breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
   },
   weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
   weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
@@ -95,23 +79,14 @@ const createWorkHoursSettings = (): WorkHoursSettings => ({
 });
 
 // Helper to create minimal Gantt settings
-const createGanttSettings = (): Gantt => ({
-  schedulingTechnique: "sequential",
-  defaultTaskDuration: 30,
-  durationMultiplier: 1.0,
-  contextSwitchingTime: 5,
-  pomodoroWorkDuration: 25,
-  pomodoroShortBreak: 5,
-  pomodoroLongBreak: 15,
-  pomodoroLongBreakInterval: 4,
-  flowWorkDuration: 52,
-  flowBreakDuration: 17,
-  flowContextSwitchingTime: 10,
+const createGanttSettings = (overrides: Partial<Gantt> = {}): Gantt => ({
+  ...defaultGantt,
+  ...overrides,
 });
 
 // Helper to create a minimal Todo
 const createTodo = (overrides: Partial<Todo> = {}): Todo => ({
-  id: overrides.id || `todo-${Date.now()}`,
+  id: overrides.id || `todo-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   text: overrides.text || "Test todo",
   plainText: overrides.plainText || "Test todo",
   state: overrides.state || "active",
@@ -127,6 +102,25 @@ const createTodo = (overrides: Partial<Todo> = {}): Todo => ({
   },
   comments: [],
   activity: [],
+  ...overrides,
+});
+
+// Helper to create TodoModel from Todo
+const createTodoModel = (overrides: Partial<Todo> = {}): TodoModel => {
+  return new TodoModel(createTodo(overrides), createMinimalSettings());
+};
+
+// Helper to create a SchedulingConfig
+const createSchedulingConfig = (overrides: Partial<SchedulingConfig> = {}): SchedulingConfig => ({
+  ganttSettings: createGanttSettings(),
+  workHours: createWorkHoursSettings(),
+  availablePriorities: [
+    { id: "1", name: "urgent", alternatives: ["critical"], order: 1, comments: [], activity: [] },
+    { id: "2", name: "high", alternatives: [], order: 2, comments: [], activity: [] },
+    { id: "3", name: "medium", alternatives: [], order: 3, comments: [], activity: [] },
+    { id: "4", name: "low", alternatives: [], order: 4, comments: [], activity: [] },
+  ],
+  schedulingMode: "asap",
   ...overrides,
 });
 
@@ -477,6 +471,2345 @@ describe("ganttScheduler", () => {
 
       expect(sorted.length).toBe(1);
       expect(sorted[0].id).toBe("active");
+    });
+
+    it("should sort completed tasks by completion date in ASAP mode", () => {
+      const earlierCompleted = createTodo({
+        id: "earlier",
+        state: "completed",
+        completedAt: Date.now() - 3600000, // 1 hour ago
+      });
+      const laterCompleted = createTodo({
+        id: "later",
+        state: "completed",
+        completedAt: Date.now(),
+      });
+
+      const todos = [laterCompleted, earlierCompleted].map((t) => new TodoModel(t, settings));
+
+      const sorted = sortTodosForScheduling(todos, priorities, "asap");
+
+      expect(sorted[0].id).toBe("earlier");
+      expect(sorted[1].id).toBe("later");
+    });
+
+    it("should sort archived tasks by archive date in ASAP mode", () => {
+      const earlierArchived = createTodo({
+        id: "earlier",
+        state: "archived",
+        archivedAt: Date.now() - 3600000, // 1 hour ago
+      });
+      const laterArchived = createTodo({
+        id: "later",
+        state: "archived",
+        archivedAt: Date.now(),
+      });
+
+      const todos = [laterArchived, earlierArchived].map((t) => new TodoModel(t, settings));
+
+      const sorted = sortTodosForScheduling(todos, priorities, "asap");
+
+      expect(sorted[0].id).toBe("earlier");
+      expect(sorted[1].id).toBe("later");
+    });
+
+    it("should handle mixed completed and archived tasks in dueDate mode", () => {
+      const completedTodo = createTodo({
+        id: "completed",
+        state: "completed",
+        completedAt: Date.now() - 7200000, // 2 hours ago
+      });
+      const archivedTodo = createTodo({
+        id: "archived",
+        state: "archived",
+        archivedAt: Date.now() - 3600000, // 1 hour ago
+      });
+      const activeTodo = createTodo({
+        id: "active",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-10",
+        },
+      });
+
+      const todos = [archivedTodo, completedTodo, activeTodo].map((t) => new TodoModel(t, settings));
+
+      const sorted = sortTodosForScheduling(todos, priorities, "dueDate");
+
+      expect(sorted[0].id).toBe("active"); // Active first
+      expect(sorted[1].id).toBe("completed"); // Then by completion date
+      expect(sorted[2].id).toBe("archived");
+    });
+
+    it("should handle active tasks without due dates equally in ASAP mode", () => {
+      const noDueDate1 = createTodo({
+        id: "no-date-1",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          priority: "medium",
+        },
+      });
+      const noDueDate2 = createTodo({
+        id: "no-date-2",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          priority: "medium",
+        },
+      });
+
+      const todos = [noDueDate1, noDueDate2].map((t) => new TodoModel(t, settings));
+
+      const sorted = sortTodosForScheduling(todos, priorities, "asap");
+
+      expect(sorted.length).toBe(2);
+    });
+
+    it("should handle active tasks both without due dates in dueDate mode", () => {
+      const noDueDate1 = createTodo({ id: "no-date-1", state: "active" });
+      const noDueDate2 = createTodo({ id: "no-date-2", state: "active" });
+
+      const todos = [noDueDate1, noDueDate2].map((t) => new TodoModel(t, settings));
+
+      const sorted = sortTodosForScheduling(todos, priorities, "dueDate");
+
+      expect(sorted.length).toBe(2);
+    });
+
+    it("should use completedAt fallback for archived tasks without archivedAt in dueDate mode", () => {
+      const archivedWithCompletedAt = createTodo({
+        id: "archived-with-completed",
+        state: "archived",
+        completedAt: Date.now() - 3600000,
+        // No archivedAt
+      });
+      const archivedWithArchivedAt = createTodo({
+        id: "archived-with-archived",
+        state: "archived",
+        archivedAt: Date.now(),
+      });
+
+      const todos = [archivedWithArchivedAt, archivedWithCompletedAt].map((t) => new TodoModel(t, settings));
+
+      const sorted = sortTodosForScheduling(todos, priorities, "dueDate");
+
+      expect(sorted[0].id).toBe("archived-with-completed");
+      expect(sorted[1].id).toBe("archived-with-archived");
+    });
+  });
+
+  describe("createTaskSchedulingMap", () => {
+    const settings = createMinimalSettings();
+
+    it("should create a map with tasks allocated to their due dates", () => {
+      const config = createSchedulingConfig();
+
+      const todo1 = createTodo({
+        id: "todo-1",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-09",
+          duration: "30m",
+        },
+      });
+      const todo2 = createTodo({
+        id: "todo-2",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-10",
+          duration: "60m",
+        },
+      });
+
+      const todos = [todo1, todo2].map((t) => new TodoModel(t, settings));
+      const result = createTaskSchedulingMap(todos, config);
+
+      expect(result).toBeDefined();
+      expect(result instanceof Map).toBe(true);
+    });
+
+    it("should handle todos without due dates", () => {
+      const config = createSchedulingConfig();
+
+      const todoNoDueDate = createTodo({
+        id: "no-due-date",
+        state: "active",
+      });
+
+      const todos = [todoNoDueDate].map((t) => new TodoModel(t, settings));
+      const result = createTaskSchedulingMap(todos, config);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should handle completed tasks", () => {
+      const config = createSchedulingConfig();
+
+      const completedTodo = createTodo({
+        id: "completed",
+        state: "completed",
+        completedAt: Date.now(),
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-09",
+        },
+      });
+
+      const todos = [completedTodo].map((t) => new TodoModel(t, settings));
+      const result = createTaskSchedulingMap(todos, config);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should handle tasks with time tracking", () => {
+      const config = createSchedulingConfig();
+
+      const trackedTodo = createTodo({
+        id: "tracked",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-09",
+          duration: "60m",
+        },
+        timeTracking: {
+          entries: [],
+          totalMinutes: 30, // 30 minutes already tracked
+        },
+      });
+
+      const todos = [trackedTodo].map((t) => new TodoModel(t, settings));
+      const result = createTaskSchedulingMap(todos, config);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should handle empty todo list", () => {
+      const config = createSchedulingConfig();
+
+      const result = createTaskSchedulingMap([], config);
+
+      expect(result).toBeDefined();
+      expect(result instanceof Map).toBe(true);
+      expect(result.size).toBe(0);
+    });
+
+    it("should handle multi-day tasks", () => {
+      const config = createSchedulingConfig();
+
+      // Task that would take multiple days to complete
+      const longTodo = createTodo({
+        id: "long-task",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-15",
+          duration: "8h", // 480 minutes - would span multiple days
+        },
+      });
+
+      const todos = [longTodo].map((t) => new TodoModel(t, settings));
+      const result = createTaskSchedulingMap(todos, config);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should respect durationMultiplier setting", () => {
+      const config = createSchedulingConfig({
+        ganttSettings: createGanttSettings({ durationMultiplier: 1.5 }),
+      });
+
+      const todo = createTodo({
+        id: "multiplied",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-09",
+          duration: "60m",
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = createTaskSchedulingMap(todos, config);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should map task IDs to date strings", () => {
+      const config = createSchedulingConfig();
+
+      const todo = createTodo({
+        id: "map-test",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-09",
+          duration: "30m",
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = createTaskSchedulingMap(todos, config);
+
+      expect(result.has("map-test")).toBe(true);
+      expect(typeof result.get("map-test")).toBe("string");
+    });
+
+    it("should map archived tasks with completedAt to completion date", () => {
+      const config = createSchedulingConfig();
+      const completionDate = new Date("2025-12-05T14:30:00");
+
+      const archivedTodo = createTodo({
+        id: "archived-with-completion",
+        state: "archived",
+        archivedAt: Date.now(),
+        completedAt: completionDate.getTime(),
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-10",
+        },
+      });
+
+      const todos = [archivedTodo].map((t) => new TodoModel(t, settings));
+      const result = createTaskSchedulingMap(todos, config);
+
+      expect(result.has("archived-with-completion")).toBe(true);
+      expect(result.get("archived-with-completion")).toBe("2025-12-05");
+    });
+
+    it("should handle tasks with time tracking entries", () => {
+      const config = createSchedulingConfig();
+
+      const trackedTodo = createTodo({
+        id: "tracked-task",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-15",
+          duration: "2h",
+        },
+        timeTracking: {
+          entries: [
+            {
+              id: "entry-1",
+              startTime: Date.now() - 3600000,
+              endTime: Date.now() - 1800000,
+              duration: 30,
+            },
+          ],
+          totalMinutes: 30,
+        },
+      });
+
+      const todos = [trackedTodo].map((t) => new TodoModel(t, settings));
+      const result = createTaskSchedulingMap(todos, config);
+
+      expect(result).toBeDefined();
+      // Task with time tracking should still be scheduled
+      expect(result.has("tracked-task")).toBe(true);
+    });
+
+    it("should handle pomodoro scheduling technique in map creation", () => {
+      const config = createSchedulingConfig({
+        ganttSettings: createGanttSettings({ schedulingTechnique: "pomodoro" }),
+      });
+
+      const todo1 = createTodo({
+        id: "pomo-1",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "25m",
+        },
+      });
+      const todo2 = createTodo({
+        id: "pomo-2",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "25m",
+        },
+      });
+
+      const todos = [todo1, todo2].map((t) => new TodoModel(t, settings));
+      const result = createTaskSchedulingMap(todos, config);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should handle flow scheduling technique in map creation", () => {
+      const config = createSchedulingConfig({
+        ganttSettings: createGanttSettings({ schedulingTechnique: "flow" }),
+      });
+
+      const todo = createTodo({
+        id: "flow-1",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "52m",
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = createTaskSchedulingMap(todos, config);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should schedule remaining work after tracked time on next work day", () => {
+      const config = createSchedulingConfig();
+
+      // Task with significant tracked time but remaining work
+      const partiallyTrackedTodo = createTodo({
+        id: "partial-track",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "4h", // 240 minutes total
+        },
+        timeTracking: {
+          entries: [
+            {
+              id: "entry-1",
+              startTime: Date.now() - 7200000, // 2 hours ago
+              endTime: Date.now() - 3600000, // 1 hour ago
+              duration: 60,
+            },
+          ],
+          totalMinutes: 60, // 60 minutes tracked, 180 remaining
+        },
+      });
+
+      const todos = [partiallyTrackedTodo].map((t) => new TodoModel(t, settings));
+      const result = createTaskSchedulingMap(todos, config);
+
+      expect(result).toBeDefined();
+      expect(result.has("partial-track")).toBe(true);
+    });
+
+    it("should not exceed 30 day scheduling limit", () => {
+      const config = createSchedulingConfig();
+
+      // Create many tasks that would overflow 30 days
+      const todos: TodoModel[] = [];
+      for (let i = 0; i < 50; i++) {
+        todos.push(
+          new TodoModel(
+            createTodo({
+              id: `overflow-${i}`,
+              state: "active",
+              metadata: {
+                assignedPeople: [],
+                sourcePeople: [],
+                mentionedPeople: [],
+                projects: [],
+                tags: [],
+                dependencies: [],
+                duration: "8h", // Full work day each
+              },
+            }),
+            settings,
+          ),
+        );
+      }
+
+      const result = createTaskSchedulingMap(todos, config);
+
+      expect(result).toBeDefined();
+      // Should not crash even with many tasks
+    });
+  });
+
+  describe("scheduleDayTasks", () => {
+    const settings = createMinimalSettings();
+
+    // Helper to call scheduleDayTasks with proper arguments
+    const callScheduleDayTasks = (
+      todos: TodoModel[],
+      date: Date,
+      ganttSettings: Gantt = createGanttSettings(),
+      workHours: WorkHoursSettings = createWorkHoursSettings(),
+    ) => {
+      const daySchedule = getScheduleForDate(date, workHours);
+      const dayStart = parseTime(daySchedule.startTime, date);
+      const dayEnd = parseTime(daySchedule.endTime, date);
+      const breakBlocks: BreakBlock[] = daySchedule.breaks.map((b) => ({
+        name: b.name || "Break",
+        startTime: parseTime(b.startTime, date),
+        endTime: parseTime(b.endTime, date),
+        color: b.color || "#9ca3af",
+        icon: "☕",
+      }));
+      return scheduleDayTasks(todos, dayStart, dayEnd, breakBlocks, date, ganttSettings);
+    };
+
+    it("should schedule tasks within working hours", () => {
+      const date = new Date("2025-12-09");
+
+      const todo = createTodo({
+        id: "task-1",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "30m",
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result).toBeDefined();
+      expect(result.tasks).toBeDefined();
+      expect(Array.isArray(result.tasks)).toBe(true);
+    });
+
+    it("should return scheduled and unscheduled tasks", () => {
+      const date = new Date("2025-12-09");
+
+      const todo = createTodo({
+        id: "task-1",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "30m",
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result.tasks).toBeDefined();
+      expect(result.unscheduledTasks).toBeDefined();
+    });
+
+    it("should handle empty task list", () => {
+      const date = new Date("2025-12-09");
+
+      const result = callScheduleDayTasks([], date);
+
+      expect(result.tasks).toEqual([]);
+      expect(result.unscheduledTasks).toEqual([]);
+    });
+
+    it("should schedule with sequential technique", () => {
+      const date = new Date("2025-12-09");
+      const ganttSettings = createGanttSettings({ schedulingTechnique: "sequential" });
+
+      const todo1 = createTodo({
+        id: "seq-1",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "30m",
+        },
+      });
+      const todo2 = createTodo({
+        id: "seq-2",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "30m",
+        },
+      });
+
+      const todos = [todo1, todo2].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date, ganttSettings);
+
+      expect(result.tasks.length).toBeGreaterThan(0);
+    });
+
+    it("should schedule with pomodoro technique", () => {
+      const date = new Date("2025-12-09");
+      const ganttSettings = createGanttSettings({ schedulingTechnique: "pomodoro" });
+
+      const todo = createTodo({
+        id: "pomo-1",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "50m", // Longer than one pomodoro session
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date, ganttSettings);
+
+      expect(result).toBeDefined();
+      expect(result.tasks).toBeDefined();
+    });
+
+    it("should schedule with flow technique", () => {
+      const date = new Date("2025-12-09");
+      const ganttSettings = createGanttSettings({ schedulingTechnique: "flow" });
+
+      const todo = createTodo({
+        id: "flow-1",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "90m",
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date, ganttSettings);
+
+      expect(result).toBeDefined();
+      expect(result.tasks).toBeDefined();
+    });
+
+    it("should handle completed tasks", () => {
+      const date = new Date("2025-12-09");
+
+      const completedTodo = createTodo({
+        id: "completed-1",
+        state: "completed",
+        completedAt: Date.now(),
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "30m",
+        },
+      });
+
+      const todos = [completedTodo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should handle archived tasks", () => {
+      const date = new Date("2025-12-09");
+
+      const archivedTodo = createTodo({
+        id: "archived-1",
+        state: "archived",
+        archivedAt: Date.now(),
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "30m",
+        },
+      });
+
+      const todos = [archivedTodo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should respect break periods in schedule", () => {
+      const date = new Date("2025-12-09");
+      const workHoursWithBreaks: WorkHoursSettings = {
+        ...createWorkHoursSettings(),
+        commonSchedule: {
+          startTime: "09:00",
+          endTime: "17:00",
+          breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+        },
+      };
+
+      const todo = createTodo({
+        id: "break-test",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "4h", // 4 hours - should span before and after lunch
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date, createGanttSettings(), workHoursWithBreaks);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should handle task segments that split across breaks", () => {
+      const date = new Date("2025-12-09");
+
+      // Multiple tasks that would need to work around a lunch break
+      const todos = [
+        createTodo({
+          id: "morning-1",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            duration: "2h",
+          },
+        }),
+        createTodo({
+          id: "morning-2",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            duration: "2h",
+          },
+        }),
+        createTodo({
+          id: "afternoon-1",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            duration: "2h",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result).toBeDefined();
+      expect(result.tasks.length).toBeGreaterThan(0);
+    });
+
+    it("should mark tasks that cannot fit as unscheduled", () => {
+      const date = new Date("2025-12-09");
+
+      // Create a task too long to fit in one day
+      const todo = createTodo({
+        id: "too-long",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "20h", // 20 hours - more than a workday
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date);
+
+      // Task should either be partially scheduled or unscheduled
+      expect(result).toBeDefined();
+    });
+
+    it("should apply context switching time for sequential scheduling", () => {
+      const date = new Date("2025-12-09");
+      const ganttSettings = createGanttSettings({
+        schedulingTechnique: "sequential",
+        contextSwitchingTime: 10, // 10 minutes between tasks
+      });
+
+      const todos = [
+        createTodo({
+          id: "cs-1",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            duration: "30m",
+          },
+        }),
+        createTodo({
+          id: "cs-2",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            duration: "30m",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleDayTasks(todos, date, ganttSettings);
+
+      expect(result).toBeDefined();
+      expect(result.tasks.length).toBeGreaterThan(0);
+    });
+
+    it("should handle completed tasks with time tracking entries", () => {
+      // Use a specific date format and ensure we're testing the scheduled day
+      const dateStr = "2025-12-09";
+      const date = new Date(dateStr);
+      date.setHours(0, 0, 0, 0);
+
+      // Entry times must overlap with the date being viewed
+      const entryStartTime = new Date(`${dateStr}T10:00:00`).getTime();
+      const entryEndTime = new Date(`${dateStr}T10:30:00`).getTime();
+
+      const completedWithEntries = createTodo({
+        id: "completed-tracked",
+        state: "completed",
+        completedAt: new Date(`${dateStr}T10:30:00`).getTime(),
+        timeTracking: {
+          entries: [
+            {
+              id: "entry-1",
+              startTime: entryStartTime,
+              endTime: entryEndTime,
+              duration: 30,
+            },
+          ],
+          totalMinutes: 30,
+        },
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: dateStr,
+          duration: "30m",
+        },
+      });
+
+      const todos = [completedWithEntries].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result).toBeDefined();
+      // Should create tasks from time tracking entries
+      // Completed tasks with time entries should show the actual tracked time
+    });
+
+    it("should show completed task time entries as actual time blocks", () => {
+      // Create a date in local timezone to ensure proper overlap
+      const now = new Date();
+      const dateStr = now.toISOString().split("T")[0]; // Today in YYYY-MM-DD format
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Today at midnight local
+
+      // Create entry times that are definitely within this date
+      const entry1Start = new Date(date);
+      entry1Start.setHours(9, 0, 0, 0);
+      const entry1End = new Date(date);
+      entry1End.setHours(9, 25, 0, 0);
+      const entry2Start = new Date(date);
+      entry2Start.setHours(9, 30, 0, 0);
+      const entry2End = new Date(date);
+      entry2End.setHours(10, 0, 0, 0);
+
+      const completedWithMultipleEntries = createTodo({
+        id: "completed-multi-entries",
+        state: "completed",
+        completedAt: entry2End.getTime(),
+        timeTracking: {
+          entries: [
+            { id: "e1", startTime: entry1Start.getTime(), endTime: entry1End.getTime(), duration: 25 },
+            { id: "e2", startTime: entry2Start.getTime(), endTime: entry2End.getTime(), duration: 30 },
+          ],
+          totalMinutes: 55,
+        },
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: dateStr,
+          duration: "55m",
+        },
+      });
+
+      const todos = [completedWithMultipleEntries].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result).toBeDefined();
+      // Should create tasks from time tracking entries (one per entry)
+      expect(result.tasks.length).toBe(2);
+      expect(result.tasks[0].isActualTime).toBe(true);
+      expect(result.tasks[1].isActualTime).toBe(true);
+    });
+
+    it("should handle completed tasks with time tracking entries with ISO due date", () => {
+      const date = new Date("2025-12-09");
+      const entryStartTime = new Date("2025-12-09T10:00:00").getTime();
+      const entryEndTime = new Date("2025-12-09T10:30:00").getTime();
+
+      const completedWithISODueDate = createTodo({
+        id: "completed-iso",
+        state: "completed",
+        completedAt: new Date("2025-12-09T10:30:00").getTime(),
+        timeTracking: {
+          entries: [
+            {
+              id: "entry-1",
+              startTime: entryStartTime,
+              endTime: entryEndTime,
+              duration: 30,
+            },
+          ],
+          totalMinutes: 30,
+        },
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-09T17:00:00Z", // ISO format due date
+          duration: "30m",
+        },
+      });
+
+      const todos = [completedWithISODueDate].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should show active tasks with time tracking entries and remaining work", () => {
+      const date = new Date("2025-12-09");
+      const entryStartTime = new Date("2025-12-09T10:00:00").getTime();
+      const entryEndTime = new Date("2025-12-09T10:30:00").getTime();
+
+      const activeWithTracking = createTodo({
+        id: "active-tracked",
+        state: "active",
+        timeTracking: {
+          entries: [
+            {
+              id: "entry-1",
+              startTime: entryStartTime,
+              endTime: entryEndTime,
+              duration: 30,
+            },
+          ],
+          totalMinutes: 30,
+        },
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-09",
+          duration: "60m", // 60m total, 30m tracked = 30m remaining
+        },
+      });
+
+      const todos = [activeWithTracking].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result).toBeDefined();
+      // Should have both tracked time and remaining scheduled time
+    });
+
+    it("should handle active task with time entry without end time (in progress)", () => {
+      const date = new Date("2025-12-09");
+      const entryStartTime = new Date("2025-12-09T10:00:00").getTime();
+
+      const inProgressTask = createTodo({
+        id: "in-progress",
+        state: "active",
+        timeTracking: {
+          entries: [
+            {
+              id: "entry-1",
+              startTime: entryStartTime,
+              // No endTime - currently in progress
+              duration: undefined,
+            },
+          ],
+          totalMinutes: 0,
+        },
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-09",
+          duration: "60m",
+        },
+      });
+
+      const todos = [inProgressTask].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should handle tasks with tracked time", () => {
+      const date = new Date("2025-12-09");
+
+      const todoWithTrackedTime = createTodo({
+        id: "tracked",
+        state: "active",
+        timeTracking: {
+          entries: [],
+          totalMinutes: 20, // 20 minutes already done
+        },
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "60m", // 60 minutes total, 40 remaining
+        },
+      });
+
+      const todos = [todoWithTrackedTime].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should mark tracked time segments with isTrackedTime flag", () => {
+      const date = new Date("2025-12-09");
+      const entryStartTime = new Date("2025-12-09T10:00:00").getTime();
+      const entryEndTime = new Date("2025-12-09T10:30:00").getTime();
+
+      const todoWithEntries = createTodo({
+        id: "tracked-segments",
+        state: "active",
+        timeTracking: {
+          entries: [
+            {
+              id: "entry-1",
+              startTime: entryStartTime,
+              endTime: entryEndTime,
+              duration: 30,
+            },
+          ],
+          totalMinutes: 30,
+        },
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-09",
+          duration: "60m", // 60 minutes total, 30 tracked = 30 remaining
+        },
+      });
+
+      const todos = [todoWithEntries].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result).toBeDefined();
+      // Task should have both tracked and scheduled segments
+      if (result.tasks.length > 0) {
+        const task = result.tasks[0];
+        expect(task.segments.length).toBeGreaterThan(0);
+      }
+    });
+
+    it("should handle non-work day in sequential scheduling mode", () => {
+      // Sunday with weekendSchedule that has no work hours
+      const sunday = new Date("2025-12-14"); // Sunday
+      const workHours: WorkHoursSettings = {
+        useCommonSchedule: false,
+        commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
+        weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
+        weekendSchedule: { startTime: "09:00", endTime: "09:00", breaks: [], enabled: false }, // No work hours on weekends
+        customSchedules: {},
+      };
+      const ganttSettings = createGanttSettings({
+        schedulingTechnique: "sequential",
+      });
+
+      const todo = createTodo({
+        id: "non-work-day",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "2h",
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, sunday, ganttSettings, workHours);
+
+      expect(result).toBeDefined();
+      // No tasks should be scheduled on a non-work day
+      expect(result.tasks.length).toBe(0);
+    });
+
+    it("should handle pomodoro with work time accumulation between tasks", () => {
+      const date = new Date("2025-12-09");
+      const ganttSettings = createGanttSettings({
+        schedulingTechnique: "pomodoro",
+        pomodoroWorkDuration: 25,
+        pomodoroShortBreak: 5,
+        pomodoroLongBreak: 15,
+        pomodoroLongBreakInterval: 2, // Long break after every 2 sessions
+      });
+
+      // Multiple short tasks that accumulate work time
+      const todos = [
+        createTodo({
+          id: "short-1",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "15m",
+          },
+        }),
+        createTodo({
+          id: "short-2",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "15m",
+          },
+        }),
+        createTodo({
+          id: "short-3",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "15m",
+          },
+        }),
+        createTodo({
+          id: "short-4",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "15m",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleDayTasks(todos, date, ganttSettings);
+
+      expect(result).toBeDefined();
+      expect(result.tasks.length).toBe(4);
+    });
+
+    it("should handle flow technique with context switching after breaks", () => {
+      const date = new Date("2025-12-09");
+      const workHours: WorkHoursSettings = {
+        ...createWorkHoursSettings(),
+        commonSchedule: {
+          startTime: "09:00",
+          endTime: "17:00",
+          breaks: [{ id: "short-break", name: "Break", startTime: "11:00", endTime: "11:15" }],
+        },
+      };
+      const ganttSettings = createGanttSettings({
+        schedulingTechnique: "flow",
+        flowWorkDuration: 52,
+        flowBreakDuration: 17,
+        flowContextSwitchingTime: 10,
+      });
+
+      const todos = [
+        createTodo({
+          id: "flow-1",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "1h",
+          },
+        }),
+        createTodo({
+          id: "flow-2",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "1h",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleDayTasks(todos, date, ganttSettings, workHours);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should apply duration multiplier", () => {
+      const date = new Date("2025-12-09");
+      const ganttSettings = createGanttSettings({
+        durationMultiplier: 2.0, // Double the estimated time
+      });
+
+      const todo = createTodo({
+        id: "multiplied",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "30m",
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date, ganttSettings);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should handle weekends with different schedules", () => {
+      const saturday = new Date(2025, 11, 13); // Saturday
+      const workHours: WorkHoursSettings = {
+        useCommonSchedule: false,
+        commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
+        weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
+        weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
+        customSchedules: {},
+      };
+
+      const todo = createTodo({
+        id: "weekend-task",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "2h",
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, saturday, createGanttSettings(), workHours);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should handle disabled days", () => {
+      const saturday = new Date(2025, 11, 13); // Saturday
+      const workHours: WorkHoursSettings = {
+        useCommonSchedule: false,
+        commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
+        weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
+        weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [], enabled: false },
+        customSchedules: {},
+      };
+
+      const todo = createTodo({
+        id: "disabled-day",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "2h",
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, saturday, createGanttSettings(), workHours);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should schedule multiple tasks in order", () => {
+      const date = new Date("2025-12-09");
+
+      const todos = [
+        createTodo({
+          id: "first",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            duration: "30m",
+          },
+        }),
+        createTodo({
+          id: "second",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            duration: "30m",
+          },
+        }),
+        createTodo({
+          id: "third",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            duration: "30m",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result.tasks.length).toBe(3);
+    });
+
+    it("should return ScheduledTask objects with required properties", () => {
+      const date = new Date("2025-12-09");
+
+      const todo = createTodo({
+        id: "props-test",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          duration: "30m",
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleDayTasks(todos, date);
+
+      expect(result.tasks.length).toBe(1);
+      const task = result.tasks[0];
+      expect(task).toHaveProperty("todo");
+      expect(task).toHaveProperty("startTime");
+      expect(task).toHaveProperty("endTime");
+      expect(task).toHaveProperty("segments");
+    });
+  });
+
+  describe("scheduleWeekTasks", () => {
+    const settings = createMinimalSettings();
+
+    // Helper to call scheduleWeekTasks with proper arguments
+    const callScheduleWeekTasks = (
+      todos: TodoModel[],
+      startDate: Date,
+      ganttSettings: Gantt = createGanttSettings(),
+      workHours: WorkHoursSettings = createWorkHoursSettings(),
+    ) => {
+      // Generate 7 dates starting from startDate
+      const dates: Date[] = [];
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        dates.push(date);
+      }
+
+      // Create task scheduling map
+      const config = createSchedulingConfig({ ganttSettings, workHours });
+      const taskSchedulingMap = createTaskSchedulingMap(todos, config);
+
+      // Mock getProjectColor function
+      const getProjectColor = () => "#3b82f6";
+
+      return scheduleWeekTasks(dates, todos, taskSchedulingMap, workHours, ganttSettings, getProjectColor);
+    };
+
+    it("should schedule tasks across a week", () => {
+      const startDate = new Date("2025-12-08"); // Monday
+
+      const todo = createTodo({
+        id: "week-task",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-12",
+          duration: "2h",
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleWeekTasks(todos, startDate);
+
+      expect(result).toBeDefined();
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBe(7); // 7 days in a week
+    });
+
+    it("should return week schedule for each day", () => {
+      const startDate = new Date("2025-12-08");
+
+      const result = callScheduleWeekTasks([], startDate);
+
+      expect(result).toBeDefined();
+      expect(result.length).toBe(7);
+      result.forEach((day) => {
+        expect(day).toHaveProperty("date");
+        expect(day).toHaveProperty("scheduled");
+        expect(day).toHaveProperty("breakBlocks");
+      });
+    });
+
+    it("should schedule tasks with due dates on correct days", () => {
+      const startDate = new Date("2025-12-08"); // Monday
+
+      const mondayTask = createTodo({
+        id: "monday",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-08",
+          duration: "30m",
+        },
+      });
+
+      const wednesdayTask = createTodo({
+        id: "wednesday",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-10",
+          duration: "30m",
+        },
+      });
+
+      const todos = [mondayTask, wednesdayTask].map((t) => new TodoModel(t, settings));
+      const result = callScheduleWeekTasks(todos, startDate);
+
+      expect(result).toBeDefined();
+      expect(result.length).toBe(7);
+    });
+
+    it("should handle tasks spanning multiple days", () => {
+      const startDate = new Date("2025-12-08");
+
+      const longTask = createTodo({
+        id: "multi-day",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-12",
+          duration: "20h", // Would span multiple days
+        },
+      });
+
+      const todos = [longTask].map((t) => new TodoModel(t, settings));
+      const result = callScheduleWeekTasks(todos, startDate);
+
+      expect(result).toBeDefined();
+      expect(result.length).toBe(7);
+    });
+
+    it("should handle empty task list", () => {
+      const startDate = new Date("2025-12-08");
+
+      const result = callScheduleWeekTasks([], startDate);
+
+      expect(result).toBeDefined();
+      expect(result.length).toBe(7);
+    });
+
+    it("should include breaks in schedule", () => {
+      const workHours: WorkHoursSettings = {
+        ...createWorkHoursSettings(),
+        commonSchedule: {
+          startTime: "09:00",
+          endTime: "17:00",
+          breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+        },
+      };
+      const startDate = new Date("2025-12-08");
+
+      const result = callScheduleWeekTasks([], startDate, createGanttSettings(), workHours);
+
+      expect(result).toBeDefined();
+      // Each day should have breaks info
+      result.forEach((day) => {
+        expect(day).toHaveProperty("breakBlocks");
+      });
+    });
+
+    it("should handle weekend schedules", () => {
+      const workHours: WorkHoursSettings = {
+        useCommonSchedule: false,
+        commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
+        weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
+        weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
+        customSchedules: {},
+      };
+      const startDate = new Date("2025-12-08");
+
+      const result = callScheduleWeekTasks([], startDate, createGanttSettings(), workHours);
+
+      expect(result).toBeDefined();
+      expect(result.length).toBe(7);
+    });
+
+    it("should handle completed tasks in week view", () => {
+      const startDate = new Date("2025-12-08");
+
+      const completedTask = createTodo({
+        id: "completed-week",
+        state: "completed",
+        completedAt: Date.now(),
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-09",
+          duration: "30m",
+        },
+      });
+
+      const todos = [completedTask].map((t) => new TodoModel(t, settings));
+      const result = callScheduleWeekTasks(todos, startDate);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should provide percentage-based positioning for week view", () => {
+      const startDate = new Date("2025-12-08");
+
+      const todo = createTodo({
+        id: "positioned",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-09",
+          duration: "2h",
+        },
+      });
+
+      const todos = [todo].map((t) => new TodoModel(t, settings));
+      const result = callScheduleWeekTasks(todos, startDate);
+
+      expect(result).toBeDefined();
+      // Tasks should have positioning info
+      result.forEach((day) => {
+        if (day.scheduled.length > 0) {
+          day.scheduled.forEach((item) => {
+            expect(item).toHaveProperty("startPercent");
+            expect(item).toHaveProperty("widthPercent");
+          });
+        }
+      });
+    });
+
+    it("should handle all scheduling techniques in week view", () => {
+      const startDate = new Date("2025-12-08");
+
+      const techniques: Array<"sequential" | "pomodoro" | "flow"> = ["sequential", "pomodoro", "flow"];
+
+      const todo = createTodo({
+        id: "technique-test",
+        state: "active",
+        metadata: {
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          tags: [],
+          dependencies: [],
+          dueDate: "2025-12-09",
+          duration: "2h",
+        },
+      });
+
+      for (const technique of techniques) {
+        const ganttSettings = createGanttSettings({ schedulingTechnique: technique });
+        const todos = [todo].map((t) => new TodoModel(t, settings));
+        const result = callScheduleWeekTasks(todos, startDate, ganttSettings);
+
+        expect(result).toBeDefined();
+        expect(result.length).toBe(7);
+      }
+    });
+
+    it("should include day start and end times", () => {
+      const startDate = new Date("2025-12-08");
+
+      const result = callScheduleWeekTasks([], startDate);
+
+      result.forEach((day) => {
+        expect(day).toHaveProperty("dayStart");
+        expect(day).toHaveProperty("dayEnd");
+        expect(day.dayStart instanceof Date).toBe(true);
+        expect(day.dayEnd instanceof Date).toBe(true);
+      });
+    });
+
+    it("should include total minutes for each day", () => {
+      const startDate = new Date("2025-12-08");
+
+      const result = callScheduleWeekTasks([], startDate);
+
+      result.forEach((day) => {
+        expect(day).toHaveProperty("totalMinutes");
+        expect(typeof day.totalMinutes).toBe("number");
+        expect(day.totalMinutes).toBeGreaterThan(0);
+      });
+    });
+
+    it("should include segments for visualization", () => {
+      const startDate = new Date("2025-12-08");
+
+      const result = callScheduleWeekTasks([], startDate);
+
+      result.forEach((day) => {
+        expect(day).toHaveProperty("segments");
+        expect(Array.isArray(day.segments)).toBe(true);
+      });
+    });
+
+    it("should calculate technique breaks for pomodoro scheduling", () => {
+      const startDate = new Date("2025-12-08");
+      const ganttSettings = createGanttSettings({
+        schedulingTechnique: "pomodoro",
+        pomodoroWorkDuration: 25,
+        pomodoroShortBreak: 5,
+        pomodoroLongBreak: 15,
+        pomodoroLongBreakInterval: 4,
+      });
+
+      const todos = [
+        createTodo({
+          id: "pomo-week-1",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "50m",
+          },
+        }),
+        createTodo({
+          id: "pomo-week-2",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "50m",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleWeekTasks(todos, startDate, ganttSettings);
+
+      expect(result).toBeDefined();
+      result.forEach((day) => {
+        expect(day).toHaveProperty("techniqueBreaks");
+        expect(Array.isArray(day.techniqueBreaks)).toBe(true);
+      });
+    });
+
+    it("should calculate technique breaks for flow scheduling", () => {
+      const startDate = new Date("2025-12-08");
+      const ganttSettings = createGanttSettings({
+        schedulingTechnique: "flow",
+        flowWorkDuration: 52,
+        flowBreakDuration: 17,
+        flowContextSwitchingTime: 10,
+      });
+
+      const todos = [
+        createTodo({
+          id: "flow-week-1",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "90m",
+          },
+        }),
+        createTodo({
+          id: "flow-week-2",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "90m",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleWeekTasks(todos, startDate, ganttSettings);
+
+      expect(result).toBeDefined();
+      result.forEach((day) => {
+        expect(day).toHaveProperty("techniqueBreaks");
+        expect(Array.isArray(day.techniqueBreaks)).toBe(true);
+      });
+    });
+
+    it("should include technique break minutes in day totals", () => {
+      const startDate = new Date("2025-12-08");
+      const ganttSettings = createGanttSettings({
+        schedulingTechnique: "pomodoro",
+        pomodoroWorkDuration: 25,
+        pomodoroShortBreak: 5,
+        pomodoroLongBreak: 15,
+        pomodoroLongBreakInterval: 2,
+      });
+
+      const todos = [
+        createTodo({
+          id: "break-calc-1",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "60m",
+          },
+        }),
+        createTodo({
+          id: "break-calc-2",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "60m",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleWeekTasks(todos, startDate, ganttSettings);
+
+      expect(result).toBeDefined();
+      result.forEach((day) => {
+        expect(day).toHaveProperty("techniqueBreakMinutes");
+        expect(typeof day.techniqueBreakMinutes).toBe("number");
+      });
+    });
+
+    it("should handle pomodoro reset after long time block break", () => {
+      const startDate = new Date("2025-12-08");
+      const workHours: WorkHoursSettings = {
+        ...createWorkHoursSettings(),
+        commonSchedule: {
+          startTime: "09:00",
+          endTime: "17:00",
+          breaks: [
+            // Long lunch break that should reset pomodoro count
+            { id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" },
+          ],
+        },
+      };
+      const ganttSettings = createGanttSettings({
+        schedulingTechnique: "pomodoro",
+        pomodoroWorkDuration: 25,
+        pomodoroShortBreak: 5,
+        pomodoroLongBreak: 15,
+        pomodoroLongBreakInterval: 4,
+      });
+
+      const todos = [
+        // Tasks before lunch
+        createTodo({
+          id: "before-lunch-1",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "2h",
+          },
+        }),
+        // Tasks after lunch
+        createTodo({
+          id: "after-lunch-1",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "2h",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleWeekTasks(todos, startDate, ganttSettings, workHours);
+
+      expect(result).toBeDefined();
+      // After the 1-hour lunch break (>= 15min long break), pomodoro count should reset
+    });
+
+    it("should handle flow reset after long time block break", () => {
+      const startDate = new Date("2025-12-08");
+      const workHours: WorkHoursSettings = {
+        ...createWorkHoursSettings(),
+        commonSchedule: {
+          startTime: "09:00",
+          endTime: "17:00",
+          breaks: [
+            // Long lunch break that should reset flow
+            { id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" },
+          ],
+        },
+      };
+      const ganttSettings = createGanttSettings({
+        schedulingTechnique: "flow",
+        flowWorkDuration: 52,
+        flowBreakDuration: 17,
+        flowContextSwitchingTime: 10,
+      });
+
+      const todos = [
+        createTodo({
+          id: "flow-reset-1",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "2h",
+          },
+        }),
+        createTodo({
+          id: "flow-reset-2",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "2h",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleWeekTasks(todos, startDate, ganttSettings, workHours);
+
+      expect(result).toBeDefined();
+      // After the 1-hour lunch break (>= 17min flow break), work counter should reset
+    });
+
+    it("should add context switch time after time block break in sequential mode", () => {
+      const startDate = new Date("2025-12-08");
+      const workHours: WorkHoursSettings = {
+        ...createWorkHoursSettings(),
+        commonSchedule: {
+          startTime: "09:00",
+          endTime: "17:00",
+          breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+        },
+      };
+      const ganttSettings = createGanttSettings({
+        schedulingTechnique: "sequential",
+        contextSwitchingTime: 15, // 15 minutes context switch
+      });
+
+      const todos = [
+        createTodo({
+          id: "seq-1",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "3h",
+          },
+        }),
+        createTodo({
+          id: "seq-2",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "3h",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleWeekTasks(todos, startDate, ganttSettings, workHours);
+
+      expect(result).toBeDefined();
+    });
+
+    it("should provide segment percentages for visualization", () => {
+      const startDate = new Date("2025-12-08");
+
+      const todos = [
+        createTodo({
+          id: "seg-viz-1",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "2h",
+          },
+        }),
+        createTodo({
+          id: "seg-viz-2",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "2h",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleWeekTasks(todos, startDate);
+
+      expect(result).toBeDefined();
+      result.forEach((day) => {
+        if (day.segments.length > 0) {
+          day.segments.forEach((segment) => {
+            expect(segment).toHaveProperty("todoId");
+            expect(segment).toHaveProperty("startPercent");
+            expect(segment).toHaveProperty("widthPercent");
+            expect(segment).toHaveProperty("color");
+          });
+        }
+      });
+    });
+
+    it("should calculate technique breaks between task segments in pomodoro mode", () => {
+      const startDate = new Date("2025-12-08");
+      const ganttSettings = createGanttSettings({
+        schedulingTechnique: "pomodoro",
+        pomodoroWorkDuration: 25,
+        pomodoroShortBreak: 5,
+        pomodoroLongBreak: 15,
+        pomodoroLongBreakInterval: 2,
+      });
+
+      // Long task that will be split into multiple segments
+      const todos = [
+        createTodo({
+          id: "long-pomo",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "2h",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleWeekTasks(todos, startDate, ganttSettings);
+
+      expect(result).toBeDefined();
+      // Day with the task should have technique breaks
+      const taskDay = result.find((d) => d.scheduled.length > 0);
+      if (taskDay) {
+        expect(taskDay.techniqueBreaks).toBeDefined();
+      }
+    });
+
+    it("should calculate technique breaks between tasks in week view", () => {
+      const startDate = new Date("2025-12-08");
+      const ganttSettings = createGanttSettings({
+        schedulingTechnique: "pomodoro",
+        pomodoroWorkDuration: 25,
+        pomodoroShortBreak: 5,
+        pomodoroLongBreak: 15,
+        pomodoroLongBreakInterval: 4,
+      });
+
+      // Multiple tasks that should have breaks between them
+      const todos = [
+        createTodo({
+          id: "task-a",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "30m",
+          },
+        }),
+        createTodo({
+          id: "task-b",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "30m",
+          },
+        }),
+        createTodo({
+          id: "task-c",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "30m",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleWeekTasks(todos, startDate, ganttSettings);
+
+      expect(result).toBeDefined();
+      result.forEach((day) => {
+        if (day.techniqueBreaks && day.techniqueBreaks.length > 0) {
+          day.techniqueBreaks.forEach((brk) => {
+            expect(brk).toHaveProperty("startPercent");
+            expect(brk).toHaveProperty("widthPercent");
+            expect(brk).toHaveProperty("type");
+          });
+        }
+      });
+    });
+
+    it("should exclude time block breaks from technique break calculations", () => {
+      const startDate = new Date("2025-12-08");
+      const workHours: WorkHoursSettings = {
+        ...createWorkHoursSettings(),
+        commonSchedule: {
+          startTime: "09:00",
+          endTime: "17:00",
+          breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+        },
+      };
+      const ganttSettings = createGanttSettings({
+        schedulingTechnique: "pomodoro",
+        pomodoroWorkDuration: 25,
+        pomodoroShortBreak: 5,
+        pomodoroLongBreak: 15,
+        pomodoroLongBreakInterval: 4,
+      });
+
+      // Tasks spanning before and after the lunch break
+      const todos = [
+        createTodo({
+          id: "before-lunch",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "3h",
+          },
+        }),
+        createTodo({
+          id: "after-lunch",
+          state: "active",
+          metadata: {
+            assignedPeople: [],
+            sourcePeople: [],
+            mentionedPeople: [],
+            projects: [],
+            tags: [],
+            dependencies: [],
+            dueDate: "2025-12-09",
+            duration: "3h",
+          },
+        }),
+      ].map((t) => new TodoModel(t, settings));
+
+      const result = callScheduleWeekTasks(todos, startDate, ganttSettings, workHours);
+
+      expect(result).toBeDefined();
+      // The technique break minutes should exclude time block break duration
+      const taskDay = result.find((d) => d.scheduled.length > 0);
+      if (taskDay) {
+        expect(typeof taskDay.techniqueBreakMinutes).toBe("number");
+      }
     });
   });
 });

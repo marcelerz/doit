@@ -606,3 +606,296 @@ describe("Type safety", () => {
     expect(service).toBeDefined();
   });
 });
+
+describe("MockNotificationService - additional edge cases", () => {
+  let mock: MockNotificationService;
+
+  beforeEach(() => {
+    mock = new MockNotificationService();
+  });
+
+  describe("checkAndNotifyDueTasks with due today", () => {
+    it("should notify for tasks due today when notifyDueToday is enabled", () => {
+      const settings = createTestSettings();
+      // Task due in 12 hours
+      const today = new Date();
+      today.setHours(today.getHours() + 12);
+
+      const todo = createTestTodo({
+        id: "due-today-1",
+        plainText: "Due today task",
+        metadata: { dueDate: today.toISOString() },
+      });
+      const model = new TodoModel(todo, settings);
+
+      const result = mock.checkAndNotifyDueTasks([model], new Set(), {
+        notifyOverdue: false,
+        notifyDueToday: true,
+        notifyDueSoon: false,
+        dueSoonHours: 2,
+      });
+
+      expect(result.has("due-today-1")).toBe(true);
+      expect(mock.wasMethodCalled("notifyDueToday")).toBe(true);
+    });
+  });
+
+  describe("checkAndNotifyDueTasks with due soon", () => {
+    it("should notify for tasks due soon when notifyDueSoon is enabled", () => {
+      const settings = createTestSettings();
+      // Task due in 1.5 hours
+      const soon = new Date();
+      soon.setTime(soon.getTime() + 1.5 * 60 * 60 * 1000);
+
+      const todo = createTestTodo({
+        id: "due-soon-1",
+        plainText: "Due soon task",
+        metadata: { dueDate: soon.toISOString() },
+      });
+      const model = new TodoModel(todo, settings);
+
+      const result = mock.checkAndNotifyDueTasks([model], new Set(), {
+        notifyOverdue: false,
+        notifyDueToday: false,
+        notifyDueSoon: true,
+        dueSoonHours: 2,
+      });
+
+      expect(result.has("due-soon-1")).toBe(true);
+      expect(mock.wasMethodCalled("notifyDueSoon")).toBe(true);
+    });
+
+    it("should not notify for tasks outside dueSoonHours window", () => {
+      const settings = createTestSettings();
+      // Task due in 5 hours
+      const later = new Date();
+      later.setTime(later.getTime() + 5 * 60 * 60 * 1000);
+
+      const todo = createTestTodo({
+        id: "not-soon",
+        plainText: "Not due soon",
+        metadata: { dueDate: later.toISOString() },
+      });
+      const model = new TodoModel(todo, settings);
+
+      mock.checkAndNotifyDueTasks([model], new Set(), {
+        notifyOverdue: false,
+        notifyDueToday: false,
+        notifyDueSoon: true,
+        dueSoonHours: 2,
+      });
+
+      expect(mock.wasMethodCalled("notifyDueSoon")).toBe(false);
+    });
+  });
+
+  describe("checkAndNotifyDueTasks with invalid dates", () => {
+    it("should skip tasks with invalid due dates", () => {
+      const settings = createTestSettings();
+      const todo = createTestTodo({
+        id: "invalid-date",
+        plainText: "Invalid date task",
+        metadata: { dueDate: "not-a-date" },
+      });
+      const model = new TodoModel(todo, settings);
+
+      mock.checkAndNotifyDueTasks([model], new Set(), {
+        notifyOverdue: true,
+        notifyDueToday: true,
+        notifyDueSoon: true,
+        dueSoonHours: 2,
+      });
+
+      expect(mock.sentNotifications).toHaveLength(0);
+    });
+  });
+
+  describe("checkAndNotifyDueTasks priority handling", () => {
+    it("should process overdue before due today", () => {
+      const settings = createTestSettings();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      const todo = createTestTodo({
+        id: "priority-test",
+        plainText: "Priority test",
+        metadata: { dueDate: yesterday.toISOString() },
+      });
+      const model = new TodoModel(todo, settings);
+
+      mock.checkAndNotifyDueTasks([model], new Set(), {
+        notifyOverdue: true,
+        notifyDueToday: true,
+        notifyDueSoon: true,
+        dueSoonHours: 48,
+      });
+
+      // Should only call overdue, not due today
+      expect(mock.wasMethodCalled("notifyOverdueTask")).toBe(true);
+      expect(mock.wasMethodCalled("notifyDueToday")).toBe(false);
+    });
+  });
+
+  describe("multiple todos processing", () => {
+    it("should process multiple todos and track all notified IDs", () => {
+      const settings = createTestSettings();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      const today = new Date();
+      today.setHours(today.getHours() + 6);
+
+      const todos = [
+        new TodoModel(
+          createTestTodo({
+            id: "overdue-multi",
+            plainText: "Overdue",
+            metadata: { dueDate: yesterday.toISOString() },
+          }),
+          settings,
+        ),
+        new TodoModel(
+          createTestTodo({
+            id: "today-multi",
+            plainText: "Today",
+            metadata: { dueDate: today.toISOString() },
+          }),
+          settings,
+        ),
+        new TodoModel(
+          createTestTodo({
+            id: "no-date-multi",
+            plainText: "No date",
+          }),
+          settings,
+        ),
+      ];
+
+      const result = mock.checkAndNotifyDueTasks(todos, new Set(), {
+        notifyOverdue: true,
+        notifyDueToday: true,
+        notifyDueSoon: false,
+        dueSoonHours: 2,
+      });
+
+      expect(result.has("overdue-multi")).toBe(true);
+      expect(result.has("today-multi")).toBe(true);
+      expect(result.has("no-date-multi")).toBe(false);
+      expect(mock.sentNotifications).toHaveLength(2);
+    });
+  });
+
+  describe("notification content validation", () => {
+    it("notifyDueToday should include priority when present", () => {
+      const settings = createTestSettings();
+      const todo = createTestTodo({
+        plainText: "Important task",
+        metadata: { priority: "urgent" },
+      });
+      const model = new TodoModel(todo, settings);
+
+      mock.notifyDueToday(model);
+
+      expect(mock.sentNotifications[0].options?.body).toContain("Priority: urgent");
+    });
+
+    it("notifyDueToday should use default message without priority", () => {
+      const settings = createTestSettings();
+      const todo = createTestTodo({
+        plainText: "Normal task",
+      });
+      const model = new TodoModel(todo, settings);
+
+      mock.notifyDueToday(model);
+
+      expect(mock.sentNotifications[0].options?.body).toBe("Remember to complete this task");
+    });
+
+    it("notifyDueSoon should include priority when present", () => {
+      const settings = createTestSettings();
+      const todo = createTestTodo({
+        plainText: "Urgent task",
+        metadata: { priority: "high" },
+      });
+      const model = new TodoModel(todo, settings);
+
+      mock.notifyDueSoon(model, 3);
+
+      expect(mock.sentNotifications[0].options?.body).toContain("Priority: high");
+    });
+
+    it("notifyDueSoon should use default message without priority", () => {
+      const settings = createTestSettings();
+      const todo = createTestTodo({
+        plainText: "Regular task",
+      });
+      const model = new TodoModel(todo, settings);
+
+      mock.notifyDueSoon(model, 3);
+
+      expect(mock.sentNotifications[0].options?.body).toBe("Task deadline approaching");
+    });
+  });
+
+  describe("pomodoro notification content", () => {
+    it("notifyPomodoroBreak should include task count in body", () => {
+      mock.notifyPomodoroBreak("short", 5, 7, false);
+
+      expect(mock.sentNotifications[0].options?.body).toContain("Task 7");
+    });
+
+    it("notifyPomodoroWorkStart should include task name and number", () => {
+      mock.notifyPomodoroWorkStart("Write tests", 3, false);
+
+      expect(mock.sentNotifications[0].options?.body).toContain("Starting task 3");
+      expect(mock.sentNotifications[0].options?.body).toContain("Write tests");
+    });
+  });
+
+  describe("sound type tracking", () => {
+    it("should correctly track queued sounds in order", () => {
+      mock.queueSound("task-start");
+      mock.queueSound("short-break");
+      mock.queueSound("long-break");
+      mock.queueSound("task-complete");
+
+      expect(mock.soundQueue).toEqual(["task-start", "short-break", "long-break", "task-complete"]);
+    });
+
+    it("queueSounds should append to existing queue", () => {
+      mock.queueSound("task-start");
+      mock.queueSounds(["short-break", "long-break"]);
+
+      expect(mock.soundQueue).toEqual(["task-start", "short-break", "long-break"]);
+    });
+  });
+
+  describe("ambient sound edge cases", () => {
+    it("should handle changing ambient sound", () => {
+      mock.playAmbientSound("first.mp3", 0.5);
+      expect(mock.currentAmbientFile).toBe("first.mp3");
+
+      mock.playAmbientSound("second.mp3", 0.8);
+      expect(mock.currentAmbientFile).toBe("second.mp3");
+      expect(mock.ambientVolume).toBe(0.8);
+      expect(mock.ambientPlaying).toBe(true);
+    });
+
+    it("should handle volume changes while playing", () => {
+      mock.playAmbientSound("test.mp3", 0.3);
+      mock.setAmbientVolume(0.1);
+      expect(mock.ambientVolume).toBe(0.1);
+      expect(mock.ambientPlaying).toBe(true);
+    });
+
+    it("should handle stop and restart", () => {
+      mock.playAmbientSound("test.mp3");
+      mock.stopAmbientSound();
+      expect(mock.isAmbientPlaying()).toBe(false);
+
+      mock.playAmbientSound("another.mp3");
+      expect(mock.isAmbientPlaying()).toBe(true);
+      expect(mock.currentAmbientFile).toBe("another.mp3");
+    });
+  });
+});
