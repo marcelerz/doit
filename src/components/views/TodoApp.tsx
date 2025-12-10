@@ -2108,7 +2108,10 @@ export function TodoApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800 py-4 sm:py-8 px-2 sm:px-4">
+    <div
+      data-testid="todo-app"
+      className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800 py-4 sm:py-8 px-2 sm:px-4"
+    >
       <div className={containerClass}>
         <header className="mb-4">
           <div className="flex items-center justify-between mb-2">
@@ -2169,6 +2172,7 @@ export function TodoApp() {
         <div className="mb-6 overflow-x-auto -mx-2 sm:-mx-0 px-2 sm:px-0">
           <div className="flex gap-1 sm:gap-2 border-b border-zinc-200 dark:border-zinc-800 min-w-max">
             <button
+              data-testid="view-tab-list"
               onClick={() => setActiveView("list")}
               className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                 activeView === "list"
@@ -2186,6 +2190,7 @@ export function TodoApp() {
             </button>
             {features?.kanbanView && (
               <button
+                data-testid="view-tab-kanban"
                 onClick={() => setActiveView("kanban")}
                 className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                   activeView === "kanban"
@@ -2209,6 +2214,7 @@ export function TodoApp() {
             )}
             {features?.ganttView && (
               <button
+                data-testid="view-tab-gantt"
                 onClick={() => setActiveView("gantt")}
                 className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                   activeView === "gantt"
@@ -2228,6 +2234,7 @@ export function TodoApp() {
             )}
             {features?.calendarView && (
               <button
+                data-testid="view-tab-calendar"
                 onClick={() => setActiveView("calendar")}
                 className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                   activeView === "calendar"
@@ -2250,6 +2257,7 @@ export function TodoApp() {
               </button>
             )}
             <button
+              data-testid="view-tab-people"
               onClick={() => setActiveView("people")}
               className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                 activeView === "people"
@@ -2271,6 +2279,7 @@ export function TodoApp() {
               </div>
             </button>
             <button
+              data-testid="view-tab-projects"
               onClick={() => setActiveView("projects")}
               className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
                 activeView === "projects"
@@ -2395,6 +2404,7 @@ export function TodoApp() {
               <div className="relative w-[140px] sm:w-[180px] lg:w-[250px] xl:w-[300px] flex-shrink-0">
                 <input
                   ref={searchInputRef}
+                  data-testid="search-input"
                   type="text"
                   placeholder="Search... (/)"
                   value={filters.searchText}

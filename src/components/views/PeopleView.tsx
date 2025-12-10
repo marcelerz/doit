@@ -61,7 +61,7 @@ export function PeopleTab({ people, onAdd, onUpdate, onDelete }: PeopleTabProps)
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="people-view">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">People</h2>
         {!isAdding && (

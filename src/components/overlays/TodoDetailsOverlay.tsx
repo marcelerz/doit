@@ -226,7 +226,7 @@ export function TodoDetailsOverlay({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="3xl">
-      <div className="p-6">
+      <div className="p-6" data-testid="todo-details-overlay">
         {/* Header with Status Badge */}
         <div className="flex items-center justify-between mb-4">
           <div
@@ -237,6 +237,7 @@ export function TodoDetailsOverlay({
           </div>
           <button
             onClick={onClose}
+            data-testid="overlay-close"
             className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-zinc-500 dark:text-zinc-400"
             aria-label="Close"
           >

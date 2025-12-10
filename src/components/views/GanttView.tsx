@@ -687,7 +687,7 @@ export function GanttView({
   };
 
   return (
-    <div className="space-y-4" role="region" aria-label="Gantt Chart Schedule">
+    <div className="space-y-4" role="region" aria-label="Gantt Chart Schedule" data-testid="gantt-view">
       {/* Scheduling Mode Toggle */}
       <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-2 sm:p-3 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">

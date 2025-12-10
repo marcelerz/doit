@@ -351,7 +351,7 @@ export function TodoItem({
   }
 
   return (
-    <div ref={containerRef} className="relative rounded-lg">
+    <div ref={containerRef} className="relative rounded-lg" data-testid="todo-item">
       {/* Swipe action backgrounds (mobile only) */}
       {swipeOffset !== 0 && (
         <>
@@ -459,6 +459,7 @@ export function TodoItem({
               const isChecked = todo.isCompleted || todo.isArchived;
               return (
                 <div
+                  data-testid="todo-checkbox"
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggle(todo.id);
@@ -483,7 +484,7 @@ export function TodoItem({
               );
             })()}
           <div className="flex-1 min-w-0 cursor-pointer" onClick={onToggleExpand}>
-            <div className="text-base">
+            <div className="text-base" data-testid="todo-text">
               <MarkedText
                 text={todo.text}
                 completed={todo.isCompleted || todo.isArchived}
@@ -1026,6 +1027,7 @@ export function TodoItem({
 
             {/* Delete button - always available */}
             <button
+              data-testid="todo-delete"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(todo.id);

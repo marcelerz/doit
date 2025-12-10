@@ -592,7 +592,13 @@ export function CalendarView({
   };
 
   return (
-    <div className="space-y-4 print:space-y-2" ref={calendarRef} role="application" aria-label="Calendar">
+    <div
+      className="space-y-4 print:space-y-2"
+      ref={calendarRef}
+      role="application"
+      aria-label="Calendar"
+      data-testid="calendar-view"
+    >
       {/* Toggle for todos without dates */}
       {todosWithoutDates > 0 && (
         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg border border-blue-200 dark:border-blue-800 print:hidden">

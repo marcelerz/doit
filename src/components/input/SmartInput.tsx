@@ -1090,6 +1090,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       <div className="relative">
         <div
           ref={editableRef}
+          data-testid="smart-input"
           contentEditable
           suppressContentEditableWarning
           onInput={handleInput}
