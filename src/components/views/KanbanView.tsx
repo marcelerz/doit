@@ -10,8 +10,42 @@ import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage"
 import { waitForStorageInit } from "@/storage/storageInit";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
-import { getTextColor } from "@/utils/colors";
+import { getTextColor, findPersonColor, findProjectColor, findPriorityColor } from "@/utils/colors";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
+
+// Kanban filter types
+interface KanbanFilters {
+  searchText: string;
+  assignedPeople: Set<string>;
+  projects: Set<string>;
+  priorities: Set<string>;
+  dueDates: Set<string>;
+  tags: Set<string>;
+}
+
+interface KanbanFilterPreset {
+  id: string;
+  name: string;
+  filters: {
+    searchText: string;
+    assignedPeople: string[];
+    projects: string[];
+    priorities: string[];
+    dueDates: string[];
+    tags: string[];
+  };
+  sortField: "createdAt" | "updatedAt" | "dueDate" | "priority" | "title";
+  sortDirection: "asc" | "desc";
+}
+
+const defaultKanbanFilters: KanbanFilters = {
+  searchText: "",
+  assignedPeople: new Set(),
+  projects: new Set(),
+  priorities: new Set(),
+  dueDates: new Set(),
+  tags: new Set(),
+};
 
 // Kanban View Tutorial Steps
 export const kanbanViewTutorialSteps: TutorialStep[] = [
@@ -118,6 +152,14 @@ interface KanbanViewOptions {
   sortField: "createdAt" | "updatedAt" | "dueDate" | "priority" | "title";
   sortDirection: "asc" | "desc";
   sprintId: string | null; // null = all, "backlog" = no sprint, or sprint ID
+  filters: {
+    searchText: string;
+    assignedPeople: string[];
+    projects: string[];
+    priorities: string[];
+    dueDates: string[];
+    tags: string[];
+  };
 }
 
 const defaultViewOptions: KanbanViewOptions = {
@@ -125,6 +167,14 @@ const defaultViewOptions: KanbanViewOptions = {
   sortField: "createdAt",
   sortDirection: "desc",
   sprintId: null,
+  filters: {
+    searchText: "",
+    assignedPeople: [],
+    projects: [],
+    priorities: [],
+    dueDates: [],
+    tags: [],
+  },
 };
 
 export function KanbanView({
@@ -166,23 +216,66 @@ export function KanbanView({
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
   const [isOptionsLoaded, setIsOptionsLoaded] = useState(false);
 
+  // Filter and preset state
+  const [filters, setFilters] = useState<KanbanFilters>(defaultKanbanFilters);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterPresets, setFilterPresets] = useState<KanbanFilterPreset[]>([]);
+  const [presetsLoaded, setPresetsLoaded] = useState(false);
+  const [showSavePresetModal, setShowSavePresetModal] = useState(false);
+  const [newPresetName, setNewPresetName] = useState("");
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
+
   // Load view options from storage
   useEffect(() => {
     waitForStorageInit()
       .then(() => {
-        return loadFromStorage<KanbanViewOptions>(STORAGE_KEYS.KANBAN_VIEW_OPTIONS, defaultViewOptions);
+        return Promise.all([
+          loadFromStorage<KanbanViewOptions>(STORAGE_KEYS.KANBAN_VIEW_OPTIONS, defaultViewOptions),
+          loadFromStorage<KanbanFilterPreset[]>("doit-kanban-filter-presets", []),
+        ]);
       })
-      .then((saved) => {
-        setViewOptions({ ...defaultViewOptions, ...saved });
+      .then(([savedOptions, savedPresets]) => {
+        const mergedOptions = { ...defaultViewOptions, ...savedOptions };
+        setViewOptions(mergedOptions);
+        // Restore filters from saved options
+        if (mergedOptions.filters) {
+          setFilters({
+            searchText: mergedOptions.filters.searchText || "",
+            assignedPeople: new Set(mergedOptions.filters.assignedPeople || []),
+            projects: new Set(mergedOptions.filters.projects || []),
+            priorities: new Set(mergedOptions.filters.priorities || []),
+            dueDates: new Set(mergedOptions.filters.dueDates || []),
+            tags: new Set(mergedOptions.filters.tags || []),
+          });
+        }
+        setFilterPresets(savedPresets);
         setIsOptionsLoaded(true);
+        setPresetsLoaded(true);
       });
   }, []);
 
-  // Save view options to storage
+  // Save view options to storage (including filters)
   useEffect(() => {
     if (!isOptionsLoaded) return;
-    saveToStorage(STORAGE_KEYS.KANBAN_VIEW_OPTIONS, viewOptions);
-  }, [viewOptions, isOptionsLoaded]);
+    const optionsToSave: KanbanViewOptions = {
+      ...viewOptions,
+      filters: {
+        searchText: filters.searchText,
+        assignedPeople: Array.from(filters.assignedPeople),
+        projects: Array.from(filters.projects),
+        priorities: Array.from(filters.priorities),
+        dueDates: Array.from(filters.dueDates),
+        tags: Array.from(filters.tags),
+      },
+    };
+    saveToStorage(STORAGE_KEYS.KANBAN_VIEW_OPTIONS, optionsToSave);
+  }, [viewOptions, filters, isOptionsLoaded]);
+
+  // Save filter presets to storage
+  useEffect(() => {
+    if (!presetsLoaded) return;
+    saveToStorage("doit-kanban-filter-presets", filterPresets);
+  }, [filterPresets, presetsLoaded]);
 
   // Get sorted states based on order
   const sortedStates = useMemo(() => {
@@ -202,6 +295,46 @@ export function KanbanView({
 
   // Get active sprint from props
   const activeSprint = runningSprint;
+
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    return (
+      filters.searchText.length > 0 ||
+      filters.assignedPeople.size > 0 ||
+      filters.projects.size > 0 ||
+      filters.priorities.size > 0 ||
+      filters.dueDates.size > 0 ||
+      filters.tags.size > 0
+    );
+  }, [filters]);
+
+  // Get filter options from todos
+  const filterOptions = useMemo(() => {
+    const assignedPeople = new Set<string>();
+    const projects = new Set<string>();
+    const priorities = new Set<string>();
+    const tags = new Set<string>();
+
+    todos.forEach((todo) => {
+      if (todo.state === "deleted") return;
+      todo.assignedPeople.forEach((p) => assignedPeople.add(p));
+      todo.projects.forEach((p) => projects.add(p));
+      if (todo.priority) priorities.add(todo.priority);
+      todo.raw.metadata?.tags?.forEach((t) => tags.add(t));
+    });
+
+    return {
+      assignedPeople: Array.from(assignedPeople).sort(),
+      projects: Array.from(projects).sort(),
+      priorities: Array.from(priorities).sort((a, b) => {
+        const aOrder = availablePriorities.find((p) => p.name === a)?.order ?? Infinity;
+        const bOrder = availablePriorities.find((p) => p.name === b)?.order ?? Infinity;
+        return aOrder - bOrder;
+      }),
+      dueDates: ["overdue", "today", "thisWeek", "later", "noDueDate"],
+      tags: Array.from(tags).sort(),
+    };
+  }, [todos, availablePriorities]);
 
   // Group todos by workflow state
   const todosByState = useMemo(() => {
@@ -226,6 +359,46 @@ export function KanbanView({
           // Show only todos matching the selected sprint
           if (todo.raw.metadata?.sprint !== viewOptions.sprintId) return;
         }
+      }
+
+      // Apply search filter
+      if (filters.searchText && !todo.matchesSearch(filters.searchText)) {
+        return;
+      }
+
+      // Apply assigned people filter
+      if (filters.assignedPeople.size > 0) {
+        const hasMatch = todo.assignedPeople.some((p) => filters.assignedPeople.has(p));
+        if (!hasMatch) return;
+      }
+
+      // Apply projects filter
+      if (filters.projects.size > 0) {
+        const hasMatch = todo.projects.some((p) => filters.projects.has(p));
+        if (!hasMatch) return;
+      }
+
+      // Apply priorities filter
+      if (filters.priorities.size > 0) {
+        if (!todo.priority || !filters.priorities.has(todo.priority)) return;
+      }
+
+      // Apply due dates filter
+      if (filters.dueDates.size > 0) {
+        let matches = false;
+        if (filters.dueDates.has("overdue") && todo.isOverdue) matches = true;
+        if (filters.dueDates.has("today") && todo.isDueToday) matches = true;
+        if (filters.dueDates.has("thisWeek") && todo.isDueThisWeek && !todo.isDueToday) matches = true;
+        if (filters.dueDates.has("later") && todo.dueDateRaw && !todo.isDueThisWeek) matches = true;
+        if (filters.dueDates.has("noDueDate") && !todo.dueDateRaw) matches = true;
+        if (!matches) return;
+      }
+
+      // Apply tags filter
+      if (filters.tags.size > 0) {
+        const todoTags = todo.raw.metadata?.tags || [];
+        const hasMatch = todoTags.some((t) => filters.tags.has(t));
+        if (!hasMatch) return;
       }
 
       // Determine which state the todo belongs to
@@ -296,6 +469,7 @@ export function KanbanView({
     viewOptions.sortDirection,
     viewOptions.sprintId,
     availablePriorities,
+    filters,
   ]);
 
   // Find selected todo
@@ -313,6 +487,101 @@ export function KanbanView({
     },
     [kanban.allowedTransitions],
   );
+
+  // Color helper functions for filters
+  const getPersonColor = useCallback(
+    (name: string) =>
+      findPersonColor(
+        name,
+        availablePeople.map((p) => p.raw),
+        markerColors.assigned,
+      ),
+    [availablePeople, markerColors.assigned],
+  );
+
+  const getProjectColor = useCallback(
+    (name: string) =>
+      findProjectColor(
+        name,
+        availableProjects.map((p) => p.raw),
+        markerColors.project,
+      ),
+    [availableProjects, markerColors.project],
+  );
+
+  const getPriorityColor = useCallback(
+    (name: string | undefined) => {
+      if (!name) return markerColors.priority;
+      return findPriorityColor(name, availablePriorities, markerColors.priority);
+    },
+    [availablePriorities, markerColors.priority],
+  );
+
+  // Filter toggle helper
+  const toggleFilter = useCallback((filterType: keyof Omit<KanbanFilters, "searchText">, value: string) => {
+    setFilters((prev) => {
+      const newSet = new Set(prev[filterType]);
+      if (newSet.has(value)) {
+        newSet.delete(value);
+      } else {
+        newSet.add(value);
+      }
+      return { ...prev, [filterType]: newSet };
+    });
+    setActivePresetId(null); // Clear active preset when manually changing filters
+  }, []);
+
+  // Clear all filters
+  const clearAllFilters = useCallback(() => {
+    setFilters(defaultKanbanFilters);
+    setActivePresetId(null);
+  }, []);
+
+  // Save current filters as preset
+  const saveAsPreset = useCallback(() => {
+    if (!newPresetName.trim()) return;
+    const newPreset: KanbanFilterPreset = {
+      id: Date.now().toString(),
+      name: newPresetName.trim(),
+      filters: {
+        searchText: filters.searchText,
+        assignedPeople: Array.from(filters.assignedPeople),
+        projects: Array.from(filters.projects),
+        priorities: Array.from(filters.priorities),
+        dueDates: Array.from(filters.dueDates),
+        tags: Array.from(filters.tags),
+      },
+      sortField: viewOptions.sortField,
+      sortDirection: viewOptions.sortDirection,
+    };
+    setFilterPresets((prev) => [...prev, newPreset]);
+    setNewPresetName("");
+    setShowSavePresetModal(false);
+  }, [newPresetName, filters, viewOptions.sortField, viewOptions.sortDirection]);
+
+  // Load a preset
+  const loadPreset = useCallback((preset: KanbanFilterPreset) => {
+    setFilters({
+      searchText: preset.filters.searchText,
+      assignedPeople: new Set(preset.filters.assignedPeople),
+      projects: new Set(preset.filters.projects),
+      priorities: new Set(preset.filters.priorities),
+      dueDates: new Set(preset.filters.dueDates),
+      tags: new Set(preset.filters.tags),
+    });
+    setViewOptions((prev) => ({
+      ...prev,
+      sortField: preset.sortField,
+      sortDirection: preset.sortDirection,
+    }));
+    setActivePresetId(preset.id);
+  }, []);
+
+  // Delete a preset
+  const deletePreset = useCallback((presetId: string) => {
+    setFilterPresets((prev) => prev.filter((p) => p.id !== presetId));
+    setActivePresetId((current) => (current === presetId ? null : current));
+  }, []);
 
   // Get allowed target states for a todo
   const getAllowedTargets = useCallback(
@@ -390,127 +659,454 @@ export function KanbanView({
     setSelectedTodoId(null);
   };
 
-  // Get priority color
-  const getPriorityColor = (priorityName: string | undefined): string => {
-    if (!priorityName) return markerColors.priority;
-    const priority = availablePriorities.find(
-      (p) =>
-        p.name.toLowerCase() === priorityName.toLowerCase() ||
-        p.alternatives.some((a) => a.toLowerCase() === priorityName.toLowerCase()),
-    );
-    return priority?.color || markerColors.priority;
-  };
-
-  // Get person color
-  const getPersonColor = (personName: string): string => {
-    const person = availablePeople.find((p) => p.matchesAnyName([personName]));
-    return person?.raw.color || markerColors.assigned;
-  };
-
-  // Get project color
-  const getProjectColor = (projectName: string): string => {
-    const project = availableProjects.find((p) => p.matchesAnyName([projectName]));
-    return project?.raw.color || markerColors.project;
-  };
-
   return (
     <div className="flex flex-col h-full" data-testid="kanban-view">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex-shrink-0">
-        {/* View and Sprint selectors */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <label className="text-sm text-zinc-600 dark:text-zinc-400 hidden sm:inline">View:</label>
-          <select
-            value={viewOptions.activeViewId}
-            onChange={(e) => setViewOptions((prev) => ({ ...prev, activeViewId: e.target.value }))}
-            className="flex-1 sm:flex-none px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-base sm:text-sm"
-            title="Select view"
-            data-tutorial="kanban-view-selector"
-          >
-            {kanban.views.map((view) => (
-              <option key={view.id} value={view.id}>
-                {view.name}
-              </option>
-            ))}
-          </select>
+      <div className="flex flex-col gap-2 px-2 sm:px-4 py-2 sm:py-3 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex-shrink-0">
+        {/* Top row: View selector, Presets, Filter button */}
+        <div className="flex items-center justify-between gap-2">
+          {/* Left: View and Sprint selectors */}
+          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+            <label className="text-sm text-zinc-600 dark:text-zinc-400 hidden sm:inline">View:</label>
+            <select
+              value={viewOptions.activeViewId}
+              onChange={(e) => setViewOptions((prev) => ({ ...prev, activeViewId: e.target.value }))}
+              className="flex-1 sm:flex-none px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-base sm:text-sm"
+              title="Select view"
+              data-tutorial="kanban-view-selector"
+            >
+              {kanban.views.map((view) => (
+                <option key={view.id} value={view.id}>
+                  {view.name}
+                </option>
+              ))}
+            </select>
 
-          {/* Sprint filter */}
-          {sprints.length > 0 && (
-            <>
-              <span className="text-zinc-300 dark:text-zinc-600 hidden sm:inline">|</span>
-              <label className="text-sm text-zinc-600 dark:text-zinc-400 hidden sm:inline">Sprint:</label>
-              <select
-                value={viewOptions.sprintId ?? "all"}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setViewOptions((prev) => ({
-                    ...prev,
-                    sprintId: value === "all" ? null : value,
-                  }));
-                }}
-                className="flex-1 sm:flex-none px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-base sm:text-sm"
-                title="Filter by sprint"
-                data-tutorial="kanban-sprint-filter"
-              >
-                <option value="all">All Sprints</option>
-                <option value="backlog">📋 Backlog (No Sprint)</option>
-                {activeSprint && <option value={activeSprint.id}>🏃 {activeSprint.name} (Active)</option>}
-                {sprints
-                  .filter((s) => s.id !== activeSprint?.id && s.state !== "archived")
-                  .sort((a, b) => {
-                    // Sort by status: planning first, then others
-                    const statusOrder = { planning: 0, active: 1, completed: 2, cancelled: 3 };
-                    return statusOrder[a.status] - statusOrder[b.status];
-                  })
-                  .map((sprint) => (
-                    <option key={sprint.id} value={sprint.id}>
-                      {sprint.status === "planning" ? "📝" : sprint.status === "completed" ? "✅" : "🚫"} {sprint.name}
-                    </option>
+            {/* Sprint filter */}
+            {sprints.length > 0 && (
+              <>
+                <span className="text-zinc-300 dark:text-zinc-600 hidden sm:inline">|</span>
+                <label className="text-sm text-zinc-600 dark:text-zinc-400 hidden sm:inline">Sprint:</label>
+                <select
+                  value={viewOptions.sprintId ?? "all"}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setViewOptions((prev) => ({
+                      ...prev,
+                      sprintId: value === "all" ? null : value,
+                    }));
+                  }}
+                  className="flex-1 sm:flex-none px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-base sm:text-sm"
+                  title="Filter by sprint"
+                  data-tutorial="kanban-sprint-filter"
+                >
+                  <option value="all">All Sprints</option>
+                  <option value="backlog">📋 Backlog (No Sprint)</option>
+                  {activeSprint && <option value={activeSprint.id}>🏃 {activeSprint.name} (Active)</option>}
+                  {sprints
+                    .filter((s) => s.id !== activeSprint?.id && s.state !== "archived")
+                    .sort((a, b) => {
+                      const statusOrder = { planning: 0, active: 1, completed: 2, cancelled: 3 };
+                      return statusOrder[a.status] - statusOrder[b.status];
+                    })
+                    .map((sprint) => (
+                      <option key={sprint.id} value={sprint.id}>
+                        {sprint.status === "planning" ? "📝" : sprint.status === "completed" ? "✅" : "🚫"}{" "}
+                        {sprint.name}
+                      </option>
+                    ))}
+                </select>
+              </>
+            )}
+          </div>
+
+          {/* Right: Presets and Filter button */}
+          <div className="flex items-center gap-2">
+            {/* Filter Presets */}
+            {filterPresets.length > 0 && (
+              <div className="hidden sm:flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                    !hasActiveFilters && activePresetId === null
+                      ? "bg-blue-600 text-white"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  }`}
+                  title="Show all (clear filters)"
+                >
+                  All
+                </button>
+                {filterPresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => loadPreset(preset)}
+                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                      activePresetId === preset.id
+                        ? "bg-blue-600 text-white"
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                    }`}
+                    title={`Load preset: ${preset.name}`}
+                  >
+                    {preset.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Filter toggle button */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`p-2 rounded-lg font-medium transition-colors flex items-center gap-1 ${
+                showFilters || hasActiveFilters
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+              }`}
+              title={showFilters ? "Hide filters" : "Show filters"}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                />
+              </svg>
+              {hasActiveFilters && (
+                <span className="px-1.5 py-0.5 text-xs bg-white/20 rounded-full">
+                  {[
+                    filters.searchText ? 1 : 0,
+                    filters.assignedPeople.size,
+                    filters.projects.size,
+                    filters.priorities.size,
+                    filters.dueDates.size,
+                    filters.tags.size,
+                  ].reduce((a, b) => a + b, 0)}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Filter panel (collapsible) */}
+        {showFilters && (
+          <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-3 space-y-3">
+            {/* Search and Sort row */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Search */}
+              <input
+                type="text"
+                placeholder="Search..."
+                value={filters.searchText}
+                onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
+                className="flex-1 min-w-[150px] px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-sm"
+              />
+
+              {/* Sort controls */}
+              <div className="flex items-center gap-1">
+                <label className="text-sm text-zinc-600 dark:text-zinc-400">Sort:</label>
+                <select
+                  value={viewOptions.sortField}
+                  onChange={(e) =>
+                    setViewOptions((prev) => ({
+                      ...prev,
+                      sortField: e.target.value as KanbanViewOptions["sortField"],
+                    }))
+                  }
+                  className="px-2 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-sm"
+                >
+                  <option value="createdAt">Created</option>
+                  <option value="updatedAt">Updated</option>
+                  <option value="dueDate">Due Date</option>
+                  <option value="priority">Priority</option>
+                  <option value="title">Title</option>
+                </select>
+                <button
+                  onClick={() =>
+                    setViewOptions((prev) => ({
+                      ...prev,
+                      sortDirection: prev.sortDirection === "asc" ? "desc" : "asc",
+                    }))
+                  }
+                  className={`px-2 py-2 rounded-md font-mono text-sm transition-all ${
+                    viewOptions.sortDirection === "desc"
+                      ? "bg-amber-200 dark:bg-amber-700 text-amber-900 dark:text-amber-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
+                      : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-700"
+                  }`}
+                  title={viewOptions.sortDirection === "asc" ? "Ascending" : "Descending"}
+                >
+                  {viewOptions.sortDirection === "asc" ? "abc" : "cba"}
+                </button>
+              </div>
+            </div>
+
+            {/* Filter sections */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+              {/* Assigned People */}
+              {filterOptions.assignedPeople.length > 0 && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Assigned</label>
+                  <div className="flex flex-wrap gap-1">
+                    {filterOptions.assignedPeople.slice(0, 5).map((person) => (
+                      <button
+                        key={person}
+                        onClick={() => toggleFilter("assignedPeople", person)}
+                        className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                          filters.assignedPeople.has(person)
+                            ? "text-white"
+                            : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                        }`}
+                        style={
+                          filters.assignedPeople.has(person) ? { backgroundColor: getPersonColor(person) } : undefined
+                        }
+                      >
+                        @{person}
+                      </button>
+                    ))}
+                    {filterOptions.assignedPeople.length > 5 && (
+                      <span className="text-xs text-zinc-400">+{filterOptions.assignedPeople.length - 5}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Projects */}
+              {filterOptions.projects.length > 0 && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Projects</label>
+                  <div className="flex flex-wrap gap-1">
+                    {filterOptions.projects.slice(0, 5).map((project) => (
+                      <button
+                        key={project}
+                        onClick={() => toggleFilter("projects", project)}
+                        className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                          filters.projects.has(project)
+                            ? "text-white"
+                            : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                        }`}
+                        style={
+                          filters.projects.has(project) ? { backgroundColor: getProjectColor(project) } : undefined
+                        }
+                      >
+                        %{project}
+                      </button>
+                    ))}
+                    {filterOptions.projects.length > 5 && (
+                      <span className="text-xs text-zinc-400">+{filterOptions.projects.length - 5}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Priorities */}
+              {filterOptions.priorities.length > 0 && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Priority</label>
+                  <div className="flex flex-wrap gap-1">
+                    {filterOptions.priorities.map((priority) => (
+                      <button
+                        key={priority}
+                        onClick={() => toggleFilter("priorities", priority)}
+                        className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                          filters.priorities.has(priority)
+                            ? "text-white"
+                            : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                        }`}
+                        style={
+                          filters.priorities.has(priority) ? { backgroundColor: getPriorityColor(priority) } : undefined
+                        }
+                      >
+                        {priority}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Due Dates */}
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Due Date</label>
+                <div className="flex flex-wrap gap-1">
+                  {[
+                    { id: "overdue", label: "Overdue", color: "#ef4444" },
+                    { id: "today", label: "Today", color: "#f97316" },
+                    { id: "thisWeek", label: "This Week", color: "#eab308" },
+                    { id: "later", label: "Later", color: "#22c55e" },
+                    { id: "noDueDate", label: "No Date", color: "#6b7280" },
+                  ].map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() => toggleFilter("dueDates", option.id)}
+                      className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                        filters.dueDates.has(option.id)
+                          ? "text-white"
+                          : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                      }`}
+                      style={filters.dueDates.has(option.id) ? { backgroundColor: option.color } : undefined}
+                    >
+                      {option.label}
+                    </button>
                   ))}
-              </select>
-            </>
-          )}
+                </div>
+              </div>
 
-          {activeView?.description && (
-            <span className="text-sm text-zinc-500 dark:text-zinc-400 italic hidden md:inline">
-              {activeView.description}
-            </span>
-          )}
-        </div>
+              {/* Tags */}
+              {filterOptions.tags.length > 0 && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Tags</label>
+                  <div className="flex flex-wrap gap-1">
+                    {filterOptions.tags.slice(0, 5).map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => toggleFilter("tags", tag)}
+                        className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                          filters.tags.has(tag)
+                            ? "bg-blue-600 text-white"
+                            : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                        }`}
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                    {filterOptions.tags.length > 5 && (
+                      <span className="text-xs text-zinc-400">+{filterOptions.tags.length - 5}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
-        {/* Sort controls */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-zinc-600 dark:text-zinc-400 hidden sm:inline">Sort:</label>
-          <select
-            value={viewOptions.sortField}
-            onChange={(e) =>
-              setViewOptions((prev) => ({
-                ...prev,
-                sortField: e.target.value as KanbanViewOptions["sortField"],
-              }))
-            }
-            className="flex-1 sm:flex-none px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-base sm:text-sm"
-            title="Sort by"
-          >
-            <option value="createdAt">Created</option>
-            <option value="updatedAt">Updated</option>
-            <option value="dueDate">Due Date</option>
-            <option value="priority">Priority</option>
-            <option value="title">Title</option>
-          </select>
-          <button
-            onClick={() =>
-              setViewOptions((prev) => ({
-                ...prev,
-                sortDirection: prev.sortDirection === "asc" ? "desc" : "asc",
-              }))
-            }
-            className="px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-base sm:text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700"
-          >
-            {viewOptions.sortDirection === "asc" ? "↑" : "↓"}
-          </button>
-        </div>
+            {/* Actions row */}
+            <div className="flex items-center justify-between pt-2 border-t border-zinc-200 dark:border-zinc-700">
+              <div className="flex items-center gap-2 flex-wrap flex-1">
+                {/* Saved Presets - show in filter panel for easier access */}
+                {filterPresets.length > 0 && (
+                  <>
+                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Presets:</span>
+                    <button
+                      type="button"
+                      onClick={clearAllFilters}
+                      className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                        !hasActiveFilters && activePresetId === null
+                          ? "bg-blue-600 text-white"
+                          : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                      }`}
+                    >
+                      All
+                    </button>
+                    {filterPresets.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => loadPreset(preset)}
+                        className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                          activePresetId === preset.id
+                            ? "bg-blue-600 text-white"
+                            : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                        }`}
+                      >
+                        {preset.name}
+                      </button>
+                    ))}
+                    {hasActiveFilters && activePresetId === null && (
+                      <>
+                        <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                        <span className="px-2 py-1 text-xs font-medium rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                          Custom
+                        </span>
+                      </>
+                    )}
+                  </>
+                )}
+                {!filterPresets.length && hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                  >
+                    Clear all filters
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Save as preset button */}
+                <button
+                  type="button"
+                  onClick={() => setShowSavePresetModal(true)}
+                  className="px-2 py-1 text-xs font-medium rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                >
+                  Save Preset
+                </button>
+
+                {/* Manage presets (delete) */}
+                {filterPresets.length > 0 && (
+                  <div className="relative group">
+                    <button
+                      type="button"
+                      className="px-2 py-1 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                    >
+                      Manage
+                    </button>
+                    <div className="absolute right-0 top-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 z-50 hidden group-hover:block min-w-[150px]">
+                      {filterPresets.map((preset) => (
+                        <div
+                          key={preset.id}
+                          className="flex items-center justify-between px-3 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                        >
+                          <span className="text-xs">{preset.name}</span>
+                          <button
+                            onClick={() => deletePreset(preset.id)}
+                            className="text-red-500 hover:text-red-700 text-xs"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Save Preset Modal */}
+      {showSavePresetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl p-4 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold mb-3">Save Filter Preset</h3>
+            <input
+              type="text"
+              placeholder="Preset name..."
+              value={newPresetName}
+              onChange={(e) => setNewPresetName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveAsPreset();
+                if (e.key === "Escape") setShowSavePresetModal(false);
+              }}
+              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md mb-3"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowSavePresetModal(false)}
+                className="px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveAsPreset}
+                disabled={!newPresetName.trim()}
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
