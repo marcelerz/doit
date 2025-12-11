@@ -67,54 +67,54 @@ describe("migrations", () => {
       const oldSettings = {
         general: {
           workHours: {
-            scheduleType: "weekday",
+            useCommonSchedule: false,
           },
         },
       };
       const result = migrateSettings(oldSettings);
 
-      expect(result.workHours.scheduleType).toBe("weekday");
+      expect(result.workHours.useCommonSchedule).toBe(false);
     });
 
     it("should migrate ganttSettings to gantt", () => {
       const oldSettings = {
         ganttSettings: {
-          schedulingMode: "pomodoro",
-          defaultTaskDurationMinutes: 45,
+          schedulingTechnique: "pomodoro",
+          defaultTaskDuration: 45,
         },
       };
       const result = migrateSettings(oldSettings);
 
-      expect(result.gantt.schedulingMode).toBe("pomodoro");
-      expect(result.gantt.defaultTaskDurationMinutes).toBe(45);
+      expect(result.gantt.schedulingTechnique).toBe("pomodoro");
+      expect(result.gantt.defaultTaskDuration).toBe(45);
     });
 
     it("should merge markerColors with defaults", () => {
       const customColors = {
-        person: "#123456",
+        assigned: "#123456",
       };
       const result = migrateSettings({ markerColors: customColors });
 
-      expect(result.markerColors.person).toBe("#123456");
+      expect(result.markerColors.assigned).toBe("#123456");
       expect(result.markerColors.project).toBe(defaultSettings.markerColors.project);
     });
 
     it("should preserve kanban settings", () => {
       const kanban = {
-        workflowStates: [{ id: "1", name: "Todo", color: "#ccc" }],
+        states: [{ id: "1", name: "Todo", color: "#ccc", order: 0 }],
       };
       const result = migrateSettings({ kanban });
 
-      expect(result.kanban.workflowStates).toHaveLength(1);
+      expect(result.kanban.states).toHaveLength(1);
     });
 
     it("should preserve sprints settings", () => {
       const sprints = {
-        defaultDurationDays: 21,
+        defaultSprintDuration: 21,
       };
       const result = migrateSettings({ sprints });
 
-      expect(result.sprints.defaultDurationDays).toBe(21);
+      expect(result.sprints.defaultSprintDuration).toBe(21);
     });
 
     it("should remove startOfDay/endOfDay from dateTime", () => {
@@ -142,6 +142,7 @@ describe("migrations", () => {
           enabled: false,
           deleteDays: 30,
         },
+        theme: "system",
       },
     };
 
@@ -334,6 +335,7 @@ describe("migrations", () => {
             enabled: true,
             deleteDays: 30,
           },
+          theme: "system",
         },
       };
       const oldArchivedAt = Date.now() - 60 * 24 * 60 * 60 * 1000; // 60 days ago
