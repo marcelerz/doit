@@ -343,6 +343,30 @@ export const tooltipContent = {
     </div>
   ),
 
+  // Kanban Transitions
+  kanbanTransitions: (
+    <div className="space-y-2">
+      <p>Define allowed state-to-state transitions.</p>
+      <ul className="space-y-1">
+        <li>• Control which states can move to others</li>
+        <li>• Prevents invalid workflow jumps</li>
+        <li>• Check = transition allowed</li>
+      </ul>
+    </div>
+  ),
+
+  // Kanban Views
+  kanbanViews: (
+    <div className="space-y-2">
+      <p>Create filtered views of your Kanban board.</p>
+      <ul className="space-y-1">
+        <li>• Show only selected states</li>
+        <li>• Create views like &quot;Active Work&quot; or &quot;Done&quot;</li>
+        <li>• Set a default view</li>
+      </ul>
+    </div>
+  ),
+
   // Sprints
   sprints: (
     <div className="space-y-2">

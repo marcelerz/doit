@@ -1,6 +1,12 @@
 "use client";
 
-import { GeneralSettings, ThemeMode, FeatureSettings, defaultFeatureSettings } from "@/types/settings";
+import {
+  GeneralSettings,
+  ThemeMode,
+  FeatureSettings,
+  defaultFeatureSettings,
+  defaultGeneralSettings,
+} from "@/types/settings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface GeneralTabProps {
@@ -50,6 +56,12 @@ export function GeneralTab({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">General Settings</h2>
+        <button
+          onClick={() => onUpdate(defaultGeneralSettings)}
+          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+        >
+          Reset to Defaults
+        </button>
       </div>
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">

@@ -121,8 +121,8 @@ export interface TimeBlockTypeConfig {
 }
 
 export const DEFAULT_BLOCK_TYPES: TimeBlockTypeConfig[] = [
-  { id: "break", name: "Break", color: "#94a3b8", icon: "☕" }, // slate-400
-  { id: "lunch", name: "Lunch", color: "#fb923c", icon: "🍴" }, // orange-400
+  { id: "break", name: "Break", color: "#d1d5db", icon: "☕" }, // gray-300 (light gray)
+  { id: "lunch", name: "Lunch", color: "#d1d5db", icon: "🍴" }, // gray-300 (light gray)
   { id: "meeting", name: "Meeting", color: "#a78bfa", icon: "👥" }, // violet-400
   { id: "focus", name: "Focus Time", color: "#4ade80", icon: "🎯" }, // green-400
   { id: "commute", name: "Commute", color: "#60a5fa", icon: "🚗" }, // blue-400

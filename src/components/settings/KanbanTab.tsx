@@ -214,33 +214,36 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
       <div className="flex gap-1 border-b border-zinc-200 dark:border-zinc-700">
         <button
           onClick={() => setActiveSection("states")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 ${
             activeSection === "states"
               ? "border-blue-500 text-blue-600 dark:text-blue-400"
               : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
           }`}
         >
           Workflow States
+          <InfoTooltip content={tooltipContent.kanbanStates} />
         </button>
         <button
           onClick={() => setActiveSection("transitions")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 ${
             activeSection === "transitions"
               ? "border-blue-500 text-blue-600 dark:text-blue-400"
               : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
           }`}
         >
           Transitions
+          <InfoTooltip content={tooltipContent.kanbanTransitions} />
         </button>
         <button
           onClick={() => setActiveSection("views")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 ${
             activeSection === "views"
               ? "border-blue-500 text-blue-600 dark:text-blue-400"
               : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
           }`}
         >
           Views
+          <InfoTooltip content={tooltipContent.kanbanViews} />
         </button>
       </div>
 
@@ -366,8 +369,8 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
                 {/* Actions */}
                 {!state.isSystem && (
                   <>
-                    <IconButton icon="edit" onClick={() => setEditingState(state)} size="sm" />
-                    <IconButton icon="delete" onClick={() => handleDeleteState(state.id)} size="sm" />
+                    <IconButton icon="edit" onClick={() => setEditingState(state)} />
+                    <IconButton icon="delete" onClick={() => handleDeleteState(state.id)} />
                   </>
                 )}
               </div>
@@ -617,10 +620,8 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
                         Set as Default
                       </button>
                     )}
-                    <IconButton icon="edit" onClick={() => setEditingView(view)} size="sm" />
-                    {kanban.views.length > 1 && (
-                      <IconButton icon="delete" onClick={() => handleDeleteView(view.id)} size="sm" />
-                    )}
+                    <IconButton icon="edit" onClick={() => setEditingView(view)} />
+                    {kanban.views.length > 1 && <IconButton icon="delete" onClick={() => handleDeleteView(view.id)} />}
                   </div>
                 </div>
                 {view.description && <p className="text-sm text-zinc-600 dark:text-zinc-400">{view.description}</p>}

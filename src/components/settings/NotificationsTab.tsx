@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { NotificationSettings } from "@/types/settings";
+import { NotificationSettings, defaultNotificationSettings } from "@/types/settings";
 import {
   isNotificationSupported,
   getNotificationPermission,
@@ -65,6 +65,17 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
 
   return (
     <div className="space-y-6">
+      {/* Header with Reset Button */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Notification Settings</h2>
+        <button
+          onClick={() => onUpdate(defaultNotificationSettings)}
+          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+        >
+          Reset to Defaults
+        </button>
+      </div>
+
       {/* Permission Status */}
       <div className="p-4 rounded-lg border bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700">
         <div className="flex items-center justify-between">

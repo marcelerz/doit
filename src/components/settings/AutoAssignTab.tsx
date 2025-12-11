@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AutoAssignSettings, Priority } from "@/types/settings";
+import { AutoAssignSettings, Priority, defaultAutoAssignSettings } from "@/types/settings";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
@@ -137,6 +137,12 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
           <span>Auto-Assign Metadata</span>
           <InfoTooltip content={tooltipContent.autoAssign} />
         </h2>
+        <button
+          onClick={() => onUpdate(defaultAutoAssignSettings)}
+          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+        >
+          Reset to Defaults
+        </button>
       </div>
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">

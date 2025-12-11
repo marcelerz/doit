@@ -1,6 +1,13 @@
 "use client";
 
-import { WorkHoursSettings, DaySchedule, BreakPeriod, DEFAULT_BLOCK_TYPES, TimeBlockType } from "@/types/settings";
+import {
+  WorkHoursSettings,
+  DaySchedule,
+  BreakPeriod,
+  DEFAULT_BLOCK_TYPES,
+  TimeBlockType,
+  defaultWorkHoursSettings,
+} from "@/types/settings";
 import { useState } from "react";
 import { getTextColor } from "@/utils/colors";
 import { IconButton } from "@/components/shared/IconButton";
@@ -288,14 +295,22 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4 flex items-center gap-2">
-          <span>Work Hours Configuration</span>
-          <InfoTooltip content={tooltipContent.workHours} />
-        </h3>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-          Configure your daily work schedule. These hours are used in the Gantt view for task planning.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+            <span>Work Hours Configuration</span>
+            <InfoTooltip content={tooltipContent.workHours} />
+          </h3>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+            Configure your daily work schedule. These hours are used in the Gantt view for task planning.
+          </p>
+        </div>
+        <button
+          onClick={() => onUpdate(defaultWorkHoursSettings)}
+          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+        >
+          Reset to Defaults
+        </button>
       </div>
 
       {/* Schedule Type Selection */}

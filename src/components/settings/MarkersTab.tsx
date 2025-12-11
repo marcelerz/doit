@@ -1,6 +1,6 @@
 "use client";
 
-import { MarkerColors } from "@/types/settings";
+import { MarkerColors, defaultMarkerColors } from "@/types/settings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface MarkersTabProps {
@@ -70,6 +70,10 @@ export function MarkersTab({ markerColors, onUpdate }: MarkersTabProps) {
     onUpdate({ [key]: color });
   };
 
+  const handleResetToDefaults = () => {
+    onUpdate(defaultMarkerColors);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -77,6 +81,12 @@ export function MarkersTab({ markerColors, onUpdate }: MarkersTabProps) {
           <span>Marker Colors</span>
           <InfoTooltip content={tooltipContent.markers} />
         </h2>
+        <button
+          onClick={handleResetToDefaults}
+          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+        >
+          Reset to Defaults
+        </button>
       </div>
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">

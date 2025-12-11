@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, CalendarView, CalendarDotColorBy } from "@/types/settings";
+import { Calendar, CalendarView, CalendarDotColorBy, defaultCalendar } from "@/types/settings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface CalendarTabProps {
@@ -11,12 +11,28 @@ interface CalendarTabProps {
 export function CalendarTab({ calendar, onUpdate }: CalendarTabProps) {
   return (
     <div className="space-y-8">
+      {/* Header with Reset Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+            <span>Calendar Settings</span>
+            <InfoTooltip content={tooltipContent.calendarView} />
+          </h3>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+            Configure calendar view display options and task appearance.
+          </p>
+        </div>
+        <button
+          onClick={() => onUpdate(defaultCalendar)}
+          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+        >
+          Reset to Defaults
+        </button>
+      </div>
+
       {/* View Settings */}
       <section>
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4 flex items-center gap-2">
-          <span>View Settings</span>
-          <InfoTooltip content={tooltipContent.calendarView} />
-        </h3>
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">View Settings</h3>
         <div className="space-y-4">
           {/* Week Start Day */}
           <div className="flex items-center justify-between">
