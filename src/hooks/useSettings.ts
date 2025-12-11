@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Settings,
   defaultSettings,
@@ -20,6 +20,8 @@ import { waitForStorageInit } from "@/storage/storageInit";
 export function useSettings() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isLoaded, setIsLoaded] = useState(false);
+  // Track the last saved settings to detect actual user changes
+  const lastSavedSettings = useRef<Settings | null>(null);
 
   // Load settings from storage on mount
   useEffect(() => {
@@ -29,6 +31,10 @@ export function useSettings() {
 
       const loadedSettings = await loadFromStorage<Settings>(STORAGE_KEYS.SETTINGS, defaultSettings);
       const migratedSettings = migrateSettings(loadedSettings);
+
+      // Store these as the last saved settings to avoid re-saving them
+      lastSavedSettings.current = migratedSettings;
+
       setSettings(migratedSettings);
       setIsLoaded(true);
     };
@@ -36,13 +42,33 @@ export function useSettings() {
     loadSettings();
   }, []);
 
-  // Save settings to storage whenever they change
+  // Save settings to storage whenever they change (but not on initial load)
   useEffect(() => {
-    if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.SETTINGS, settings).catch((error) => {
+    // Skip saving if we haven't loaded yet
+    if (!isLoaded) {
+      return;
+    }
+
+    // Skip saving if settings haven't actually changed from what was loaded/saved
+    if (lastSavedSettings.current === settings) {
+      return;
+    }
+
+    saveToStorage(STORAGE_KEYS.SETTINGS, settings)
+      .then(() => {
+        // Update lastSavedSettings to current settings
+        lastSavedSettings.current = settings;
+        // Also save to localStorage for the inline theme script to read on page load
+        // This ensures theme persistence works even when using IndexedDB
+        try {
+          localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+        } catch (e) {
+          // Ignore localStorage errors (e.g., in private browsing)
+        }
+      })
+      .catch((error) => {
         console.error("Failed to save settings:", error);
       });
-    }
   }, [settings, isLoaded]);
 
   const addPriority = (priority: Omit<Priority, "id" | "comments" | "activity">) => {

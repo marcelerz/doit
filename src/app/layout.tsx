@@ -57,8 +57,34 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Inline script to apply theme before React hydrates to prevent flash
+  const themeScript = `
+    (function() {
+      try {
+        var settings = localStorage.getItem('doit-settings');
+        if (settings) {
+          var parsed = JSON.parse(settings);
+          var theme = parsed.general && parsed.general.theme;
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else if (theme === 'light') {
+            document.documentElement.classList.remove('dark');
+          } else {
+            // system preference
+            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+              document.documentElement.classList.add('dark');
+            }
+          }
+        }
+      } catch (e) {}
+    })();
+  `;
+
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}>
         <ThemeProvider>
           <StorageInitializer />

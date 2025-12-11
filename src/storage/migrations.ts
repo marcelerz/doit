@@ -170,6 +170,7 @@ export function migrateSettings(loadedSettings: any): Settings {
     general: {
       ...defaultSettings.general,
       archiveDays: general.archiveDays ?? defaultSettings.general.archiveDays,
+      theme: general.theme ?? defaultSettings.general.theme,
       autoDelete: {
         ...defaultSettings.general.autoDelete,
         ...(general.autoDelete || {}),

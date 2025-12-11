@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ThemeMode } from "@/types/settings";
 import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
+import { waitForStorageInit } from "@/storage/storageInit";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -29,10 +30,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // Load initial theme from settings
-    const loadTheme = () => {
+    // Load initial theme from settings (handles both sync and async storage)
+    const loadTheme = async (): Promise<ThemeMode> => {
       try {
-        const settingsStr = getStorageAdapter().getItem(STORAGE_KEYS.SETTINGS);
+        // Wait for storage initialization to ensure we use the correct adapter
+        await waitForStorageInit();
+
+        const settingsStr = await Promise.resolve(getStorageAdapter().getItem(STORAGE_KEYS.SETTINGS));
         if (settingsStr && typeof settingsStr === "string") {
           const settings = JSON.parse(settingsStr);
           const theme = settings.general?.theme || "system";
@@ -46,14 +50,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       return "system";
     };
 
-    const currentTheme = loadTheme();
+    loadTheme();
 
     // Listen for system preference changes when using system theme
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleSystemChange = () => {
+    const handleSystemChange = async () => {
       // Re-check settings to get current theme
       try {
-        const settingsStr = getStorageAdapter().getItem(STORAGE_KEYS.SETTINGS);
+        await waitForStorageInit();
+        const settingsStr = await Promise.resolve(getStorageAdapter().getItem(STORAGE_KEYS.SETTINGS));
         if (settingsStr && typeof settingsStr === "string") {
           const settings = JSON.parse(settingsStr);
           const theme = settings.general?.theme || "system";
@@ -67,11 +72,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     mediaQuery.addEventListener("change", handleSystemChange);
-
-    // Listen for storage changes (when settings are updated)
-    const handleStorageChange = () => {
-      loadTheme();
-    };
 
     // Poll for settings changes (since we're using IndexedDB which doesn't trigger storage events)
     const interval = setInterval(() => {
