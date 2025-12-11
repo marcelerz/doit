@@ -813,8 +813,9 @@ describe("notifications with MockBrowserApis", () => {
 
     it("should notify for tasks due today", () => {
       const settings = createTestSettings();
+      // Set due date to later today (end of current day) to ensure it's on the same calendar day
       const today = new Date();
-      today.setHours(today.getHours() + 6); // 6 hours from now
+      today.setHours(23, 30, 0, 0); // 11:30 PM today
 
       const todo = createTestTodo({
         id: "today-1",
