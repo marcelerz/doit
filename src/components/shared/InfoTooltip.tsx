@@ -9,19 +9,28 @@ interface InfoTooltipProps {
   size?: "sm" | "md" | "lg";
   position?: "top" | "bottom" | "left" | "right" | "auto";
   maxWidth?: number;
+  /** Use span instead of button - required when InfoTooltip is inside another button */
+  asSpan?: boolean;
 }
 
 /**
  * Reusable info tooltip component with an "i" icon that shows detailed information on hover
  */
-export function InfoTooltip({ content, title, size = "sm", position = "auto", maxWidth = 320 }: InfoTooltipProps) {
+export function InfoTooltip({
+  content,
+  title,
+  size = "sm",
+  position = "auto",
+  maxWidth = 320,
+  asSpan = false,
+}: InfoTooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; placement: string }>({
     x: 0,
     y: 0,
     placement: "bottom",
   });
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLButtonElement | HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const sizeClasses = {
@@ -88,20 +97,29 @@ export function InfoTooltip({ content, title, size = "sm", position = "auto", ma
     }
   }, [isVisible, position, maxWidth]);
 
+  const triggerClassName = `${sizeClasses[size]} inline-flex items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-help flex-shrink-0`;
+
+  const triggerProps = {
+    ref: triggerRef as React.RefObject<HTMLButtonElement> & React.RefObject<HTMLSpanElement>,
+    onMouseEnter: () => setIsVisible(true),
+    onMouseLeave: () => setIsVisible(false),
+    onFocus: () => setIsVisible(true),
+    onBlur: () => setIsVisible(false),
+    className: triggerClassName,
+    "aria-label": "More information",
+  };
+
   return (
     <>
-      <button
-        ref={triggerRef}
-        type="button"
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
-        onFocus={() => setIsVisible(true)}
-        onBlur={() => setIsVisible(false)}
-        className={`${sizeClasses[size]} inline-flex items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-help flex-shrink-0`}
-        aria-label="More information"
-      >
-        i
-      </button>
+      {asSpan ? (
+        <span {...triggerProps} ref={triggerRef as React.RefObject<HTMLSpanElement>} role="button" tabIndex={0}>
+          i
+        </span>
+      ) : (
+        <button {...triggerProps} ref={triggerRef as React.RefObject<HTMLButtonElement>} type="button">
+          i
+        </button>
+      )}
 
       {isVisible &&
         typeof document !== "undefined" &&

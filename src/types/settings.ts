@@ -550,11 +550,20 @@ export const defaultKanbanStates: KanbanState[] = [
     mapsToTodoState: "completed",
   },
   {
+    id: "rejected",
+    name: "Rejected",
+    color: "#f87171",
+    icon: "🚫",
+    order: 5,
+    isSystem: true,
+    mapsToTodoState: "completed",
+  },
+  {
     id: "archived",
     name: "Archived",
     color: "#9ca3af",
     icon: "📦",
-    order: 5,
+    order: 6,
     isSystem: true,
     mapsToTodoState: "archived",
   },
@@ -565,11 +574,13 @@ export const defaultKanbanTransitions: KanbanTransition[] = [
   // From Backlog
   { fromStateId: "backlog", toStateId: "todo" },
   { fromStateId: "backlog", toStateId: "in-progress" },
+  { fromStateId: "backlog", toStateId: "rejected" },
   { fromStateId: "backlog", toStateId: "archived" },
   // From To Do
   { fromStateId: "todo", toStateId: "backlog" },
   { fromStateId: "todo", toStateId: "in-progress" },
   { fromStateId: "todo", toStateId: "completed" },
+  { fromStateId: "todo", toStateId: "rejected" },
   // From In Progress
   { fromStateId: "in-progress", toStateId: "todo" },
   { fromStateId: "in-progress", toStateId: "review" },
@@ -580,6 +591,9 @@ export const defaultKanbanTransitions: KanbanTransition[] = [
   // From Completed
   { fromStateId: "completed", toStateId: "archived" },
   { fromStateId: "completed", toStateId: "todo" }, // Reopen
+  // From Rejected
+  { fromStateId: "rejected", toStateId: "archived" },
+  { fromStateId: "rejected", toStateId: "backlog" }, // Reconsider
   // From Archived
   { fromStateId: "archived", toStateId: "todo" }, // Unarchive
 ];
@@ -590,26 +604,26 @@ export const defaultKanbanViews: KanbanView[] = [
     id: "all",
     name: "All Tasks",
     description: "Full workflow view",
-    stateIds: ["backlog", "todo", "in-progress", "review", "completed"],
+    stateIds: ["backlog", "todo", "in-progress", "review", "completed", "rejected"],
     isDefault: true,
   },
   {
     id: "active-work",
     name: "Active Work",
     description: "Focus on current work",
-    stateIds: ["todo", "in-progress", "review"],
+    stateIds: ["todo", "in-progress", "review", "completed"],
   },
   {
     id: "intake",
     name: "Intake",
     description: "Triage and prioritize new tasks",
-    stateIds: ["backlog", "todo"],
+    stateIds: ["backlog", "todo", "rejected"],
   },
   {
-    id: "completed-archive",
-    name: "Done & Archived",
-    description: "Review completed work",
-    stateIds: ["completed", "archived"],
+    id: "retrospective",
+    name: "Retrospective",
+    description: "Review completed and rejected work",
+    stateIds: ["completed", "rejected", "archived"],
   },
 ];
 

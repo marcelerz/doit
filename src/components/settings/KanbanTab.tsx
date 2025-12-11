@@ -221,7 +221,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
           }`}
         >
           Workflow States
-          <InfoTooltip content={tooltipContent.kanbanStates} />
+          <InfoTooltip content={tooltipContent.kanbanStates} asSpan />
         </button>
         <button
           onClick={() => setActiveSection("transitions")}
@@ -232,7 +232,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
           }`}
         >
           Transitions
-          <InfoTooltip content={tooltipContent.kanbanTransitions} />
+          <InfoTooltip content={tooltipContent.kanbanTransitions} asSpan />
         </button>
         <button
           onClick={() => setActiveSection("views")}
@@ -243,7 +243,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
           }`}
         >
           Views
-          <InfoTooltip content={tooltipContent.kanbanViews} />
+          <InfoTooltip content={tooltipContent.kanbanViews} asSpan />
         </button>
       </div>
 

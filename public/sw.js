@@ -43,10 +43,16 @@ self.addEventListener("install", (event) => {
 
   event.waitUntil(
     Promise.all([
-      // Cache static assets
+      // Cache static assets (don't fail install if some assets fail)
       caches.open(STATIC_CACHE_NAME).then((cache) => {
         console.log("[SW] Caching static assets");
-        return cache.addAll(STATIC_ASSETS);
+        return Promise.allSettled(
+          STATIC_ASSETS.map((url) =>
+            cache.add(url).catch((err) => {
+              console.log(`[SW] Failed to cache ${url}:`, err.message);
+            }),
+          ),
+        );
       }),
       // Cache sound files (don't fail install if these fail)
       caches.open(DYNAMIC_CACHE_NAME).then((cache) => {
@@ -54,7 +60,7 @@ self.addEventListener("install", (event) => {
         return Promise.allSettled(
           SOUND_ASSETS.map((url) =>
             cache.add(url).catch((err) => {
-              console.log(`[SW] Failed to cache ${url}:`, err);
+              console.log(`[SW] Failed to cache ${url}:`, err.message);
             }),
           ),
         );
