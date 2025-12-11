@@ -514,7 +514,7 @@ export function KanbanView({
 
       {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="flex h-full p-1.5 sm:p-4 gap-1.5 sm:gap-3 w-fit md:w-full" data-tutorial="kanban-board">
+        <div className="flex h-full p-1.5 sm:p-4 gap-1.5 sm:gap-3 w-fit sm:w-full" data-tutorial="kanban-board">
           {visibleStates.map((state) => {
             const columnTodos = todosByState[state.id] || [];
             const isDropTarget = dragOverColumnId === state.id;
@@ -525,7 +525,7 @@ export function KanbanView({
             return (
               <div
                 key={state.id}
-                className={`flex flex-col w-[200px] sm:w-[240px] md:flex-1 md:min-w-[200px] md:max-w-[400px] flex-shrink-0 md:flex-shrink rounded-lg transition-all ${
+                className={`flex flex-col w-[200px] sm:flex-1 sm:min-w-[180px] sm:max-w-[400px] flex-shrink-0 sm:flex-shrink rounded-lg transition-all ${
                   isDropTarget && canDropHere
                     ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
                     : "bg-zinc-100 dark:bg-zinc-800"
