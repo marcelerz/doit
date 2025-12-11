@@ -2343,8 +2343,8 @@ export function TodoApp() {
   // NOTE: This must be before the isLoaded check to satisfy Rules of Hooks
   // Use consistent container width for all views to prevent jarring layout shifts
   // Individual views handle their own internal overflow/scrolling needs
-  // Responsive widths: smaller screens get max-width constraints, larger screens use percentage with padding
-  const containerClass = "max-w-3xl lg:max-w-5xl xl:max-w-[90%] 2xl:max-w-[95%] mx-auto";
+  // Use full width with consistent padding - let individual views manage their content width
+  const containerClass = "w-full px-2 sm:px-4 lg:px-6 xl:px-8";
 
   // Tutorial button component for views - uses graduation cap icon to differentiate from info tooltips
   // Uses span with role="button" to avoid nested button HTML error when placed inside tab buttons
