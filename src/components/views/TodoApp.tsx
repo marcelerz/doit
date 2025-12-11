@@ -9,6 +9,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { useTemplates } from "@/hooks/useTemplates";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { useSprints } from "@/hooks/useSprints";
+import { useTaskNotifications } from "@/hooks/useTaskNotifications";
 import { TodoItem } from "@/components/items/TodoItem";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { GanttView, ganttViewTutorialSteps } from "./GanttView";
@@ -268,6 +269,9 @@ export function TodoApp() {
     dismissUndo,
   } = useTodos();
   const { settings, addPriority, updateGantt, updateKanbanSettings } = useSettings();
+
+  // Task notifications for due/overdue tasks
+  useTaskNotifications(todos, settings.notifications);
 
   // Feature settings with defaults
   const features = settings.features;
