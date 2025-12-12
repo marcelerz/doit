@@ -65,7 +65,6 @@ export default function ServiceWorkerProvider() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
             </svg>
             <span className="font-medium">You&apos;re offline</span>
-            <span className="text-amber-100 text-sm">Changes will sync when back online</span>
           </div>
         </div>
       )}

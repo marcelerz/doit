@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import StorageInitializer from "@/components/StorageInitializer";
-import ServiceWorkerProvider from "@/components/ServiceWorkerProvider";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import StorageInitializer from "@/services/StorageInitializer";
+import ServiceWorkerProvider from "@/services/ServiceWorkerProvider";
+import { ThemeProvider } from "@/services/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,12 +26,15 @@ export const metadata: Metadata = {
   },
   formatDetection: {
     telephone: false,
+    email: false,
+    address: false,
   },
   icons: {
     // Classic favicon
     icon: [
       { url: "/favicon.ico" },
-      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
       { url: "/favicon.svg", type: "image/svg+xml" },
     ],
     // Apple touch icon
@@ -50,6 +53,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

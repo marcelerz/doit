@@ -1,17 +1,18 @@
 // Service Worker for DoIt PWA
-const CACHE_NAME = "doit-cache-v1";
-const STATIC_CACHE_NAME = "doit-static-v1";
-const DYNAMIC_CACHE_NAME = "doit-dynamic-v1";
+const CACHE_NAME = "doit-cache-v2";
+const STATIC_CACHE_NAME = "doit-static-v2";
+const DYNAMIC_CACHE_NAME = "doit-dynamic-v2";
 
 // Static assets to cache immediately on install
 const STATIC_ASSETS = [
   "/",
   "/favicon.ico",
   "/favicon.svg",
-  "/favicon-96x96.png",
+  "/favicon-16x16.png",
+  "/favicon-32x32.png",
   "/apple-touch-icon.png",
-  "/web-app-manifest-192x192.png",
-  "/web-app-manifest-512x512.png",
+  "/android-chrome-192x192.png",
+  "/android-chrome-512x512.png",
   "/site.webmanifest",
 ];
 
@@ -293,11 +294,10 @@ self.addEventListener("sync", (event) => {
   if (event.tag === "sync-data") {
     console.log("[SW] Background sync triggered");
     // Data is stored in IndexedDB, no sync needed
-    // This is here for future use if needed
   }
 });
 
-// Handle push notifications (for future use)
+// Handle push notifications
 self.addEventListener("push", (event) => {
   if (event.data) {
     const data = event.data.json();
@@ -305,8 +305,8 @@ self.addEventListener("push", (event) => {
     event.waitUntil(
       self.registration.showNotification(data.title || "DoIt", {
         body: data.body || "You have a notification",
-        icon: "/web-app-manifest-192x192.png",
-        badge: "/favicon-96x96.png",
+        icon: "/android-chrome-192x192.png",
+        badge: "/favicon-32x32.png",
         data: data.data,
       }),
     );
