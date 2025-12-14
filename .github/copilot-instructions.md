@@ -73,6 +73,8 @@
 - [x] Add priority-colored checkmark outlines for todos
 - [x] Add distinct round selection checkboxes with black border for batch mode
 - [x] Add three scheduling techniques to Gantt view (Sequential, Pomodoro, Flow) with presets
+- [x] Add WIP (Work-In-Progress) limits to Kanban board columns with visual warnings
+- [x] Make Backlog a system state (cannot be deleted, like Completed and Archived)
 
 ## Project Details
 
@@ -341,7 +343,8 @@ The Kanban view provides a visual board for managing todos through workflow stat
 - **Workflow States**: Customizable columns (Backlog, To Do, In Progress, Review, Completed, Archived)
 - **Drag and Drop**: Move tasks between states by dragging cards
 - **State Transitions**: Configurable rules for which states can transition to others
-- **System States**: Completed and Archived states are protected (cannot be deleted) and sync with TodoState
+- **System States**: Backlog, Completed, and Archived are system states (cannot be deleted) and sync with TodoState
+- **WIP Limits**: Set work-in-progress limits on non-system states (columns turn red when exceeded)
 - **Multiple Views**: Create custom views showing different combinations of states (e.g., "Active Work", "Intake", "Done & Archived")
 - **Sprint Filtering**: Filter board by sprint - All, Backlog (no sprint), or specific sprints
 - **Card Display**: Shows task title, due date, assigned people, project, priority, comments, subtasks, and sprint
@@ -350,14 +353,14 @@ The Kanban view provides a visual board for managing todos through workflow stat
 
 **Kanban Settings Tabs:**
 
-1. **Workflow States**: Add/edit/delete/reorder states with custom colors and icons
+1. **Workflow States**: Add/edit/delete/reorder states with custom colors, icons, and WIP limits
 2. **Transitions**: Matrix to define allowed state-to-state transitions
 3. **Views**: Create named views with specific state combinations
 
 **Display Options:**
 
 - Show/hide empty columns
-- Show/hide task count in column headers
+- Show/hide task count in column headers (shows WIP limit when configured)
 
 ### Sprint/Scrum Planning
 

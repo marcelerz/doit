@@ -355,7 +355,9 @@ export const tooltipContent = {
       <p>Workflow columns for the Kanban board.</p>
       <ul className="space-y-1">
         <li>• Drag tasks between states</li>
-        <li>• &quot;Completed&quot; and &quot;Archived&quot; are system states</li>
+        <li>• &quot;Backlog&quot;, &quot;Completed&quot;, and &quot;Archived&quot; are system states</li>
+        <li>• Set WIP (Work-In-Progress) limits on non-system states</li>
+        <li>• Columns turn red when over WIP limit</li>
         <li>• Configure allowed transitions</li>
       </ul>
     </div>

@@ -507,8 +507,9 @@ export interface KanbanState {
   color: string;
   icon?: string; // emoji
   order: number;
-  isSystem?: boolean; // System states (completed, archived) cannot be deleted
+  isSystem?: boolean; // System states (backlog, completed, archived) cannot be deleted
   mapsToTodoState?: "active" | "completed" | "archived"; // Maps to underlying TodoState
+  wipLimit?: number; // Work-in-progress limit (undefined = no limit). Not applicable to system states.
 }
 
 export interface KanbanTransition {
@@ -536,7 +537,7 @@ export interface KanbanSettings {
 
 // Default Kanban states
 export const defaultKanbanStates: KanbanState[] = [
-  { id: "backlog", name: "Backlog", color: "#94a3b8", icon: "📥", order: 0, mapsToTodoState: "active" },
+  { id: "backlog", name: "Backlog", color: "#94a3b8", icon: "📥", order: 0, isSystem: true, mapsToTodoState: "active" },
   { id: "todo", name: "To Do", color: "#60a5fa", icon: "📋", order: 1, mapsToTodoState: "active" },
   { id: "in-progress", name: "In Progress", color: "#fbbf24", icon: "🔄", order: 2, mapsToTodoState: "active" },
   { id: "review", name: "Review", color: "#a78bfa", icon: "👀", order: 3, mapsToTodoState: "active" },

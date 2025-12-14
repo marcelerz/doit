@@ -352,6 +352,13 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
                 <span className="text-lg">{state.icon}</span>
                 <span className="flex-1 font-medium text-zinc-900 dark:text-zinc-100">{state.name}</span>
 
+                {/* WIP Limit badge - only for non-system states */}
+                {!state.isSystem && state.wipLimit !== undefined && state.wipLimit > 0 && (
+                  <span className="px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded">
+                    WIP: {state.wipLimit}
+                  </span>
+                )}
+
                 {/* System badge */}
                 {state.isSystem && (
                   <span className="px-2 py-0.5 text-xs bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 rounded">
@@ -427,6 +434,30 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
                     ))}
                   </div>
                 </div>
+                {/* WIP Limit - only for non-system states */}
+                {!editingState.isSystem && (
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                      WIP Limit (Work-In-Progress)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        value={editingState.wipLimit ?? ""}
+                        onChange={(e) =>
+                          setEditingState({
+                            ...editingState,
+                            wipLimit: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                          })
+                        }
+                        placeholder="No limit"
+                        className="w-24 px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md text-sm"
+                      />
+                      <span className="text-sm text-zinc-500 dark:text-zinc-400">Leave empty for no limit</span>
+                    </div>
+                  </div>
+                )}
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => setEditingState(null)}

@@ -488,6 +488,22 @@ export function KanbanView({
     [kanban.allowedTransitions],
   );
 
+  // Check if a state can accept more items (WIP limit check)
+  const canAcceptMore = useCallback(
+    (stateId: string): boolean => {
+      const state = kanban.states.find((s) => s.id === stateId);
+      if (!state) return false;
+      // System states have no WIP limit
+      if (state.isSystem) return true;
+      // No WIP limit configured
+      if (state.wipLimit === undefined || state.wipLimit <= 0) return true;
+      // Check if under the limit
+      const currentCount = todosByState[stateId]?.length || 0;
+      return currentCount < state.wipLimit;
+    },
+    [kanban.states, todosByState],
+  );
+
   // Color helper functions for filters
   const getPersonColor = useCallback(
     (name: string) =>
@@ -615,7 +631,8 @@ export function KanbanView({
     const todo = todos.find((t) => t.id === draggedTodoId);
     const fromState = todo?.workflowState || "backlog";
 
-    if (canTransition(fromState, stateId)) {
+    // Check both transition rules and WIP limit
+    if (canTransition(fromState, stateId) && canAcceptMore(stateId)) {
       e.dataTransfer.dropEffect = "move";
       setDragOverColumnId(stateId);
     } else {
@@ -637,7 +654,8 @@ export function KanbanView({
     if (!todo) return;
 
     const fromState = todo.workflowState || "backlog";
-    if (canTransition(fromState, targetStateId)) {
+    // Check both transition rules and WIP limit
+    if (canTransition(fromState, targetStateId) && canAcceptMore(targetStateId)) {
       onSetWorkflowState(draggedTodoId, targetStateId, kanban.states, kanban.allowedTransitions);
     }
 
@@ -1114,9 +1132,15 @@ export function KanbanView({
           {visibleStates.map((state) => {
             const columnTodos = todosByState[state.id] || [];
             const isDropTarget = dragOverColumnId === state.id;
+            // WIP limit check - only for non-system states
+            const hasWipLimit = !state.isSystem && state.wipLimit !== undefined && state.wipLimit > 0;
+            const isOverWipLimit = hasWipLimit && columnTodos.length > state.wipLimit!;
+            const isAtWipLimit = hasWipLimit && columnTodos.length === state.wipLimit!;
+            // Can drop: must have valid transition AND not at/over WIP limit
             const canDropHere =
               draggedTodoId &&
-              canTransition(todos.find((t) => t.id === draggedTodoId)?.workflowState || "backlog", state.id);
+              canTransition(todos.find((t) => t.id === draggedTodoId)?.workflowState || "backlog", state.id) &&
+              canAcceptMore(state.id);
 
             return (
               <div
@@ -1124,6 +1148,8 @@ export function KanbanView({
                 className={`flex flex-col w-[200px] sm:flex-1 sm:min-w-[180px] sm:max-w-[400px] flex-shrink-0 sm:flex-shrink rounded-lg transition-all ${
                   isDropTarget && canDropHere
                     ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    : isOverWipLimit
+                    ? "ring-2 ring-red-500 bg-red-50 dark:bg-red-900/20"
                     : "bg-zinc-100 dark:bg-zinc-800"
                 } ${draggedTodoId && !canDropHere ? "opacity-50" : ""}`}
                 onDragOver={(e) => handleDragOver(e, state.id)}
@@ -1140,8 +1166,24 @@ export function KanbanView({
                     {state.name}
                   </span>
                   {kanban.showTaskCount && (
-                    <span className="ml-auto px-2 py-0.5 text-xs bg-white/50 dark:bg-black/20 rounded-full">
+                    <span
+                      className={`ml-auto px-2 py-0.5 text-xs rounded-full ${
+                        isOverWipLimit
+                          ? "bg-red-500 text-white"
+                          : isAtWipLimit
+                          ? "bg-amber-500 text-white"
+                          : "bg-white/50 dark:bg-black/20"
+                      }`}
+                      title={
+                        hasWipLimit
+                          ? `${columnTodos.length}/${state.wipLimit} (WIP limit${
+                              isOverWipLimit ? " exceeded!" : isAtWipLimit ? " reached" : ""
+                            })`
+                          : undefined
+                      }
+                    >
                       {columnTodos.length}
+                      {hasWipLimit && `/${state.wipLimit}`}
                     </span>
                   )}
                 </div>
