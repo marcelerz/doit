@@ -83,7 +83,6 @@ function hasLocalStorageData(): boolean {
 
 // Migrate data from localStorage to IndexedDB
 async function migrateToIndexedDB(adapter: StorageAdapter): Promise<void> {
-
   try {
     const keys = Object.values(STORAGE_KEYS);
     let migratedCount = 0;
@@ -99,7 +98,6 @@ async function migrateToIndexedDB(adapter: StorageAdapter): Promise<void> {
         console.error(`Failed to migrate key ${key}:`, error);
       }
     }
-
 
     // Set a flag to indicate migration is complete
     await adapter.setItem("doit-migrated-to-indexeddb", "true");
@@ -223,12 +221,7 @@ export async function initializeStorage(): Promise<{
 export function initializeStorageClient(): void {
   if (typeof window !== "undefined" && !initializationPromise) {
     initializationPromise = initializeStorage()
-      .then((result) => {
-        if (result.usingIndexedDB) {
-          if (result.migrated) {
-          }
-        } else {
-        }
+      .then(() => {
         isInitialized = true;
       })
       .catch((error) => {
