@@ -192,7 +192,7 @@ export function GanttView({
 
   // View options state - initialized with defaults, loaded from storage in useEffect
 
-  const [schedulingMode, setSchedulingMode] = useState<"asap" | "dueDate">("asap");
+  const [schedulingMode, setSchedulingMode] = useState<"asap" | "dueDate" | "duration">("asap");
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<TodoModel | null>(null);
@@ -229,7 +229,7 @@ export function GanttView({
     waitForStorageInit()
       .then(() => {
         return loadFromStorage<{
-          schedulingMode?: "asap" | "dueDate";
+          schedulingMode?: "asap" | "dueDate" | "duration";
           completedCollapsed?: boolean;
         }>(STORAGE_KEYS.GANTT_VIEW_OPTIONS, {});
       })
@@ -775,6 +775,17 @@ export function GanttView({
                 }`}
               >
                 Due Date
+              </button>
+              <button
+                onClick={() => setSchedulingMode("duration")}
+                aria-pressed={schedulingMode === "duration"}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors ${
+                  schedulingMode === "duration"
+                    ? "bg-blue-600 text-white"
+                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                }`}
+              >
+                Duration
               </button>
             </div>
 

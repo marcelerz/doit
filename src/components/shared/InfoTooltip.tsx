@@ -423,6 +423,9 @@ export const tooltipContent = {
         <li>
           • <strong>Due Date</strong>: Earliest deadlines scheduled first
         </li>
+        <li>
+          • <strong>Duration</strong>: Shortest tasks scheduled first
+        </li>
       </ul>
       <p className="text-zinc-400 dark:text-zinc-600 pt-1">Affects order on timeline, not task completion.</p>
     </div>

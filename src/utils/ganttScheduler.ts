@@ -77,7 +77,7 @@ export interface SchedulingConfig {
   ganttSettings: Gantt;
   workHours: WorkHoursSettings;
   availablePriorities: Priority[];
-  schedulingMode: "asap" | "dueDate";
+  schedulingMode: "asap" | "dueDate" | "duration";
 }
 
 export interface DayScheduleResult {
@@ -190,7 +190,7 @@ export function getPomodoroBreakType(sessionCount: number, ganttSettings: Gantt)
 export function sortTodosForScheduling(
   todos: TodoModel[],
   availablePriorities: Priority[],
-  schedulingMode: "asap" | "dueDate",
+  schedulingMode: "asap" | "dueDate" | "duration",
 ): TodoModel[] {
   const filtered = todos.filter((todo) => todo.state !== "deleted");
 
@@ -233,7 +233,7 @@ export function sortTodosForScheduling(
       const bDate = b.completedAt || b.archivedAt || 0;
       return aDate - bDate;
     });
-  } else {
+  } else if (schedulingMode === "dueDate") {
     // Sort by state first, then due date
     filtered.sort((a, b) => {
       // Active tasks come first
@@ -242,6 +242,38 @@ export function sortTodosForScheduling(
 
       // For active tasks, sort by due date
       if (a.state === "active" && b.state === "active") {
+        if (!a.metadata.dueDate && !b.metadata.dueDate) return 0;
+        if (!a.metadata.dueDate) return 1;
+        if (!b.metadata.dueDate) return -1;
+
+        const aDate = new Date(a.metadata.dueDate);
+        const bDate = new Date(b.metadata.dueDate);
+
+        return aDate.getTime() - bDate.getTime();
+      }
+
+      // For completed/archived, sort by completion/archive date
+      const aDate = a.completedAt || a.archivedAt || 0;
+      const bDate = b.completedAt || b.archivedAt || 0;
+      return aDate - bDate;
+    });
+  } else if (schedulingMode === "duration") {
+    // Sort by state first, then duration (shortest first)
+    filtered.sort((a, b) => {
+      // Active tasks come first
+      if (a.state === "active" && b.state !== "active") return -1;
+      if (a.state !== "active" && b.state === "active") return 1;
+
+      // For active tasks, sort by duration (shortest first)
+      if (a.state === "active" && b.state === "active") {
+        const aDuration = a.durationMinutes ?? Infinity;
+        const bDuration = b.durationMinutes ?? Infinity;
+
+        if (aDuration !== bDuration) {
+          return aDuration - bDuration;
+        }
+
+        // Secondary sort: due date (earliest first)
         if (!a.metadata.dueDate && !b.metadata.dueDate) return 0;
         if (!a.metadata.dueDate) return 1;
         if (!b.metadata.dueDate) return -1;
