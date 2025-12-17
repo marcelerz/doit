@@ -1,43 +1,18 @@
-export interface Person {
-  id: string;
-  name: string;
-  alternatives: string[];
-  color?: string; // Optional - defaults to marker color if not set
-  context?: string; // Rich text context
-  comments: Comment[];
-  activity: ActivityEntry[];
-  archived?: boolean;
-}
+import { defaultPriorities, Priority } from "./priority";
+import { defaultCategories, ProjectCategory } from "./project";
+import { TodoMetadata } from "./todo";
 
-// Project categories for organizing work types (e.g., "Office", "Private", "Client A")
-export interface ProjectCategory {
+// Task templates for recurring patterns
+export interface TaskTemplate {
   id: string;
   name: string;
-  color: string;
   description?: string;
-}
-
-export interface Project {
-  id: string;
-  name: string;
-  alternatives: string[];
-  color?: string; // Optional - defaults to marker color if not set
-  context?: string; // Rich text context
-  comments: Comment[];
-  activity: ActivityEntry[];
-  archived?: boolean;
-  category?: string; // Category ID - links to ProjectCategory
-}
-
-export interface Priority {
-  id: string;
-  name: string;
-  alternatives: string[];
-  color?: string; // Optional - defaults to marker color if not set
-  order: number; // Lower number = higher priority
-  comments: Comment[];
-  activity: ActivityEntry[];
-  archived?: boolean;
+  text: string;
+  plainText: string;
+  metadata: Partial<TodoMetadata>;
+  subtasks?: string[]; // Subtask texts to create
+  createdAt: number;
+  usageCount: number;
 }
 
 export interface LinkPattern {
@@ -46,32 +21,6 @@ export interface LinkPattern {
   urlTemplate: string; // e.g., "http://www.google.com/{id}"
   description: string;
   color: string; // Color for the link display
-}
-
-export interface Comment {
-  commentId: number;
-  history: CommentHistoryEntry[];
-}
-
-export interface CommentHistoryEntry {
-  date: number;
-  content: string;
-}
-
-export interface ActivityEntry {
-  id: string;
-  timestamp: number;
-  type:
-    | "created"
-    | "edited"
-    | "archived"
-    | "unarchived"
-    | "deleted"
-    | "comment_added"
-    | "comment_edited"
-    | "comment_deleted";
-  description: string;
-  metadata?: any;
 }
 
 export interface MarkerColors extends Record<string, string> {
@@ -447,49 +396,6 @@ export const defaultNotificationSettings: NotificationSettings = {
   checkInterval: 15, // Check every 15 minutes
 };
 
-// Sprint Settings for Scrum planning
-export type SprintStatus = "planning" | "active" | "completed" | "cancelled";
-export type SprintState = "active" | "archived";
-
-export interface Sprint {
-  id: string;
-  name: string;
-  goal?: string; // Sprint goal description
-  color?: string; // Optional - defaults to marker color if not set
-  durationDays: number; // Sprint duration in days
-  plannedStartDate?: string; // Planned start date (ISO date string)
-  actualStartDate?: string; // Actual start date when sprint was started
-  actualEndDate?: string; // Actual end date when sprint was completed/cancelled
-  status: SprintStatus;
-  state: SprintState; // For archiving sprints
-  createdAt: number;
-  startedAt?: number; // Timestamp when sprint was started
-  completedAt?: number; // Timestamp when sprint was completed
-  cancelledAt?: number; // Timestamp when sprint was cancelled
-  archivedAt?: number; // Timestamp when sprint was archived
-  comments: Array<{
-    commentId: number;
-    history: Array<{ date: number; content: string }>;
-  }>;
-  activity: Array<{
-    id: string;
-    timestamp: number;
-    type:
-      | "created"
-      | "edited"
-      | "updated"
-      | "archived"
-      | "unarchived"
-      | "comment_added"
-      | "comment_edited"
-      | "comment_deleted"
-      | "started"
-      | "completed"
-      | "cancelled";
-    description: string;
-  }>;
-}
-
 export interface SprintSettings {
   defaultSprintDuration: number; // Default sprint duration in days (typically 14)
   showBacklogInSprint: boolean; // Show backlog items in sprint view
@@ -772,33 +678,8 @@ export interface Settings {
   features: FeatureSettings;
 }
 
-// Default project categories
-export const defaultCategories: ProjectCategory[] = [
-  { id: "work", name: "Work", color: "#3b82f6", description: "Office and work-related tasks" },
-  { id: "personal", name: "Personal", color: "#22c55e", description: "Personal and home tasks" },
-];
-
 export const defaultSettings: Settings = {
-  priorities: [
-    {
-      id: "1",
-      name: "urgent",
-      alternatives: ["asap", "critical"],
-      order: 1,
-      comments: [],
-      activity: [],
-    },
-    { id: "2", name: "high", alternatives: [], order: 2, comments: [], activity: [] },
-    {
-      id: "3",
-      name: "medium",
-      alternatives: ["normal", "med"],
-      order: 3,
-      comments: [],
-      activity: [],
-    },
-    { id: "4", name: "low", alternatives: [], order: 4, comments: [], activity: [] },
-  ],
+  priorities: defaultPriorities,
   linkPatterns: [],
   markerColors: defaultMarkerColors,
   general: defaultGeneralSettings,

@@ -3,15 +3,19 @@
  * Tracks frequency of people, projects, priorities, tags, etc. to provide smart suggestions
  */
 
-import { Todo } from "@/types/todo";
+import { PersonId } from "@/types/person";
+import { PriorityId } from "@/types/priority";
+import { ProjectId } from "@/types/project";
+import { Tag, Todo } from "@/types/todo";
 
 export interface UsageStats {
-  assignedPeople: Map<string, number>;
-  sourcePeople: Map<string, number>;
-  mentionedPeople: Map<string, number>;
-  projects: Map<string, number>;
-  priorities: Map<string, number>;
-  tags: Map<string, number>;
+  assignedPeople: Map<PersonId, number>;
+  sourcePeople: Map<PersonId, number>;
+  mentionedPeople: Map<PersonId, number>;
+  projects: Map<ProjectId, number>;
+  priorities: Map<PriorityId, number>;
+  tags: Map<Tag, number>;
+  dueDates: Map<string, number>;
   durations: Map<string, number>;
   recurring: Map<string, number>;
 }
@@ -37,6 +41,7 @@ export function calculateUsageStats(todos: Todo[]): UsageStats {
     projects: new Map(),
     priorities: new Map(),
     tags: new Map(),
+    dueDates: new Map(),
     durations: new Map(),
     recurring: new Map(),
   };
@@ -46,40 +51,46 @@ export function calculateUsageStats(todos: Todo[]): UsageStats {
     if (weight === 0) return; // Skip deleted todos
 
     // Track assigned people
-    todo.metadata.assignedPeople.forEach((person) => {
+    todo.assignedPeople.forEach((person) => {
       const current = stats.assignedPeople.get(person) || 0;
       stats.assignedPeople.set(person, current + weight);
     });
 
     // Track source people
-    todo.metadata.sourcePeople.forEach((person) => {
+    todo.sourcePeople.forEach((person) => {
       const current = stats.sourcePeople.get(person) || 0;
       stats.sourcePeople.set(person, current + weight);
     });
 
     // Track mentioned people
-    todo.metadata.mentionedPeople.forEach((person) => {
+    todo.mentionedPeople.forEach((person) => {
       const current = stats.mentionedPeople.get(person) || 0;
       stats.mentionedPeople.set(person, current + weight);
     });
 
     // Track projects
-    todo.metadata.projects.forEach((project) => {
+    todo.projects.forEach((project) => {
       const current = stats.projects.get(project) || 0;
       stats.projects.set(project, current + weight);
     });
 
     // Track priority
-    if (todo.metadata.priority) {
-      const current = stats.priorities.get(todo.metadata.priority) || 0;
-      stats.priorities.set(todo.metadata.priority, current + weight);
+    if (todo.priority) {
+      const current = stats.priorities.get(todo.priority) || 0;
+      stats.priorities.set(todo.priority, current + weight);
     }
 
     // Track tags
-    todo.metadata.tags.forEach((tag) => {
+    todo.tags.forEach((tag) => {
       const current = stats.tags.get(tag) || 0;
       stats.tags.set(tag, current + weight);
     });
+
+    // Track due date
+    if (todo.metadata.dueDate) {
+      const current = stats.dueDates.get(todo.metadata.dueDate) || 0;
+      stats.dueDates.set(todo.metadata.dueDate, current + weight);
+    }
 
     // Track duration
     if (todo.metadata.duration) {
