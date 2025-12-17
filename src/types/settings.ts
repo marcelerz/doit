@@ -1,355 +1,48 @@
+import { BreakPeriod, getBreakPeriodId } from "./breakPeriod";
+import { defaultLinkPatterns, LinkPattern } from "./linkPattern";
 import { defaultPriorities, Priority } from "./priority";
 import { defaultCategories, ProjectCategory } from "./project";
-import { TodoMetadata } from "./todo";
-
-// Task templates for recurring patterns
-export interface TaskTemplate {
-  id: string;
-  name: string;
-  description?: string;
-  text: string;
-  plainText: string;
-  metadata: Partial<TodoMetadata>;
-  subtasks?: string[]; // Subtask texts to create
-  createdAt: number;
-  usageCount: number;
-}
-
-export interface LinkPattern {
-  id: string;
-  prefix: string; // e.g., "T", "D", "S"
-  urlTemplate: string; // e.g., "http://www.google.com/{id}"
-  description: string;
-  color: string; // Color for the link display
-}
-
-export interface MarkerColors extends Record<string, string> {
-  assigned: string; // @
-  source: string; // $
-  mentioned: string; // (auto-detected)
-  project: string; // %
-  priority: string; // !!
-  dueDate: string; // (auto-detected)
-  duration: string; // (auto-detected)
-  recurring: string; // ~ (auto-detected)
-  dependency: string; // (via field)
-  tag: string; // #
-  sprint: string; // 🏃 (sprint selector)
-}
-
-export const defaultMarkerColors: MarkerColors = {
-  assigned: "#cce5ff", // Blue
-  source: "#d4fdd4", // Green
-  mentioned: "#ffe5b4", // Yellow/Orange
-  project: "#e2ccff", // Purple
-  priority: "#ffd4d4", // Red
-  dueDate: "#fce4ec", // Pink
-  duration: "#d4faff", // Cyan
-  recurring: "#e1f5e1", // Light green
-  dependency: "#fff4e6", // Light orange
-  tag: "#ffe4cc", // Light orange
-  sprint: "#dbeafe", // Light blue
-};
-
-export interface DateTimeSettings {
-  morning: string; // e.g., "08:00"
-  noon: string; // e.g., "12:00"
-  afternoon: string; // e.g., "15:00"
-  evening: string; // e.g., "19:00"
-  workWeekStart: number; // 0-6, where 0 = Sunday, 1 = Monday
-  fiscalYearStart: number; // Month (1-12) when fiscal year starts
-}
-
-export type TimeBlockType = "break" | "meeting" | "focus" | "lunch" | "commute" | "personal" | "custom";
-
-export interface TimeBlockTypeConfig {
-  id: TimeBlockType | string;
-  name: string;
-  color: string;
-  icon?: string; // emoji or icon identifier
-}
-
-export const DEFAULT_BLOCK_TYPES: TimeBlockTypeConfig[] = [
-  { id: "break", name: "Break", color: "#d1d5db", icon: "☕" }, // gray-300 (light gray)
-  { id: "lunch", name: "Lunch", color: "#d1d5db", icon: "🍴" }, // gray-300 (light gray)
-  { id: "meeting", name: "Meeting", color: "#a78bfa", icon: "👥" }, // violet-400
-  { id: "focus", name: "Focus Time", color: "#4ade80", icon: "🎯" }, // green-400
-  { id: "commute", name: "Commute", color: "#60a5fa", icon: "🚗" }, // blue-400
-  { id: "personal", name: "Personal", color: "#f472b6", icon: "🏠" }, // pink-400
-];
-
-export interface BreakPeriod {
-  id: string;
-  name: string;
-  startTime: string; // e.g., "12:00"
-  endTime: string; // e.g., "13:00"
-  blockType?: TimeBlockType | string; // Type of block (break, meeting, focus, etc.)
-  color?: string; // Custom color override (if not set, uses blockType color)
-  allowedCategories?: string[]; // Category IDs - only schedule tasks from these categories during this block
-}
-
-export interface DaySchedule {
-  enabled?: boolean; // If false, the day is disabled (no work hours)
-  startTime: string; // e.g., "09:00"
-  endTime: string; // e.g., "17:00"
-  breaks: BreakPeriod[];
-}
-
-export interface WorkHoursSettings {
-  useCommonSchedule: boolean; // If true, use commonSchedule for all days
-  commonSchedule: DaySchedule;
-  weekdaySchedule: DaySchedule; // For Mon-Fri
-  weekendSchedule: DaySchedule; // For Sat-Sun
-  customSchedules: {
-    monday?: DaySchedule;
-    tuesday?: DaySchedule;
-    wednesday?: DaySchedule;
-    thursday?: DaySchedule;
-    friday?: DaySchedule;
-    saturday?: DaySchedule;
-    sunday?: DaySchedule;
-  };
-}
-
-export const defaultWorkHoursSettings: WorkHoursSettings = {
-  useCommonSchedule: true,
-  commonSchedule: {
-    startTime: "09:00",
-    endTime: "17:00",
-    breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00", blockType: "lunch" }],
-  },
-  weekdaySchedule: {
-    startTime: "09:00",
-    endTime: "17:00",
-    breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00", blockType: "lunch" }],
-  },
-  weekendSchedule: {
-    startTime: "10:00",
-    endTime: "14:00",
-    breaks: [],
-  },
-  customSchedules: {},
-};
-
-// Gantt Tab Settings
-export type GanttZoomLevel = "15min" | "30min" | "1hour" | "2hour";
-export type SchedulingTechnique = "sequential" | "pomodoro" | "flow";
-
-export interface GanttPreset {
-  id: string;
-  name: string;
-  technique: SchedulingTechnique;
-  // Sequential settings
-  contextSwitchingTime: number;
-  defaultTaskDuration: number;
-  durationMultiplier: number;
-  // Pomodoro settings
-  pomodoroWorkDuration?: number; // Work duration in minutes (default 25)
-  pomodoroShortBreak?: number; // Short break in minutes (default 5)
-  pomodoroLongBreak?: number; // Long break in minutes (default 15)
-  pomodoroLongBreakInterval?: number; // Number of work sessions before long break (default 4)
-  // Flow settings
-  flowWorkDuration?: number; // Work duration in minutes (default 52)
-  flowBreakDuration?: number; // Break duration in minutes (default 17)
-  flowContextSwitchingTime?: number; // Context switch between tasks in minutes (default 10)
-}
-
-export interface Gantt {
-  // Active Technique
-  schedulingTechnique: SchedulingTechnique; // Which technique is active
-
-  // Common Settings
-  defaultTaskDuration: number; // Default duration in minutes when not specified
-  durationMultiplier: number; // Multiplier for task durations during scheduling
-  minimumRemainingDuration: number; // Minimum duration left when time is tracked (default 1 min)
-
-  // Sequential Settings
-  contextSwitchingTime: number; // Minutes between tasks for context switching
-
-  // Pomodoro Settings
-  pomodoroWorkDuration: number; // Work duration in minutes (default 25)
-  pomodoroShortBreak: number; // Short break in minutes (default 5)
-  pomodoroLongBreak: number; // Long break in minutes (default 15)
-  pomodoroLongBreakInterval: number; // Number of work sessions before long break (default 4)
-  pomodoroNotifications: boolean; // Show browser notifications for breaks
-  pomodoroSound: boolean; // Play sound for break notifications
-
-  // Flow Settings
-  flowWorkDuration: number; // Work duration in minutes (default 52)
-  flowBreakDuration: number; // Break duration in minutes (default 17)
-  flowContextSwitchingTime: number; // Context switch between tasks in minutes (default 10)
-
-  // View Settings
-  zoomLevel: GanttZoomLevel; // Timeline zoom level
-  showWeekends: boolean; // Show weekend days in week view
-  showDependencies: boolean; // Show dependency arrows between tasks
-  taskRowHeight: "compact" | "normal" | "comfortable"; // Height of task rows
-  showBufferZones: boolean; // Show buffer/overdue indicators
-  showNowLine: boolean; // Show current time indicator
-  collapseCompleted: boolean; // Collapse completed tasks section
-
-  // Presets
-  presets: GanttPreset[];
-  activePresetId?: string; // Currently active preset
-}
-
-export const defaultGanttPresets: GanttPreset[] = [
-  // Sequential presets
-  {
-    id: "sequential-focus",
-    name: "Focus Mode",
-    technique: "sequential",
-    contextSwitchingTime: 5,
-    defaultTaskDuration: 25,
-    durationMultiplier: 1.0,
-  },
-  {
-    id: "sequential-planning",
-    name: "Planning Mode",
-    technique: "sequential",
-    contextSwitchingTime: 15,
-    defaultTaskDuration: 45,
-    durationMultiplier: 1.5,
-  },
-  {
-    id: "sequential-realistic",
-    name: "Realistic Mode",
-    technique: "sequential",
-    contextSwitchingTime: 20,
-    defaultTaskDuration: 60,
-    durationMultiplier: 2.0,
-  },
-  // Pomodoro presets
-  {
-    id: "pomodoro-standard",
-    name: "Standard (25/5/15/4)",
-    technique: "pomodoro",
-    contextSwitchingTime: 0,
-    defaultTaskDuration: 25,
-    durationMultiplier: 1.0,
-    pomodoroWorkDuration: 25,
-    pomodoroShortBreak: 5,
-    pomodoroLongBreak: 15,
-    pomodoroLongBreakInterval: 4,
-  },
-  {
-    id: "pomodoro-long",
-    name: "Long Sessions (50/10/30/4)",
-    technique: "pomodoro",
-    contextSwitchingTime: 0,
-    defaultTaskDuration: 50,
-    durationMultiplier: 1.0,
-    pomodoroWorkDuration: 50,
-    pomodoroShortBreak: 10,
-    pomodoroLongBreak: 30,
-    pomodoroLongBreakInterval: 4,
-  },
-  // Flow presets
-  {
-    id: "flow-5217",
-    name: "52/17 Method (52/17/10)",
-    technique: "flow",
-    contextSwitchingTime: 0,
-    defaultTaskDuration: 52,
-    durationMultiplier: 1.0,
-    flowWorkDuration: 52,
-    flowBreakDuration: 17,
-    flowContextSwitchingTime: 10,
-  },
-  {
-    id: "flow-ultradian",
-    name: "Ultradian Rhythm (90/20/10)",
-    technique: "flow",
-    contextSwitchingTime: 0,
-    defaultTaskDuration: 90,
-    durationMultiplier: 1.0,
-    flowWorkDuration: 90,
-    flowBreakDuration: 20,
-    flowContextSwitchingTime: 10,
-  },
-];
-
-export const defaultGantt: Gantt = {
-  schedulingTechnique: "sequential", // Sequential by default
-  contextSwitchingTime: 15, // 15 minutes between tasks
-  defaultTaskDuration: 30, // 30 minutes default
-  durationMultiplier: 1.0, // 1.0 = no adjustment
-  minimumRemainingDuration: 1, // 1 minute minimum to keep tasks visible
-  // Pomodoro defaults
-  pomodoroWorkDuration: 25, // Standard Pomodoro work duration
-  pomodoroShortBreak: 5, // Standard short break
-  pomodoroLongBreak: 15, // Standard long break
-  pomodoroLongBreakInterval: 4, // Long break every 4 sessions
-  pomodoroNotifications: true, // Notifications enabled by default
-  pomodoroSound: true, // Sound enabled by default
-  // Flow defaults (52/17 method)
-  flowWorkDuration: 52,
-  flowBreakDuration: 17,
-  flowContextSwitchingTime: 10,
-  // View settings
-  zoomLevel: "1hour",
-  showWeekends: true,
-  showDependencies: true,
-  taskRowHeight: "normal",
-  showBufferZones: true,
-  showNowLine: true,
-  collapseCompleted: false,
-  presets: defaultGanttPresets,
-  activePresetId: undefined,
-};
-
-// Calendar Tab Settings
-export type CalendarView = "month" | "week" | "agenda";
-export type CalendarDotColorBy = "state" | "priority" | "project";
-
-export interface Calendar {
-  weekStartDay: 0 | 1; // 0 = Sunday, 1 = Monday
-  defaultView: CalendarView;
-  showWeekNumbers: boolean;
-  taskDotLimit: number; // How many dots to show per day (1-10)
-  dotColorBy: CalendarDotColorBy;
-  showOverdueBadge: boolean; // Highlight overdue tasks
-  showRecurringIndicator: boolean; // Show indicator for recurring tasks
-  showTaskCount: boolean; // Show task count badge on days
-}
-
-export const defaultCalendar: Calendar = {
-  weekStartDay: 0, // Sunday
-  defaultView: "month",
-  showWeekNumbers: false,
-  taskDotLimit: 4,
-  dotColorBy: "state",
-  showOverdueBadge: true,
-  showRecurringIndicator: true,
-  showTaskCount: false,
-};
-
-export const defaultDateTimeSettings: DateTimeSettings = {
-  morning: "08:00",
-  noon: "12:00",
-  afternoon: "15:00",
-  evening: "19:00",
-  workWeekStart: 1, // Monday
-  fiscalYearStart: 1, // January
-};
+import {
+  DurationDay,
+  DurationHour,
+  DurationMin,
+  DurationSec,
+  getDurationDay,
+  getDurationHour,
+  getDurationMin,
+  getDurationSec,
+  getMonth,
+  getShortTime,
+  getWeekday,
+  Month,
+  ShortTime,
+  Weekday,
+} from "./time";
+import { getTimeBlockId } from "./timeBlock";
+import { defaultKanbanStates, KanbanState } from "./kanbanState";
+import { defaultKanbanViews, KanbanView } from "./kanbanView";
+import { defaultKanbanTransitions, KanbanTransition } from "./kanbanTransition";
+import { defaultMarkerColors, MarkerColors } from "./markerColors";
+import { defaultGantt, Gantt } from "./gantt";
+import { Calendar, defaultCalendar } from "./calendar";
 
 // General Tab Settings
 export type ThemeMode = "light" | "dark" | "system";
 
 export interface GeneralSettings {
-  archiveDays: number; // Number of days before completed tasks are archived
+  archiveDays: DurationDay; // Number of days before completed tasks are archived
   autoDelete: {
     enabled: boolean; // Enable automatic deletion of old completed/archived tasks
-    deleteDays: number; // Number of days after completion before tasks are deleted
+    deleteDays: DurationDay; // Number of days after completion before tasks are deleted
   };
   theme: ThemeMode; // Theme preference
 }
 
 export const defaultGeneralSettings: GeneralSettings = {
-  archiveDays: 7, // Archive completed tasks after 7 days by default
+  archiveDays: getDurationDay(7), // Archive completed tasks after 7 days by default
   autoDelete: {
     enabled: true,
-    deleteDays: 90, // Delete after 90 days (3 months) by default
+    deleteDays: getDurationDay(90), // Delete after 90 days (3 months) by default
   },
   theme: "system", // Default to system preference
 };
@@ -383,8 +76,8 @@ export interface NotificationSettings {
   notifyOverdue: boolean;
   notifyDueToday: boolean;
   notifyDueSoon: boolean;
-  dueSoonHours: number; // Hours before due date to notify
-  checkInterval: number; // Minutes between notification checks
+  dueSoonHours: DurationHour; // Hours before due date to notify
+  checkInterval: DurationMin; // Minutes between notification checks
 }
 
 export const defaultNotificationSettings: NotificationSettings = {
@@ -392,44 +85,96 @@ export const defaultNotificationSettings: NotificationSettings = {
   notifyOverdue: true,
   notifyDueToday: true,
   notifyDueSoon: true,
-  dueSoonHours: 2,
-  checkInterval: 15, // Check every 15 minutes
+  dueSoonHours: getDurationHour(2),
+  checkInterval: getDurationMin(15), // Check every 15 minutes
+};
+
+export interface DateTimeSettings {
+  morning: ShortTime; // e.g., "08:00"
+  noon: ShortTime; // e.g., "12:00"
+  afternoon: ShortTime; // e.g., "15:00"
+  evening: ShortTime; // e.g., "19:00"
+  workWeekStart: Weekday; // 0-6, where 0 = Sunday, 1 = Monday
+  fiscalYearStart: Month; // Month (1-12) when fiscal year starts
+}
+
+export const defaultDateTimeSettings: DateTimeSettings = {
+  morning: getShortTime("08:00"),
+  noon: getShortTime("12:00"),
+  afternoon: getShortTime("15:00"),
+  evening: getShortTime("19:00"),
+  workWeekStart: getWeekday(1), // Monday
+  fiscalYearStart: getMonth(1), // January
+};
+
+export interface DaySchedule {
+  enabled?: boolean; // If false, the day is disabled (no work hours)
+  startTime: ShortTime; // e.g., "09:00"
+  endTime: ShortTime; // e.g., "17:00"
+  breaks: BreakPeriod[];
+}
+
+export interface WorkHoursSettings {
+  useCommonSchedule: boolean; // If true, use commonSchedule for all days
+  commonSchedule: DaySchedule;
+  weekdaySchedule: DaySchedule; // For Mon-Fri
+  weekendSchedule: DaySchedule; // For Sat-Sun
+  customSchedules: {
+    monday?: DaySchedule;
+    tuesday?: DaySchedule;
+    wednesday?: DaySchedule;
+    thursday?: DaySchedule;
+    friday?: DaySchedule;
+    saturday?: DaySchedule;
+    sunday?: DaySchedule;
+  };
+}
+
+export const defaultWorkHoursSettings: WorkHoursSettings = {
+  useCommonSchedule: true,
+  commonSchedule: {
+    startTime: getShortTime("09:00"),
+    endTime: getShortTime("17:00"),
+    breaks: [
+      {
+        id: getBreakPeriodId("lunch"),
+        name: "Lunch",
+        startTime: getShortTime("12:00"),
+        endTime: getShortTime("13:00"),
+        blockType: getTimeBlockId("lunch"),
+      },
+    ],
+  },
+  weekdaySchedule: {
+    startTime: getShortTime("09:00"),
+    endTime: getShortTime("17:00"),
+    breaks: [
+      {
+        id: getBreakPeriodId("lunch"),
+        name: "Lunch",
+        startTime: getShortTime("12:00"),
+        endTime: getShortTime("13:00"),
+        blockType: getTimeBlockId("lunch"),
+      },
+    ],
+  },
+  weekendSchedule: {
+    startTime: getShortTime("10:00"),
+    endTime: getShortTime("14:00"),
+    breaks: [],
+  },
+  customSchedules: {},
 };
 
 export interface SprintSettings {
-  defaultSprintDuration: number; // Default sprint duration in days (typically 14)
+  defaultSprintDuration: DurationDay; // Default sprint duration in days (typically 14)
   showBacklogInSprint: boolean; // Show backlog items in sprint view
 }
 
 export const defaultSprintSettings: SprintSettings = {
-  defaultSprintDuration: 14, // 2 weeks
+  defaultSprintDuration: getDurationDay(14), // 2 weeks
   showBacklogInSprint: false,
 };
-
-// Kanban Tab Settings
-export interface KanbanState {
-  id: string;
-  name: string;
-  color: string;
-  icon?: string; // emoji
-  order: number;
-  isSystem?: boolean; // System states (backlog, completed, archived) cannot be deleted
-  mapsToTodoState?: "active" | "completed" | "archived"; // Maps to underlying TodoState
-  wipLimit?: number; // Work-in-progress limit (undefined = no limit). Not applicable to system states.
-}
-
-export interface KanbanTransition {
-  fromStateId: string;
-  toStateId: string;
-}
-
-export interface KanbanView {
-  id: string;
-  name: string;
-  description?: string;
-  stateIds: string[]; // Which states to show in this view (in order)
-  isDefault?: boolean;
-}
 
 export interface KanbanSettings {
   states: KanbanState[];
@@ -440,99 +185,6 @@ export interface KanbanSettings {
   showTaskCount: boolean; // Show count in column headers
   cardDisplayFields: string[]; // Which metadata fields to show on cards
 }
-
-// Default Kanban states
-export const defaultKanbanStates: KanbanState[] = [
-  { id: "backlog", name: "Backlog", color: "#94a3b8", icon: "📥", order: 0, isSystem: true, mapsToTodoState: "active" },
-  { id: "todo", name: "To Do", color: "#60a5fa", icon: "📋", order: 1, mapsToTodoState: "active" },
-  { id: "in-progress", name: "In Progress", color: "#fbbf24", icon: "🔄", order: 2, mapsToTodoState: "active" },
-  { id: "review", name: "Review", color: "#a78bfa", icon: "👀", order: 3, mapsToTodoState: "active" },
-  {
-    id: "completed",
-    name: "Done",
-    color: "#4ade80",
-    icon: "✅",
-    order: 4,
-    isSystem: true,
-    mapsToTodoState: "completed",
-  },
-  {
-    id: "rejected",
-    name: "Rejected",
-    color: "#f87171",
-    icon: "🚫",
-    order: 5,
-    isSystem: true,
-    mapsToTodoState: "completed",
-  },
-  {
-    id: "archived",
-    name: "Archived",
-    color: "#9ca3af",
-    icon: "📦",
-    order: 6,
-    isSystem: true,
-    mapsToTodoState: "archived",
-  },
-];
-
-// Default transitions - most states can move to adjacent states or to completed
-export const defaultKanbanTransitions: KanbanTransition[] = [
-  // From Backlog
-  { fromStateId: "backlog", toStateId: "todo" },
-  { fromStateId: "backlog", toStateId: "in-progress" },
-  { fromStateId: "backlog", toStateId: "rejected" },
-  { fromStateId: "backlog", toStateId: "archived" },
-  // From To Do
-  { fromStateId: "todo", toStateId: "backlog" },
-  { fromStateId: "todo", toStateId: "in-progress" },
-  { fromStateId: "todo", toStateId: "completed" },
-  { fromStateId: "todo", toStateId: "rejected" },
-  // From In Progress
-  { fromStateId: "in-progress", toStateId: "todo" },
-  { fromStateId: "in-progress", toStateId: "review" },
-  { fromStateId: "in-progress", toStateId: "completed" },
-  // From Review
-  { fromStateId: "review", toStateId: "in-progress" },
-  { fromStateId: "review", toStateId: "completed" },
-  // From Completed
-  { fromStateId: "completed", toStateId: "archived" },
-  { fromStateId: "completed", toStateId: "todo" }, // Reopen
-  // From Rejected
-  { fromStateId: "rejected", toStateId: "archived" },
-  { fromStateId: "rejected", toStateId: "backlog" }, // Reconsider
-  // From Archived
-  { fromStateId: "archived", toStateId: "todo" }, // Unarchive
-];
-
-// Default Kanban views
-export const defaultKanbanViews: KanbanView[] = [
-  {
-    id: "all",
-    name: "All Tasks",
-    description: "Full workflow view",
-    stateIds: ["backlog", "todo", "in-progress", "review", "completed", "rejected"],
-    isDefault: true,
-  },
-  {
-    id: "active-work",
-    name: "Active Work",
-    description: "Focus on current work",
-    stateIds: ["todo", "in-progress", "review", "completed"],
-  },
-  {
-    id: "intake",
-    name: "Intake",
-    description: "Triage and prioritize new tasks",
-    stateIds: ["backlog", "todo", "rejected"],
-  },
-  {
-    id: "retrospective",
-    name: "Retrospective",
-    description: "Review completed and rejected work",
-    stateIds: ["completed", "rejected", "archived"],
-  },
-];
 
 export const defaultKanbanSettings: KanbanSettings = {
   states: defaultKanbanStates,
@@ -548,7 +200,7 @@ export const defaultKanbanSettings: KanbanSettings = {
 export interface FocusSettings {
   // Sound Confirmation
   requireConfirmation: boolean; // Require user to confirm break start / work start
-  confirmationRepeatInterval: number; // Seconds between reminder sounds (default 30)
+  confirmationRepeatInterval: DurationSec; // Seconds between reminder sounds (default 30)
   confirmationMaxRepeats: number; // Max times to repeat before auto-proceeding (0 = infinite, default 5)
 
   // Auto Time Tracking
@@ -556,8 +208,8 @@ export interface FocusSettings {
   trackActualVsEstimated: boolean; // Store actual time vs estimated for analytics
 
   // Timer Controls
-  defaultExtendMinutes: number; // Default time to add when extending (default 5)
-  extendOptions: number[]; // Quick extend options in minutes (default [5, 10, 15, 30])
+  defaultExtendMinutes: DurationMin; // Default time to add when extending (default 5)
+  extendOptions: DurationMin[]; // Quick extend options in minutes (default [5, 10, 15, 30])
   showEarlyCompletePrompt: boolean; // Ask to record actual time when completing early
   autoExtendOnOvertime: boolean; // Auto-extend duration when tracked time exceeds estimate (default true)
   useTrackedTimeForDuration: boolean; // Subtract already-tracked time from duration (default true)
@@ -582,7 +234,7 @@ export interface FocusSettings {
 export const defaultFocusSettings: FocusSettings = {
   // Sound Confirmation
   requireConfirmation: false,
-  confirmationRepeatInterval: 30,
+  confirmationRepeatInterval: getDurationSec(30),
   confirmationMaxRepeats: 5,
 
   // Auto Time Tracking
@@ -590,8 +242,8 @@ export const defaultFocusSettings: FocusSettings = {
   trackActualVsEstimated: true,
 
   // Timer Controls
-  defaultExtendMinutes: 5,
-  extendOptions: [5, 10, 15, 30],
+  defaultExtendMinutes: getDurationMin(5),
+  extendOptions: [getDurationMin(5), getDurationMin(10), getDurationMin(15), getDurationMin(30)],
   showEarlyCompletePrompt: true,
   autoExtendOnOvertime: true,
   useTrackedTimeForDuration: true,
@@ -680,7 +332,7 @@ export interface Settings {
 
 export const defaultSettings: Settings = {
   priorities: defaultPriorities,
-  linkPatterns: [],
+  linkPatterns: defaultLinkPatterns,
   markerColors: defaultMarkerColors,
   general: defaultGeneralSettings,
   dateTime: defaultDateTimeSettings,

@@ -61,3 +61,26 @@ export type DurationYear = number & { readonly __brand: unique symbol };
 export function getDurationYear(value: number): DurationYear {
   return value as DurationYear;
 }
+
+// Unique branded type for ShortTime (e.g. "14:30")
+export type ShortTime = string & { readonly __brand: unique symbol };
+
+// Converts number into DurationYear type
+export function getShortTime(value: string): ShortTime {
+  return value as ShortTime;
+}
+
+// Unique branded type for Weekday (e.g. 0 - Sunday, 6 - Saturday)
+export type Weekday = number & { readonly __brand: unique symbol };
+
+// Converts number into Weekday type
+export function getWeekday(value: number): Weekday {
+  return value as Weekday;
+}
+// Unique branded type for Month (e.g. 1 - January, 12 - December)
+export type Month = number & { readonly __brand: unique symbol };
+
+// Converts number into Month type
+export function getMonth(value: number): Month {
+  return value as Month;
+}
