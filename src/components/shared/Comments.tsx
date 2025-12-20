@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Comment, CommentId } from "@/types/settings";
+import { Comment, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 
 interface CommentsProps {

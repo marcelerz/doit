@@ -6,8 +6,8 @@ import {
   FeatureSettings,
   defaultFeatureSettings,
   defaultGeneralSettings,
-  getDurationDay,
 } from "@/types/settings";
+import { getDurationDay } from "@/types/time";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface GeneralTabProps {

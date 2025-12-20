@@ -12,9 +12,9 @@ import {
 } from "@/utils/export";
 import { TodoModel } from "@/models/TodoModel";
 import { Todo, TodoState, getTodoId } from "@/types/todo";
+import { Settings } from "@/types/settings";
+import { getColor } from "@/types/types";
 import {
-  Settings,
-  getColor,
   getShortTime,
   getDurationDay,
   getDurationMin,
@@ -23,7 +23,7 @@ import {
   getWeekday,
   getMonth,
   getTimestamp,
-} from "@/types/settings";
+} from "@/types/time";
 
 describe("export", () => {
   // Helper to create a mock TodoModel

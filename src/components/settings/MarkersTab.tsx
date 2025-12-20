@@ -1,6 +1,7 @@
 "use client";
 
-import { MarkerColors, defaultMarkerColors, getColor } from "@/types/settings";
+import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
+import { getColor } from "@/types/types";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface MarkersTabProps {

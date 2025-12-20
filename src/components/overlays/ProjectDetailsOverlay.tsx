@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { ProjectModel } from "@/models/ProjectModel";
-import { Project, ProjectCategory, getColor, getProjectCategoryId } from "@/types/settings";
+import { Project, ProjectCategory, getProjectCategoryId } from "@/types/project";
+import { getColor } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
 import { ColorPicker } from "@/components/shared/ColorPicker";

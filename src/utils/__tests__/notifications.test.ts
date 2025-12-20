@@ -30,9 +30,9 @@ import {
 import { MockBrowserApis, setBrowserApis, resetBrowserApis } from "@/utils/browserApis";
 import { TodoModel } from "@/models/TodoModel";
 import { Todo, TodoMetadata, getTodoId } from "@/types/todo";
+import { Settings } from "@/types/settings";
+import { getColor } from "@/types/types";
 import {
-  Settings,
-  getColor,
   getShortTime,
   getDurationDay,
   getDurationMin,
@@ -41,7 +41,7 @@ import {
   getWeekday,
   getMonth,
   getTimestamp,
-} from "@/types/settings";
+} from "@/types/time";
 
 // Helper to create test settings
 const createTestSettings = (): Settings => ({

@@ -1,14 +1,7 @@
 "use client";
 
-import {
-  Gantt,
-  GanttZoomLevel,
-  GanttPreset,
-  defaultGantt,
-  defaultGanttPresets,
-  getDurationMin,
-  getGanttPresetId,
-} from "@/types/settings";
+import { Gantt, GanttZoomLevel, GanttPreset, defaultGantt, defaultGanttPresets, getGanttPresetId } from "@/types/gantt";
+import { getDurationMin } from "@/types/time";
 
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { SearchHistoryEntry } from "@/types/todo";
-import { getSearchHistoryId } from "@/types/types";
+import { SearchHistoryEntry, getSearchHistoryId } from "@/types/types";
 import { getTimestamp } from "@/types/time";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";

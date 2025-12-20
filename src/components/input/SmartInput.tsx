@@ -1,5 +1,8 @@
 import React, { useRef, forwardRef, useImperativeHandle, useState, useEffect } from "react";
-import { Person, Project, Priority, DateTimeSettings, WorkHoursSettings } from "@/types/settings";
+import { DateTimeSettings, WorkHoursSettings } from "@/types/settings";
+import { Person } from "@/types/person";
+import { Project } from "@/types/project";
+import { Priority } from "@/types/priority";
 import {
   detectDatesInText,
   detectedDateToISO,

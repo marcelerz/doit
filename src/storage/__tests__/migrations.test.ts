@@ -4,7 +4,9 @@
 
 import { migrateSettings, migrateTodos, getCurrentVersion } from "@/storage/migrations";
 import { Todo } from "@/types/todo";
-import { Settings, defaultSettings, getColor, getDurationDay } from "@/types/settings";
+import { Settings, defaultSettings } from "@/types/settings";
+import { getColor } from "@/types/types";
+import { getDurationDay } from "@/types/time";
 import { getPriorityId } from "@/types/priority";
 
 describe("migrations", () => {

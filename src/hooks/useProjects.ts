@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Project } from "@/types/settings";
+import { Project } from "@/types/project";
 import { STORAGE_KEYS } from "@/storage/storage";
 import { createProjectModels, ProjectModel } from "@/models/ProjectModel";
 import { useEntityManager } from "./useEntityManager";

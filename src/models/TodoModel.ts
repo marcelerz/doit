@@ -1,4 +1,5 @@
-import { Todo, TodoMetadata, TodoState, ActivityEntry } from "@/types/todo";
+import { Todo, TodoMetadata, TodoState } from "@/types/todo";
+import { ActivityEntry } from "@/types/types";
 import { DurationMin, getDurationMin } from "@/types/time";
 import { Settings } from "@/types/settings";
 import { normalizeDateValue, parseDate } from "@/utils/dateUtils";

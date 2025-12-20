@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
-import { Comment, ActivityEntry, getCommentId, getTimestamp, getActivityId } from "@/types/settings";
+import { Comment, ActivityEntry, getCommentId, getActivityId } from "@/types/types";
+import { getTimestamp } from "@/types/time";
 
 /**
  * Base entity interface that all managed entities must implement

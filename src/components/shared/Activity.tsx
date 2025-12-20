@@ -1,6 +1,6 @@
 "use client";
 
-import { Comment } from "@/types/todo";
+import { Comment, CommentHistoryEntry } from "@/types/types";
 import { formatActivityTime, formatActivityDateTime } from "@/utils/activityLogger";
 
 // Generic activity entry that works for todos, people, projects, and sprints

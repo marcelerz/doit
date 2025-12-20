@@ -6,17 +6,12 @@
  */
 
 import { TodoModel } from "@/models/TodoModel";
-import {
-  Priority,
-  WorkHoursSettings,
-  Gantt,
-  DaySchedule,
-  SchedulingTechnique,
-  DEFAULT_BLOCK_TYPES,
-  getDurationMin,
-} from "@/types/settings";
+import { WorkHoursSettings, DaySchedule } from "@/types/settings";
+import { Priority } from "@/types/priority";
+import { Gantt, SchedulingTechnique } from "@/types/gantt";
+import { DEFAULT_BLOCK_TYPES } from "@/types/timeBlock";
 
-import { DurationMin } from "@/types/time";
+import { DurationMin, getDurationMin } from "@/types/time";
 
 // ============================================================================
 // Types

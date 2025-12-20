@@ -12,7 +12,8 @@
  */
 
 import * as chrono from "chrono-node";
-import { DateTimeSettings, WorkHoursSettings, Priority } from "@/types/settings";
+import { DateTimeSettings, WorkHoursSettings } from "@/types/settings";
+import { Priority } from "@/types/priority";
 import { parseRecurringPattern, calculateNextOccurrence, RecurringPattern } from "./recurringParser";
 import { createCustomChrono } from "./chronoCustom";
 

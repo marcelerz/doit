@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ProjectCategory, getColor } from "@/types/settings";
+import { ProjectCategory } from "@/types/project";
+import { getColor } from "@/types/types";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface CategoriesTabProps {

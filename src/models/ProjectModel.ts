@@ -9,7 +9,7 @@
  * via useMemo for automatic wrapping.
  */
 
-import type { Project } from "@/types/settings";
+import type { Project } from "@/types/project";
 import { BaseEntityModel } from "./BaseEntityModel";
 
 /**

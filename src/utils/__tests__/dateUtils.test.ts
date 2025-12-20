@@ -13,7 +13,8 @@ import {
   convertToTimeInputFormat,
   toLocalISOString,
 } from "@/utils/dateUtils";
-import { DateTimeSettings, WorkHoursSettings, getShortTime, getWeekday, getMonth } from "@/types/settings";
+import { DateTimeSettings, WorkHoursSettings } from "@/types/settings";
+import { getShortTime, getWeekday, getMonth } from "@/types/time";
 
 // Mock the current date for consistent testing
 const mockDate = new Date("2025-12-09T14:30:00");

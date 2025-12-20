@@ -1,5 +1,7 @@
 import React from "react";
-import { MarkerColors, LinkPattern, Priority } from "@/types/settings";
+import { MarkerColors } from "@/types/markerColors";
+import { LinkPattern } from "@/types/linkPattern";
+import { Priority } from "@/types/priority";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import {

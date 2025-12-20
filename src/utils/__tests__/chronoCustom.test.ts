@@ -3,7 +3,8 @@
  */
 
 import { createCustomChrono, parseWithCustomChrono, parseDateWithCustomChrono } from "@/utils/chronoCustom";
-import { DateTimeSettings, WorkHoursSettings, getShortTime, getWeekday, getMonth } from "@/types/settings";
+import { DateTimeSettings, WorkHoursSettings } from "@/types/settings";
+import { getShortTime, getWeekday, getMonth } from "@/types/time";
 
 // Default test settings
 const defaultDateTimeSettings: DateTimeSettings = {

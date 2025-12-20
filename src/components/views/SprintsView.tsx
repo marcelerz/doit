@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Sprint, MarkerColors } from "@/types/settings";
+import { Sprint } from "@/types/sprint";
+import { MarkerColors } from "@/types/markerColors";
 import { SprintModel } from "@/hooks/useSprints";
 import { SprintItem } from "@/components/items/SprintItem";
 import { SprintDetailsOverlay } from "@/components/overlays/SprintDetailsOverlay";

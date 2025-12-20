@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { TodoModel } from "@/models/TodoModel";
 import { ProjectModel } from "@/models/ProjectModel";
-import { ProjectCategory } from "@/types/settings";
+import { ProjectCategory } from "@/types/project";
 
 interface StatisticsViewProps {
   todos: TodoModel[];

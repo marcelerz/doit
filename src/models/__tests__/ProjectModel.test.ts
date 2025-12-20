@@ -3,8 +3,8 @@
  */
 
 import { ProjectModel, createProjectModels, createProjectModel } from "@/models/ProjectModel";
-import { Project, getColor } from "@/types/settings";
-import { getProjectId, getProjectCategoryId } from "@/types/project";
+import { Project, getProjectId, getProjectCategoryId } from "@/types/project";
+import { getColor } from "@/types/types";
 
 // Helper to create a test project
 const createTestProject = (overrides: Partial<Project> = {}): Project => ({

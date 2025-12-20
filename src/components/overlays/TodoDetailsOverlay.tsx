@@ -2,7 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { TodoMetadata } from "@/types/todo";
-import { MarkerColors, Settings, LinkPattern, Priority, Sprint } from "@/types/settings";
+import { Settings } from "@/types/settings";
+import { MarkerColors } from "@/types/markerColors";
+import { LinkPattern } from "@/types/linkPattern";
+import { Priority } from "@/types/priority";
+import { Sprint } from "@/types/sprint";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Activity } from "@/components/shared/Activity";

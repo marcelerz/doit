@@ -3,14 +3,14 @@
 import React from "react";
 import { TodoMetadata } from "@/types/todo";
 import { TodoModel } from "@/models/TodoModel";
-import {
-  MarkerColors,
-  WorkHoursSettings,
-  GanttZoomLevel,
-  DEFAULT_BLOCK_TYPES,
-  TimeBlockType,
-  SchedulingTechnique,
-} from "@/types/settings";
+import { WorkHoursSettings, Settings } from "@/types/settings";
+import { MarkerColors } from "@/types/markerColors";
+import { GanttZoomLevel, SchedulingTechnique, Gantt } from "@/types/gantt";
+import { DEFAULT_BLOCK_TYPES, TimeBlockType } from "@/types/timeBlock";
+import { LinkPattern } from "@/types/linkPattern";
+import { Priority } from "@/types/priority";
+import { PersonModel } from "@/models/PersonModel";
+import { ProjectModel } from "@/models/ProjectModel";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
@@ -101,16 +101,16 @@ interface GanttViewProps {
   onEditTodo: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
   onArchive?: (id: string) => void;
   onUnarchive?: (id: string) => void;
-  settings: import("@/types/settings").Settings;
-  linkPatterns: import("@/types/settings").LinkPattern[];
-  availablePeople: import("@/models/PersonModel").PersonModel[];
-  availableProjects: import("@/models/ProjectModel").ProjectModel[];
-  availablePriorities: import("@/types/settings").Priority[];
+  settings: Settings;
+  linkPatterns: LinkPattern[];
+  availablePeople: PersonModel[];
+  availableProjects: ProjectModel[];
+  availablePriorities: Priority[];
   onAddPerson: (person: string) => void;
   onAddProject: (project: string) => void;
   onAddPriority: (priority: string) => void;
   onAddComment?: (todoId: string, content: string) => void;
-  onUpdateGanttSettings?: (gantt: import("@/types/settings").Gantt) => void;
+  onUpdateGanttSettings?: (gantt: Gantt) => void;
   // Subtask handlers
   onAddSubtask?: (todoId: string, text: string) => void;
   onToggleSubtask?: (todoId: string, subtaskId: string) => void;

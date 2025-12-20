@@ -1,6 +1,7 @@
 "use client";
 
-import { SprintSettings, defaultSprintSettings, getDurationDay } from "@/types/settings";
+import { SprintSettings, defaultSprintSettings } from "@/types/settings";
+import { getDurationDay } from "@/types/time";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface SprintsTabProps {

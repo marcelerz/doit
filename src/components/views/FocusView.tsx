@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { TodoModel } from "@/models/TodoModel";
-import { MarkerColors, Settings, LinkPattern } from "@/types/settings";
+import { Settings } from "@/types/settings";
+import { MarkerColors } from "@/types/markerColors";
+import { LinkPattern } from "@/types/linkPattern";
 import { TodoMetadata } from "@/types/todo";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Badge } from "@/components/shared/Badge";

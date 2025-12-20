@@ -17,7 +17,10 @@ import {
   detectPriorities,
   detectHashtags,
 } from "@/utils/autoDetection";
-import { Person, Project, Priority, getColor } from "@/types/settings";
+import { Person } from "@/types/person";
+import { Project } from "@/types/project";
+import { Priority } from "@/types/priority";
+import { getColor } from "@/types/types";
 import { getPersonId } from "@/types/person";
 import { getProjectId } from "@/types/project";
 import { getPriorityId } from "@/types/priority";

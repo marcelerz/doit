@@ -19,30 +19,28 @@ import {
 } from "@/utils/ganttScheduler";
 import {
   WorkHoursSettings,
-  Gantt,
-  Priority,
   DaySchedule,
   Settings,
   defaultSettings,
-  defaultGantt,
   defaultWorkHoursSettings,
-  defaultMarkerColors,
   defaultGeneralSettings,
   defaultDateTimeSettings,
-  defaultCalendar,
   defaultAutoAssignSettings,
   defaultNotificationSettings,
   defaultKanbanSettings,
   defaultSprintSettings,
-  defaultCategories,
   defaultFocusSettings,
   defaultFeatureSettings,
 } from "@/types/settings";
+import { Gantt, defaultGantt } from "@/types/gantt";
+import { Priority, getPriorityId } from "@/types/priority";
+import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
+import { defaultCalendar } from "@/types/calendar";
+import { defaultCategories } from "@/types/project";
 import { TodoModel } from "@/models/TodoModel";
 import { Todo, getTodoId, getTimeEntryId } from "@/types/todo";
 import { getTimestamp, getShortTime, getDurationMin } from "@/types/time";
 import { getBreakPeriodId } from "@/types/breakPeriod";
-import { getPriorityId } from "@/types/priority";
 import { getColor } from "@/types/types";
 
 // Helper to create minimal settings for TodoModel

@@ -3,8 +3,8 @@
  */
 
 import { PersonModel, createPersonModels, createPersonModel } from "@/models/PersonModel";
-import { Person, getColor } from "@/types/settings";
-import { getPersonId } from "@/types/person";
+import { Person, getPersonId } from "@/types/person";
+import { getColor } from "@/types/types";
 
 // Helper to create a test person
 const createTestPerson = (overrides: Partial<Person> = {}): Person => ({

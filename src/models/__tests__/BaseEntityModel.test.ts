@@ -3,7 +3,9 @@
  */
 
 import { BaseEntityModel, BaseEntity } from "@/models/BaseEntityModel";
-import { Comment, ActivityEntry, getCommentId, getActivityId, getTimestamp, getColor } from "@/types/settings";
+import { Comment, ActivityEntry, getCommentId, getActivityId } from "@/types/types";
+import { getTimestamp } from "@/types/time";
+import { getColor } from "@/types/types";
 
 // Concrete implementation for testing
 class TestEntityModel extends BaseEntityModel<BaseEntity> {

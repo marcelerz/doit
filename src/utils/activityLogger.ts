@@ -2,8 +2,9 @@
  * Activity logging utilities for tracking changes to todos
  */
 
-import { ActivityEntry, TodoActivityType, TodoMetadata } from "@/types/todo";
-import { getActivityId, getTimestamp, ActivityId } from "@/types/settings";
+import { TodoActivityType, TodoMetadata } from "@/types/todo";
+import { ActivityEntry, getActivityId, ActivityId } from "@/types/types";
+import { getTimestamp } from "@/types/time";
 
 /**
  * Generate a unique ID for an activity entry

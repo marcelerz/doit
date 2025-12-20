@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Priority, getColor } from "@/types/settings";
+import { Priority } from "@/types/priority";
+import { getColor } from "@/types/types";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { IconButton } from "@/components/shared/IconButton";

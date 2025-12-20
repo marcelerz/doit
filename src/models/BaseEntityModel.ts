@@ -10,7 +10,7 @@
  * This reduces code duplication between PersonModel and ProjectModel.
  */
 
-import type { Comment, ActivityEntry } from "@/types/settings";
+import type { Comment, ActivityEntry } from "@/types/types";
 
 /**
  * Common interface for entities that can be wrapped by EntityModel

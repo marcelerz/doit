@@ -4,7 +4,11 @@
  */
 
 import { Todo, TodoMetadata, TodoState } from "@/types/todo";
-import { Settings, defaultSettings, Person, Project, Priority, getTimestamp } from "@/types/settings";
+import { Settings, defaultSettings } from "@/types/settings";
+import { Person } from "@/types/person";
+import { Project } from "@/types/project";
+import { Priority } from "@/types/priority";
+import { getTimestamp } from "@/types/time";
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
 import { STORAGE_KEYS, saveToStorage, getStorageAdapter } from "./storage";
 

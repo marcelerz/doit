@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TodoTemplate } from "@/types/todo";
+import { TodoTemplate } from "@/types/todoTemplate";
 import { Modal } from "./Modal";
 import { Badge } from "./Badge";
 import { InfoTooltip, tooltipContent } from "./InfoTooltip";

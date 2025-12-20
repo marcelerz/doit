@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { PersonModel } from "@/models/PersonModel";
-import { Person, getColor } from "@/types/settings";
+import { Person } from "@/types/person";
+import { getColor } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
 import { ColorPicker } from "@/components/shared/ColorPicker";

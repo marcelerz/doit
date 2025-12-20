@@ -1,6 +1,7 @@
 "use client";
 
-import { Calendar, CalendarView, CalendarDotColorBy, defaultCalendar, getWeekday } from "@/types/settings";
+import { Calendar, CalendarView, CalendarDotColorBy, defaultCalendar } from "@/types/calendar";
+import { getWeekday } from "@/types/time";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface CalendarTabProps {

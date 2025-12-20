@@ -3,12 +3,7 @@ import { PriorityId } from "./priority";
 import { ProjectId } from "./project";
 import { SprintId } from "./sprint";
 import { DurationMin, DurationSec, Timestamp } from "./time";
-import { ActivityEntry, Comment, SearchHistoryEntry } from "./types";
-import { TodoTemplate, TodoTemplateId } from "./todoTemplate";
-
-// Re-export Comment and related types for backward compatibility
-export type { Comment, SearchHistoryEntry, TodoTemplate, TodoTemplateId };
-export type { ActivityEntry };
+import { ActivityEntry, Comment } from "./types";
 
 // Unique branded type for Todo IDs
 export type TodoId = string & { readonly __brand: unique symbol };

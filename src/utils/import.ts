@@ -4,7 +4,8 @@
  */
 
 import { Todo, TodoMetadata, Subtask, TodoState, getSubtaskId, getTag } from "@/types/todo";
-import { getTimestamp, getActivityId } from "@/types/settings";
+import { getTimestamp } from "@/types/time";
+import { getActivityId } from "@/types/types";
 
 // Supported import formats
 export type ImportFormat = "todoist" | "things" | "reminders" | "csv" | "json" | "auto";

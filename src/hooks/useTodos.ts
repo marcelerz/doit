@@ -11,7 +11,8 @@ import {
   getTimeEntryId,
   TodoActivityType,
 } from "@/types/todo";
-import { getTimestamp, getActivityId, getCommentId, ActivityEntry, CommentId, getDurationMin } from "@/types/settings";
+import { getTimestamp, getDurationMin } from "@/types/time";
+import { getActivityId, getCommentId, ActivityEntry, CommentId } from "@/types/types";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/storage/migrations";
 import { defaultSettings, Settings } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";

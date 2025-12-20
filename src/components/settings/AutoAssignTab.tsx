@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { AutoAssignSettings, Priority, defaultAutoAssignSettings } from "@/types/settings";
+import { AutoAssignSettings, defaultAutoAssignSettings } from "@/types/settings";
+import { Priority } from "@/types/priority";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";

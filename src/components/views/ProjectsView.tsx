@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Project, getColor } from "@/types/settings";
+import { Project } from "@/types/project";
+import { getColor } from "@/types/types";
 import { IconButton } from "@/components/shared/IconButton";
 
 interface ProjectsTabProps {

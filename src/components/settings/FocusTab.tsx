@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FocusSettings, defaultFocusSettings, getDurationMin, getDurationSec } from "@/types/settings";
+import { FocusSettings, defaultFocusSettings } from "@/types/settings";
+import { getDurationMin, getDurationSec } from "@/types/time";
 import { playNotificationSound, AMBIENT_SOUNDS, playAmbientSound, stopAmbientSound } from "@/utils/notifications";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 

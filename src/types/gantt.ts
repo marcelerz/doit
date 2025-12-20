@@ -1,5 +1,10 @@
-import { defaultGanttPresets, GanttPreset, GanttPresetId, SchedulingTechnique } from "./ganttPreset";
+import { defaultGanttPresets, GanttPreset, GanttPresetId, SchedulingTechnique, getGanttPresetId } from "./ganttPreset";
 import { DurationMin, getDurationMin } from "./time";
+
+// Re-export types from ganttPreset for convenience
+export type { GanttPreset, GanttPresetId, SchedulingTechnique };
+// Re-export values from ganttPreset
+export { getGanttPresetId, defaultGanttPresets };
 
 // Gantt Tab Settings
 export type GanttZoomLevel = "15min" | "30min" | "1hour" | "2hour";

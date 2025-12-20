@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Person } from "@/types/settings";
+import { Person } from "@/types/person";
 import { STORAGE_KEYS } from "@/storage/storage";
 import { createPersonModels, PersonModel } from "@/models/PersonModel";
 import { useEntityManager } from "./useEntityManager";

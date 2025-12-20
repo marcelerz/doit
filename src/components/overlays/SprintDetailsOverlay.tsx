@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { SprintModel } from "@/hooks/useSprints";
-import { Sprint, MarkerColors, getColor } from "@/types/settings";
+import { Sprint } from "@/types/sprint";
+import { MarkerColors } from "@/types/markerColors";
+import { getColor } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
 import { ActionButtons } from "@/components/shared/ActionButtons";

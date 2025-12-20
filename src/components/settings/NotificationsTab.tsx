@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { NotificationSettings, defaultNotificationSettings, getDurationHour, getDurationMin } from "@/types/settings";
+import { NotificationSettings, defaultNotificationSettings } from "@/types/settings";
+import { getDurationHour, getDurationMin } from "@/types/time";
 import {
   isNotificationSupported,
   getNotificationPermission,

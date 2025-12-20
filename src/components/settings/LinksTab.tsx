@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { LinkPattern, getColor } from "@/types/settings";
+import { LinkPattern } from "@/types/linkPattern";
+import { getColor } from "@/types/types";
 import { IconButton } from "@/components/shared/IconButton";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 

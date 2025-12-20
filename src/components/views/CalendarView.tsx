@@ -3,11 +3,14 @@
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
-import { MarkerColors, CalendarView as CalendarViewType, Calendar, CommentId } from "@/types/settings";
+import { Settings } from "@/types/settings";
+import { MarkerColors } from "@/types/markerColors";
+import { CalendarView as CalendarViewType, Calendar } from "@/types/calendar";
+import { CommentId } from "@/types/types";
 import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import { TodoItem } from "@/components/items/TodoItem";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
-import { Settings, Priority } from "@/types/settings";
+import { Priority } from "@/types/priority";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";

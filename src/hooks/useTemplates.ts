@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { TodoTemplate, TodoMetadata } from "@/types/todo";
-import { getTodoTemplateId } from "@/types/todoTemplate";
-import { getTimestamp } from "@/types/settings";
+import { TodoMetadata } from "@/types/todo";
+import { TodoTemplate, getTodoTemplateId } from "@/types/todoTemplate";
+import { getTimestamp } from "@/types/time";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
 

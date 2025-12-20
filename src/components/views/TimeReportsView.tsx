@@ -4,7 +4,9 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
-import { Settings, ProjectCategory, Sprint } from "@/types/settings";
+import { Settings } from "@/types/settings";
+import { ProjectCategory } from "@/types/project";
+import { Sprint } from "@/types/sprint";
 import { SprintModel } from "@/hooks/useSprints";
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
 

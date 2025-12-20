@@ -1,23 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import {
-  Settings,
-  defaultSettings,
-  Priority,
-  LinkPattern,
-  MarkerColors,
-  KanbanState,
-  KanbanView,
-  KanbanTransition,
-  ProjectCategory,
-  FeatureSettings,
-  getKanbanStateId,
-  getKanbanViewId,
-  getProjectCategoryId,
-} from "@/types/settings";
+import { Settings, defaultSettings, FeatureSettings } from "@/types/settings";
+import { Priority } from "@/types/priority";
 import { getPriorityId } from "@/types/priority";
-import { getLinkPatternId } from "@/types/linkPattern";
+import { LinkPattern, getLinkPatternId } from "@/types/linkPattern";
+import { MarkerColors } from "@/types/markerColors";
+import { KanbanState, getKanbanStateId } from "@/types/kanbanState";
+import { KanbanView, getKanbanViewId } from "@/types/kanbanView";
+import { KanbanTransition } from "@/types/kanbanTransition";
+import { ProjectCategory, getProjectCategoryId } from "@/types/project";
 import { migrateSettings } from "@/storage/migrations";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";

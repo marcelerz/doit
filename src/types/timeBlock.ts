@@ -25,3 +25,6 @@ export const defaultTimeBlock: TimeBlockTypeConfig[] = [
   { id: getTimeBlockId("commute"), name: "Commute", color: getColor("#60a5fa"), icon: "🚗" }, // blue-400
   { id: getTimeBlockId("personal"), name: "Personal", color: getColor("#f472b6"), icon: "🏠" }, // pink-400
 ];
+
+// Alias for backwards compatibility
+export const DEFAULT_BLOCK_TYPES = defaultTimeBlock;

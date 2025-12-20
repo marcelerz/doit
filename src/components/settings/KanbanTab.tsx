@@ -1,17 +1,10 @@
 "use client";
 
-import {
-  KanbanSettings,
-  KanbanState,
-  KanbanTransition,
-  KanbanView,
-  defaultKanbanStates,
-  defaultKanbanTransitions,
-  defaultKanbanViews,
-  getKanbanStateId,
-  getKanbanViewId,
-  getColor,
-} from "@/types/settings";
+import { KanbanSettings } from "@/types/settings";
+import { KanbanState, defaultKanbanStates, getKanbanStateId } from "@/types/kanbanState";
+import { KanbanTransition, defaultKanbanTransitions } from "@/types/kanbanTransition";
+import { KanbanView, defaultKanbanViews, getKanbanViewId } from "@/types/kanbanView";
+import { getColor } from "@/types/types";
 import { useState } from "react";
 import { IconButton } from "@/components/shared/IconButton";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";

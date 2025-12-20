@@ -1,17 +1,10 @@
 "use client";
 
-import {
-  WorkHoursSettings,
-  DaySchedule,
-  BreakPeriod,
-  DEFAULT_BLOCK_TYPES,
-  TimeBlockType,
-  defaultWorkHoursSettings,
-  getBreakPeriodId,
-  getShortTime,
-  getColor,
-  getTimeBlockId,
-} from "@/types/settings";
+import { WorkHoursSettings, DaySchedule, defaultWorkHoursSettings } from "@/types/settings";
+import { BreakPeriod, getBreakPeriodId } from "@/types/breakPeriod";
+import { DEFAULT_BLOCK_TYPES, TimeBlockType, getTimeBlockId } from "@/types/timeBlock";
+import { getShortTime } from "@/types/time";
+import { getColor } from "@/types/types";
 import { useState } from "react";
 import { getTextColor } from "@/utils/colors";
 import { IconButton } from "@/components/shared/IconButton";

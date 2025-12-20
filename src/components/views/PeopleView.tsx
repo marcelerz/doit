@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Person, getColor } from "@/types/settings";
+import { Person } from "@/types/person";
+import { getColor } from "@/types/types";
 import { IconButton } from "@/components/shared/IconButton";
 
 interface PeopleTabProps {
