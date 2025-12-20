@@ -218,7 +218,7 @@ export class TodoModel {
    * Returns a copy to prevent external modification of internal state
    */
   get dependencyIds(): TodoId[] {
-    return [...this._raw.dependencies];
+    return [...(this._raw.dependencies || [])];
   }
 
   /**
@@ -226,7 +226,7 @@ export class TodoModel {
    * Returns a copy to prevent external modification of internal state
    */
   get tagIds(): Tag[] {
-    return [...this._raw.tags];
+    return [...(this._raw.tags || [])];
   }
 
   /**
@@ -305,7 +305,7 @@ export class TodoModel {
    * Maps from Tag[] to string[]
    */
   get tags(): string[] {
-    return this._raw.tags.map((t) => t as string);
+    return (this._raw.tags || []).map((t) => t as string);
   }
 
   /**
@@ -313,7 +313,7 @@ export class TodoModel {
    * Maps from TodoId[] to string[]
    */
   get dependencies(): string[] {
-    return this._raw.dependencies.map((d) => d as string);
+    return (this._raw.dependencies || []).map((d) => d as string);
   }
 
   /**
