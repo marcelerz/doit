@@ -342,4 +342,74 @@ describe("EntityRegistry", () => {
       expect(registry.settings).toBe(settings);
     });
   });
+
+  describe("name-based lookups", () => {
+    it("should find person by exact name (case-insensitive)", () => {
+      const person = createTestPerson({
+        id: getPersonId("p1"),
+        name: "John Doe",
+        alternatives: ["Johnny"],
+      });
+      const registry = createEntityRegistry([], [person], [], settings);
+
+      // Exact match
+      expect(registry.findPersonByName("John Doe")?.id).toBe(person.id);
+      // Case-insensitive
+      expect(registry.findPersonByName("john doe")?.id).toBe(person.id);
+      expect(registry.findPersonByName("JOHN DOE")?.id).toBe(person.id);
+    });
+
+    it("should find person by alternative name", () => {
+      const person = createTestPerson({
+        id: getPersonId("p1"),
+        name: "John Doe",
+        alternatives: ["Johnny", "JD"],
+      });
+      const registry = createEntityRegistry([], [person], [], settings);
+
+      expect(registry.findPersonByName("Johnny")?.id).toBe(person.id);
+      expect(registry.findPersonByName("JD")?.id).toBe(person.id);
+      expect(registry.findPersonByName("jd")?.id).toBe(person.id);
+    });
+
+    it("should return null for non-existent person", () => {
+      const registry = createEntityRegistry([], [], [], settings);
+
+      expect(registry.findPersonByName("Unknown Person")).toBeNull();
+    });
+
+    it("should find project by exact name (case-insensitive)", () => {
+      const project = createTestProject({
+        id: getProjectId("proj1"),
+        name: "Website Redesign",
+        alternatives: ["WR"],
+      });
+      const registry = createEntityRegistry([], [], [project], settings);
+
+      // Exact match
+      expect(registry.findProjectByName("Website Redesign")?.id).toBe(project.id);
+      // Case-insensitive
+      expect(registry.findProjectByName("website redesign")?.id).toBe(project.id);
+      expect(registry.findProjectByName("WEBSITE REDESIGN")?.id).toBe(project.id);
+    });
+
+    it("should find project by alternative name", () => {
+      const project = createTestProject({
+        id: getProjectId("proj1"),
+        name: "Website Redesign",
+        alternatives: ["WR", "Web Redo"],
+      });
+      const registry = createEntityRegistry([], [], [project], settings);
+
+      expect(registry.findProjectByName("WR")?.id).toBe(project.id);
+      expect(registry.findProjectByName("Web Redo")?.id).toBe(project.id);
+      expect(registry.findProjectByName("wr")?.id).toBe(project.id);
+    });
+
+    it("should return null for non-existent project", () => {
+      const registry = createEntityRegistry([], [], [], settings);
+
+      expect(registry.findProjectByName("Unknown Project")).toBeNull();
+    });
+  });
 });

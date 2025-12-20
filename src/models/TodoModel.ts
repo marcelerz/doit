@@ -7,7 +7,10 @@ import type { Timestamp, DurationSec } from "@/types/time";
 import { ActivityEntry } from "@/types/types";
 import { DurationMin, getDurationMin } from "@/types/time";
 import { parseRecurringPattern } from "@/utils/recurringParser";
+import { parseDate } from "@/utils/dateUtils";
+import { parseDuration } from "@/utils/ganttScheduler";
 import { SettingsModel } from "./SettingsModel";
+import type { EntityRegistry } from "./EntityRegistry";
 
 /**
  * TodoModel wraps a Todo object and provides business logic abstractions.
@@ -17,10 +20,12 @@ import { SettingsModel } from "./SettingsModel";
 export class TodoModel {
   private _raw: Todo;
   private _settingsModel: SettingsModel;
+  private _registry?: EntityRegistry;
 
-  constructor(todo: Todo, settings: SettingsModel) {
+  constructor(todo: Todo, settings: SettingsModel, registry?: EntityRegistry) {
     this._raw = todo;
     this._settingsModel = settings;
+    this._registry = registry;
   }
 
   // ===== Core Todo Properties =====
@@ -86,25 +91,49 @@ export class TodoModel {
   }
 
   // ===== Actual Field Getters (IDs) =====
+  // These apply auto-assign defaults from settings when actual fields are empty
 
   /**
-   * Get assigned people IDs (actual field)
+   * Get assigned people IDs (actual field with auto-assign fallback)
    * Returns a copy to prevent external modification of internal state
    */
   get assignedPeopleIds(): PersonId[] {
-    return [...this._raw.assignedPeople];
+    if (this._raw.assignedPeople.length > 0) {
+      return [...this._raw.assignedPeople];
+    }
+    // Apply auto-assign default if registry is available
+    const defaultName = this._settingsModel.defaultAssignedPerson;
+    if (defaultName && this._registry) {
+      const person = this._registry.findPersonByName(defaultName);
+      if (person) {
+        return [person.id as PersonId];
+      }
+    }
+    return [];
   }
 
   /**
-   * Get source people IDs (actual field)
+   * Get source people IDs (actual field with auto-assign fallback)
    * Returns a copy to prevent external modification of internal state
    */
   get sourcePeopleIds(): PersonId[] {
-    return [...this._raw.sourcePeople];
+    if (this._raw.sourcePeople.length > 0) {
+      return [...this._raw.sourcePeople];
+    }
+    // Apply auto-assign default if registry is available
+    const defaultName = this._settingsModel.defaultSourcePerson;
+    if (defaultName && this._registry) {
+      const person = this._registry.findPersonByName(defaultName);
+      if (person) {
+        return [person.id as PersonId];
+      }
+    }
+    return [];
   }
 
   /**
    * Get mentioned people IDs (actual field)
+   * No auto-assign for mentioned people
    * Returns a copy to prevent external modification of internal state
    */
   get mentionedPeopleIds(): PersonId[] {
@@ -112,32 +141,76 @@ export class TodoModel {
   }
 
   /**
-   * Get project IDs (actual field)
+   * Get project IDs (actual field with auto-assign fallback)
    * Returns a copy to prevent external modification of internal state
    */
   get projectIds(): ProjectId[] {
-    return [...this._raw.projects];
+    if (this._raw.projects.length > 0) {
+      return [...this._raw.projects];
+    }
+    // Apply auto-assign default if registry is available
+    const defaultName = this._settingsModel.defaultProject;
+    if (defaultName && this._registry) {
+      const project = this._registry.findProjectByName(defaultName);
+      if (project) {
+        return [project.id as ProjectId];
+      }
+    }
+    return [];
   }
 
   /**
-   * Get priority ID (actual field)
+   * Get priority ID (actual field with auto-assign fallback)
    */
   get priorityId(): PriorityId | undefined {
-    return this._raw.priority;
+    if (this._raw.priority) {
+      return this._raw.priority;
+    }
+    // Apply auto-assign default
+    const defaultName = this._settingsModel.defaultPriority;
+    if (defaultName) {
+      const priority = this._settingsModel.findPriority(defaultName);
+      if (priority) {
+        return priority.id;
+      }
+    }
+    return undefined;
   }
 
   /**
-   * Get due date timestamp (actual field)
+   * Get due date timestamp (actual field with auto-assign fallback)
    */
   get dueDateTimestamp(): Timestamp | undefined {
-    return this._raw.dueDate;
+    if (this._raw.dueDate) {
+      return this._raw.dueDate;
+    }
+    // Apply auto-assign default
+    const defaultDateStr = this._settingsModel.defaultDueDate;
+    if (defaultDateStr) {
+      const parsed = parseDate(defaultDateStr, this._settingsModel.dateTime, this._settingsModel.workHours);
+      if (parsed) {
+        return parsed.timestamp as Timestamp;
+      }
+    }
+    return undefined;
   }
 
   /**
-   * Get duration in seconds (actual field)
+   * Get duration in seconds (actual field with auto-assign fallback)
    */
   get durationSeconds(): DurationSec | undefined {
-    return this._raw.duration;
+    if (this._raw.duration) {
+      return this._raw.duration;
+    }
+    // Apply auto-assign default
+    const defaultDurationStr = this._settingsModel.defaultDuration;
+    if (defaultDurationStr) {
+      const minutes = parseDuration(defaultDurationStr);
+      if (minutes > 0) {
+        return (minutes * 60) as DurationSec;
+      }
+    }
+    return undefined;
   }
 
   /**
@@ -490,8 +563,11 @@ export class TodoModel {
   /**
    * Update the underlying settings (useful when settings change)
    */
-  updateSettings(settings: SettingsModel) {
+  updateSettings(settings: SettingsModel, registry?: EntityRegistry) {
     this._settingsModel = settings;
+    if (registry !== undefined) {
+      this._registry = registry;
+    }
   }
 
   // ===== Validation Methods =====
@@ -947,13 +1023,13 @@ export class TodoModel {
 /**
  * Factory function to create TodoModel instances
  */
-export function createTodoModel(todo: Todo, settings: SettingsModel): TodoModel {
-  return new TodoModel(todo, settings);
+export function createTodoModel(todo: Todo, settings: SettingsModel, registry?: EntityRegistry): TodoModel {
+  return new TodoModel(todo, settings, registry);
 }
 
 /**
  * Create TodoModel instances from an array of todos
  */
-export function createTodoModels(todos: Todo[], settings: SettingsModel): TodoModel[] {
-  return todos.map((todo) => new TodoModel(todo, settings));
+export function createTodoModels(todos: Todo[], settings: SettingsModel, registry?: EntityRegistry): TodoModel[] {
+  return todos.map((todo) => new TodoModel(todo, settings, registry));
 }

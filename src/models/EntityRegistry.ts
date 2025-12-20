@@ -71,11 +71,39 @@ export class EntityRegistry {
   }
 
   /**
+   * Find a PersonModel by name (checks name and alternatives, case-insensitive)
+   * @returns PersonModel or null if not found
+   */
+  findPersonByName(name: string): PersonModel | null {
+    const lowerName = name.toLowerCase();
+    for (const person of this._personMap.values()) {
+      if (person.matchesAnyName([lowerName])) {
+        return person;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Get a ProjectModel by ID
    * @returns ProjectModel or null if not found
    */
   getProject(id: ProjectId): ProjectModel | null {
     return this._projectMap.get(id) ?? null;
+  }
+
+  /**
+   * Find a ProjectModel by name (checks name and alternatives, case-insensitive)
+   * @returns ProjectModel or null if not found
+   */
+  findProjectByName(name: string): ProjectModel | null {
+    const lowerName = name.toLowerCase();
+    for (const project of this._projectMap.values()) {
+      if (project.matchesAnyName([lowerName])) {
+        return project;
+      }
+    }
+    return null;
   }
 
   /**
