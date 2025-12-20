@@ -181,9 +181,9 @@ describe("BaseEntityModel", () => {
       expect(model.latestComment?.commentId).toBe(getCommentId("2"));
     });
 
-    it("should return undefined latestComment for empty comments", () => {
+    it("should return null latestComment for empty comments", () => {
       const model = new TestEntityModel(createTestEntity({ comments: [] }));
-      expect(model.latestComment).toBeUndefined();
+      expect(model.latestComment).toBeNull();
     });
 
     it("should return hasActivity false for empty activity", () => {

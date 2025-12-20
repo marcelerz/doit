@@ -215,14 +215,15 @@ export class SettingsModel {
 
   /**
    * Find a priority by name (case-insensitive, checks alternatives too)
+   * Returns null if not found
    * Returns a copy to prevent external modification of internal state
    */
-  findPriority(name: string): Priority | undefined {
+  findPriority(name: string): Priority | null {
     const lowerName = name.toLowerCase();
     const found = this._raw.priorities.find(
       (p) => p.name.toLowerCase() === lowerName || p.alternatives.some((alt) => alt.toLowerCase() === lowerName),
     );
-    return found ? structuredClone(found) : undefined;
+    return found ? structuredClone(found) : null;
   }
 
   /**
@@ -245,7 +246,7 @@ export class SettingsModel {
    * Check if a priority name is valid
    */
   isValidPriority(name: string): boolean {
-    return this.findPriority(name) !== undefined;
+    return this.findPriority(name) !== null;
   }
 
   // ============================================================================
@@ -329,11 +330,12 @@ export class SettingsModel {
 
   /**
    * Find a kanban state by ID
+   * Returns null if not found
    * Returns a copy to prevent external modification of internal state
    */
-  findKanbanState(stateId: string): KanbanState | undefined {
+  findKanbanState(stateId: string): KanbanState | null {
     const found = this._raw.kanban.states.find((s) => s.id === stateId);
-    return found ? structuredClone(found) : undefined;
+    return found ? structuredClone(found) : null;
   }
 
   /**
@@ -381,20 +383,22 @@ export class SettingsModel {
 
   /**
    * Get the active kanban view
+   * Returns null if no active view is set
    * Returns a copy to prevent external modification of internal state
    */
-  get activeKanbanView(): KanbanView | undefined {
+  get activeKanbanView(): KanbanView | null {
     const found = this._raw.kanban.views.find((v) => v.id === this._raw.kanban.activeViewId);
-    return found ? structuredClone(found) : undefined;
+    return found ? structuredClone(found) : null;
   }
 
   /**
    * Find a kanban view by ID
+   * Returns null if not found
    * Returns a copy to prevent external modification of internal state
    */
-  findKanbanView(viewId: string): KanbanView | undefined {
+  findKanbanView(viewId: string): KanbanView | null {
     const found = this._raw.kanban.views.find((v) => v.id === viewId);
-    return found ? structuredClone(found) : undefined;
+    return found ? structuredClone(found) : null;
   }
 
   // ============================================================================

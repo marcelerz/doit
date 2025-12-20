@@ -192,7 +192,7 @@ describe("SettingsModel", () => {
       expect(model.findPriority("high")?.name).toBe("High");
       expect(model.findPriority("HIGH")?.name).toBe("High");
       expect(model.findPriority("urgent")?.name).toBe("High");
-      expect(model.findPriority("nonexistent")).toBeUndefined();
+      expect(model.findPriority("nonexistent")).toBeNull();
     });
 
     it("should get priority order", () => {
@@ -247,7 +247,7 @@ describe("SettingsModel", () => {
       const firstState = defaultSettings.kanban.states[0];
 
       expect(model.findKanbanState(firstState.id)?.id).toBe(firstState.id);
-      expect(model.findKanbanState("nonexistent")).toBeUndefined();
+      expect(model.findKanbanState("nonexistent")).toBeNull();
     });
 
     it("should separate system and custom states", () => {

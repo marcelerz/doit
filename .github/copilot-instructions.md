@@ -129,6 +129,82 @@ if (value == null) { ... }
 if (this.context !== undefined) { ... }
 ```
 
+### Null vs Undefined Return Values
+
+Use `null` and `undefined` consistently to distinguish between "not found" and "not set":
+
+**`null`** - Use for lookup/find operations when an item is not found:
+
+```typescript
+// ✅ Good - null means "searched but not found"
+findPriority(name: string): Priority | null {
+  const found = this._raw.priorities.find(...);
+  return found ? structuredClone(found) : null;
+}
+
+findKanbanState(stateId: string): KanbanState | null { ... }
+get latestComment(): Comment | null { ... }
+get activeTimeEntry(): TimeEntry | null { ... }
+```
+
+**`undefined`** - Use for optional properties that may not be set:
+
+```typescript
+// ✅ Good - undefined means "not set" or "optional"
+get color(): string | undefined {
+  return this._raw.color;
+}
+
+get defaultAssignedPerson(): string | undefined { ... }
+get updatedAt(): number | undefined { ... }
+get context(): string | undefined { ... }
+```
+
+### Immutable Return Values
+
+Model classes must return copies of internal data to prevent external modification:
+
+**Arrays** - Return shallow or deep copies:
+
+```typescript
+// ✅ Good - shallow copy for primitive arrays
+get alternatives(): string[] {
+  return [...this._raw.alternatives];
+}
+
+// ✅ Good - deep copy for object arrays
+get comments(): Comment[] {
+  return this._raw.comments.map((c) => structuredClone(c));
+}
+```
+
+**Objects** - Return deep copies using `structuredClone`:
+
+```typescript
+// ✅ Good - deep copy prevents modification
+get dateTime(): DateTimeSettings {
+  return structuredClone(this._raw.dateTime);
+}
+
+findPriority(name: string): Priority | null {
+  const found = this._raw.priorities.find(...);
+  return found ? structuredClone(found) : null;
+}
+```
+
+**Performance** - Use `_raw` directly for count/boolean checks:
+
+```typescript
+// ✅ Good - no unnecessary cloning for simple checks
+get hasComments(): boolean {
+  return this._raw.comments.length > 0;
+}
+
+get commentCount(): number {
+  return this._raw.comments.length;
+}
+```
+
 ## Project Details
 
 - **Type**: Next.js TypeScript webapp

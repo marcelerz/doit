@@ -149,10 +149,11 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
 
   /**
    * Get the most recent comment, if any
+   * Returns null if no comments exist
    * Returns a copy to prevent external modification of internal state
    */
-  get latestComment(): Comment | undefined {
-    if (this._raw.comments.length === 0) return undefined;
+  get latestComment(): Comment | null {
+    if (this._raw.comments.length === 0) return null;
     return structuredClone(this._raw.comments[this._raw.comments.length - 1]);
   }
 
@@ -172,10 +173,11 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
 
   /**
    * Get the most recent activity entry, if any
+   * Returns null if no activity exists
    * Returns a copy to prevent external modification of internal state
    */
-  get latestActivity(): ActivityEntry<string> | undefined {
-    if (this._raw.activity.length === 0) return undefined;
+  get latestActivity(): ActivityEntry<string> | null {
+    if (this._raw.activity.length === 0) return null;
     return structuredClone(this._raw.activity[this._raw.activity.length - 1]);
   }
 

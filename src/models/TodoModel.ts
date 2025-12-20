@@ -733,12 +733,13 @@ export class TodoModel {
 
   /**
    * Get the currently active time entry (if tracking)
+   * Returns null if not currently tracking
    * Returns a copy to prevent external modification of internal state
    */
   get activeTimeEntry() {
-    if (!this._raw.timeTracking) return undefined;
+    if (!this._raw.timeTracking) return null;
     const entry = this._raw.timeTracking.entries.find((e) => !e.endTime);
-    return entry ? structuredClone(entry) : undefined;
+    return entry ? structuredClone(entry) : null;
   }
 
   /**
@@ -757,10 +758,11 @@ export class TodoModel {
 
   /**
    * Get the most recent comment
+   * Returns null if no comments exist
    * Returns a new object to prevent external modification
    */
   get latestComment() {
-    if (this._raw.comments.length === 0) return undefined;
+    if (this._raw.comments.length === 0) return null;
     const comment = this._raw.comments[this._raw.comments.length - 1];
     const latestHistory = comment.history[comment.history.length - 1];
     return {
@@ -772,10 +774,11 @@ export class TodoModel {
 
   /**
    * Get the most recent activity
+   * Returns null if no activity exists
    * Returns a copy to prevent external modification of internal state
    */
   get latestActivity() {
-    if (this._raw.activity.length === 0) return undefined;
+    if (this._raw.activity.length === 0) return null;
     return structuredClone(this._raw.activity[this._raw.activity.length - 1]);
   }
 
