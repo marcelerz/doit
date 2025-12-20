@@ -325,7 +325,7 @@ export function KanbanView({
       todo.assignedPeople.forEach((p) => assignedPeople.add(p));
       todo.projects.forEach((p) => projects.add(p));
       if (todo.priority) priorities.add(todo.priority);
-      todo.raw.metadata?.tags?.forEach((t) => tags.add(t));
+      todo.tags.forEach((t) => tags.add(t));
     });
 
     return {
@@ -359,10 +359,10 @@ export function KanbanView({
       if (viewOptions.sprintId !== null) {
         if (viewOptions.sprintId === "backlog") {
           // Show only todos without a sprint
-          if (todo.raw.metadata?.sprint) return;
+          if (todo.sprint) return;
         } else {
           // Show only todos matching the selected sprint
-          if (todo.raw.metadata?.sprint !== viewOptions.sprintId) return;
+          if (todo.sprint !== viewOptions.sprintId) return;
         }
       }
 
@@ -401,7 +401,7 @@ export function KanbanView({
 
       // Apply tags filter
       if (filters.tags.size > 0) {
-        const todoTags = todo.raw.metadata?.tags || [];
+        const todoTags = todo.tags;
         const hasMatch = todoTags.some((t) => filters.tags.has(t));
         if (!hasMatch) return;
       }
@@ -511,22 +511,12 @@ export function KanbanView({
 
   // Color helper functions for filters
   const getPersonColor = useCallback(
-    (name: string) =>
-      findPersonColor(
-        name,
-        availablePeople.map((p) => p.raw),
-        markerColors.assigned,
-      ),
+    (name: string) => findPersonColor(name, availablePeople, markerColors.assigned),
     [availablePeople, markerColors.assigned],
   );
 
   const getProjectColor = useCallback(
-    (name: string) =>
-      findProjectColor(
-        name,
-        availableProjects.map((p) => p.raw),
-        markerColors.project,
-      ),
+    (name: string) => findProjectColor(name, availableProjects, markerColors.project),
     [availableProjects, markerColors.project],
   );
 
@@ -1277,16 +1267,16 @@ export function KanbanView({
                           )}
 
                           {/* Subtasks indicator */}
-                          {todo.raw.subtasks && todo.raw.subtasks.length > 0 && (
+                          {todo.subtasks && todo.subtasks.length > 0 && (
                             <span className="px-1.5 py-0.5 text-xs rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                              ☑️ {todo.raw.subtasks.filter((s) => s.completed).length}/{todo.raw.subtasks.length}
+                              ☑️ {todo.subtasks.filter((s) => s.completed).length}/{todo.subtasks.length}
                             </span>
                           )}
 
                           {/* Sprint indicator */}
-                          {todo.raw.metadata?.sprint &&
+                          {todo.sprint &&
                             (() => {
-                              const sprint = sprints.find((s) => s.id === todo.raw.metadata?.sprint);
+                              const sprint = sprints.find((s) => s.id === todo.sprint);
                               if (!sprint) return null;
                               return (
                                 <span className="px-1.5 py-0.5 text-xs rounded bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">

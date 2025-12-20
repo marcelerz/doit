@@ -2069,11 +2069,11 @@ export function GanttView({
           };
           const getPersonColor = (person: string) => {
             const p = availablePeople.find((pr) => pr.matchesAnyName([person]));
-            return p?.raw.color || markerColors.assigned;
+            return p?.color || markerColors.assigned;
           };
           const getProjectColorForTooltip = (project: string) => {
             const p = availableProjects.find((pr) => pr.matchesAnyName([project]));
-            return p?.raw.color || markerColors.project;
+            return p?.color || markerColors.project;
           };
 
           return createPortal(

@@ -11,6 +11,7 @@ import {
   ExportFormat,
 } from "@/utils/export";
 import { TodoModel } from "@/models/TodoModel";
+import { createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { Todo, TodoState, getTodoId } from "@/types/todo";
 import { Settings } from "@/types/settings";
 import { getColor } from "@/types/types";
@@ -26,6 +27,11 @@ import {
 } from "@/types/time";
 
 describe("export", () => {
+  // Reset singleton before each test to ensure isolation
+  beforeEach(() => {
+    resetSettingsModel_DONOTUSE();
+  });
+
   // Helper to create a mock TodoModel
   const createMockTodo = (
     overrides: Partial<{
@@ -203,7 +209,7 @@ describe("export", () => {
       },
     };
 
-    return new TodoModel(rawTodo, settings);
+    return new TodoModel(rawTodo, createSettingsModel(settings));
   };
 
   describe("exportToMarkdown", () => {

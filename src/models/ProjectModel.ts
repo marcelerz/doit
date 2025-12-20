@@ -32,6 +32,17 @@ export class ProjectModel extends BaseEntityModel<Project> {
   }
 
   // ============================================================================
+  // PROJECT-SPECIFIC PROPERTIES
+  // ============================================================================
+
+  /**
+   * Get project category ID
+   */
+  get category(): string | undefined {
+    return this._raw.category;
+  }
+
+  // ============================================================================
   // PROJECT-SPECIFIC VALIDATION
   // ============================================================================
 

@@ -335,6 +335,70 @@ Wraps `Project` objects with business logic (similar to PersonModel):
 - `matchesSearch(text)` - Searches name, alternatives, context, comments
 - `matchesAnyName(names)` - Check if matches given names (for %project mentions)
 
+#### SettingsModel (`src/models/SettingsModel.ts`)
+
+Wraps `Settings` object with business logic for centralized settings access:
+
+**Work Hours & Schedule:**
+
+- `getScheduleForDate(date)` - Get schedule for a specific date
+- `getBodEod(date)` - Get beginning/end of day times for a date
+- `isWeekend(date)` - Check if date falls on weekend
+- `isWorkday(date)` - Check if date is a workday
+- `getDayName(date)` - Get day name for a date
+
+**Date/Time Settings:**
+
+- `morningTime`, `noonTime`, `afternoonTime`, `eveningTime` - Time of day settings
+- `workWeekStart` - First day of work week (0-6)
+- `fiscalYearStart` - Fiscal year start month (1-12)
+
+**Priority Lookups:**
+
+- `priorities` - Get all priorities sorted by order
+- `findPriority(name)` - Find priority by name (case-insensitive, checks alternatives)
+- `getPriorityColor(name)` - Get priority color with fallback
+- `getPriorityOrder(name)` - Get priority order for sorting
+- `isValidPriority(name)` - Check if priority name is valid
+
+**Color Lookups:**
+
+- `assignedColor`, `projectColor`, `priorityColor`, etc. - Get marker colors
+
+**Kanban Lookups:**
+
+- `kanbanStates` - Get all kanban states sorted by order
+- `systemStates`, `customStates` - Filter states by type
+- `findKanbanState(id)` - Find state by ID
+- `isTransitionAllowed(fromId, toId)` - Check if transition is allowed
+- `getAllowedTransitionsFrom(stateId)` - Get valid transition targets
+
+**Feature Toggles:**
+
+- `isGanttViewEnabled`, `isKanbanViewEnabled`, etc. - Check feature flags
+- `isFeatureEnabled(feature)` - Generic feature check
+
+**Auto-Assign Settings:**
+
+- `isAutoAssignEnabled` - Check if auto-assign is on
+- `defaultAssignedPerson`, `defaultProject`, `defaultPriority`, etc. - Get defaults (returns undefined if disabled)
+
+**Notification Settings:**
+
+- `areNotificationsEnabled` - Check if notifications are on
+- `notifyOnOverdue`, `notifyOnDueToday`, `notifyOnDueSoon` - Specific notification flags
+
+**General Settings:**
+
+- `archiveDays` - Days before auto-archive
+- `isAutoDeleteEnabled`, `deleteDays` - Auto-delete settings
+- `theme` - Current theme
+
+**Sprint & Focus Settings:**
+
+- `defaultSprintDuration`, `showBacklogInSprint` - Sprint settings
+- `isAutoTimeTrackingEnabled`, `isFocusSoundEnabled`, etc. - Focus mode settings
+
 #### Hook Usage Pattern
 
 All hooks follow the same pattern:

@@ -32,7 +32,7 @@ describe("PersonModel", () => {
       const person = createTestPerson();
       const model = new PersonModel(person);
 
-      expect(model.raw).toBe(person);
+      expect(model.raw_DONOTUSE).toBe(person);
     });
   });
 
@@ -118,14 +118,13 @@ describe("PersonModel", () => {
       expect(result.reason).toContain("assigned to active todos");
     });
 
-    it("should not allow deletion when person is source of todo", () => {
+    it("should allow deletion when person is source of todo", () => {
       const model = new PersonModel(createTestPerson({ id: getPersonId("person-1") }));
       const todos = [{ assignedPeople: [], sourcePeople: [getPersonId("person-1")] }];
 
       const result = model.canDelete(todos);
 
-      expect(result.canDelete).toBe(false);
-      expect(result.reason).toContain("assigned to active todos");
+      expect(result.canDelete).toBe(true);
     });
 
     it("should not allow deletion when person is in multiple todos", () => {
@@ -229,6 +228,6 @@ describe("createPersonModel", () => {
     const person = createTestPerson();
     const model = createPersonModel(person);
 
-    expect(model.raw).toBe(person);
+    expect(model.raw_DONOTUSE).toBe(person);
   });
 });

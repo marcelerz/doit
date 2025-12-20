@@ -106,8 +106,8 @@ export function exportToCSV(todos: TodoModel[]): string {
       todo.metadata.assignedPeople.join("; "),
       todo.metadata.projects.join("; "),
       (todo.metadata.tags ?? []).join("; "),
-      todo.raw.createdAt ? new Date(todo.raw.createdAt).toISOString() : "",
-      todo.raw.completedAt ? new Date(todo.raw.completedAt).toISOString() : "",
+      todo.createdAt ? new Date(todo.createdAt).toISOString() : "",
+      todo.completedAt ? new Date(todo.completedAt).toISOString() : "",
     ]);
   });
 
@@ -144,10 +144,10 @@ export function exportToJSON(todos: TodoModel[]): string {
       dependencies: todo.metadata.dependencies,
     },
     timestamps: {
-      created: todo.raw.createdAt,
-      updated: todo.raw.updatedAt,
-      completed: todo.raw.completedAt,
-      archived: todo.raw.archivedAt,
+      created: todo.createdAt,
+      updated: todo.updatedAt,
+      completed: todo.completedAt,
+      archived: todo.archivedAt,
     },
     commentsCount: todo.commentCount,
   }));

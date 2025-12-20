@@ -1699,8 +1699,8 @@ export function TodoApp() {
         projectNames.add(projectName);
         // Find the project and add its category if it has one
         const project = projects.find((p) => p.matchesAnyName([projectName]));
-        if (project?.raw.category) {
-          usedCategoryIds.add(project.raw.category);
+        if (project?.category) {
+          usedCategoryIds.add(project.category);
         }
       });
       if (todo.metadata.priority) priorities.add(todo.metadata.priority);
@@ -1884,7 +1884,7 @@ export function TodoApp() {
         const todoCategories = todo.metadata.projects
           .map((projectName) => {
             const project = projects.find((p) => p.matchesAnyName([projectName]));
-            return project?.raw.category;
+            return project?.category;
           })
           .filter((c): c is NonNullable<typeof c> => !!c);
 
@@ -1941,8 +1941,8 @@ export function TodoApp() {
       switch (sortField) {
         case "manual":
           // Sort by manual sortOrder (lower = higher priority)
-          const aManualOrder = a.raw.sortOrder ?? Number.MAX_SAFE_INTEGER;
-          const bManualOrder = b.raw.sortOrder ?? Number.MAX_SAFE_INTEGER;
+          const aManualOrder = a.sortOrder ?? Number.MAX_SAFE_INTEGER;
+          const bManualOrder = b.sortOrder ?? Number.MAX_SAFE_INTEGER;
           comparison = aManualOrder - bManualOrder;
           break;
 
@@ -2178,8 +2178,8 @@ export function TodoApp() {
         if (todo.metadata.projects.length > 0) {
           const projectName = todo.metadata.projects[0];
           const project = projects.find((p) => p.matchesAnyName([projectName]));
-          if (project?.raw.category) {
-            const category = settings.categories.find((c) => c.id === project.raw.category);
+          if (project?.category) {
+            const category = settings.categories.find((c) => c.id === project.category);
             categoryName = category?.name || "No Category";
           }
         }
@@ -2261,8 +2261,8 @@ export function TodoApp() {
         if (sprintB?.status === "active" && sprintA?.status !== "active") return 1;
 
         // Then by planned start date (most recent first)
-        const dateA = sprintA?.raw.plannedStartDate ? new Date(sprintA.raw.plannedStartDate).getTime() : 0;
-        const dateB = sprintB?.raw.plannedStartDate ? new Date(sprintB.raw.plannedStartDate).getTime() : 0;
+        const dateA = sprintA?.plannedStartDate ? new Date(sprintA.plannedStartDate).getTime() : 0;
+        const dateB = sprintB?.plannedStartDate ? new Date(sprintB.plannedStartDate).getTime() : 0;
         return dateB - dateA;
       });
 

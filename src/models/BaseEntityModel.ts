@@ -44,6 +44,10 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
   // BASIC PROPERTIES (direct access)
   // ============================================================================
 
+  get raw_DONOTUSE(): T {
+    return this._raw;
+  }
+
   get id(): string {
     return this._raw.id;
   }

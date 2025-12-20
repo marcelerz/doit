@@ -38,6 +38,7 @@ import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
 import { defaultCalendar } from "@/types/calendar";
 import { defaultCategories } from "@/types/project";
 import { TodoModel } from "@/models/TodoModel";
+import { createSettingsModel, SettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { Todo, getTodoId, getTimeEntryId } from "@/types/todo";
 import { getTimestamp, getShortTime, getDurationMin } from "@/types/time";
 import { getBreakPeriodId } from "@/types/breakPeriod";
@@ -124,7 +125,7 @@ const createTodo = (overrides: Partial<Todo> = {}): Todo => ({
 
 // Helper to create TodoModel from Todo
 const createTodoModel = (overrides: Partial<Todo> = {}): TodoModel => {
-  return new TodoModel(createTodo(overrides), createMinimalSettings());
+  return new TodoModel(createTodo(overrides), createSettingsModel(createMinimalSettings()));
 };
 
 // Helper to create a SchedulingConfig
@@ -142,6 +143,11 @@ const createSchedulingConfig = (overrides: Partial<SchedulingConfig> = {}): Sche
 });
 
 describe("ganttScheduler", () => {
+  // Reset singleton before each test to ensure isolation
+  beforeEach(() => {
+    resetSettingsModel_DONOTUSE();
+  });
+
   describe("parseTime", () => {
     it("should parse HH:MM format correctly", () => {
       const baseDate = new Date("2025-12-09T00:00:00");
@@ -331,7 +337,7 @@ describe("ganttScheduler", () => {
   });
 
   describe("sortTodosForScheduling", () => {
-    const settings = createMinimalSettings();
+    const settings = createSettingsModel(createMinimalSettings());
     const priorities: Priority[] = [
       { id: getPriorityId("1"), name: "urgent", alternatives: ["critical"], order: 1, color: getColor("#ff0000") },
       { id: getPriorityId("2"), name: "high", alternatives: ["important"], order: 2, color: getColor("#ff6600") },
@@ -641,7 +647,7 @@ describe("ganttScheduler", () => {
   });
 
   describe("createTaskSchedulingMap", () => {
-    const settings = createMinimalSettings();
+    const settings = createSettingsModel(createMinimalSettings());
 
     it("should create a map with tasks allocated to their due dates", () => {
       const config = createSchedulingConfig();
@@ -1031,7 +1037,7 @@ describe("ganttScheduler", () => {
   });
 
   describe("scheduleDayTasks", () => {
-    const settings = createMinimalSettings();
+    const settings = createSettingsModel(createMinimalSettings());
 
     // Helper to call scheduleDayTasks with proper arguments
     const callScheduleDayTasks = (
@@ -2036,7 +2042,7 @@ describe("ganttScheduler", () => {
   });
 
   describe("scheduleWeekTasks", () => {
-    const settings = createMinimalSettings();
+    const settings = createSettingsModel(createMinimalSettings());
 
     // Helper to call scheduleWeekTasks with proper arguments
     const callScheduleWeekTasks = (

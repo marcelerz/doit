@@ -40,7 +40,7 @@ export function ProjectDetailsOverlay({
   const [editingAlternatives, setEditingAlternatives] = useState(project.alternatives);
   const [editingColor, setEditingColor] = useState(project.color);
   const [editingContext, setEditingContext] = useState(project.context || "");
-  const [editingCategory, setEditingCategory] = useState(project.raw.category || "");
+  const [editingCategory, setEditingCategory] = useState(project.category || "");
   const [newComment, setNewComment] = useState("");
 
   // Sync local state when project changes (after updates)
@@ -49,7 +49,7 @@ export function ProjectDetailsOverlay({
     setEditingAlternatives(project.alternatives);
     setEditingColor(project.color);
     setEditingContext(project.context || "");
-    setEditingCategory(project.raw.category || "");
+    setEditingCategory(project.category || "");
   }, [project]);
 
   // Auto-save when fields change (except context - saved on blur)
@@ -59,7 +59,7 @@ export function ProjectDetailsOverlay({
         editingName.trim() !== project.name ||
         JSON.stringify(editingAlternatives) !== JSON.stringify(project.alternatives) ||
         editingColor !== project.color ||
-        (editingCategory || undefined) !== project.raw.category
+        (editingCategory || undefined) !== project.category
       ) {
         onUpdate(project.id, {
           name: editingName.trim(),

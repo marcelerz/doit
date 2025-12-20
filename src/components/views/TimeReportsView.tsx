@@ -193,20 +193,17 @@ export default function TimeReportsView({ todos, people, projects, settings, spr
 
     todos.forEach((todo) => {
       // Only include todos with tracked time
-      if (!todo.raw.timeTracking || !todo.raw.timeTracking.entries || todo.raw.timeTracking.entries.length === 0)
-        return;
+      if (!todo.timeTracking || !todo.timeTracking.entries || todo.timeTracking.entries.length === 0) return;
 
       // Derive category from project
-      const todoProjects = todo.raw.metadata?.projects || [];
+      const todoProjects = todo.projects || [];
       let categoryId: string | undefined;
       if (todoProjects.length > 0) {
-        const project = projects.find(
-          (p) => p.raw.name === todoProjects[0] || p.raw.alternatives?.includes(todoProjects[0]),
-        );
-        categoryId = project?.raw.category;
+        const project = projects.find((p) => p.name === todoProjects[0] || p.alternatives?.includes(todoProjects[0]));
+        categoryId = project?.category;
       }
 
-      todo.raw.timeTracking.entries.forEach((entry) => {
+      todo.timeTracking.entries.forEach((entry) => {
         // Calculate duration - for active entries (no endTime), calculate elapsed time
         let duration = entry.duration || 0;
         if (!entry.endTime) {
@@ -220,15 +217,15 @@ export default function TimeReportsView({ todos, people, projects, settings, spr
         const entryDate = new Date(entry.startTime);
         if (entryDate >= dateRange.start && entryDate <= dateRange.end) {
           entries.push({
-            todoId: todo.raw.id,
-            todoText: todo.raw.plainText || todo.raw.text,
+            todoId: todo.id,
+            todoText: todo.plainText || todo.text,
             date: new Date(entry.startTime).toISOString(),
             duration: duration,
-            assignedPeople: todo.raw.metadata?.assignedPeople || [],
-            sourcePeople: todo.raw.metadata?.sourcePeople || [],
+            assignedPeople: todo.assignedPeople || [],
+            sourcePeople: todo.sourcePeople || [],
             projects: todoProjects,
             category: categoryId,
-            sprint: todo.raw.metadata?.sprint,
+            sprint: todo.sprint,
           });
         }
       });
@@ -745,11 +742,11 @@ function getDisplayName(
   sprints?: SprintModel[],
 ): string {
   if (groupBy === "assigned" || groupBy === "source") {
-    const person = people.find((p) => p.raw.name === key);
+    const person = people.find((p) => p.name === key);
     return person?.displayName || key;
   }
   if (groupBy === "project") {
-    const project = projects.find((p) => p.raw.name === key);
+    const project = projects.find((p) => p.name === key);
     return project?.displayName || key;
   }
   if (groupBy === "category") {
@@ -757,7 +754,7 @@ function getDisplayName(
     return category?.name || key;
   }
   if (groupBy === "sprint") {
-    const sprint = sprints?.find((s) => s.raw.id === key);
+    const sprint = sprints?.find((s) => s.id === key);
     return sprint?.displayName || key;
   }
   return key;

@@ -29,6 +29,7 @@ import {
 } from "@/utils/notifications";
 import { MockBrowserApis, setBrowserApis, resetBrowserApis } from "@/utils/browserApis";
 import { TodoModel } from "@/models/TodoModel";
+import { createSettingsModel, SettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { Todo, TodoMetadata, getTodoId } from "@/types/todo";
 import { Settings } from "@/types/settings";
 import { getColor } from "@/types/types";
@@ -44,136 +45,137 @@ import {
 } from "@/types/time";
 
 // Helper to create test settings
-const createTestSettings = (): Settings => ({
-  priorities: [],
-  linkPatterns: [],
-  markerColors: {
-    assigned: getColor("#cce5ff"),
-    source: getColor("#d4fdd4"),
-    mentioned: getColor("#ffe5b4"),
-    project: getColor("#e2ccff"),
-    priority: getColor("#ffd4d4"),
-    dueDate: getColor("#fce4ec"),
-    duration: getColor("#d4faff"),
-    recurring: getColor("#e1f5e1"),
-    dependency: getColor("#fff4e6"),
-    tag: getColor("#ffe4cc"),
-    sprint: getColor("#dbeafe"),
-  },
-  general: {
-    archiveDays: getDurationDay(30),
-    autoDelete: { enabled: false, deleteDays: getDurationDay(90) },
-    theme: "system",
-  },
-  dateTime: {
-    morning: getShortTime("09:00"),
-    noon: getShortTime("12:00"),
-    afternoon: getShortTime("14:00"),
-    evening: getShortTime("18:00"),
-    workWeekStart: getWeekday(1),
-    fiscalYearStart: getMonth(1),
-  },
-  workHours: {
-    useCommonSchedule: true,
-    commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
-    weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
-    weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
-    customSchedules: {},
-  },
-  gantt: {
-    schedulingTechnique: "sequential",
-    defaultTaskDuration: getDurationMin(30),
-    durationMultiplier: 1.0,
-    minimumRemainingDuration: getDurationMin(1),
-    contextSwitchingTime: getDurationMin(15),
-    pomodoroWorkDuration: getDurationMin(25),
-    pomodoroShortBreak: getDurationMin(5),
-    pomodoroLongBreak: getDurationMin(15),
-    pomodoroLongBreakInterval: 4,
-    flowWorkDuration: getDurationMin(52),
-    flowBreakDuration: getDurationMin(17),
-    flowContextSwitchingTime: getDurationMin(10),
-    zoomLevel: "1hour",
-    showWeekends: true,
-    showDependencies: true,
-    taskRowHeight: "normal",
-    showBufferZones: true,
-    showNowLine: true,
-    collapseCompleted: false,
-    presets: [],
-    activePresetId: undefined,
-  },
-  kanban: {
-    states: [],
-    allowedTransitions: [],
-    views: [],
-    activeViewId: "all",
-    showEmptyColumns: true,
-    showTaskCount: true,
-    cardDisplayFields: [],
-  },
-  sprints: {
-    defaultSprintDuration: getDurationDay(14),
-    showBacklogInSprint: true,
-  },
-  autoAssign: {
-    enabled: true,
-  },
-  focus: {
-    requireConfirmation: false,
-    confirmationRepeatInterval: getDurationSec(30),
-    confirmationMaxRepeats: 5,
-    autoTimeTracking: true,
-    trackActualVsEstimated: true,
-    defaultExtendMinutes: getDurationMin(5),
-    extendOptions: [getDurationMin(5), getDurationMin(10), getDurationMin(15), getDurationMin(30)],
-    showEarlyCompletePrompt: true,
-    autoExtendOnOvertime: true,
-    useTrackedTimeForDuration: true,
-    notificationsEnabled: true,
-    soundEnabled: true,
-    soundVolume: 0.3,
-    ambientSoundEnabled: false,
-    ambientWorkSound: "",
-    ambientBreakSound: "",
-    ambientVolume: 0.3,
-    showNextTask: true,
-    showSessionStats: true,
-    showKeyboardHints: true,
-  },
-  categories: [],
-  calendar: {
-    weekStartDay: getWeekday(0),
-    defaultView: "month",
-    showWeekNumbers: false,
-    taskDotLimit: 4,
-    dotColorBy: "state",
-    showOverdueBadge: true,
-    showRecurringIndicator: true,
-    showTaskCount: false,
-  },
-  notifications: {
-    enabled: false,
-    notifyOverdue: true,
-    notifyDueToday: true,
-    notifyDueSoon: true,
-    dueSoonHours: getDurationHour(2),
-    checkInterval: getDurationMin(15),
-  },
-  features: {
-    ganttView: true,
-    calendarView: true,
-    kanbanView: true,
-    sprintsView: true,
-    statsView: true,
-    templates: true,
-    batchProcessing: true,
-    reordering: true,
-    exports: true,
-    focusMode: true,
-    timeTracking: true,
-  },
-});
+const createTestSettings = (): SettingsModel =>
+  createSettingsModel({
+    priorities: [],
+    linkPatterns: [],
+    markerColors: {
+      assigned: getColor("#cce5ff"),
+      source: getColor("#d4fdd4"),
+      mentioned: getColor("#ffe5b4"),
+      project: getColor("#e2ccff"),
+      priority: getColor("#ffd4d4"),
+      dueDate: getColor("#fce4ec"),
+      duration: getColor("#d4faff"),
+      recurring: getColor("#e1f5e1"),
+      dependency: getColor("#fff4e6"),
+      tag: getColor("#ffe4cc"),
+      sprint: getColor("#dbeafe"),
+    },
+    general: {
+      archiveDays: getDurationDay(30),
+      autoDelete: { enabled: false, deleteDays: getDurationDay(90) },
+      theme: "system",
+    },
+    dateTime: {
+      morning: getShortTime("09:00"),
+      noon: getShortTime("12:00"),
+      afternoon: getShortTime("14:00"),
+      evening: getShortTime("18:00"),
+      workWeekStart: getWeekday(1),
+      fiscalYearStart: getMonth(1),
+    },
+    workHours: {
+      useCommonSchedule: true,
+      commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+      weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+      weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
+      customSchedules: {},
+    },
+    gantt: {
+      schedulingTechnique: "sequential",
+      defaultTaskDuration: getDurationMin(30),
+      durationMultiplier: 1.0,
+      minimumRemainingDuration: getDurationMin(1),
+      contextSwitchingTime: getDurationMin(15),
+      pomodoroWorkDuration: getDurationMin(25),
+      pomodoroShortBreak: getDurationMin(5),
+      pomodoroLongBreak: getDurationMin(15),
+      pomodoroLongBreakInterval: 4,
+      flowWorkDuration: getDurationMin(52),
+      flowBreakDuration: getDurationMin(17),
+      flowContextSwitchingTime: getDurationMin(10),
+      zoomLevel: "1hour",
+      showWeekends: true,
+      showDependencies: true,
+      taskRowHeight: "normal",
+      showBufferZones: true,
+      showNowLine: true,
+      collapseCompleted: false,
+      presets: [],
+      activePresetId: undefined,
+    },
+    kanban: {
+      states: [],
+      allowedTransitions: [],
+      views: [],
+      activeViewId: "all",
+      showEmptyColumns: true,
+      showTaskCount: true,
+      cardDisplayFields: [],
+    },
+    sprints: {
+      defaultSprintDuration: getDurationDay(14),
+      showBacklogInSprint: true,
+    },
+    autoAssign: {
+      enabled: true,
+    },
+    focus: {
+      requireConfirmation: false,
+      confirmationRepeatInterval: getDurationSec(30),
+      confirmationMaxRepeats: 5,
+      autoTimeTracking: true,
+      trackActualVsEstimated: true,
+      defaultExtendMinutes: getDurationMin(5),
+      extendOptions: [getDurationMin(5), getDurationMin(10), getDurationMin(15), getDurationMin(30)],
+      showEarlyCompletePrompt: true,
+      autoExtendOnOvertime: true,
+      useTrackedTimeForDuration: true,
+      notificationsEnabled: true,
+      soundEnabled: true,
+      soundVolume: 0.3,
+      ambientSoundEnabled: false,
+      ambientWorkSound: "",
+      ambientBreakSound: "",
+      ambientVolume: 0.3,
+      showNextTask: true,
+      showSessionStats: true,
+      showKeyboardHints: true,
+    },
+    categories: [],
+    calendar: {
+      weekStartDay: getWeekday(0),
+      defaultView: "month",
+      showWeekNumbers: false,
+      taskDotLimit: 4,
+      dotColorBy: "state",
+      showOverdueBadge: true,
+      showRecurringIndicator: true,
+      showTaskCount: false,
+    },
+    notifications: {
+      enabled: false,
+      notifyOverdue: true,
+      notifyDueToday: true,
+      notifyDueSoon: true,
+      dueSoonHours: getDurationHour(2),
+      checkInterval: getDurationMin(15),
+    },
+    features: {
+      ganttView: true,
+      calendarView: true,
+      kanbanView: true,
+      sprintsView: true,
+      statsView: true,
+      templates: true,
+      batchProcessing: true,
+      reordering: true,
+      exports: true,
+      focusMode: true,
+      timeTracking: true,
+    },
+  });
 
 // Default metadata for test todos
 const defaultTestMetadata: TodoMetadata = {
@@ -212,6 +214,11 @@ const createTestTodo = (overrides: TestTodoOverrides = {}): Todo => ({
 });
 
 describe("notifications", () => {
+  // Reset singleton before each test to ensure isolation
+  beforeEach(() => {
+    resetSettingsModel_DONOTUSE();
+  });
+
   describe("AMBIENT_SOUNDS", () => {
     it("should be an array of ambient sound configurations", () => {
       expect(Array.isArray(AMBIENT_SOUNDS)).toBe(true);
@@ -448,6 +455,7 @@ describe("notifications with MockBrowserApis", () => {
     mockApis = new MockBrowserApis();
     setBrowserApis(mockApis);
     resetNotificationState();
+    resetSettingsModel_DONOTUSE();
   });
 
   afterEach(() => {

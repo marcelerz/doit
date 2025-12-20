@@ -33,7 +33,7 @@ describe("ProjectModel", () => {
       const project = createTestProject();
       const model = new ProjectModel(project);
 
-      expect(model.raw).toBe(project);
+      expect(model.raw_DONOTUSE).toBe(project);
     });
   });
 
@@ -178,12 +178,12 @@ describe("ProjectModel", () => {
   describe("project-specific properties", () => {
     it("should expose category from raw project", () => {
       const model = new ProjectModel(createTestProject({ category: getProjectCategoryId("work") }));
-      expect(model.raw.category).toBe(getProjectCategoryId("work"));
+      expect(model.raw_DONOTUSE.category).toBe(getProjectCategoryId("work"));
     });
 
     it("should handle undefined category", () => {
       const model = new ProjectModel(createTestProject({ category: undefined }));
-      expect(model.raw.category).toBeUndefined();
+      expect(model.raw_DONOTUSE.category).toBeUndefined();
     });
   });
 });
@@ -239,6 +239,6 @@ describe("createProjectModel", () => {
     const project = createTestProject();
     const model = createProjectModel(project);
 
-    expect(model.raw).toBe(project);
+    expect(model.raw_DONOTUSE).toBe(project);
   });
 });

@@ -20,6 +20,7 @@ import { createActivity, generateMetadataActivities } from "@/utils/activityLogg
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
 import { TodoModel, createTodoModels } from "@/models/TodoModel";
+import { SettingsModel, createSettingsModel } from "@/models/SettingsModel";
 
 export type UndoAction = {
   id: string;
@@ -38,8 +39,11 @@ export function useTodos() {
   const [dependencyBlockNotification, setDependencyBlockNotification] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
+  // Create a SettingsModel from settings for use with TodoModel
+  const settingsModel = useMemo(() => createSettingsModel(settings), [settings]);
+
   // Create TodoModel instances from raw todos
-  const todos = useMemo(() => createTodoModels(rawTodos, settings), [rawTodos, settings]);
+  const todos = useMemo(() => createTodoModels(rawTodos, settingsModel), [rawTodos, settingsModel]);
 
   // Load todos from storage on mount
   useEffect(() => {
@@ -233,7 +237,7 @@ export function useTodos() {
 
     // Check dependencies before allowing completion using TodoModel
     if (newState === "completed") {
-      const todoModel = new TodoModel(todoToToggle, settings);
+      const todoModel = new TodoModel(todoToToggle, settingsModel);
       const validation = todoModel.canComplete(todos);
       if (!validation.canComplete) {
         setDependencyBlockNotification(validation.reason || "Cannot complete task");
@@ -415,7 +419,7 @@ export function useTodos() {
     if (!todoToArchive) return;
 
     // Check dependencies before allowing archive using TodoModel
-    const todoModel = new TodoModel(todoToArchive, settings);
+    const todoModel = new TodoModel(todoToArchive, settingsModel);
     const validation = todoModel.canArchive(todos);
     if (!validation.canArchive) {
       setDependencyBlockNotification(validation.reason || "Cannot archive task");

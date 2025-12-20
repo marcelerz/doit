@@ -34,7 +34,7 @@ export function StatisticsView({ todos, projects = [], categories = [] }: Statis
     // Time tracked today (from entries that started today)
     const trackedToday = todosWithTracking.reduce((sum, t) => {
       const todayMinutes =
-        t.raw.timeTracking?.entries.reduce((entrySum, entry) => {
+        t.timeTracking?.entries.reduce((entrySum, entry) => {
           const startDate = new Date(entry.startTime);
           if (startDate >= today) {
             const endTime = entry.endTime ? new Date(entry.endTime).getTime() : Date.now();
@@ -48,7 +48,7 @@ export function StatisticsView({ todos, projects = [], categories = [] }: Statis
     // Time tracked this week
     const trackedThisWeek = todosWithTracking.reduce((sum, t) => {
       const weekMinutes =
-        t.raw.timeTracking?.entries.reduce((entrySum, entry) => {
+        t.timeTracking?.entries.reduce((entrySum, entry) => {
           const startDate = new Date(entry.startTime);
           if (startDate >= weekAgo) {
             const endTime = entry.endTime ? new Date(entry.endTime).getTime() : Date.now();
@@ -83,7 +83,7 @@ export function StatisticsView({ todos, projects = [], categories = [] }: Statis
         todoProjects.forEach((projectName) => {
           // Find the project and its category
           const project = projects.find((p) => p.name === projectName || p.alternatives.includes(projectName));
-          const categoryId = project?.raw.category;
+          const categoryId = project?.category;
           const category = categoryId ? categories.find((c) => c.id === categoryId) : null;
 
           const key = category ? category.name : "Uncategorized";

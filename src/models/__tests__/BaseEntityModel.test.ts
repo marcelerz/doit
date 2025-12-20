@@ -32,7 +32,7 @@ describe("BaseEntityModel", () => {
       const entity = createTestEntity({ id: "my-id", name: "My Entity" });
       const model = new TestEntityModel(entity);
 
-      expect(model.raw).toBe(entity);
+      expect(model.raw_DONOTUSE).toBe(entity);
     });
 
     it("should expose id", () => {

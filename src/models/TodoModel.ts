@@ -1,9 +1,9 @@
 import { Todo, TodoMetadata, TodoState } from "@/types/todo";
 import { ActivityEntry } from "@/types/types";
 import { DurationMin, getDurationMin } from "@/types/time";
-import { Settings } from "@/types/settings";
 import { normalizeDateValue, parseDate } from "@/utils/dateUtils";
 import { parseRecurringPattern } from "@/utils/recurringParser";
+import { SettingsModel } from "./SettingsModel";
 
 /**
  * TodoModel wraps a Todo object and provides business logic abstractions.
@@ -11,66 +11,74 @@ import { parseRecurringPattern } from "@/utils/recurringParser";
  * validation, and other business rules in one place.
  */
 export class TodoModel {
-  private _todo: Todo;
-  private _settings: Settings;
+  private _raw: Todo;
+  private _settingsModel: SettingsModel;
 
-  constructor(todo: Todo, settings: Settings) {
-    this._todo = todo;
-    this._settings = settings;
+  constructor(todo: Todo, settings: SettingsModel) {
+    this._raw = todo;
+    this._settingsModel = settings;
   }
 
   // ===== Core Todo Properties =====
 
+  get raw_DONOTUSE(): Todo {
+    return this._raw;
+  }
+
   get id(): string {
-    return this._todo.id;
+    return this._raw.id;
   }
 
   get text(): string {
-    return this._todo.text;
+    return this._raw.text;
   }
 
   get plainText(): string {
-    return this._todo.plainText;
+    return this._raw.plainText;
   }
 
   get state(): TodoState {
-    return this._todo.state;
+    return this._raw.state;
   }
 
   get createdAt(): number {
-    return this._todo.createdAt;
+    return this._raw.createdAt;
   }
 
   get updatedAt(): number | undefined {
-    return this._todo.updatedAt;
+    return this._raw.updatedAt;
   }
 
   get completedAt(): number | undefined {
-    return this._todo.completedAt;
+    return this._raw.completedAt;
   }
 
   get archivedAt(): number | undefined {
-    return this._todo.archivedAt;
+    return this._raw.archivedAt;
   }
 
   get deletedAt(): number | undefined {
-    return this._todo.deletedAt;
+    return this._raw.deletedAt;
   }
 
   get workflowState(): string | undefined {
-    return this._todo.workflowState;
+    return this._raw.workflowState;
+  }
+
+  get sortOrder(): number | undefined {
+    return this._raw.sortOrder;
   }
 
   get comments() {
-    return this._todo.comments;
+    return this._raw.comments;
   }
 
   get activity(): ActivityEntry<string>[] {
-    return this._todo.activity;
+    return this._raw.activity;
   }
 
   get context(): string | undefined {
-    return this._todo.metadata.context;
+    return this._raw.metadata.context;
   }
 
   // ===== Smart Metadata Getters with Auto-Assign =====
@@ -79,12 +87,13 @@ export class TodoModel {
    * Get assigned people with auto-assign fallback if enabled and empty
    */
   get assignedPeople(): string[] {
-    if (this._todo.metadata.assignedPeople.length > 0) {
-      return this._todo.metadata.assignedPeople;
+    if (this._raw.metadata.assignedPeople.length > 0) {
+      return this._raw.metadata.assignedPeople;
     }
     // Apply auto-assign if enabled and no explicit assignment
-    if (this._settings.autoAssign.enabled && this._settings.autoAssign.assignedPerson) {
-      return [this._settings.autoAssign.assignedPerson];
+    const defaultPerson = this._settingsModel.defaultAssignedPerson;
+    if (defaultPerson) {
+      return [defaultPerson];
     }
     return [];
   }
@@ -93,19 +102,20 @@ export class TodoModel {
    * Get raw assigned people without auto-assign fallback
    */
   get assignedPeopleRaw(): string[] {
-    return this._todo.metadata.assignedPeople;
+    return this._raw.metadata.assignedPeople;
   }
 
   /**
    * Get source people with auto-assign fallback if enabled and empty
    */
   get sourcePeople(): string[] {
-    if (this._todo.metadata.sourcePeople.length > 0) {
-      return this._todo.metadata.sourcePeople;
+    if (this._raw.metadata.sourcePeople.length > 0) {
+      return this._raw.metadata.sourcePeople;
     }
     // Apply auto-assign if enabled and no explicit source
-    if (this._settings.autoAssign.enabled && this._settings.autoAssign.sourcePerson) {
-      return [this._settings.autoAssign.sourcePerson];
+    const defaultSource = this._settingsModel.defaultSourcePerson;
+    if (defaultSource) {
+      return [defaultSource];
     }
     return [];
   }
@@ -114,23 +124,24 @@ export class TodoModel {
    * Get raw source people without auto-assign fallback
    */
   get sourcePeopleRaw(): string[] {
-    return this._todo.metadata.sourcePeople;
+    return this._raw.metadata.sourcePeople;
   }
 
   get mentionedPeople(): string[] {
-    return this._todo.metadata.mentionedPeople;
+    return this._raw.metadata.mentionedPeople;
   }
 
   /**
    * Get projects with auto-assign fallback if enabled and empty
    */
   get projects(): string[] {
-    if (this._todo.metadata.projects.length > 0) {
-      return this._todo.metadata.projects;
+    if (this._raw.metadata.projects.length > 0) {
+      return this._raw.metadata.projects;
     }
     // Apply auto-assign if enabled and no explicit project
-    if (this._settings.autoAssign.enabled && this._settings.autoAssign.project) {
-      return [this._settings.autoAssign.project];
+    const defaultProject = this._settingsModel.defaultProject;
+    if (defaultProject) {
+      return [defaultProject];
     }
     return [];
   }
@@ -139,42 +150,40 @@ export class TodoModel {
    * Get raw projects without auto-assign fallback
    */
   get projectsRaw(): string[] {
-    return this._todo.metadata.projects;
+    return this._raw.metadata.projects;
   }
 
   /**
    * Get priority with auto-assign fallback if enabled and empty
    */
   get priority(): string | undefined {
-    if (this._todo.metadata.priority) {
-      return this._todo.metadata.priority;
+    if (this._raw.metadata.priority) {
+      return this._raw.metadata.priority;
     }
     // Apply auto-assign if enabled and no explicit priority
-    if (this._settings.autoAssign.enabled && this._settings.autoAssign.priority) {
-      return this._settings.autoAssign.priority;
-    }
-    return undefined;
+    return this._settingsModel.defaultPriority;
   }
 
   /**
    * Get raw priority without auto-assign fallback
    */
   get priorityRaw(): string | undefined {
-    return this._todo.metadata.priority;
+    return this._raw.metadata.priority;
   }
 
   /**
    * Get due date with auto-assign fallback and normalization
    */
   get dueDate(): string | undefined {
-    const rawDueDate = this._todo.metadata.dueDate;
+    const rawDueDate = this._raw.metadata.dueDate;
     if (rawDueDate) {
       // Normalize shorthand values like "today", "tomorrow", etc.
-      return normalizeDateValue(rawDueDate, this._settings.dateTime, this._settings.workHours);
+      return normalizeDateValue(rawDueDate, this._settingsModel.dateTime, this._settingsModel.workHours);
     }
     // Apply auto-assign if enabled and no explicit due date
-    if (this._settings.autoAssign.enabled && this._settings.autoAssign.dueDate) {
-      return normalizeDateValue(this._settings.autoAssign.dueDate, this._settings.dateTime, this._settings.workHours);
+    const defaultDueDate = this._settingsModel.defaultDueDate;
+    if (defaultDueDate) {
+      return normalizeDateValue(defaultDueDate, this._settingsModel.dateTime, this._settingsModel.workHours);
     }
     return undefined;
   }
@@ -183,7 +192,7 @@ export class TodoModel {
    * Get raw due date without auto-assign fallback or normalization
    */
   get dueDateRaw(): string | undefined {
-    return this._todo.metadata.dueDate;
+    return this._raw.metadata.dueDate;
   }
 
   /**
@@ -192,7 +201,7 @@ export class TodoModel {
   get dueDateObject(): Date | undefined {
     const dateStr = this.dueDate;
     if (!dateStr) return undefined;
-    const parsed = parseDate(dateStr, this._settings.dateTime, this._settings.workHours);
+    const parsed = parseDate(dateStr, this._settingsModel.dateTime, this._settingsModel.workHours);
     return parsed ? new Date(parsed.timestamp) : undefined;
   }
 
@@ -200,21 +209,18 @@ export class TodoModel {
    * Get duration with auto-assign fallback if enabled and empty
    */
   get duration(): string | undefined {
-    if (this._todo.metadata.duration) {
-      return this._todo.metadata.duration;
+    if (this._raw.metadata.duration) {
+      return this._raw.metadata.duration;
     }
     // Apply auto-assign if enabled and no explicit duration
-    if (this._settings.autoAssign.enabled && this._settings.autoAssign.duration) {
-      return this._settings.autoAssign.duration;
-    }
-    return undefined;
+    return this._settingsModel.defaultDuration;
   }
 
   /**
    * Get raw duration without auto-assign fallback
    */
   get durationRaw(): string | undefined {
-    return this._todo.metadata.duration;
+    return this._raw.metadata.duration;
   }
 
   /**
@@ -241,21 +247,18 @@ export class TodoModel {
    * Get recurring pattern with auto-assign fallback if enabled and empty
    */
   get recurring(): string | undefined {
-    if (this._todo.metadata.recurring) {
-      return this._todo.metadata.recurring;
+    if (this._raw.metadata.recurring) {
+      return this._raw.metadata.recurring;
     }
     // Apply auto-assign if enabled and no explicit recurring
-    if (this._settings.autoAssign.enabled && this._settings.autoAssign.recurring) {
-      return this._settings.autoAssign.recurring;
-    }
-    return undefined;
+    return this._settingsModel.defaultRecurring;
   }
 
   /**
    * Get raw recurring pattern without auto-assign fallback
    */
   get recurringRaw(): string | undefined {
-    return this._todo.metadata.recurring;
+    return this._raw.metadata.recurring;
   }
 
   /**
@@ -275,29 +278,33 @@ export class TodoModel {
   }
 
   get dependencies(): string[] {
-    return this._todo.metadata.dependencies ?? [];
+    return this._raw.metadata.dependencies ?? [];
   }
 
   get tags(): string[] {
-    return this._todo.metadata.tags ?? [];
+    return this._raw.metadata.tags ?? [];
+  }
+
+  get sprint(): string | undefined {
+    return this._raw.metadata.sprint;
   }
 
   // ===== State Checks =====
 
   get isActive(): boolean {
-    return this._todo.state === "active";
+    return this._raw.state === "active";
   }
 
   get isCompleted(): boolean {
-    return this._todo.state === "completed";
+    return this._raw.state === "completed";
   }
 
   get isArchived(): boolean {
-    return this._todo.state === "archived";
+    return this._raw.state === "archived";
   }
 
   get isDeleted(): boolean {
-    return this._todo.state === "deleted";
+    return this._raw.state === "deleted";
   }
 
   // ===== Date Calculations =====
@@ -357,14 +364,21 @@ export class TodoModel {
    * Get the raw metadata object
    */
   get metadata(): TodoMetadata {
-    return this._todo.metadata;
+    return this._raw.metadata;
   }
 
   /**
    * Get the raw underlying todo object
    */
   get raw(): Todo {
-    return this._todo;
+    return this._raw;
+  }
+
+  /**
+   * Get the settings model
+   */
+  get settings(): SettingsModel {
+    return this._settingsModel;
   }
 
   /**
@@ -389,15 +403,15 @@ export class TodoModel {
    * Check if auto-assign would apply to this todo (has no explicit values)
    */
   get wouldAutoAssignApply(): boolean {
-    if (!this._settings.autoAssign.enabled) return false;
+    if (!this._settingsModel.isAutoAssignEnabled) return false;
     return (
-      (this.assignedPeopleRaw.length === 0 && !!this._settings.autoAssign.assignedPerson) ||
-      (this.sourcePeopleRaw.length === 0 && !!this._settings.autoAssign.sourcePerson) ||
-      (this.projectsRaw.length === 0 && !!this._settings.autoAssign.project) ||
-      (!this.priorityRaw && !!this._settings.autoAssign.priority) ||
-      (!this.dueDateRaw && !!this._settings.autoAssign.dueDate) ||
-      (!this.durationRaw && !!this._settings.autoAssign.duration) ||
-      (!this.recurringRaw && !!this._settings.autoAssign.recurring)
+      (this.assignedPeopleRaw.length === 0 && !!this._settingsModel.defaultAssignedPerson) ||
+      (this.sourcePeopleRaw.length === 0 && !!this._settingsModel.defaultSourcePerson) ||
+      (this.projectsRaw.length === 0 && !!this._settingsModel.defaultProject) ||
+      (!this.priorityRaw && !!this._settingsModel.defaultPriority) ||
+      (!this.dueDateRaw && !!this._settingsModel.defaultDueDate) ||
+      (!this.durationRaw && !!this._settingsModel.defaultDuration) ||
+      (!this.recurringRaw && !!this._settingsModel.defaultRecurring)
     );
   }
 
@@ -427,10 +441,7 @@ export class TodoModel {
    */
   get priorityColor(): string | undefined {
     if (!this.priority) return undefined;
-    const priorityObj = this._settings.priorities.find(
-      (p) => p.name === this.priority || p.alternatives.includes(this.priority!),
-    );
-    return priorityObj?.color;
+    return this._settingsModel.findPriority(this.priority)?.color;
   }
 
   /**
@@ -438,10 +449,7 @@ export class TodoModel {
    */
   get priorityOrder(): number | undefined {
     if (!this.priority) return undefined;
-    const priorityObj = this._settings.priorities.find(
-      (p) => p.name === this.priority || p.alternatives.includes(this.priority!),
-    );
-    return priorityObj?.order;
+    return this._settingsModel.findPriority(this.priority)?.order;
   }
 
   /**
@@ -491,8 +499,8 @@ export class TodoModel {
   /**
    * Update the underlying settings (useful when settings change)
    */
-  updateSettings(settings: Settings) {
-    this._settings = settings;
+  updateSettings(settings: SettingsModel) {
+    this._settingsModel = settings;
   }
 
   // ===== Validation Methods =====
@@ -616,7 +624,7 @@ export class TodoModel {
    * Get all subtasks
    */
   get subtasks() {
-    return this._todo.subtasks || [];
+    return this._raw.subtasks || [];
   }
 
   /**
@@ -661,35 +669,35 @@ export class TodoModel {
    * Get time tracking data
    */
   get timeTracking() {
-    return this._todo.timeTracking;
+    return this._raw.timeTracking;
   }
 
   /**
    * Check if time tracking is enabled for this todo
    */
   get hasTimeTracking(): boolean {
-    return !!this._todo.timeTracking && this._todo.timeTracking.entries.length > 0;
+    return !!this._raw.timeTracking && this._raw.timeTracking.entries.length > 0;
   }
 
   /**
    * Check if currently tracking time
    */
   get isTrackingTime(): boolean {
-    if (!this._todo.timeTracking) return false;
-    return this._todo.timeTracking.entries.some((e) => !e.endTime);
+    if (!this._raw.timeTracking) return false;
+    return this._raw.timeTracking.entries.some((e) => !e.endTime);
   }
 
   /**
    * Get total tracked time in minutes (includes active tracking)
    */
   get totalTrackedMinutes(): DurationMin {
-    if (!this._todo.timeTracking) return getDurationMin(0);
+    if (!this._raw.timeTracking) return getDurationMin(0);
 
     // Start with cached total (completed entries)
-    let total = this._todo.timeTracking.totalMinutes as number;
+    let total = this._raw.timeTracking.totalMinutes as number;
 
     // Add elapsed time for any active entry
-    const activeEntry = this._todo.timeTracking.entries.find((e) => !e.endTime);
+    const activeEntry = this._raw.timeTracking.entries.find((e) => !e.endTime);
     if (activeEntry) {
       const elapsedMinutes = Math.round((Date.now() - activeEntry.startTime) / (1000 * 60));
       total += elapsedMinutes;
@@ -715,8 +723,8 @@ export class TodoModel {
    * Get the currently active time entry (if tracking)
    */
   get activeTimeEntry() {
-    if (!this._todo.timeTracking) return undefined;
-    return this._todo.timeTracking.entries.find((e) => !e.endTime);
+    if (!this._raw.timeTracking) return undefined;
+    return this._raw.timeTracking.entries.find((e) => !e.endTime);
   }
 
   /**
@@ -935,13 +943,13 @@ export class TodoModel {
 /**
  * Factory function to create TodoModel instances
  */
-export function createTodoModel(todo: Todo, settings: Settings): TodoModel {
+export function createTodoModel(todo: Todo, settings: SettingsModel): TodoModel {
   return new TodoModel(todo, settings);
 }
 
 /**
  * Create TodoModel instances from an array of todos
  */
-export function createTodoModels(todos: Todo[], settings: Settings): TodoModel[] {
+export function createTodoModels(todos: Todo[], settings: SettingsModel): TodoModel[] {
   return todos.map((todo) => new TodoModel(todo, settings));
 }
