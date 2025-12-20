@@ -58,7 +58,7 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
       "3m",
     ];
 
-    if (!input.trim()) return allSuggestions;
+    if (input.trim() === "") return allSuggestions;
 
     const lowerInput = input.toLowerCase();
     return allSuggestions.filter((s) => s.toLowerCase().includes(lowerInput));
@@ -89,7 +89,7 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
       "in 6 months",
     ];
 
-    if (!input.trim()) return allSuggestions;
+    if (input.trim() === "") return allSuggestions;
 
     const lowerInput = input.toLowerCase();
     return allSuggestions.filter((s) => s.toLowerCase().includes(lowerInput));
@@ -116,7 +116,7 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
       "every sunday (BOD)",
     ];
 
-    if (!input.trim()) return allSuggestions;
+    if (input.trim() === "") return allSuggestions;
 
     const lowerInput = input.toLowerCase();
     return allSuggestions.filter((s) => s.toLowerCase().includes(lowerInput));

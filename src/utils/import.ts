@@ -369,7 +369,7 @@ export function parseCSV(content: string, mapping?: FieldMapping): ImportResult 
 
       try {
         const title = row[titleIndex] || "";
-        if (!title.trim()) {
+        if (title.trim() === "") {
           warnings.push(`Row ${i + 1}: Skipped empty title`);
           continue;
         }
@@ -417,7 +417,7 @@ function parseCSVLines(content: string): string[][] {
   const rows = content.split(/\r?\n/);
 
   for (const row of rows) {
-    if (!row.trim()) continue;
+    if (row.trim() === "") continue;
 
     const values: string[] = [];
     let current = "";
@@ -458,7 +458,7 @@ function findColumnIndex(headers: string[], names: string[]): number {
  * Parse date from CSV (various formats)
  */
 function parseCSVDate(value?: string): string | undefined {
-  if (!value || !value.trim()) return undefined;
+  if (!value || value.trim() === "") return undefined;
 
   const trimmed = value.trim();
 
@@ -541,7 +541,7 @@ export function parseJSON(content: string): ImportResult {
 
         // Generic JSON format
         const title = item.title || item.name || item.text || item.content || "";
-        if (!title.trim()) {
+        if (title.trim() === "") {
           warnings.push(`Skipped item with empty title`);
           continue;
         }

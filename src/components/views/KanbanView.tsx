@@ -560,7 +560,7 @@ export function KanbanView({
 
   // Save current filters as preset
   const saveAsPreset = useCallback(() => {
-    if (!newPresetName.trim()) return;
+    if (newPresetName.trim() === "") return;
     const newPreset: KanbanFilterPreset = {
       id: Date.now().toString(),
       name: newPresetName.trim(),

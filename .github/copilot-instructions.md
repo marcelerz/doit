@@ -76,6 +76,59 @@
 - [x] Add WIP (Work-In-Progress) limits to Kanban board columns with visual warnings
 - [x] Make Backlog a system state (cannot be deleted, like Completed and Archived)
 
+## Coding Standards
+
+### Explicit Comparisons
+
+To avoid ambiguity when reading code, use explicit comparisons instead of relying on JavaScript's implicit type coercion:
+
+**Booleans** - Use direct checks:
+
+```typescript
+// ✅ Good
+if (settings.enabled) { ... }
+if (!this.archived) { ... }
+
+// ❌ Unnecessary verbosity
+if (settings.enabled === true) { ... }
+if (this.archived === false) { ... }
+```
+
+**Strings** - Use explicit comparison for empty string checks:
+
+```typescript
+// ✅ Good
+if (searchText.trim() === "") return true;
+
+// ❌ Bad
+if (!searchText.trim()) return true;
+```
+
+**Numbers** - Use explicit comparison for zero checks:
+
+```typescript
+// ✅ Good
+if (count === 0) { ... }
+if (weight === 0) return;
+
+// ❌ Bad
+if (!count) { ... }
+```
+
+**Undefined/null checks** - Truthiness checks are acceptable:
+
+```typescript
+// ✅ Good - truthiness is fine for undefined/null
+if (this.context) { ... }
+if (!value) { ... }
+
+// ✅ Good - use == null to check both null and undefined
+if (value == null) { ... }
+
+// ❌ Unnecessary verbosity
+if (this.context !== undefined) { ... }
+```
+
 ## Project Details
 
 - **Type**: Next.js TypeScript webapp

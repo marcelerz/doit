@@ -96,7 +96,7 @@ export function SprintsView({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) return;
+    if (formData.name.trim() === "") return;
 
     onAdd({
       name: formData.name.trim(),

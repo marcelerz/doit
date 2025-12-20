@@ -33,7 +33,7 @@ export function useSearchHistory() {
   }, [history, isLoaded]);
 
   const addToHistory = useCallback((query: string) => {
-    if (!query.trim()) return;
+    if (query.trim() === "") return;
 
     const trimmedQuery = query.trim();
 
@@ -64,7 +64,7 @@ export function useSearchHistory() {
   // Get suggestions based on current input
   const getSuggestions = useCallback(
     (input: string, limit = 5): SearchHistoryEntry[] => {
-      if (!input.trim()) {
+      if (input.trim() === "") {
         return history.slice(0, limit);
       }
 

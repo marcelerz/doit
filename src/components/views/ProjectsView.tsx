@@ -23,7 +23,7 @@ export function ProjectsTab({ projects, onAdd, onUpdate, onDelete }: ProjectsTab
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) return;
+    if (formData.name.trim() === "") return;
 
     const projectData = {
       name: formData.name.trim(),

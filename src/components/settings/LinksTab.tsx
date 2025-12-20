@@ -25,7 +25,7 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.prefix.trim() || !formData.urlTemplate.trim()) return;
+    if (formData.prefix.trim() === "" || formData.urlTemplate.trim() === "") return;
 
     const patternData = {
       prefix: formData.prefix.trim().toUpperCase(),

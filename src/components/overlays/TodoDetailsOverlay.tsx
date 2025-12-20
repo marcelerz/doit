@@ -166,7 +166,7 @@ export function TodoDetailsOverlay({
   };
 
   const handleSaveEdit = () => {
-    if (!editPlainText.trim()) return;
+    if (editPlainText.trim() === "") return;
 
     // Start with existing metadata (additive approach - preserve what's not in tokens)
     const metadata: TodoMetadata = {

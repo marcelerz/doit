@@ -190,7 +190,7 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
 
   /**
    * Get a summary of metadata for this entity
-   * @param todoCount Optional count of associated todos
+   * @param todoCount - Optional count of todos associated with this entity
    * @returns Formatted string like "5 todos • 3 comments • Active"
    */
   getMetadataSummary(todoCount?: number): string {
@@ -251,7 +251,7 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
    * @returns true if any field matches
    */
   matchesSearch(searchText: string): boolean {
-    if (!searchText.trim()) return true;
+    if (searchText.trim() === "") return true;
 
     const search = searchText.toLowerCase();
 

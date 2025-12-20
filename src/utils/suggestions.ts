@@ -49,13 +49,13 @@ export const RECURRING_SUGGESTIONS = [
 ];
 
 export function getDurationSuggestions(input: string): string[] {
-  if (!input.trim()) return DURATION_SUGGESTIONS;
+  if (input.trim() === "") return DURATION_SUGGESTIONS;
   const lowerInput = input.toLowerCase();
   return DURATION_SUGGESTIONS.filter((s) => s.toLowerCase().includes(lowerInput));
 }
 
 export function filterRecurringSuggestions(input: string): string[] {
-  if (!input.trim()) return RECURRING_SUGGESTIONS;
+  if (input.trim() === "") return RECURRING_SUGGESTIONS;
   const lowerInput = input.toLowerCase();
   return RECURRING_SUGGESTIONS.filter((s) => s.toLowerCase().includes(lowerInput));
 }

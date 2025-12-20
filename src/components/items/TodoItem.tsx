@@ -210,7 +210,7 @@ export function TodoItem({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPlainText.trim()) return;
+    if (currentPlainText.trim() === "") return;
 
     // Start with existing metadata as the source of truth (additive approach - never remove, only add from tokens)
     const metadata: TodoMetadata = {

@@ -1621,7 +1621,7 @@ export function TodoApp() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPlainText.trim()) return;
+    if (currentPlainText.trim() === "") return;
 
     // Parse tokens into metadata
     const metadata = parseTokensToMetadata(currentTokens);

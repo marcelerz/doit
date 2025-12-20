@@ -41,7 +41,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
 
   // State management
   const handleAddState = () => {
-    if (!newStateName.trim()) return;
+    if (newStateName.trim() === "") return;
 
     const newState: KanbanState = {
       id: getKanbanStateId(`state-${Date.now()}`),
