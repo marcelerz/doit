@@ -10,7 +10,7 @@
  * - Feature toggle checks
  */
 
-import type { Settings, DaySchedule, WorkHoursSettings, DateTimeSettings } from "@/types/settings";
+import type { Settings, DaySchedule, WorkHoursSettings, DateTimeSettings, ThemeMode } from "@/types/settings";
 import type { Priority } from "@/types/priority";
 import type { KanbanState } from "@/types/kanbanState";
 import type { KanbanView } from "@/types/kanbanView";
@@ -231,7 +231,7 @@ export class SettingsModel {
    */
   getPriorityColor(name: string): string {
     const priority = this.findPriority(name);
-    return priority?.color || this._raw.markerColors.priority;
+    return priority?.color || this.priorityColor;
   }
 
   /**
@@ -630,7 +630,7 @@ export class SettingsModel {
   /**
    * Get current theme preference
    */
-  get theme(): "light" | "dark" | "system" {
+  get theme(): ThemeMode {
     return this._raw.general.theme;
   }
 
