@@ -7,7 +7,8 @@ export type { GanttPreset, GanttPresetId, SchedulingTechnique };
 export { getGanttPresetId, defaultGanttPresets };
 
 // Gantt Tab Settings
-export type GanttZoomLevel = "15min" | "30min" | "1hour" | "2hour";
+const GANTT_ZOOM_LEVELS = ["15min", "30min", "1hour", "2hour"] as const;
+export type GanttZoomLevel = (typeof GANTT_ZOOM_LEVELS)[number];
 
 export interface Gantt {
   // Active Technique

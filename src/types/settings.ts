@@ -27,7 +27,8 @@ import { defaultGantt, Gantt } from "./gantt";
 import { Calendar, defaultCalendar } from "./calendar";
 
 // General Tab Settings
-export type ThemeMode = "light" | "dark" | "system";
+const THEME_MODES = ["light", "dark", "system"] as const;
+export type ThemeMode = (typeof THEME_MODES)[number];
 
 export interface GeneralSettings {
   archiveDays: DurationDay; // Number of days before completed tasks are archived

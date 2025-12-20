@@ -81,7 +81,8 @@ export interface Todo {
 }
 
 // Main state of a todo item
-export type TodoState = "active" | "completed" | "archived" | "deleted";
+const TODO_STATES = ["active", "completed", "archived", "deleted"] as const;
+export type TodoState = (typeof TODO_STATES)[number];
 
 // Metadata for a todo item
 export interface TodoMetadata {

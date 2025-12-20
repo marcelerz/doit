@@ -1442,9 +1442,17 @@ describe("TodoModel", () => {
   });
 
   describe("due date display", () => {
+    // Helper to format date as local YYYY-MM-DD (avoiding timezone issues with toISOString)
+    const formatLocalDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
     it("should return 'Today' for today's date", () => {
       const today = new Date();
-      const dateStr = today.toISOString().split("T")[0];
+      const dateStr = formatLocalDate(today);
       const todo = createTodo({
         metadata: {
           assignedPeople: [],
@@ -1464,7 +1472,7 @@ describe("TodoModel", () => {
     it("should return 'Tomorrow' for tomorrow's date", () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateStr = tomorrow.toISOString().split("T")[0];
+      const dateStr = formatLocalDate(tomorrow);
       const todo = createTodo({
         metadata: {
           assignedPeople: [],
@@ -1484,7 +1492,7 @@ describe("TodoModel", () => {
     it("should return 'Yesterday' for yesterday's date", () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      const dateStr = yesterday.toISOString().split("T")[0];
+      const dateStr = formatLocalDate(yesterday);
       const todo = createTodo({
         metadata: {
           assignedPeople: [],

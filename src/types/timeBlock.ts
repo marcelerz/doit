@@ -8,7 +8,8 @@ export function getTimeBlockId(id: string): TimeBlockId {
   return id as TimeBlockId;
 }
 
-export type TimeBlockType = "break" | "meeting" | "focus" | "lunch" | "commute" | "personal" | "custom";
+const TIME_BLOCK_TYPES = ["break", "meeting", "focus", "lunch", "commute", "personal", "custom"] as const;
+export type TimeBlockType = (typeof TIME_BLOCK_TYPES)[number];
 
 export interface TimeBlockTypeConfig {
   id: TimeBlockId;

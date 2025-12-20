@@ -8,7 +8,8 @@ export function getGanttPresetId(id: string): GanttPresetId {
   return id as GanttPresetId;
 }
 
-export type SchedulingTechnique = "sequential" | "pomodoro" | "flow";
+const SCHEDULING_TECHNIQUES = ["sequential", "pomodoro", "flow"] as const;
+export type SchedulingTechnique = (typeof SCHEDULING_TECHNIQUES)[number];
 
 export interface GanttPreset {
   id: GanttPresetId;

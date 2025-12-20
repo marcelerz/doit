@@ -394,6 +394,19 @@ export const parseDate = (
     };
   }
 
+  // Handle ISO date-only format (YYYY-MM-DD) as local date, not UTC
+  // new Date("YYYY-MM-DD") interprets as UTC midnight, which causes timezone issues
+  const isoDateOnlyMatch = trimmedInput.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoDateOnlyMatch) {
+    const [, year, month, day] = isoDateOnlyMatch;
+    const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    return {
+      original: trimmedInput,
+      formatted: formatDateTime(localDate, use24Hour),
+      timestamp: localDate.getTime(),
+    };
+  }
+
   // Try parsing as Date (handles many formats including ISO, US dates, etc.)
   const parsed = new Date(trimmedInput);
   if (!isNaN(parsed.getTime())) {

@@ -15,8 +15,8 @@ import type { Priority } from "@/types/priority";
 import type { KanbanState } from "@/types/kanbanState";
 import type { KanbanView } from "@/types/kanbanView";
 
-type DayName = "sunday" | "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday";
-const DAY_NAMES: DayName[] = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+type DayName = (typeof DAY_NAMES)[number];
 
 /**
  * SettingsModel wraps Settings with business logic methods.

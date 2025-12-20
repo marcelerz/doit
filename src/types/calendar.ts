@@ -1,8 +1,11 @@
 import { getWeekday, Weekday } from "./time";
 
 // Calendar Tab Settings
-export type CalendarView = "month" | "week" | "agenda";
-export type CalendarDotColorBy = "state" | "priority" | "project";
+const CALENDAR_VIEWS = ["month", "week", "agenda"] as const;
+export type CalendarView = (typeof CALENDAR_VIEWS)[number];
+
+const CALENDAR_DOT_COLOR_BY = ["state", "priority", "project"] as const;
+export type CalendarDotColorBy = (typeof CALENDAR_DOT_COLOR_BY)[number];
 
 export interface Calendar {
   weekStartDay: Weekday; // 0 = Sunday, 1 = Monday

@@ -2,7 +2,9 @@ import { TodoModel } from "@/models/TodoModel";
 import { getBrowserApis } from "./browserApis";
 
 export type NotificationPermission = "default" | "granted" | "denied";
-export type SoundType = "short-break" | "long-break" | "task-complete" | "task-start" | "break-end" | "pause";
+
+const SOUND_TYPES = ["short-break", "long-break", "task-complete", "task-start", "break-end", "pause"] as const;
+export type SoundType = (typeof SOUND_TYPES)[number];
 
 // Audio context for playing sounds (cached)
 let audioContext: AudioContext | null = null;
