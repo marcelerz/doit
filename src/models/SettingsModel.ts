@@ -142,11 +142,10 @@ export class SettingsModel {
   }
 
   /**
-   * Check if a date is a workday (has work hours enabled)
+   * Check if a date is a workday (Monday-Friday)
    */
   isWorkday(date: Date): boolean {
-    const schedule = this.getScheduleForDate(date);
-    return schedule.enabled !== false;
+    return !this.isWeekend(date);
   }
 
   /**
