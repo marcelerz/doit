@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ProjectModel } from "@/models/ProjectModel";
-import { Project, ProjectCategory } from "@/types/settings";
+import { Project, ProjectCategory, getColor, getProjectCategoryId } from "@/types/settings";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
 import { ColorPicker } from "@/components/shared/ColorPicker";
@@ -18,8 +18,8 @@ interface ProjectDetailsOverlayProps {
   onArchive?: (id: string) => void;
   onUnarchive?: (id: string) => void;
   onAddComment: (projectId: string, content: string) => void;
-  onEditComment: (projectId: string, commentId: number, content: string) => void;
-  onDeleteComment: (projectId: string, commentId: number) => void;
+  onEditComment: (projectId: string, commentId: string, content: string) => void;
+  onDeleteComment: (projectId: string, commentId: string) => void;
   categories?: ProjectCategory[];
 }
 
@@ -63,9 +63,9 @@ export function ProjectDetailsOverlay({
         onUpdate(project.id, {
           name: editingName.trim(),
           alternatives: editingAlternatives,
-          color: editingColor,
+          color: editingColor ? getColor(editingColor) : undefined,
           context: editingContext.trim() || undefined,
-          category: editingCategory || undefined,
+          category: editingCategory ? getProjectCategoryId(editingCategory) : undefined,
         });
       }
     }, 500);
@@ -200,9 +200,9 @@ export function ProjectDetailsOverlay({
                   onUpdate(project.id, {
                     name: editingName.trim(),
                     alternatives: editingAlternatives,
-                    color: editingColor,
+                    color: editingColor ? getColor(editingColor) : undefined,
                     context: html.trim() || undefined,
-                    category: editingCategory || undefined,
+                    category: editingCategory ? getProjectCategoryId(editingCategory) : undefined,
                   });
                 }
               }}

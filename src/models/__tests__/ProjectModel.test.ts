@@ -3,11 +3,12 @@
  */
 
 import { ProjectModel, createProjectModels, createProjectModel } from "@/models/ProjectModel";
-import { Project } from "@/types/settings";
+import { Project, getColor } from "@/types/settings";
+import { getProjectId, getProjectCategoryId } from "@/types/project";
 
 // Helper to create a test project
 const createTestProject = (overrides: Partial<Project> = {}): Project => ({
-  id: overrides.id || "project-1",
+  id: getProjectId((overrides.id as string) || "project-1"),
   name: overrides.name || "Test Project",
   alternatives: overrides.alternatives || [],
   color: overrides.color,
@@ -48,8 +49,8 @@ describe("ProjectModel", () => {
 
   describe("inherited properties", () => {
     it("should inherit id property", () => {
-      const model = new ProjectModel(createTestProject({ id: "project-123" }));
-      expect(model.id).toBe("project-123");
+      const model = new ProjectModel(createTestProject({ id: getProjectId("project-123") }));
+      expect(model.id).toBe(getProjectId("project-123"));
     });
 
     it("should inherit name property", () => {
@@ -97,8 +98,8 @@ describe("ProjectModel", () => {
     });
 
     it("should allow deletion when project not in any todos", () => {
-      const model = new ProjectModel(createTestProject({ id: "project-1" }));
-      const todos = [{ projects: ["project-2"] }, { projects: ["project-3"] }];
+      const model = new ProjectModel(createTestProject({ id: getProjectId("project-1") }));
+      const todos = [{ projects: [getProjectId("project-2")] }, { projects: [getProjectId("project-3")] }];
 
       const result = model.canDelete(todos);
 
@@ -106,8 +107,8 @@ describe("ProjectModel", () => {
     });
 
     it("should not allow deletion when project is used in todo", () => {
-      const model = new ProjectModel(createTestProject({ id: "project-1" }));
-      const todos = [{ projects: ["project-1"] }];
+      const model = new ProjectModel(createTestProject({ id: getProjectId("project-1") }));
+      const todos = [{ projects: [getProjectId("project-1")] }];
 
       const result = model.canDelete(todos);
 
@@ -116,11 +117,11 @@ describe("ProjectModel", () => {
     });
 
     it("should not allow deletion when project is in multiple todos", () => {
-      const model = new ProjectModel(createTestProject({ id: "project-1" }));
+      const model = new ProjectModel(createTestProject({ id: getProjectId("project-1") }));
       const todos = [
-        { projects: ["project-1", "project-2"] },
-        { projects: ["project-1"] },
-        { projects: ["project-3"] },
+        { projects: [getProjectId("project-1"), getProjectId("project-2")] },
+        { projects: [getProjectId("project-1")] },
+        { projects: [getProjectId("project-3")] },
       ];
 
       const result = model.canDelete(todos);
@@ -129,8 +130,8 @@ describe("ProjectModel", () => {
     });
 
     it("should handle todos with undefined projects", () => {
-      const model = new ProjectModel(createTestProject({ id: "project-1" }));
-      const todos = [{ projects: undefined }, { projects: ["project-2"] }];
+      const model = new ProjectModel(createTestProject({ id: getProjectId("project-1") }));
+      const todos = [{ projects: undefined }, { projects: [getProjectId("project-2")] }];
 
       const result = model.canDelete(todos);
 
@@ -176,8 +177,8 @@ describe("ProjectModel", () => {
 
   describe("project-specific properties", () => {
     it("should expose category from raw project", () => {
-      const model = new ProjectModel(createTestProject({ category: "work" }));
-      expect(model.raw.category).toBe("work");
+      const model = new ProjectModel(createTestProject({ category: getProjectCategoryId("work") }));
+      expect(model.raw.category).toBe(getProjectCategoryId("work"));
     });
 
     it("should handle undefined category", () => {
@@ -190,9 +191,9 @@ describe("ProjectModel", () => {
 describe("createProjectModels", () => {
   it("should create array of ProjectModels from Project array", () => {
     const projects: Project[] = [
-      createTestProject({ id: "1", name: "Website" }),
-      createTestProject({ id: "2", name: "API" }),
-      createTestProject({ id: "3", name: "Mobile App" }),
+      createTestProject({ id: getProjectId("1"), name: "Website" }),
+      createTestProject({ id: getProjectId("2"), name: "API" }),
+      createTestProject({ id: getProjectId("3"), name: "Mobile App" }),
     ];
 
     const models = createProjectModels(projects);

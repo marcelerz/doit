@@ -3,7 +3,12 @@ import { PriorityId } from "./priority";
 import { ProjectId } from "./project";
 import { SprintId } from "./sprint";
 import { DurationMin, DurationSec, Timestamp } from "./time";
-import { ActivityEntry } from "./types";
+import { ActivityEntry, Comment, SearchHistoryEntry } from "./types";
+import { TodoTemplate, TodoTemplateId } from "./todoTemplate";
+
+// Re-export Comment and related types for backward compatibility
+export type { Comment, SearchHistoryEntry, TodoTemplate, TodoTemplateId };
+export type { ActivityEntry };
 
 // Unique branded type for Todo IDs
 export type TodoId = string & { readonly __brand: unique symbol };
@@ -93,6 +98,10 @@ export interface TodoMetadata {
   dueDate?: string; // auto-detected or via field
   duration?: string; // auto-detected or via field
   recurring?: string; // auto-detected or via field (~ pattern)
+  tags?: string[]; // # marker - free-form tags
+  dependencies?: string[]; // via field (no marker)
+  sprint?: string; // Sprint ID for scrum planning
+  context?: string; // Rich text context
 }
 
 // Activity types for entries

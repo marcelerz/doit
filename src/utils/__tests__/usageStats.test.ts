@@ -3,7 +3,11 @@
  */
 
 import { calculateUsageStats, sortByUsage, sortStringsByUsage, getTopUsed } from "@/utils/usageStats";
-import { Todo, TodoState } from "@/types/todo";
+import { Todo, TodoState, getTodoId, getTag } from "@/types/todo";
+import { getTimestamp } from "@/types/time";
+import { getPersonId } from "@/types/person";
+import { getProjectId } from "@/types/project";
+import { getPriorityId } from "@/types/priority";
 
 describe("usageStats", () => {
   // Helper to create a minimal todo
@@ -20,11 +24,19 @@ describe("usageStats", () => {
       recurring: string;
     }> = {},
   ): Todo => ({
-    id: `todo-${Date.now()}-${Math.random()}`,
+    id: getTodoId(`todo-${Date.now()}-${Math.random()}`),
     text: "Test todo",
     plainText: "Test todo",
     state,
-    createdAt: Date.now(),
+    createdAt: getTimestamp(Date.now()),
+    context: "",
+    tags: [],
+    dependencies: [],
+    assignedPeople: [],
+    sourcePeople: [],
+    mentionedPeople: [],
+    projects: [],
+    subtasks: [],
     metadata: {
       assignedPeople: overrides.assignedPeople || [],
       sourcePeople: overrides.sourcePeople || [],
@@ -61,9 +73,9 @@ describe("usageStats", () => {
       const stats = calculateUsageStats(todos);
 
       // Alice: 2 active todos × weight 3 = 6
-      expect(stats.assignedPeople.get("Alice")).toBe(6);
+      expect(stats.assignedPeople.get(getPersonId("Alice"))).toBe(6);
       // Bob: 2 active todos × weight 3 = 6
-      expect(stats.assignedPeople.get("Bob")).toBe(6);
+      expect(stats.assignedPeople.get(getPersonId("Bob"))).toBe(6);
     });
 
     it("should count source people", () => {
@@ -75,7 +87,7 @@ describe("usageStats", () => {
       const stats = calculateUsageStats(todos);
 
       // Manager: 1 active (×3) + 1 completed (×2) = 5
-      expect(stats.sourcePeople.get("Manager")).toBe(5);
+      expect(stats.sourcePeople.get(getPersonId("Manager"))).toBe(5);
     });
 
     it("should count mentioned people", () => {
@@ -83,7 +95,7 @@ describe("usageStats", () => {
 
       const stats = calculateUsageStats(todos);
 
-      expect(stats.mentionedPeople.get("Reviewer")).toBe(3);
+      expect(stats.mentionedPeople.get(getPersonId("Reviewer"))).toBe(3);
     });
 
     it("should count projects", () => {
@@ -96,9 +108,9 @@ describe("usageStats", () => {
       const stats = calculateUsageStats(todos);
 
       // Website: 2 active × 3 = 6
-      expect(stats.projects.get("Website")).toBe(6);
+      expect(stats.projects.get(getProjectId("Website"))).toBe(6);
       // API: 1 active (×3) + 1 completed (×2) = 5
-      expect(stats.projects.get("API")).toBe(5);
+      expect(stats.projects.get(getProjectId("API"))).toBe(5);
     });
 
     it("should count priorities", () => {
@@ -110,8 +122,8 @@ describe("usageStats", () => {
 
       const stats = calculateUsageStats(todos);
 
-      expect(stats.priorities.get("high")).toBe(6);
-      expect(stats.priorities.get("low")).toBe(2);
+      expect(stats.priorities.get(getPriorityId("high"))).toBe(6);
+      expect(stats.priorities.get(getPriorityId("low"))).toBe(2);
     });
 
     it("should count tags", () => {
@@ -122,8 +134,8 @@ describe("usageStats", () => {
 
       const stats = calculateUsageStats(todos);
 
-      expect(stats.tags.get("urgent")).toBe(6);
-      expect(stats.tags.get("followup")).toBe(3);
+      expect(stats.tags.get(getTag("urgent"))).toBe(6);
+      expect(stats.tags.get(getTag("followup"))).toBe(3);
     });
 
     it("should count durations", () => {
@@ -158,8 +170,8 @@ describe("usageStats", () => {
 
       const stats = calculateUsageStats([activeTodo, completedTodo]);
 
-      expect(stats.assignedPeople.get("Alice")).toBe(3); // weight 3
-      expect(stats.assignedPeople.get("Bob")).toBe(2); // weight 2
+      expect(stats.assignedPeople.get(getPersonId("Alice"))).toBe(3); // weight 3
+      expect(stats.assignedPeople.get(getPersonId("Bob"))).toBe(2); // weight 2
     });
 
     it("should weight archived todos lower", () => {
@@ -167,7 +179,7 @@ describe("usageStats", () => {
 
       const stats = calculateUsageStats([archivedTodo]);
 
-      expect(stats.assignedPeople.get("Alice")).toBe(1); // weight 1
+      expect(stats.assignedPeople.get(getPersonId("Alice"))).toBe(1); // weight 1
     });
 
     it("should skip deleted todos", () => {
@@ -175,7 +187,7 @@ describe("usageStats", () => {
 
       const stats = calculateUsageStats([deletedTodo]);
 
-      expect(stats.assignedPeople.get("Alice")).toBeUndefined();
+      expect(stats.assignedPeople.get(getPersonId("Alice"))).toBeUndefined();
     });
 
     it("should skip todos without the tracked field", () => {

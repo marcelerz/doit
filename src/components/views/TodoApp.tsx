@@ -212,7 +212,8 @@ import { FilterSection } from "@/components/shared/FilterSection";
 import { ConfirmDialog } from "@/components/shared/Notification";
 import { TemplatesManager, CreateTemplateModal, TemplateDropdown } from "@/components/shared/Templates";
 import { SearchHistoryDropdown } from "@/components/shared/SearchHistory";
-import { TaskTemplate } from "@/types/todo";
+import { TodoTemplate } from "@/types/todo";
+import { getColor } from "@/types/settings";
 import { parseTokensToMetadata } from "@/utils/tokenParser";
 import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
 import { getTextColor } from "@/utils/colors";
@@ -372,7 +373,7 @@ export function TodoApp() {
 
   // Calculate usage statistics from all todos
   const usageStats = useMemo<UsageStats>(() => {
-    return calculateUsageStats(todos);
+    return calculateUsageStats(todos.map((t) => t.raw));
   }, [todos]);
 
   // Combine all person usage stats (assigned + source + mentioned) for unified sorting
@@ -521,7 +522,7 @@ export function TodoApp() {
           projects: selectedFields.projects ? [...todo.metadata.projects] : [],
           dependencies: [], // Don't copy dependencies
           priority: selectedFields.priority ? todo.metadata.priority : undefined,
-          tags: selectedFields.tags ? [...todo.metadata.tags] : [],
+          tags: selectedFields.tags ? [...(todo.metadata.tags ?? [])] : [],
           dueDate: selectedFields.dueDate ? todo.metadata.dueDate : undefined,
           duration: selectedFields.duration ? todo.metadata.duration : undefined,
         },
@@ -532,7 +533,7 @@ export function TodoApp() {
     setShowCreateTemplate(false);
   };
 
-  const handleApplyTemplate = (template: TaskTemplate) => {
+  const handleApplyTemplate = (template: TodoTemplate) => {
     incrementUsage(template.id);
     // Set the smart input with template content
     if (smartInputRef.current) {
@@ -1012,8 +1013,8 @@ export function TodoApp() {
             .map((t) => t.trim())
             .filter(Boolean);
           newTags.forEach((tag) => {
-            if (!newMetadata.tags.includes(tag)) {
-              newMetadata.tags = [...newMetadata.tags, tag];
+            if (!(newMetadata.tags ?? []).includes(tag)) {
+              newMetadata.tags = [...(newMetadata.tags ?? []), tag];
             }
           });
         } else {
@@ -1705,9 +1706,9 @@ export function TodoApp() {
       if (todo.metadata.priority) priorities.add(todo.metadata.priority);
       if (todo.metadata.dueDate) dueDates.add(todo.metadata.dueDate);
       if (todo.metadata.duration) durations.add(todo.metadata.duration);
-      todo.metadata.tags.forEach((t) => tags.add(t));
+      (todo.metadata.tags ?? []).forEach((t) => tags.add(t));
       if (todo.metadata.recurring) recurring.add(todo.metadata.recurring);
-      todo.metadata.dependencies.forEach((d) => dependencies.add(d));
+      (todo.metadata.dependencies ?? []).forEach((d) => dependencies.add(d));
     });
 
     // Categories: only show categories that are actually used by projects in todos
@@ -1885,7 +1886,7 @@ export function TodoApp() {
             const project = projects.find((p) => p.matchesAnyName([projectName]));
             return project?.raw.category;
           })
-          .filter((c): c is string => !!c);
+          .filter((c): c is NonNullable<typeof c> => !!c);
 
         if (!arrayHasAnyFromSet(todoCategories, filters.categories)) {
           return false;
@@ -1911,7 +1912,7 @@ export function TodoApp() {
       }
 
       if (filters.tags.size > 0) {
-        if (!arrayHasAnyFromSet(todo.metadata.tags, filters.tags)) {
+        if (!arrayHasAnyFromSet(todo.metadata.tags ?? [], filters.tags)) {
           return false;
         }
       }
@@ -1923,7 +1924,7 @@ export function TodoApp() {
       }
 
       if (filters.dependencies.size > 0) {
-        if (!arrayHasAnyFromSet(todo.metadata.dependencies, filters.dependencies)) {
+        if (!arrayHasAnyFromSet(todo.metadata.dependencies ?? [], filters.dependencies)) {
           return false;
         }
       }
@@ -4695,7 +4696,7 @@ export function TodoApp() {
                       addPerson({
                         name: name.trim(),
                         alternatives,
-                        color,
+                        color: getColor(color),
                       });
                       setIsAddPersonOverlayOpen(false);
                       e.currentTarget.reset();
@@ -4795,7 +4796,7 @@ export function TodoApp() {
                       addProject({
                         name: name.trim(),
                         alternatives,
-                        color,
+                        color: getColor(color),
                       });
                       setIsAddProjectOverlayOpen(false);
                       e.currentTarget.reset();
@@ -5275,7 +5276,7 @@ export function TodoApp() {
                 projects: [...todo.metadata.projects],
                 dependencies: [],
                 priority: todo.metadata.priority,
-                tags: [...todo.metadata.tags],
+                tags: [...(todo.metadata.tags ?? [])],
                 dueDate: todo.metadata.dueDate,
                 duration: todo.metadata.duration,
               }}

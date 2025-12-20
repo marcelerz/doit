@@ -7,15 +7,24 @@ import {
   getDependencyBlockMessage,
   DependencyValidationResult,
 } from "@/utils/dependencyValidator";
-import { Todo } from "@/types/todo";
+import { Todo, getTodoId } from "@/types/todo";
+import { getTimestamp } from "@/types/time";
 
 // Helper to create a minimal Todo
 const createTodo = (overrides: Partial<Todo> = {}): Todo => ({
-  id: overrides.id || `todo-${Date.now()}-${Math.random()}`,
+  id: getTodoId((overrides.id as string) || `todo-${Date.now()}-${Math.random()}`),
   text: overrides.text || "Test todo",
   plainText: overrides.plainText || overrides.text || "Test todo",
   state: overrides.state || "active",
-  createdAt: overrides.createdAt || Date.now(),
+  createdAt: getTimestamp((overrides.createdAt as number) || Date.now()),
+  context: "",
+  tags: [],
+  dependencies: [],
+  assignedPeople: [],
+  sourcePeople: [],
+  mentionedPeople: [],
+  projects: [],
+  subtasks: [],
   metadata: {
     assignedPeople: [],
     sourcePeople: [],
@@ -42,14 +51,14 @@ describe("dependencyValidator", () => {
 
     it("should return satisfied when dependency is completed", () => {
       const dependency = createTodo({
-        id: "dep-1",
+        id: getTodoId("dep-1"),
         state: "completed",
-        completedAt: Date.now(),
+        completedAt: getTimestamp(Date.now()),
         plainText: "Completed task",
       });
       const allTodos = [dependency];
 
-      const result = areDependenciesSatisfied(["dep-1"], allTodos);
+      const result = areDependenciesSatisfied([getTodoId("dep-1")], allTodos);
 
       expect(result.satisfied).toBe(true);
       expect(result.unsatisfiedTodos).toHaveLength(0);
@@ -57,14 +66,14 @@ describe("dependencyValidator", () => {
 
     it("should return satisfied when dependency is archived", () => {
       const dependency = createTodo({
-        id: "dep-1",
+        id: getTodoId("dep-1"),
         state: "archived",
-        archivedAt: Date.now(),
+        archivedAt: getTimestamp(Date.now()),
         plainText: "Archived task",
       });
       const allTodos = [dependency];
 
-      const result = areDependenciesSatisfied(["dep-1"], allTodos);
+      const result = areDependenciesSatisfied([getTodoId("dep-1")], allTodos);
 
       expect(result.satisfied).toBe(true);
       expect(result.unsatisfiedTodos).toHaveLength(0);
@@ -72,20 +81,20 @@ describe("dependencyValidator", () => {
 
     it("should return satisfied when dependency is deleted", () => {
       const dependency = createTodo({
-        id: "dep-1",
+        id: getTodoId("dep-1"),
         state: "deleted",
-        deletedAt: Date.now(),
+        deletedAt: getTimestamp(Date.now()),
         plainText: "Deleted task",
       });
       const allTodos = [dependency];
 
-      expect(areDependenciesSatisfied(["dep-1"], allTodos).satisfied).toBe(true);
+      expect(areDependenciesSatisfied([getTodoId("dep-1")], allTodos).satisfied).toBe(true);
     });
 
     it("should return satisfied when dependency does not exist", () => {
       const allTodos: Todo[] = [];
 
-      const result = areDependenciesSatisfied(["non-existent-id"], allTodos);
+      const result = areDependenciesSatisfied([getTodoId("non-existent-id")], allTodos);
 
       expect(result.satisfied).toBe(true);
       expect(result.unsatisfiedTodos).toHaveLength(0);
@@ -93,54 +102,54 @@ describe("dependencyValidator", () => {
 
     it("should return unsatisfied when dependency is active", () => {
       const dependency = createTodo({
-        id: "dep-1",
+        id: getTodoId("dep-1"),
         state: "active",
         plainText: "Active dependency",
       });
       const allTodos = [dependency];
 
-      const result = areDependenciesSatisfied(["dep-1"], allTodos);
+      const result = areDependenciesSatisfied([getTodoId("dep-1")], allTodos);
 
       expect(result.satisfied).toBe(false);
       expect(result.unsatisfiedTodos).toHaveLength(1);
-      expect(result.unsatisfiedTodos[0].id).toBe("dep-1");
+      expect(result.unsatisfiedTodos[0].id).toBe(getTodoId("dep-1"));
     });
 
     it("should handle multiple dependencies - all satisfied", () => {
-      const dep1 = createTodo({ id: "dep-1", state: "completed", completedAt: Date.now() });
-      const dep2 = createTodo({ id: "dep-2", state: "archived", archivedAt: Date.now() });
-      const dep3 = createTodo({ id: "dep-3", state: "deleted", deletedAt: Date.now() });
+      const dep1 = createTodo({ id: getTodoId("dep-1"), state: "completed", completedAt: getTimestamp(Date.now()) });
+      const dep2 = createTodo({ id: getTodoId("dep-2"), state: "archived", archivedAt: getTimestamp(Date.now()) });
+      const dep3 = createTodo({ id: getTodoId("dep-3"), state: "deleted", deletedAt: getTimestamp(Date.now()) });
       const allTodos = [dep1, dep2, dep3];
 
-      const result = areDependenciesSatisfied(["dep-1", "dep-2", "dep-3"], allTodos);
+      const result = areDependenciesSatisfied([getTodoId("dep-1"), getTodoId("dep-2"), getTodoId("dep-3")], allTodos);
 
       expect(result.satisfied).toBe(true);
       expect(result.unsatisfiedTodos).toHaveLength(0);
     });
 
     it("should handle multiple dependencies - some unsatisfied", () => {
-      const dep1 = createTodo({ id: "dep-1", state: "completed", completedAt: Date.now() });
-      const dep2 = createTodo({ id: "dep-2", state: "active", plainText: "Active dep 2" });
-      const dep3 = createTodo({ id: "dep-3", state: "active", plainText: "Active dep 3" });
+      const dep1 = createTodo({ id: getTodoId("dep-1"), state: "completed", completedAt: getTimestamp(Date.now()) });
+      const dep2 = createTodo({ id: getTodoId("dep-2"), state: "active", plainText: "Active dep 2" });
+      const dep3 = createTodo({ id: getTodoId("dep-3"), state: "active", plainText: "Active dep 3" });
       const allTodos = [dep1, dep2, dep3];
 
-      const result = areDependenciesSatisfied(["dep-1", "dep-2", "dep-3"], allTodos);
+      const result = areDependenciesSatisfied([getTodoId("dep-1"), getTodoId("dep-2"), getTodoId("dep-3")], allTodos);
 
       expect(result.satisfied).toBe(false);
       expect(result.unsatisfiedTodos).toHaveLength(2);
-      expect(result.unsatisfiedTodos.map((t) => t.id)).toContain("dep-2");
-      expect(result.unsatisfiedTodos.map((t) => t.id)).toContain("dep-3");
+      expect(result.unsatisfiedTodos.map((t) => t.id)).toContain(getTodoId("dep-2"));
+      expect(result.unsatisfiedTodos.map((t) => t.id)).toContain(getTodoId("dep-3"));
     });
 
     it("should handle mixed existing and non-existing dependencies", () => {
-      const existingDep = createTodo({ id: "existing", state: "active", plainText: "Existing" });
+      const existingDep = createTodo({ id: getTodoId("existing"), state: "active", plainText: "Existing" });
       const allTodos = [existingDep];
 
-      const result = areDependenciesSatisfied(["existing", "non-existing"], allTodos);
+      const result = areDependenciesSatisfied([getTodoId("existing"), getTodoId("non-existing")], allTodos);
 
       expect(result.satisfied).toBe(false);
       expect(result.unsatisfiedTodos).toHaveLength(1);
-      expect(result.unsatisfiedTodos[0].id).toBe("existing");
+      expect(result.unsatisfiedTodos[0].id).toBe(getTodoId("existing"));
     });
   });
 

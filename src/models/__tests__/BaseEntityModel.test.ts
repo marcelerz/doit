@@ -3,7 +3,7 @@
  */
 
 import { BaseEntityModel, BaseEntity } from "@/models/BaseEntityModel";
-import { Comment, ActivityEntry } from "@/types/settings";
+import { Comment, ActivityEntry, getCommentId, getActivityId, getTimestamp, getColor } from "@/types/settings";
 
 // Concrete implementation for testing
 class TestEntityModel extends BaseEntityModel<BaseEntity> {
@@ -64,14 +64,16 @@ describe("BaseEntityModel", () => {
     });
 
     it("should expose comments array", () => {
-      const comments: Comment[] = [{ commentId: 1, history: [{ date: Date.now(), content: "First comment" }] }];
+      const comments: Comment[] = [
+        { commentId: getCommentId("1"), history: [{ timestamp: getTimestamp(Date.now()), content: "First comment" }] },
+      ];
       const model = new TestEntityModel(createTestEntity({ comments }));
       expect(model.comments).toBe(comments);
     });
 
     it("should expose activity array", () => {
-      const activity: ActivityEntry[] = [
-        { id: "act-1", timestamp: Date.now(), type: "created", description: "Created" },
+      const activity: ActivityEntry<string>[] = [
+        { id: getActivityId("act-1"), timestamp: getTimestamp(Date.now()), type: "created", description: "Created" },
       ];
       const model = new TestEntityModel(createTestEntity({ activity }));
       expect(model.activity).toBe(activity);
@@ -148,16 +150,18 @@ describe("BaseEntityModel", () => {
     });
 
     it("should return hasComments true when comments exist", () => {
-      const comments: Comment[] = [{ commentId: 1, history: [{ date: Date.now(), content: "Comment" }] }];
+      const comments: Comment[] = [
+        { commentId: getCommentId("1"), history: [{ timestamp: getTimestamp(Date.now()), content: "Comment" }] },
+      ];
       const model = new TestEntityModel(createTestEntity({ comments }));
       expect(model.hasComments).toBe(true);
     });
 
     it("should return correct commentCount", () => {
       const comments: Comment[] = [
-        { commentId: 1, history: [{ date: Date.now(), content: "One" }] },
-        { commentId: 2, history: [{ date: Date.now(), content: "Two" }] },
-        { commentId: 3, history: [{ date: Date.now(), content: "Three" }] },
+        { commentId: getCommentId("1"), history: [{ timestamp: getTimestamp(Date.now()), content: "One" }] },
+        { commentId: getCommentId("2"), history: [{ timestamp: getTimestamp(Date.now()), content: "Two" }] },
+        { commentId: getCommentId("3"), history: [{ timestamp: getTimestamp(Date.now()), content: "Three" }] },
       ];
       const model = new TestEntityModel(createTestEntity({ comments }));
       expect(model.commentCount).toBe(3);
@@ -165,12 +169,12 @@ describe("BaseEntityModel", () => {
 
     it("should return latestComment", () => {
       const comments: Comment[] = [
-        { commentId: 1, history: [{ date: 1000, content: "First" }] },
-        { commentId: 2, history: [{ date: 2000, content: "Second" }] },
+        { commentId: getCommentId("1"), history: [{ timestamp: getTimestamp(1000), content: "First" }] },
+        { commentId: getCommentId("2"), history: [{ timestamp: getTimestamp(2000), content: "Second" }] },
       ];
       const model = new TestEntityModel(createTestEntity({ comments }));
 
-      expect(model.latestComment?.commentId).toBe(2);
+      expect(model.latestComment?.commentId).toBe(getCommentId("2"));
     });
 
     it("should return undefined latestComment for empty comments", () => {
@@ -184,28 +188,30 @@ describe("BaseEntityModel", () => {
     });
 
     it("should return hasActivity true when activity exists", () => {
-      const activity: ActivityEntry[] = [{ id: "1", timestamp: Date.now(), type: "created", description: "Created" }];
+      const activity: ActivityEntry<string>[] = [
+        { id: getActivityId("1"), timestamp: getTimestamp(Date.now()), type: "created", description: "Created" },
+      ];
       const model = new TestEntityModel(createTestEntity({ activity }));
       expect(model.hasActivity).toBe(true);
     });
 
     it("should return correct activityCount", () => {
-      const activity: ActivityEntry[] = [
-        { id: "1", timestamp: Date.now(), type: "created", description: "One" },
-        { id: "2", timestamp: Date.now(), type: "edited", description: "Two" },
+      const activity: ActivityEntry<string>[] = [
+        { id: getActivityId("1"), timestamp: getTimestamp(Date.now()), type: "created", description: "One" },
+        { id: getActivityId("2"), timestamp: getTimestamp(Date.now()), type: "edited", description: "Two" },
       ];
       const model = new TestEntityModel(createTestEntity({ activity }));
       expect(model.activityCount).toBe(2);
     });
 
     it("should return latestActivity", () => {
-      const activity: ActivityEntry[] = [
-        { id: "1", timestamp: 1000, type: "created", description: "First" },
-        { id: "2", timestamp: 2000, type: "edited", description: "Second" },
+      const activity: ActivityEntry<string>[] = [
+        { id: getActivityId("1"), timestamp: getTimestamp(1000), type: "created", description: "First" },
+        { id: getActivityId("2"), timestamp: getTimestamp(2000), type: "edited", description: "Second" },
       ];
       const model = new TestEntityModel(createTestEntity({ activity }));
 
-      expect(model.latestActivity?.id).toBe("2");
+      expect(model.latestActivity?.id).toBe(getActivityId("2"));
     });
   });
 
@@ -277,8 +283,8 @@ describe("BaseEntityModel", () => {
 
     it("should include comment count when present", () => {
       const comments: Comment[] = [
-        { commentId: 1, history: [{ date: Date.now(), content: "One" }] },
-        { commentId: 2, history: [{ date: Date.now(), content: "Two" }] },
+        { commentId: getCommentId("1"), history: [{ timestamp: getTimestamp(Date.now()), content: "One" }] },
+        { commentId: getCommentId("2"), history: [{ timestamp: getTimestamp(Date.now()), content: "Two" }] },
       ];
       const model = new TestEntityModel(createTestEntity({ comments }));
       const summary = model.getMetadataSummary();
@@ -287,7 +293,9 @@ describe("BaseEntityModel", () => {
     });
 
     it("should use singular 'comment' for count of 1", () => {
-      const comments: Comment[] = [{ commentId: 1, history: [{ date: Date.now(), content: "One" }] }];
+      const comments: Comment[] = [
+        { commentId: getCommentId("1"), history: [{ timestamp: getTimestamp(Date.now()), content: "One" }] },
+      ];
       const model = new TestEntityModel(createTestEntity({ comments }));
       const summary = model.getMetadataSummary();
 
@@ -296,10 +304,10 @@ describe("BaseEntityModel", () => {
     });
 
     it("should include activity count when present", () => {
-      const activity: ActivityEntry[] = [
-        { id: "1", timestamp: Date.now(), type: "created", description: "One" },
-        { id: "2", timestamp: Date.now(), type: "edited", description: "Two" },
-        { id: "3", timestamp: Date.now(), type: "edited", description: "Three" },
+      const activity: ActivityEntry<string>[] = [
+        { id: getActivityId("1"), timestamp: getTimestamp(Date.now()), type: "created", description: "One" },
+        { id: getActivityId("2"), timestamp: getTimestamp(Date.now()), type: "edited", description: "Two" },
+        { id: getActivityId("3"), timestamp: getTimestamp(Date.now()), type: "edited", description: "Three" },
       ];
       const model = new TestEntityModel(createTestEntity({ activity }));
       const summary = model.getMetadataSummary();
@@ -316,7 +324,9 @@ describe("BaseEntityModel", () => {
     });
 
     it("should join parts with bullet separator", () => {
-      const comments: Comment[] = [{ commentId: 1, history: [{ date: Date.now(), content: "One" }] }];
+      const comments: Comment[] = [
+        { commentId: getCommentId("1"), history: [{ timestamp: getTimestamp(Date.now()), content: "One" }] },
+      ];
       const model = new TestEntityModel(createTestEntity({ comments }));
       const summary = model.getMetadataSummary(3);
 
@@ -350,8 +360,8 @@ describe("BaseEntityModel", () => {
       it("should match by comment content", () => {
         const comments: Comment[] = [
           {
-            commentId: 1,
-            history: [{ date: Date.now(), content: "Important meeting tomorrow" }],
+            commentId: getCommentId("1"),
+            history: [{ timestamp: getTimestamp(Date.now()), content: "Important meeting tomorrow" }],
           },
         ];
         const model = new TestEntityModel(createTestEntity({ comments }));

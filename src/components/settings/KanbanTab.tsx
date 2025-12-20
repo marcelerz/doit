@@ -8,6 +8,9 @@ import {
   defaultKanbanStates,
   defaultKanbanTransitions,
   defaultKanbanViews,
+  getKanbanStateId,
+  getKanbanViewId,
+  getColor,
 } from "@/types/settings";
 import { useState } from "react";
 import { IconButton } from "@/components/shared/IconButton";
@@ -48,9 +51,9 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
     if (!newStateName.trim()) return;
 
     const newState: KanbanState = {
-      id: `state-${Date.now()}`,
+      id: getKanbanStateId(`state-${Date.now()}`),
       name: newStateName.trim(),
-      color: newStateColor,
+      color: getColor(newStateColor),
       icon: newStateIcon,
       order: kanban.states.length,
     };
@@ -124,7 +127,10 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
     } else {
       onUpdate({
         ...kanban,
-        allowedTransitions: [...kanban.allowedTransitions, { fromStateId, toStateId }],
+        allowedTransitions: [
+          ...kanban.allowedTransitions,
+          { fromStateId: getKanbanStateId(fromStateId), toStateId: getKanbanStateId(toStateId) },
+        ],
       });
     }
   };
@@ -134,10 +140,10 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
     if (!newViewName.trim() || newViewStates.length === 0) return;
 
     const newView: KanbanView = {
-      id: `view-${Date.now()}`,
+      id: getKanbanViewId(`view-${Date.now()}`),
       name: newViewName.trim(),
       description: newViewDescription.trim() || undefined,
-      stateIds: newViewStates,
+      stateIds: newViewStates.map(getKanbanStateId),
     };
 
     onUpdate({
@@ -404,13 +410,13 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
                     <input
                       type="color"
                       value={editingState.color}
-                      onChange={(e) => setEditingState({ ...editingState, color: e.target.value })}
+                      onChange={(e) => setEditingState({ ...editingState, color: getColor(e.target.value) })}
                       className="w-12 h-10 rounded-lg cursor-pointer border border-zinc-300 dark:border-zinc-700"
                     />
                     <input
                       type="text"
                       value={editingState.color}
-                      onChange={(e) => setEditingState({ ...editingState, color: e.target.value })}
+                      onChange={(e) => setEditingState({ ...editingState, color: getColor(e.target.value) })}
                       className="flex-1 px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="#6366f1"
                     />

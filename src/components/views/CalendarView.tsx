@@ -3,7 +3,7 @@
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
-import { MarkerColors, CalendarView as CalendarViewType, Calendar } from "@/types/settings";
+import { MarkerColors, CalendarView as CalendarViewType, Calendar, CommentId } from "@/types/settings";
 import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import { TodoItem } from "@/components/items/TodoItem";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
@@ -73,8 +73,8 @@ interface CalendarViewProps {
   onAddProject: (name: string) => void;
   onAddPriority: (name: string) => void;
   onAddComment: (todoId: string, content: string) => void;
-  onEditComment: (todoId: string, commentId: number, content: string) => void;
-  onDeleteComment: (todoId: string, commentId: number) => void;
+  onEditComment: (todoId: string, commentId: CommentId, content: string) => void;
+  onDeleteComment: (todoId: string, commentId: CommentId) => void;
   onQuickAdd?: (dueDate: string) => void;
   // Subtask handlers
   onAddSubtask?: (todoId: string, text: string) => void;

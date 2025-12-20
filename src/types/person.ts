@@ -1,4 +1,4 @@
-import { ActivityEntry, Color } from "./types";
+import { ActivityEntry, Color, Comment } from "./types";
 
 // Unique branded type for Person IDs
 export type PersonId = string & { readonly __brand: unique symbol };

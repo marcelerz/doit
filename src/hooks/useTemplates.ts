@@ -1,19 +1,21 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { TaskTemplate, TodoMetadata } from "@/types/todo";
+import { TodoTemplate, TodoMetadata } from "@/types/todo";
+import { getTodoTemplateId } from "@/types/todoTemplate";
+import { getTimestamp } from "@/types/settings";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
 
 export function useTemplates() {
-  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
+  const [templates, setTemplates] = useState<TodoTemplate[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load templates from storage on mount
   useEffect(() => {
     const loadTemplates = async () => {
       await waitForStorageInit();
-      const loaded = await loadFromStorage<TaskTemplate[]>(STORAGE_KEYS.TEMPLATES, []);
+      const loaded = await loadFromStorage<TodoTemplate[]>(STORAGE_KEYS.TEMPLATES, []);
       setTemplates(loaded);
       setIsLoaded(true);
     };
@@ -35,19 +37,19 @@ export function useTemplates() {
       text: string;
       plainText: string;
       metadata: Partial<TodoMetadata>;
-      subtasks?: TaskTemplate["subtasks"];
+      subtasks?: TodoTemplate["subtasks"];
       description?: string;
     }) => {
       const now = Date.now();
-      const newTemplate: TaskTemplate = {
-        id: `template-${now}`,
+      const newTemplate: TodoTemplate = {
+        id: getTodoTemplateId(`template-${now}`),
         name: template.name,
         description: template.description,
         text: template.text,
         plainText: template.plainText,
         metadata: template.metadata,
         subtasks: template.subtasks,
-        createdAt: now,
+        createdAt: getTimestamp(now),
         usageCount: 0,
       };
       setTemplates((prev) => [...prev, newTemplate]);
@@ -57,7 +59,7 @@ export function useTemplates() {
   );
 
   const updateTemplate = useCallback(
-    (id: string, updates: Partial<Omit<TaskTemplate, "id" | "createdAt" | "usageCount">>) => {
+    (id: string, updates: Partial<Omit<TodoTemplate, "id" | "createdAt" | "usageCount">>) => {
       setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
     },
     [],

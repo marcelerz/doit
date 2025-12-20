@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Project } from "@/types/settings";
+import { Project, getColor } from "@/types/settings";
 import { IconButton } from "@/components/shared/IconButton";
 
 interface ProjectsTabProps {
@@ -30,7 +30,7 @@ export function ProjectsTab({ projects, onAdd, onUpdate, onDelete }: ProjectsTab
         .split(",")
         .map((a) => a.trim())
         .filter((a) => a),
-      color: formData.color || undefined,
+      color: formData.color ? getColor(formData.color) : undefined,
     };
 
     if (editingId) {

@@ -12,7 +12,12 @@ import {
   KanbanTransition,
   ProjectCategory,
   FeatureSettings,
+  getKanbanStateId,
+  getKanbanViewId,
+  getProjectCategoryId,
 } from "@/types/settings";
+import { getPriorityId } from "@/types/priority";
+import { getLinkPatternId } from "@/types/linkPattern";
 import { migrateSettings } from "@/storage/migrations";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
@@ -71,20 +76,11 @@ export function useSettings() {
       });
   }, [settings, isLoaded]);
 
-  const addPriority = (priority: Omit<Priority, "id" | "comments" | "activity">) => {
+  const addPriority = (priority: Omit<Priority, "id">) => {
     const now = Date.now();
     const newPriority: Priority = {
       ...priority,
-      id: now.toString(),
-      comments: [],
-      activity: [
-        {
-          id: `${now}-created`,
-          timestamp: now,
-          type: "created",
-          description: `Priority created`,
-        },
-      ],
+      id: getPriorityId(now.toString()),
     };
     setSettings((prev) => ({
       ...prev,
@@ -109,7 +105,7 @@ export function useSettings() {
   const addLinkPattern = (pattern: Omit<LinkPattern, "id">) => {
     const newPattern: LinkPattern = {
       ...pattern,
-      id: Date.now().toString(),
+      id: getLinkPatternId(Date.now().toString()),
     };
     setSettings((prev) => ({
       ...prev,
@@ -211,53 +207,6 @@ export function useSettings() {
     }));
   };
 
-  const addPriorityComment = (priorityId: string, content: string) => {
-    setSettings((prev) => ({
-      ...prev,
-      priorities: prev.priorities.map((priority) => {
-        if (priority.id === priorityId) {
-          const newComment = {
-            commentId: Date.now(),
-            history: [{ date: Date.now(), content }],
-          };
-          return { ...priority, comments: [...priority.comments, newComment] };
-        }
-        return priority;
-      }),
-    }));
-  };
-
-  const editPriorityComment = (priorityId: string, commentId: number, content: string) => {
-    setSettings((prev) => ({
-      ...prev,
-      priorities: prev.priorities.map((priority) => {
-        if (priority.id === priorityId) {
-          return {
-            ...priority,
-            comments: priority.comments.map((comment) =>
-              comment.commentId === commentId
-                ? { ...comment, history: [...comment.history, { date: Date.now(), content }] }
-                : comment,
-            ),
-          };
-        }
-        return priority;
-      }),
-    }));
-  };
-
-  const deletePriorityComment = (priorityId: string, commentId: number) => {
-    setSettings((prev) => ({
-      ...prev,
-      priorities: prev.priorities.map((priority) => {
-        if (priority.id === priorityId) {
-          return { ...priority, comments: priority.comments.filter((c) => c.commentId !== commentId) };
-        }
-        return priority;
-      }),
-    }));
-  };
-
   // Kanban settings methods
   const updateKanbanSettings = (kanban: Partial<Settings["kanban"]>) => {
     setSettings((prev) => ({
@@ -272,7 +221,7 @@ export function useSettings() {
   const addKanbanState = (state: Omit<KanbanState, "id">) => {
     const newState: KanbanState = {
       ...state,
-      id: `state-${Date.now()}`,
+      id: getKanbanStateId(`state-${Date.now()}`),
     };
     setSettings((prev) => ({
       ...prev,
@@ -362,7 +311,7 @@ export function useSettings() {
   const addKanbanView = (view: Omit<KanbanView, "id">) => {
     const newView: KanbanView = {
       ...view,
-      id: `view-${Date.now()}`,
+      id: getKanbanViewId(`view-${Date.now()}`),
     };
     setSettings((prev) => ({
       ...prev,
@@ -418,7 +367,7 @@ export function useSettings() {
   const addCategory = (category: Omit<ProjectCategory, "id">) => {
     const newCategory: ProjectCategory = {
       ...category,
-      id: `cat-${Date.now()}`,
+      id: getProjectCategoryId(`cat-${Date.now()}`),
     };
     setSettings((prev) => ({
       ...prev,
@@ -485,9 +434,6 @@ export function useSettings() {
     updateCalendar,
     updateNotificationSettings,
     updateAutoAssignSettings,
-    addPriorityComment,
-    editPriorityComment,
-    deletePriorityComment,
     // Kanban methods
     updateKanbanSettings,
     addKanbanState,

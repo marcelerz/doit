@@ -20,8 +20,8 @@ interface SprintsViewProps {
   onArchive: (id: string) => void;
   onUnarchive: (id: string) => void;
   onAddComment: (sprintId: string, content: string) => void;
-  onEditComment: (sprintId: string, commentId: number, content: string) => void;
-  onDeleteComment: (sprintId: string, commentId: number) => void;
+  onEditComment: (sprintId: string, commentId: string, content: string) => void;
+  onDeleteComment: (sprintId: string, commentId: string) => void;
   onTodoClick?: (todo: TodoModel) => void;
   onRemoveTodoFromSprint?: (todoId: string) => void;
   defaultDuration: number;

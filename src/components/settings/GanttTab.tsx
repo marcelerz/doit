@@ -1,6 +1,14 @@
 "use client";
 
-import { Gantt, GanttZoomLevel, GanttPreset, defaultGantt, defaultGanttPresets } from "@/types/settings";
+import {
+  Gantt,
+  GanttZoomLevel,
+  GanttPreset,
+  defaultGantt,
+  defaultGanttPresets,
+  getDurationMin,
+  getGanttPresetId,
+} from "@/types/settings";
 
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
@@ -33,7 +41,7 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
   const handleDeletePreset = (presetId: string) => {
     // Don't allow deleting default presets
     const defaultIds = defaultGanttPresets.map((p) => p.id);
-    if (defaultIds.includes(presetId)) return;
+    if (defaultIds.includes(getGanttPresetId(presetId))) return;
 
     onUpdate({
       ...gantt,
@@ -101,7 +109,11 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
                 step="5"
                 value={gantt.defaultTaskDuration}
                 onChange={(e) =>
-                  onUpdate({ ...gantt, defaultTaskDuration: parseInt(e.target.value) || 30, activePresetId: undefined })
+                  onUpdate({
+                    ...gantt,
+                    defaultTaskDuration: getDurationMin(parseInt(e.target.value) || 30),
+                    activePresetId: undefined,
+                  })
                 }
                 className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -149,7 +161,7 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
                 onChange={(e) =>
                   onUpdate({
                     ...gantt,
-                    minimumRemainingDuration: Math.max(1, parseInt(e.target.value) || 1),
+                    minimumRemainingDuration: getDurationMin(Math.max(1, parseInt(e.target.value) || 1)),
                     activePresetId: undefined,
                   })
                 }
@@ -229,7 +241,11 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
                 max="60"
                 value={gantt.contextSwitchingTime}
                 onChange={(e) =>
-                  onUpdate({ ...gantt, contextSwitchingTime: parseInt(e.target.value) || 0, activePresetId: undefined })
+                  onUpdate({
+                    ...gantt,
+                    contextSwitchingTime: getDurationMin(parseInt(e.target.value) || 0),
+                    activePresetId: undefined,
+                  })
                 }
                 className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -306,7 +322,7 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
                 onChange={(e) =>
                   onUpdate({
                     ...gantt,
-                    pomodoroWorkDuration: parseInt(e.target.value) || 25,
+                    pomodoroWorkDuration: getDurationMin(parseInt(e.target.value) || 25),
                     activePresetId: undefined,
                   })
                 }
@@ -328,7 +344,7 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
                 onChange={(e) =>
                   onUpdate({
                     ...gantt,
-                    pomodoroShortBreak: parseInt(e.target.value) || 5,
+                    pomodoroShortBreak: getDurationMin(parseInt(e.target.value) || 5),
                     activePresetId: undefined,
                   })
                 }
@@ -350,7 +366,7 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
                 onChange={(e) =>
                   onUpdate({
                     ...gantt,
-                    pomodoroLongBreak: parseInt(e.target.value) || 15,
+                    pomodoroLongBreak: getDurationMin(parseInt(e.target.value) || 15),
                     activePresetId: undefined,
                   })
                 }
@@ -475,7 +491,7 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
                 onChange={(e) =>
                   onUpdate({
                     ...gantt,
-                    flowWorkDuration: parseInt(e.target.value) || 52,
+                    flowWorkDuration: getDurationMin(parseInt(e.target.value) || 52),
                     activePresetId: undefined,
                   })
                 }
@@ -497,7 +513,7 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
                 onChange={(e) =>
                   onUpdate({
                     ...gantt,
-                    flowBreakDuration: parseInt(e.target.value) || 17,
+                    flowBreakDuration: getDurationMin(parseInt(e.target.value) || 17),
                     activePresetId: undefined,
                   })
                 }
@@ -519,7 +535,7 @@ export function GanttTab({ gantt, onUpdate }: GanttTabProps) {
                 onChange={(e) =>
                   onUpdate({
                     ...gantt,
-                    flowContextSwitchingTime: parseInt(e.target.value) || 10,
+                    flowContextSwitchingTime: getDurationMin(parseInt(e.target.value) || 10),
                     activePresetId: undefined,
                   })
                 }

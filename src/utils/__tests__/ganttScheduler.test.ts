@@ -39,15 +39,19 @@ import {
   defaultFeatureSettings,
 } from "@/types/settings";
 import { TodoModel } from "@/models/TodoModel";
-import { Todo } from "@/types/todo";
+import { Todo, getTodoId, getTimeEntryId } from "@/types/todo";
+import { getTimestamp, getShortTime, getDurationMin } from "@/types/time";
+import { getBreakPeriodId } from "@/types/breakPeriod";
+import { getPriorityId } from "@/types/priority";
+import { getColor } from "@/types/types";
 
 // Helper to create minimal settings for TodoModel
 const createMinimalSettings = (): Settings => ({
   priorities: [
-    { id: "1", name: "urgent", alternatives: ["critical"], order: 1, comments: [], activity: [] },
-    { id: "2", name: "high", alternatives: [], order: 2, comments: [], activity: [] },
-    { id: "3", name: "medium", alternatives: [], order: 3, comments: [], activity: [] },
-    { id: "4", name: "low", alternatives: [], order: 4, comments: [], activity: [] },
+    { id: getPriorityId("1"), name: "urgent", alternatives: ["critical"], order: 1 },
+    { id: getPriorityId("2"), name: "high", alternatives: [], order: 2 },
+    { id: getPriorityId("3"), name: "medium", alternatives: [], order: 3 },
+    { id: getPriorityId("4"), name: "low", alternatives: [], order: 4 },
   ],
   linkPatterns: [],
   markerColors: defaultMarkerColors,
@@ -69,12 +73,19 @@ const createMinimalSettings = (): Settings => ({
 const createWorkHoursSettings = (): WorkHoursSettings => ({
   useCommonSchedule: true,
   commonSchedule: {
-    startTime: "09:00",
-    endTime: "17:00",
-    breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+    startTime: getShortTime("09:00"),
+    endTime: getShortTime("17:00"),
+    breaks: [
+      {
+        id: getBreakPeriodId("lunch"),
+        name: "Lunch",
+        startTime: getShortTime("12:00"),
+        endTime: getShortTime("13:00"),
+      },
+    ],
   },
-  weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-  weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
+  weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+  weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
   customSchedules: {},
 });
 
@@ -86,11 +97,11 @@ const createGanttSettings = (overrides: Partial<Gantt> = {}): Gantt => ({
 
 // Helper to create a minimal Todo
 const createTodo = (overrides: Partial<Todo> = {}): Todo => ({
-  id: overrides.id || `todo-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  id: overrides.id || getTodoId(`todo-${Date.now()}-${Math.random().toString(36).slice(2)}`),
   text: overrides.text || "Test todo",
   plainText: overrides.plainText || "Test todo",
   state: overrides.state || "active",
-  createdAt: overrides.createdAt || Date.now(),
+  createdAt: overrides.createdAt || getTimestamp(Date.now()),
   metadata: {
     assignedPeople: [],
     sourcePeople: [],
@@ -102,6 +113,14 @@ const createTodo = (overrides: Partial<Todo> = {}): Todo => ({
   },
   comments: [],
   activity: [],
+  subtasks: [],
+  context: "",
+  tags: [],
+  dependencies: [],
+  assignedPeople: [],
+  sourcePeople: [],
+  mentionedPeople: [],
+  projects: [],
   ...overrides,
 });
 
@@ -115,10 +134,10 @@ const createSchedulingConfig = (overrides: Partial<SchedulingConfig> = {}): Sche
   ganttSettings: createGanttSettings(),
   workHours: createWorkHoursSettings(),
   availablePriorities: [
-    { id: "1", name: "urgent", alternatives: ["critical"], order: 1, comments: [], activity: [] },
-    { id: "2", name: "high", alternatives: [], order: 2, comments: [], activity: [] },
-    { id: "3", name: "medium", alternatives: [], order: 3, comments: [], activity: [] },
-    { id: "4", name: "low", alternatives: [], order: 4, comments: [], activity: [] },
+    { id: getPriorityId("1"), name: "urgent", alternatives: ["critical"], order: 1 },
+    { id: getPriorityId("2"), name: "high", alternatives: [], order: 2 },
+    { id: getPriorityId("3"), name: "medium", alternatives: [], order: 3 },
+    { id: getPriorityId("4"), name: "low", alternatives: [], order: 4 },
   ],
   schedulingMode: "asap",
   ...overrides,
@@ -210,9 +229,9 @@ describe("ganttScheduler", () => {
     it("should return weekday schedule for weekdays when not using common schedule", () => {
       const workHours: WorkHoursSettings = {
         useCommonSchedule: false,
-        commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-        weekdaySchedule: { startTime: "08:00", endTime: "16:00", breaks: [] },
-        weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
+        commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+        weekdaySchedule: { startTime: getShortTime("08:00"), endTime: getShortTime("16:00"), breaks: [] },
+        weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
         customSchedules: {},
       };
       const tuesday = new Date("2025-12-09"); // A Tuesday
@@ -226,9 +245,9 @@ describe("ganttScheduler", () => {
     it("should return weekend schedule for Saturday/Sunday", () => {
       const workHours: WorkHoursSettings = {
         useCommonSchedule: false,
-        commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-        weekdaySchedule: { startTime: "08:00", endTime: "16:00", breaks: [] },
-        weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
+        commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+        weekdaySchedule: { startTime: getShortTime("08:00"), endTime: getShortTime("16:00"), breaks: [] },
+        weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
         customSchedules: {},
       };
       // Create Saturday in local timezone
@@ -242,15 +261,15 @@ describe("ganttScheduler", () => {
 
     it("should return custom schedule for specific days", () => {
       const customFriday: DaySchedule = {
-        startTime: "10:00",
-        endTime: "15:00",
+        startTime: getShortTime("10:00"),
+        endTime: getShortTime("15:00"),
         breaks: [],
       };
       const workHours: WorkHoursSettings = {
         useCommonSchedule: false,
-        commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-        weekdaySchedule: { startTime: "08:00", endTime: "16:00", breaks: [] },
-        weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
+        commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+        weekdaySchedule: { startTime: getShortTime("08:00"), endTime: getShortTime("16:00"), breaks: [] },
+        weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
         customSchedules: { friday: customFriday },
       };
       // Create Friday in local timezone
@@ -283,8 +302,8 @@ describe("ganttScheduler", () => {
       const customGantt: Gantt = {
         ...ganttSettings,
         pomodoroLongBreakInterval: 2,
-        pomodoroShortBreak: 3,
-        pomodoroLongBreak: 10,
+        pomodoroShortBreak: getDurationMin(3),
+        pomodoroLongBreak: getDurationMin(10),
       };
 
       expect(getPomodoroBreakDuration(1, customGantt)).toBe(3);
@@ -316,16 +335,20 @@ describe("ganttScheduler", () => {
   describe("sortTodosForScheduling", () => {
     const settings = createMinimalSettings();
     const priorities: Priority[] = [
-      { id: "1", name: "urgent", alternatives: ["critical"], order: 1, color: "#ff0000", comments: [], activity: [] },
-      { id: "2", name: "high", alternatives: ["important"], order: 2, color: "#ff6600", comments: [], activity: [] },
-      { id: "3", name: "medium", alternatives: [], order: 3, color: "#ffcc00", comments: [], activity: [] },
-      { id: "4", name: "low", alternatives: [], order: 4, color: "#00cc00", comments: [], activity: [] },
+      { id: getPriorityId("1"), name: "urgent", alternatives: ["critical"], order: 1, color: getColor("#ff0000") },
+      { id: getPriorityId("2"), name: "high", alternatives: ["important"], order: 2, color: getColor("#ff6600") },
+      { id: getPriorityId("3"), name: "medium", alternatives: [], order: 3, color: getColor("#ffcc00") },
+      { id: getPriorityId("4"), name: "low", alternatives: [], order: 4, color: getColor("#00cc00") },
     ];
 
     it("should sort active tasks before completed/archived in ASAP mode", () => {
-      const activeTodo = createTodo({ id: "1", state: "active" });
-      const completedTodo = createTodo({ id: "2", state: "completed", completedAt: Date.now() });
-      const archivedTodo = createTodo({ id: "3", state: "archived", archivedAt: Date.now() });
+      const activeTodo = createTodo({ id: getTodoId("1"), state: "active" });
+      const completedTodo = createTodo({
+        id: getTodoId("2"),
+        state: "completed",
+        completedAt: getTimestamp(Date.now()),
+      });
+      const archivedTodo = createTodo({ id: getTodoId("3"), state: "archived", archivedAt: getTimestamp(Date.now()) });
 
       const todos = [completedTodo, archivedTodo, activeTodo].map((t) => new TodoModel(t, settings));
 
@@ -336,7 +359,7 @@ describe("ganttScheduler", () => {
 
     it("should sort by priority within active tasks in ASAP mode", () => {
       const urgentTodo = createTodo({
-        id: "urgent",
+        id: getTodoId("urgent"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -349,7 +372,7 @@ describe("ganttScheduler", () => {
         },
       });
       const lowTodo = createTodo({
-        id: "low",
+        id: getTodoId("low"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -362,7 +385,7 @@ describe("ganttScheduler", () => {
         },
       });
       const mediumTodo = createTodo({
-        id: "medium",
+        id: getTodoId("medium"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -386,7 +409,7 @@ describe("ganttScheduler", () => {
 
     it("should sort by due date in dueDate mode", () => {
       const earlyTodo = createTodo({
-        id: "early",
+        id: getTodoId("early"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -399,7 +422,7 @@ describe("ganttScheduler", () => {
         },
       });
       const lateTodo = createTodo({
-        id: "late",
+        id: getTodoId("late"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -412,7 +435,7 @@ describe("ganttScheduler", () => {
         },
       });
       const middleTodo = createTodo({
-        id: "middle",
+        id: getTodoId("middle"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -436,7 +459,7 @@ describe("ganttScheduler", () => {
 
     it("should put todos without due dates last in dueDate mode", () => {
       const withDate = createTodo({
-        id: "with-date",
+        id: getTodoId("with-date"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -449,7 +472,7 @@ describe("ganttScheduler", () => {
         },
       });
       const withoutDate = createTodo({
-        id: "without-date",
+        id: getTodoId("without-date"),
         state: "active",
       });
 
@@ -462,8 +485,12 @@ describe("ganttScheduler", () => {
     });
 
     it("should filter out deleted todos", () => {
-      const activeTodo = createTodo({ id: "active", state: "active" });
-      const deletedTodo = createTodo({ id: "deleted", state: "deleted", deletedAt: Date.now() });
+      const activeTodo = createTodo({ id: getTodoId("active"), state: "active" });
+      const deletedTodo = createTodo({
+        id: getTodoId("deleted"),
+        state: "deleted",
+        deletedAt: getTimestamp(Date.now()),
+      });
 
       const todos = [activeTodo, deletedTodo].map((t) => new TodoModel(t, settings));
 
@@ -475,14 +502,14 @@ describe("ganttScheduler", () => {
 
     it("should sort completed tasks by completion date in ASAP mode", () => {
       const earlierCompleted = createTodo({
-        id: "earlier",
+        id: getTodoId("earlier"),
         state: "completed",
-        completedAt: Date.now() - 3600000, // 1 hour ago
+        completedAt: getTimestamp(Date.now() - 3600000), // 1 hour ago
       });
       const laterCompleted = createTodo({
-        id: "later",
+        id: getTodoId("later"),
         state: "completed",
-        completedAt: Date.now(),
+        completedAt: getTimestamp(Date.now()),
       });
 
       const todos = [laterCompleted, earlierCompleted].map((t) => new TodoModel(t, settings));
@@ -495,14 +522,14 @@ describe("ganttScheduler", () => {
 
     it("should sort archived tasks by archive date in ASAP mode", () => {
       const earlierArchived = createTodo({
-        id: "earlier",
+        id: getTodoId("earlier"),
         state: "archived",
-        archivedAt: Date.now() - 3600000, // 1 hour ago
+        archivedAt: getTimestamp(Date.now() - 3600000), // 1 hour ago
       });
       const laterArchived = createTodo({
-        id: "later",
+        id: getTodoId("later"),
         state: "archived",
-        archivedAt: Date.now(),
+        archivedAt: getTimestamp(Date.now()),
       });
 
       const todos = [laterArchived, earlierArchived].map((t) => new TodoModel(t, settings));
@@ -515,17 +542,17 @@ describe("ganttScheduler", () => {
 
     it("should handle mixed completed and archived tasks in dueDate mode", () => {
       const completedTodo = createTodo({
-        id: "completed",
+        id: getTodoId("completed"),
         state: "completed",
-        completedAt: Date.now() - 7200000, // 2 hours ago
+        completedAt: getTimestamp(Date.now() - 7200000), // 2 hours ago
       });
       const archivedTodo = createTodo({
-        id: "archived",
+        id: getTodoId("archived"),
         state: "archived",
-        archivedAt: Date.now() - 3600000, // 1 hour ago
+        archivedAt: getTimestamp(Date.now() - 3600000), // 1 hour ago
       });
       const activeTodo = createTodo({
-        id: "active",
+        id: getTodoId("active"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -549,7 +576,7 @@ describe("ganttScheduler", () => {
 
     it("should handle active tasks without due dates equally in ASAP mode", () => {
       const noDueDate1 = createTodo({
-        id: "no-date-1",
+        id: getTodoId("no-date-1"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -562,7 +589,7 @@ describe("ganttScheduler", () => {
         },
       });
       const noDueDate2 = createTodo({
-        id: "no-date-2",
+        id: getTodoId("no-date-2"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -583,8 +610,8 @@ describe("ganttScheduler", () => {
     });
 
     it("should handle active tasks both without due dates in dueDate mode", () => {
-      const noDueDate1 = createTodo({ id: "no-date-1", state: "active" });
-      const noDueDate2 = createTodo({ id: "no-date-2", state: "active" });
+      const noDueDate1 = createTodo({ id: getTodoId("no-date-1"), state: "active" });
+      const noDueDate2 = createTodo({ id: getTodoId("no-date-2"), state: "active" });
 
       const todos = [noDueDate1, noDueDate2].map((t) => new TodoModel(t, settings));
 
@@ -595,15 +622,15 @@ describe("ganttScheduler", () => {
 
     it("should use completedAt fallback for archived tasks without archivedAt in dueDate mode", () => {
       const archivedWithCompletedAt = createTodo({
-        id: "archived-with-completed",
+        id: getTodoId("archived-with-completed"),
         state: "archived",
-        completedAt: Date.now() - 3600000,
+        completedAt: getTimestamp(Date.now() - 3600000),
         // No archivedAt
       });
       const archivedWithArchivedAt = createTodo({
-        id: "archived-with-archived",
+        id: getTodoId("archived-with-archived"),
         state: "archived",
-        archivedAt: Date.now(),
+        archivedAt: getTimestamp(Date.now()),
       });
 
       const todos = [archivedWithArchivedAt, archivedWithCompletedAt].map((t) => new TodoModel(t, settings));
@@ -622,7 +649,7 @@ describe("ganttScheduler", () => {
       const config = createSchedulingConfig();
 
       const todo1 = createTodo({
-        id: "todo-1",
+        id: getTodoId("todo-1"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -636,7 +663,7 @@ describe("ganttScheduler", () => {
         },
       });
       const todo2 = createTodo({
-        id: "todo-2",
+        id: getTodoId("todo-2"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -661,7 +688,7 @@ describe("ganttScheduler", () => {
       const config = createSchedulingConfig();
 
       const todoNoDueDate = createTodo({
-        id: "no-due-date",
+        id: getTodoId("no-due-date"),
         state: "active",
       });
 
@@ -675,9 +702,9 @@ describe("ganttScheduler", () => {
       const config = createSchedulingConfig();
 
       const completedTodo = createTodo({
-        id: "completed",
+        id: getTodoId("completed"),
         state: "completed",
-        completedAt: Date.now(),
+        completedAt: getTimestamp(Date.now()),
         metadata: {
           assignedPeople: [],
           sourcePeople: [],
@@ -699,7 +726,7 @@ describe("ganttScheduler", () => {
       const config = createSchedulingConfig();
 
       const trackedTodo = createTodo({
-        id: "tracked",
+        id: getTodoId("tracked"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -713,7 +740,7 @@ describe("ganttScheduler", () => {
         },
         timeTracking: {
           entries: [],
-          totalMinutes: 30, // 30 minutes already tracked
+          totalMinutes: getDurationMin(30), // 30 minutes already tracked
         },
       });
 
@@ -738,7 +765,7 @@ describe("ganttScheduler", () => {
 
       // Task that would take multiple days to complete
       const longTodo = createTodo({
-        id: "long-task",
+        id: getTodoId("long-task"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -764,7 +791,7 @@ describe("ganttScheduler", () => {
       });
 
       const todo = createTodo({
-        id: "multiplied",
+        id: getTodoId("multiplied"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -788,7 +815,7 @@ describe("ganttScheduler", () => {
       const config = createSchedulingConfig();
 
       const todo = createTodo({
-        id: "map-test",
+        id: getTodoId("map-test"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -814,10 +841,10 @@ describe("ganttScheduler", () => {
       const completionDate = new Date("2025-12-05T14:30:00");
 
       const archivedTodo = createTodo({
-        id: "archived-with-completion",
+        id: getTodoId("archived-with-completion"),
         state: "archived",
-        archivedAt: Date.now(),
-        completedAt: completionDate.getTime(),
+        archivedAt: getTimestamp(Date.now()),
+        completedAt: getTimestamp(completionDate.getTime()),
         metadata: {
           assignedPeople: [],
           sourcePeople: [],
@@ -840,7 +867,7 @@ describe("ganttScheduler", () => {
       const config = createSchedulingConfig();
 
       const trackedTodo = createTodo({
-        id: "tracked-task",
+        id: getTodoId("tracked-task"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -855,13 +882,13 @@ describe("ganttScheduler", () => {
         timeTracking: {
           entries: [
             {
-              id: "entry-1",
-              startTime: Date.now() - 3600000,
-              endTime: Date.now() - 1800000,
-              duration: 30,
+              id: getTimeEntryId("entry-1"),
+              startTime: getTimestamp(Date.now() - 3600000),
+              endTime: getTimestamp(Date.now() - 1800000),
+              duration: getDurationMin(30),
             },
           ],
-          totalMinutes: 30,
+          totalMinutes: getDurationMin(30),
         },
       });
 
@@ -879,7 +906,7 @@ describe("ganttScheduler", () => {
       });
 
       const todo1 = createTodo({
-        id: "pomo-1",
+        id: getTodoId("pomo-1"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -892,7 +919,7 @@ describe("ganttScheduler", () => {
         },
       });
       const todo2 = createTodo({
-        id: "pomo-2",
+        id: getTodoId("pomo-2"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -917,7 +944,7 @@ describe("ganttScheduler", () => {
       });
 
       const todo = createTodo({
-        id: "flow-1",
+        id: getTodoId("flow-1"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -941,7 +968,7 @@ describe("ganttScheduler", () => {
 
       // Task with significant tracked time but remaining work
       const partiallyTrackedTodo = createTodo({
-        id: "partial-track",
+        id: getTodoId("partial-track"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -955,13 +982,13 @@ describe("ganttScheduler", () => {
         timeTracking: {
           entries: [
             {
-              id: "entry-1",
-              startTime: Date.now() - 7200000, // 2 hours ago
-              endTime: Date.now() - 3600000, // 1 hour ago
-              duration: 60,
+              id: getTimeEntryId("entry-1"),
+              startTime: getTimestamp(Date.now() - 7200000), // 2 hours ago
+              endTime: getTimestamp(Date.now() - 3600000), // 1 hour ago
+              duration: getDurationMin(60),
             },
           ],
-          totalMinutes: 60, // 60 minutes tracked, 180 remaining
+          totalMinutes: getDurationMin(60), // 60 minutes tracked, 180 remaining
         },
       });
 
@@ -981,7 +1008,7 @@ describe("ganttScheduler", () => {
         todos.push(
           new TodoModel(
             createTodo({
-              id: `overflow-${i}`,
+              id: getTodoId(`overflow-${i}`),
               state: "active",
               metadata: {
                 assignedPeople: [],
@@ -1032,7 +1059,7 @@ describe("ganttScheduler", () => {
       const date = new Date("2025-12-09");
 
       const todo = createTodo({
-        id: "task-1",
+        id: getTodoId("task-1"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1057,7 +1084,7 @@ describe("ganttScheduler", () => {
       const date = new Date("2025-12-09");
 
       const todo = createTodo({
-        id: "task-1",
+        id: getTodoId("task-1"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1091,7 +1118,7 @@ describe("ganttScheduler", () => {
       const ganttSettings = createGanttSettings({ schedulingTechnique: "sequential" });
 
       const todo1 = createTodo({
-        id: "seq-1",
+        id: getTodoId("seq-1"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1104,7 +1131,7 @@ describe("ganttScheduler", () => {
         },
       });
       const todo2 = createTodo({
-        id: "seq-2",
+        id: getTodoId("seq-2"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1128,7 +1155,7 @@ describe("ganttScheduler", () => {
       const ganttSettings = createGanttSettings({ schedulingTechnique: "pomodoro" });
 
       const todo = createTodo({
-        id: "pomo-1",
+        id: getTodoId("pomo-1"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1153,7 +1180,7 @@ describe("ganttScheduler", () => {
       const ganttSettings = createGanttSettings({ schedulingTechnique: "flow" });
 
       const todo = createTodo({
-        id: "flow-1",
+        id: getTodoId("flow-1"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1177,9 +1204,9 @@ describe("ganttScheduler", () => {
       const date = new Date("2025-12-09");
 
       const completedTodo = createTodo({
-        id: "completed-1",
+        id: getTodoId("completed-1"),
         state: "completed",
-        completedAt: Date.now(),
+        completedAt: getTimestamp(Date.now()),
         metadata: {
           assignedPeople: [],
           sourcePeople: [],
@@ -1201,9 +1228,9 @@ describe("ganttScheduler", () => {
       const date = new Date("2025-12-09");
 
       const archivedTodo = createTodo({
-        id: "archived-1",
+        id: getTodoId("archived-1"),
         state: "archived",
-        archivedAt: Date.now(),
+        archivedAt: getTimestamp(Date.now()),
         metadata: {
           assignedPeople: [],
           sourcePeople: [],
@@ -1226,14 +1253,21 @@ describe("ganttScheduler", () => {
       const workHoursWithBreaks: WorkHoursSettings = {
         ...createWorkHoursSettings(),
         commonSchedule: {
-          startTime: "09:00",
-          endTime: "17:00",
-          breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+          startTime: getShortTime("09:00"),
+          endTime: getShortTime("17:00"),
+          breaks: [
+            {
+              id: getBreakPeriodId("lunch"),
+              name: "Lunch",
+              startTime: getShortTime("12:00"),
+              endTime: getShortTime("13:00"),
+            },
+          ],
         },
       };
 
       const todo = createTodo({
-        id: "break-test",
+        id: getTodoId("break-test"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1258,7 +1292,7 @@ describe("ganttScheduler", () => {
       // Multiple tasks that would need to work around a lunch break
       const todos = [
         createTodo({
-          id: "morning-1",
+          id: getTodoId("morning-1"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1271,7 +1305,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "morning-2",
+          id: getTodoId("morning-2"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1284,7 +1318,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "afternoon-1",
+          id: getTodoId("afternoon-1"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1309,7 +1343,7 @@ describe("ganttScheduler", () => {
 
       // Create a task too long to fit in one day
       const todo = createTodo({
-        id: "too-long",
+        id: getTodoId("too-long"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1333,12 +1367,12 @@ describe("ganttScheduler", () => {
       const date = new Date("2025-12-09");
       const ganttSettings = createGanttSettings({
         schedulingTechnique: "sequential",
-        contextSwitchingTime: 10, // 10 minutes between tasks
+        contextSwitchingTime: getDurationMin(10), // 10 minutes between tasks
       });
 
       const todos = [
         createTodo({
-          id: "cs-1",
+          id: getTodoId("cs-1"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1351,7 +1385,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "cs-2",
+          id: getTodoId("cs-2"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1382,19 +1416,19 @@ describe("ganttScheduler", () => {
       const entryEndTime = new Date(`${dateStr}T10:30:00`).getTime();
 
       const completedWithEntries = createTodo({
-        id: "completed-tracked",
+        id: getTodoId("completed-tracked"),
         state: "completed",
-        completedAt: new Date(`${dateStr}T10:30:00`).getTime(),
+        completedAt: getTimestamp(new Date(`${dateStr}T10:30:00`).getTime()),
         timeTracking: {
           entries: [
             {
-              id: "entry-1",
-              startTime: entryStartTime,
-              endTime: entryEndTime,
-              duration: 30,
+              id: getTimeEntryId("entry-1"),
+              startTime: getTimestamp(entryStartTime),
+              endTime: getTimestamp(entryEndTime),
+              duration: getDurationMin(30),
             },
           ],
-          totalMinutes: 30,
+          totalMinutes: getDurationMin(30),
         },
         metadata: {
           assignedPeople: [],
@@ -1433,15 +1467,25 @@ describe("ganttScheduler", () => {
       entry2End.setHours(10, 0, 0, 0);
 
       const completedWithMultipleEntries = createTodo({
-        id: "completed-multi-entries",
+        id: getTodoId("completed-multi-entries"),
         state: "completed",
-        completedAt: entry2End.getTime(),
+        completedAt: getTimestamp(entry2End.getTime()),
         timeTracking: {
           entries: [
-            { id: "e1", startTime: entry1Start.getTime(), endTime: entry1End.getTime(), duration: 25 },
-            { id: "e2", startTime: entry2Start.getTime(), endTime: entry2End.getTime(), duration: 30 },
+            {
+              id: getTimeEntryId("e1"),
+              startTime: getTimestamp(entry1Start.getTime()),
+              endTime: getTimestamp(entry1End.getTime()),
+              duration: getDurationMin(25),
+            },
+            {
+              id: getTimeEntryId("e2"),
+              startTime: getTimestamp(entry2Start.getTime()),
+              endTime: getTimestamp(entry2End.getTime()),
+              duration: getDurationMin(30),
+            },
           ],
-          totalMinutes: 55,
+          totalMinutes: getDurationMin(55),
         },
         metadata: {
           assignedPeople: [],
@@ -1471,19 +1515,19 @@ describe("ganttScheduler", () => {
       const entryEndTime = new Date("2025-12-09T10:30:00").getTime();
 
       const completedWithISODueDate = createTodo({
-        id: "completed-iso",
+        id: getTodoId("completed-iso"),
         state: "completed",
-        completedAt: new Date("2025-12-09T10:30:00").getTime(),
+        completedAt: getTimestamp(new Date("2025-12-09T10:30:00").getTime()),
         timeTracking: {
           entries: [
             {
-              id: "entry-1",
-              startTime: entryStartTime,
-              endTime: entryEndTime,
-              duration: 30,
+              id: getTimeEntryId("entry-1"),
+              startTime: getTimestamp(entryStartTime),
+              endTime: getTimestamp(entryEndTime),
+              duration: getDurationMin(30),
             },
           ],
-          totalMinutes: 30,
+          totalMinutes: getDurationMin(30),
         },
         metadata: {
           assignedPeople: [],
@@ -1509,18 +1553,18 @@ describe("ganttScheduler", () => {
       const entryEndTime = new Date("2025-12-09T10:30:00").getTime();
 
       const activeWithTracking = createTodo({
-        id: "active-tracked",
+        id: getTodoId("active-tracked"),
         state: "active",
         timeTracking: {
           entries: [
             {
-              id: "entry-1",
-              startTime: entryStartTime,
-              endTime: entryEndTime,
-              duration: 30,
+              id: getTimeEntryId("entry-1"),
+              startTime: getTimestamp(entryStartTime),
+              endTime: getTimestamp(entryEndTime),
+              duration: getDurationMin(30),
             },
           ],
-          totalMinutes: 30,
+          totalMinutes: getDurationMin(30),
         },
         metadata: {
           assignedPeople: [],
@@ -1546,18 +1590,18 @@ describe("ganttScheduler", () => {
       const entryStartTime = new Date("2025-12-09T10:00:00").getTime();
 
       const inProgressTask = createTodo({
-        id: "in-progress",
+        id: getTodoId("in-progress"),
         state: "active",
         timeTracking: {
           entries: [
             {
-              id: "entry-1",
-              startTime: entryStartTime,
+              id: getTimeEntryId("entry-1"),
+              startTime: getTimestamp(entryStartTime),
               // No endTime - currently in progress
               duration: undefined,
             },
           ],
-          totalMinutes: 0,
+          totalMinutes: getDurationMin(0),
         },
         metadata: {
           assignedPeople: [],
@@ -1581,11 +1625,11 @@ describe("ganttScheduler", () => {
       const date = new Date("2025-12-09");
 
       const todoWithTrackedTime = createTodo({
-        id: "tracked",
+        id: getTodoId("tracked"),
         state: "active",
         timeTracking: {
           entries: [],
-          totalMinutes: 20, // 20 minutes already done
+          totalMinutes: getDurationMin(20), // 20 minutes already done
         },
         metadata: {
           assignedPeople: [],
@@ -1610,18 +1654,18 @@ describe("ganttScheduler", () => {
       const entryEndTime = new Date("2025-12-09T10:30:00").getTime();
 
       const todoWithEntries = createTodo({
-        id: "tracked-segments",
+        id: getTodoId("tracked-segments"),
         state: "active",
         timeTracking: {
           entries: [
             {
-              id: "entry-1",
-              startTime: entryStartTime,
-              endTime: entryEndTime,
-              duration: 30,
+              id: getTimeEntryId("entry-1"),
+              startTime: getTimestamp(entryStartTime),
+              endTime: getTimestamp(entryEndTime),
+              duration: getDurationMin(30),
             },
           ],
-          totalMinutes: 30,
+          totalMinutes: getDurationMin(30),
         },
         metadata: {
           assignedPeople: [],
@@ -1651,9 +1695,14 @@ describe("ganttScheduler", () => {
       const sunday = new Date("2025-12-14"); // Sunday
       const workHours: WorkHoursSettings = {
         useCommonSchedule: false,
-        commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-        weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-        weekendSchedule: { startTime: "09:00", endTime: "09:00", breaks: [], enabled: false }, // No work hours on weekends
+        commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+        weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+        weekendSchedule: {
+          startTime: getShortTime("09:00"),
+          endTime: getShortTime("09:00"),
+          breaks: [],
+          enabled: false,
+        }, // No work hours on weekends
         customSchedules: {},
       };
       const ganttSettings = createGanttSettings({
@@ -1661,7 +1710,7 @@ describe("ganttScheduler", () => {
       });
 
       const todo = createTodo({
-        id: "non-work-day",
+        id: getTodoId("non-work-day"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1686,16 +1735,16 @@ describe("ganttScheduler", () => {
       const date = new Date("2025-12-09");
       const ganttSettings = createGanttSettings({
         schedulingTechnique: "pomodoro",
-        pomodoroWorkDuration: 25,
-        pomodoroShortBreak: 5,
-        pomodoroLongBreak: 15,
+        pomodoroWorkDuration: getDurationMin(25),
+        pomodoroShortBreak: getDurationMin(5),
+        pomodoroLongBreak: getDurationMin(15),
         pomodoroLongBreakInterval: 2, // Long break after every 2 sessions
       });
 
       // Multiple short tasks that accumulate work time
       const todos = [
         createTodo({
-          id: "short-1",
+          id: getTodoId("short-1"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1709,7 +1758,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "short-2",
+          id: getTodoId("short-2"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1723,7 +1772,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "short-3",
+          id: getTodoId("short-3"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1737,7 +1786,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "short-4",
+          id: getTodoId("short-4"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1763,21 +1812,28 @@ describe("ganttScheduler", () => {
       const workHours: WorkHoursSettings = {
         ...createWorkHoursSettings(),
         commonSchedule: {
-          startTime: "09:00",
-          endTime: "17:00",
-          breaks: [{ id: "short-break", name: "Break", startTime: "11:00", endTime: "11:15" }],
+          startTime: getShortTime("09:00"),
+          endTime: getShortTime("17:00"),
+          breaks: [
+            {
+              id: getBreakPeriodId("short-break"),
+              name: "Break",
+              startTime: getShortTime("11:00"),
+              endTime: getShortTime("11:15"),
+            },
+          ],
         },
       };
       const ganttSettings = createGanttSettings({
         schedulingTechnique: "flow",
-        flowWorkDuration: 52,
-        flowBreakDuration: 17,
-        flowContextSwitchingTime: 10,
+        flowWorkDuration: getDurationMin(52),
+        flowBreakDuration: getDurationMin(17),
+        flowContextSwitchingTime: getDurationMin(10),
       });
 
       const todos = [
         createTodo({
-          id: "flow-1",
+          id: getTodoId("flow-1"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1791,7 +1847,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "flow-2",
+          id: getTodoId("flow-2"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1818,7 +1874,7 @@ describe("ganttScheduler", () => {
       });
 
       const todo = createTodo({
-        id: "multiplied",
+        id: getTodoId("multiplied"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1841,14 +1897,14 @@ describe("ganttScheduler", () => {
       const saturday = new Date(2025, 11, 13); // Saturday
       const workHours: WorkHoursSettings = {
         useCommonSchedule: false,
-        commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-        weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-        weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
+        commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+        weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+        weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
         customSchedules: {},
       };
 
       const todo = createTodo({
-        id: "weekend-task",
+        id: getTodoId("weekend-task"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1871,14 +1927,19 @@ describe("ganttScheduler", () => {
       const saturday = new Date(2025, 11, 13); // Saturday
       const workHours: WorkHoursSettings = {
         useCommonSchedule: false,
-        commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-        weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-        weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [], enabled: false },
+        commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+        weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+        weekendSchedule: {
+          startTime: getShortTime("10:00"),
+          endTime: getShortTime("14:00"),
+          breaks: [],
+          enabled: false,
+        },
         customSchedules: {},
       };
 
       const todo = createTodo({
-        id: "disabled-day",
+        id: getTodoId("disabled-day"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1902,7 +1963,7 @@ describe("ganttScheduler", () => {
 
       const todos = [
         createTodo({
-          id: "first",
+          id: getTodoId("first"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1915,7 +1976,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "second",
+          id: getTodoId("second"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1928,7 +1989,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "third",
+          id: getTodoId("third"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -1951,7 +2012,7 @@ describe("ganttScheduler", () => {
       const date = new Date("2025-12-09");
 
       const todo = createTodo({
-        id: "props-test",
+        id: getTodoId("props-test"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -2008,7 +2069,7 @@ describe("ganttScheduler", () => {
       const startDate = new Date("2025-12-08"); // Monday
 
       const todo = createTodo({
-        id: "week-task",
+        id: getTodoId("week-task"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -2048,7 +2109,7 @@ describe("ganttScheduler", () => {
       const startDate = new Date("2025-12-08"); // Monday
 
       const mondayTask = createTodo({
-        id: "monday",
+        id: getTodoId("monday"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -2063,7 +2124,7 @@ describe("ganttScheduler", () => {
       });
 
       const wednesdayTask = createTodo({
-        id: "wednesday",
+        id: getTodoId("wednesday"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -2088,7 +2149,7 @@ describe("ganttScheduler", () => {
       const startDate = new Date("2025-12-08");
 
       const longTask = createTodo({
-        id: "multi-day",
+        id: getTodoId("multi-day"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -2122,9 +2183,16 @@ describe("ganttScheduler", () => {
       const workHours: WorkHoursSettings = {
         ...createWorkHoursSettings(),
         commonSchedule: {
-          startTime: "09:00",
-          endTime: "17:00",
-          breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+          startTime: getShortTime("09:00"),
+          endTime: getShortTime("17:00"),
+          breaks: [
+            {
+              id: getBreakPeriodId("lunch"),
+              name: "Lunch",
+              startTime: getShortTime("12:00"),
+              endTime: getShortTime("13:00"),
+            },
+          ],
         },
       };
       const startDate = new Date("2025-12-08");
@@ -2141,9 +2209,9 @@ describe("ganttScheduler", () => {
     it("should handle weekend schedules", () => {
       const workHours: WorkHoursSettings = {
         useCommonSchedule: false,
-        commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-        weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-        weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
+        commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+        weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+        weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
         customSchedules: {},
       };
       const startDate = new Date("2025-12-08");
@@ -2158,9 +2226,9 @@ describe("ganttScheduler", () => {
       const startDate = new Date("2025-12-08");
 
       const completedTask = createTodo({
-        id: "completed-week",
+        id: getTodoId("completed-week"),
         state: "completed",
-        completedAt: Date.now(),
+        completedAt: getTimestamp(Date.now()),
         metadata: {
           assignedPeople: [],
           sourcePeople: [],
@@ -2183,7 +2251,7 @@ describe("ganttScheduler", () => {
       const startDate = new Date("2025-12-08");
 
       const todo = createTodo({
-        id: "positioned",
+        id: getTodoId("positioned"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -2218,7 +2286,7 @@ describe("ganttScheduler", () => {
       const techniques: Array<"sequential" | "pomodoro" | "flow"> = ["sequential", "pomodoro", "flow"];
 
       const todo = createTodo({
-        id: "technique-test",
+        id: getTodoId("technique-test"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -2282,15 +2350,15 @@ describe("ganttScheduler", () => {
       const startDate = new Date("2025-12-08");
       const ganttSettings = createGanttSettings({
         schedulingTechnique: "pomodoro",
-        pomodoroWorkDuration: 25,
-        pomodoroShortBreak: 5,
-        pomodoroLongBreak: 15,
+        pomodoroWorkDuration: getDurationMin(25),
+        pomodoroShortBreak: getDurationMin(5),
+        pomodoroLongBreak: getDurationMin(15),
         pomodoroLongBreakInterval: 4,
       });
 
       const todos = [
         createTodo({
-          id: "pomo-week-1",
+          id: getTodoId("pomo-week-1"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2304,7 +2372,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "pomo-week-2",
+          id: getTodoId("pomo-week-2"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2332,14 +2400,14 @@ describe("ganttScheduler", () => {
       const startDate = new Date("2025-12-08");
       const ganttSettings = createGanttSettings({
         schedulingTechnique: "flow",
-        flowWorkDuration: 52,
-        flowBreakDuration: 17,
-        flowContextSwitchingTime: 10,
+        flowWorkDuration: getDurationMin(52),
+        flowBreakDuration: getDurationMin(17),
+        flowContextSwitchingTime: getDurationMin(10),
       });
 
       const todos = [
         createTodo({
-          id: "flow-week-1",
+          id: getTodoId("flow-week-1"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2353,7 +2421,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "flow-week-2",
+          id: getTodoId("flow-week-2"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2381,15 +2449,15 @@ describe("ganttScheduler", () => {
       const startDate = new Date("2025-12-08");
       const ganttSettings = createGanttSettings({
         schedulingTechnique: "pomodoro",
-        pomodoroWorkDuration: 25,
-        pomodoroShortBreak: 5,
-        pomodoroLongBreak: 15,
+        pomodoroWorkDuration: getDurationMin(25),
+        pomodoroShortBreak: getDurationMin(5),
+        pomodoroLongBreak: getDurationMin(15),
         pomodoroLongBreakInterval: 2,
       });
 
       const todos = [
         createTodo({
-          id: "break-calc-1",
+          id: getTodoId("break-calc-1"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2403,7 +2471,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "break-calc-2",
+          id: getTodoId("break-calc-2"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2432,26 +2500,31 @@ describe("ganttScheduler", () => {
       const workHours: WorkHoursSettings = {
         ...createWorkHoursSettings(),
         commonSchedule: {
-          startTime: "09:00",
-          endTime: "17:00",
+          startTime: getShortTime("09:00"),
+          endTime: getShortTime("17:00"),
           breaks: [
             // Long lunch break that should reset pomodoro count
-            { id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" },
+            {
+              id: getBreakPeriodId("lunch"),
+              name: "Lunch",
+              startTime: getShortTime("12:00"),
+              endTime: getShortTime("13:00"),
+            },
           ],
         },
       };
       const ganttSettings = createGanttSettings({
         schedulingTechnique: "pomodoro",
-        pomodoroWorkDuration: 25,
-        pomodoroShortBreak: 5,
-        pomodoroLongBreak: 15,
+        pomodoroWorkDuration: getDurationMin(25),
+        pomodoroShortBreak: getDurationMin(5),
+        pomodoroLongBreak: getDurationMin(15),
         pomodoroLongBreakInterval: 4,
       });
 
       const todos = [
         // Tasks before lunch
         createTodo({
-          id: "before-lunch-1",
+          id: getTodoId("before-lunch-1"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2466,7 +2539,7 @@ describe("ganttScheduler", () => {
         }),
         // Tasks after lunch
         createTodo({
-          id: "after-lunch-1",
+          id: getTodoId("after-lunch-1"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2492,24 +2565,29 @@ describe("ganttScheduler", () => {
       const workHours: WorkHoursSettings = {
         ...createWorkHoursSettings(),
         commonSchedule: {
-          startTime: "09:00",
-          endTime: "17:00",
+          startTime: getShortTime("09:00"),
+          endTime: getShortTime("17:00"),
           breaks: [
             // Long lunch break that should reset flow
-            { id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" },
+            {
+              id: getBreakPeriodId("lunch"),
+              name: "Lunch",
+              startTime: getShortTime("12:00"),
+              endTime: getShortTime("13:00"),
+            },
           ],
         },
       };
       const ganttSettings = createGanttSettings({
         schedulingTechnique: "flow",
-        flowWorkDuration: 52,
-        flowBreakDuration: 17,
-        flowContextSwitchingTime: 10,
+        flowWorkDuration: getDurationMin(52),
+        flowBreakDuration: getDurationMin(17),
+        flowContextSwitchingTime: getDurationMin(10),
       });
 
       const todos = [
         createTodo({
-          id: "flow-reset-1",
+          id: getTodoId("flow-reset-1"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2523,7 +2601,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "flow-reset-2",
+          id: getTodoId("flow-reset-2"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2549,19 +2627,26 @@ describe("ganttScheduler", () => {
       const workHours: WorkHoursSettings = {
         ...createWorkHoursSettings(),
         commonSchedule: {
-          startTime: "09:00",
-          endTime: "17:00",
-          breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+          startTime: getShortTime("09:00"),
+          endTime: getShortTime("17:00"),
+          breaks: [
+            {
+              id: getBreakPeriodId("lunch"),
+              name: "Lunch",
+              startTime: getShortTime("12:00"),
+              endTime: getShortTime("13:00"),
+            },
+          ],
         },
       };
       const ganttSettings = createGanttSettings({
         schedulingTechnique: "sequential",
-        contextSwitchingTime: 15, // 15 minutes context switch
+        contextSwitchingTime: getDurationMin(15), // 15 minutes context switch
       });
 
       const todos = [
         createTodo({
-          id: "seq-1",
+          id: getTodoId("seq-1"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2575,7 +2660,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "seq-2",
+          id: getTodoId("seq-2"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2600,7 +2685,7 @@ describe("ganttScheduler", () => {
 
       const todos = [
         createTodo({
-          id: "seg-viz-1",
+          id: getTodoId("seg-viz-1"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2614,7 +2699,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "seg-viz-2",
+          id: getTodoId("seg-viz-2"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2648,16 +2733,16 @@ describe("ganttScheduler", () => {
       const startDate = new Date("2025-12-08");
       const ganttSettings = createGanttSettings({
         schedulingTechnique: "pomodoro",
-        pomodoroWorkDuration: 25,
-        pomodoroShortBreak: 5,
-        pomodoroLongBreak: 15,
+        pomodoroWorkDuration: getDurationMin(25),
+        pomodoroShortBreak: getDurationMin(5),
+        pomodoroLongBreak: getDurationMin(15),
         pomodoroLongBreakInterval: 2,
       });
 
       // Long task that will be split into multiple segments
       const todos = [
         createTodo({
-          id: "long-pomo",
+          id: getTodoId("long-pomo"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2686,16 +2771,16 @@ describe("ganttScheduler", () => {
       const startDate = new Date("2025-12-08");
       const ganttSettings = createGanttSettings({
         schedulingTechnique: "pomodoro",
-        pomodoroWorkDuration: 25,
-        pomodoroShortBreak: 5,
-        pomodoroLongBreak: 15,
+        pomodoroWorkDuration: getDurationMin(25),
+        pomodoroShortBreak: getDurationMin(5),
+        pomodoroLongBreak: getDurationMin(15),
         pomodoroLongBreakInterval: 4,
       });
 
       // Multiple tasks that should have breaks between them
       const todos = [
         createTodo({
-          id: "task-a",
+          id: getTodoId("task-a"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2709,7 +2794,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "task-b",
+          id: getTodoId("task-b"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2723,7 +2808,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "task-c",
+          id: getTodoId("task-c"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2757,23 +2842,30 @@ describe("ganttScheduler", () => {
       const workHours: WorkHoursSettings = {
         ...createWorkHoursSettings(),
         commonSchedule: {
-          startTime: "09:00",
-          endTime: "17:00",
-          breaks: [{ id: "lunch", name: "Lunch", startTime: "12:00", endTime: "13:00" }],
+          startTime: getShortTime("09:00"),
+          endTime: getShortTime("17:00"),
+          breaks: [
+            {
+              id: getBreakPeriodId("lunch"),
+              name: "Lunch",
+              startTime: getShortTime("12:00"),
+              endTime: getShortTime("13:00"),
+            },
+          ],
         },
       };
       const ganttSettings = createGanttSettings({
         schedulingTechnique: "pomodoro",
-        pomodoroWorkDuration: 25,
-        pomodoroShortBreak: 5,
-        pomodoroLongBreak: 15,
+        pomodoroWorkDuration: getDurationMin(25),
+        pomodoroShortBreak: getDurationMin(5),
+        pomodoroLongBreak: getDurationMin(15),
         pomodoroLongBreakInterval: 4,
       });
 
       // Tasks spanning before and after the lunch break
       const todos = [
         createTodo({
-          id: "before-lunch",
+          id: getTodoId("before-lunch"),
           state: "active",
           metadata: {
             assignedPeople: [],
@@ -2787,7 +2879,7 @@ describe("ganttScheduler", () => {
           },
         }),
         createTodo({
-          id: "after-lunch",
+          id: getTodoId("after-lunch"),
           state: "active",
           metadata: {
             assignedPeople: [],

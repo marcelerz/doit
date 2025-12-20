@@ -17,7 +17,10 @@ import {
   detectPriorities,
   detectHashtags,
 } from "@/utils/autoDetection";
-import { Person, Project, Priority } from "@/types/settings";
+import { Person, Project, Priority, getColor } from "@/types/settings";
+import { getPersonId } from "@/types/person";
+import { getProjectId } from "@/types/project";
+import { getPriorityId } from "@/types/priority";
 
 describe("autoDetection", () => {
   describe("detectDurationPatterns", () => {
@@ -250,24 +253,32 @@ describe("autoDetection", () => {
   describe("detectMentionedPeople", () => {
     const people: Person[] = [
       {
-        id: "1",
+        id: getPersonId("1"),
         name: "Alice Smith",
         alternatives: ["Alice", "A.S."],
         context: "",
-        color: "",
+        color: getColor(""),
         comments: [],
         activity: [],
       },
       {
-        id: "2",
+        id: getPersonId("2"),
         name: "Bob Jones",
         alternatives: ["Bobby", "BJ"],
         context: "",
-        color: "",
+        color: getColor(""),
         comments: [],
         activity: [],
       },
-      { id: "3", name: "Charlie", alternatives: [], context: "", color: "", comments: [], activity: [] },
+      {
+        id: getPersonId("3"),
+        name: "Charlie",
+        alternatives: [],
+        context: "",
+        color: getColor(""),
+        comments: [],
+        activity: [],
+      },
     ];
 
     it("should detect person by canonical name", () => {
@@ -302,11 +313,11 @@ describe("autoDetection", () => {
     it("should not match blacklisted words", () => {
       const peopleWithCommon: Person[] = [
         {
-          id: "1",
+          id: getPersonId("1"),
           name: "The Manager",
           alternatives: ["Me"],
           context: "",
-          color: "",
+          color: getColor(""),
           comments: [],
           activity: [],
         },
@@ -336,29 +347,29 @@ describe("autoDetection", () => {
   describe("detectMentionedProjects", () => {
     const projects: Project[] = [
       {
-        id: "1",
+        id: getProjectId("1"),
         name: "Website Redesign",
         alternatives: ["Website", "WR"],
         context: "",
-        color: "",
+        color: getColor(""),
         comments: [],
         activity: [],
       },
       {
-        id: "2",
+        id: getProjectId("2"),
         name: "Marketing Campaign",
         alternatives: ["Marketing"],
         context: "",
-        color: "",
+        color: getColor(""),
         comments: [],
         activity: [],
       },
       {
-        id: "3",
+        id: getProjectId("3"),
         name: "API Development",
         alternatives: [],
         context: "",
-        color: "",
+        color: getColor(""),
         comments: [],
         activity: [],
       },
@@ -413,8 +424,24 @@ describe("autoDetection", () => {
 
   describe("detectAssignedPeople", () => {
     const people: Person[] = [
-      { id: "1", name: "Alice", alternatives: [], context: "", color: "", comments: [], activity: [] },
-      { id: "2", name: "Bob", alternatives: [], context: "", color: "", comments: [], activity: [] },
+      {
+        id: getPersonId("1"),
+        name: "Alice",
+        alternatives: [],
+        context: "",
+        color: getColor(""),
+        comments: [],
+        activity: [],
+      },
+      {
+        id: getPersonId("2"),
+        name: "Bob",
+        alternatives: [],
+        context: "",
+        color: getColor(""),
+        comments: [],
+        activity: [],
+      },
     ];
 
     it("should detect assigned with 'ask' context", () => {
@@ -458,8 +485,24 @@ describe("autoDetection", () => {
 
   describe("detectSourcePeople", () => {
     const people: Person[] = [
-      { id: "1", name: "Manager", alternatives: [], context: "", color: "", comments: [], activity: [] },
-      { id: "2", name: "Client", alternatives: [], context: "", color: "", comments: [], activity: [] },
+      {
+        id: getPersonId("1"),
+        name: "Manager",
+        alternatives: [],
+        context: "",
+        color: getColor(""),
+        comments: [],
+        activity: [],
+      },
+      {
+        id: getPersonId("2"),
+        name: "Client",
+        alternatives: [],
+        context: "",
+        color: getColor(""),
+        comments: [],
+        activity: [],
+      },
     ];
 
     it("should detect source with 'from' context", () => {
@@ -493,17 +536,15 @@ describe("autoDetection", () => {
   describe("detectPriorities", () => {
     const priorities: Priority[] = [
       {
-        id: "1",
+        id: getPriorityId("1"),
         name: "Urgent",
         alternatives: ["critical", "asap"],
-        color: "#ff0000",
+        color: getColor("#ff0000"),
         order: 1,
-        comments: [],
-        activity: [],
       },
-      { id: "2", name: "High", alternatives: ["important"], color: "#ff6600", order: 2, comments: [], activity: [] },
-      { id: "3", name: "Medium", alternatives: [], color: "#ffcc00", order: 3, comments: [], activity: [] },
-      { id: "4", name: "Low", alternatives: ["minor"], color: "#00ff00", order: 4, comments: [], activity: [] },
+      { id: getPriorityId("2"), name: "High", alternatives: ["important"], color: getColor("#ff6600"), order: 2 },
+      { id: getPriorityId("3"), name: "Medium", alternatives: [], color: getColor("#ffcc00"), order: 3 },
+      { id: getPriorityId("4"), name: "Low", alternatives: ["minor"], color: getColor("#00ff00"), order: 4 },
     ];
 
     it("should detect specific priority words directly", () => {

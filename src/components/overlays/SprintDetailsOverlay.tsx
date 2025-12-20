@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { SprintModel } from "@/hooks/useSprints";
-import { Sprint, MarkerColors } from "@/types/settings";
+import { Sprint, MarkerColors, getColor } from "@/types/settings";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
 import { ActionButtons } from "@/components/shared/ActionButtons";
@@ -23,8 +23,8 @@ interface SprintDetailsOverlayProps {
   onArchive: (id: string) => void;
   onUnarchive: (id: string) => void;
   onAddComment: (sprintId: string, content: string) => void;
-  onEditComment: (sprintId: string, commentId: number, content: string) => void;
-  onDeleteComment: (sprintId: string, commentId: number) => void;
+  onEditComment: (sprintId: string, commentId: string, content: string) => void;
+  onDeleteComment: (sprintId: string, commentId: string) => void;
   onTodoClick?: (todo: TodoModel) => void;
   onRemoveTodoFromSprint?: (todoId: string) => void;
 }
@@ -93,7 +93,7 @@ export function SprintDetailsOverlay({
           goal: editingGoal.trim() || undefined,
           durationDays: editingDuration,
           plannedStartDate: editingStartDate || undefined,
-          color: editingColor || undefined,
+          color: editingColor ? getColor(editingColor) : undefined,
         });
       }
     }, 500);

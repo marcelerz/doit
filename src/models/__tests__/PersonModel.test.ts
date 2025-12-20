@@ -3,11 +3,12 @@
  */
 
 import { PersonModel, createPersonModels, createPersonModel } from "@/models/PersonModel";
-import { Person } from "@/types/settings";
+import { Person, getColor } from "@/types/settings";
+import { getPersonId } from "@/types/person";
 
 // Helper to create a test person
 const createTestPerson = (overrides: Partial<Person> = {}): Person => ({
-  id: overrides.id || "person-1",
+  id: getPersonId((overrides.id as string) || "person-1"),
   name: overrides.name || "John Doe",
   alternatives: overrides.alternatives || [],
   color: overrides.color,
@@ -47,8 +48,8 @@ describe("PersonModel", () => {
 
   describe("inherited properties", () => {
     it("should inherit id property", () => {
-      const model = new PersonModel(createTestPerson({ id: "person-123" }));
-      expect(model.id).toBe("person-123");
+      const model = new PersonModel(createTestPerson({ id: getPersonId("person-123") }));
+      expect(model.id).toBe(getPersonId("person-123"));
     });
 
     it("should inherit name property", () => {
@@ -96,10 +97,10 @@ describe("PersonModel", () => {
     });
 
     it("should allow deletion when person not in any todos", () => {
-      const model = new PersonModel(createTestPerson({ id: "person-1" }));
+      const model = new PersonModel(createTestPerson({ id: getPersonId("person-1") }));
       const todos = [
-        { assignedPeople: ["person-2"], sourcePeople: [] },
-        { assignedPeople: [], sourcePeople: ["person-3"] },
+        { assignedPeople: [getPersonId("person-2")], sourcePeople: [] },
+        { assignedPeople: [], sourcePeople: [getPersonId("person-3")] },
       ];
 
       const result = model.canDelete(todos);
@@ -108,8 +109,8 @@ describe("PersonModel", () => {
     });
 
     it("should not allow deletion when person is assigned to todo", () => {
-      const model = new PersonModel(createTestPerson({ id: "person-1" }));
-      const todos = [{ assignedPeople: ["person-1"], sourcePeople: [] }];
+      const model = new PersonModel(createTestPerson({ id: getPersonId("person-1") }));
+      const todos = [{ assignedPeople: [getPersonId("person-1")], sourcePeople: [] }];
 
       const result = model.canDelete(todos);
 
@@ -118,8 +119,8 @@ describe("PersonModel", () => {
     });
 
     it("should not allow deletion when person is source of todo", () => {
-      const model = new PersonModel(createTestPerson({ id: "person-1" }));
-      const todos = [{ assignedPeople: [], sourcePeople: ["person-1"] }];
+      const model = new PersonModel(createTestPerson({ id: getPersonId("person-1") }));
+      const todos = [{ assignedPeople: [], sourcePeople: [getPersonId("person-1")] }];
 
       const result = model.canDelete(todos);
 
@@ -128,10 +129,10 @@ describe("PersonModel", () => {
     });
 
     it("should not allow deletion when person is in multiple todos", () => {
-      const model = new PersonModel(createTestPerson({ id: "person-1" }));
+      const model = new PersonModel(createTestPerson({ id: getPersonId("person-1") }));
       const todos = [
-        { assignedPeople: ["person-1", "person-2"], sourcePeople: [] },
-        { assignedPeople: [], sourcePeople: ["person-1"] },
+        { assignedPeople: [getPersonId("person-1"), getPersonId("person-2")], sourcePeople: [] },
+        { assignedPeople: [], sourcePeople: [getPersonId("person-1")] },
       ];
 
       const result = model.canDelete(todos);
@@ -180,9 +181,9 @@ describe("PersonModel", () => {
 describe("createPersonModels", () => {
   it("should create array of PersonModels from Person array", () => {
     const people: Person[] = [
-      createTestPerson({ id: "1", name: "Alice" }),
-      createTestPerson({ id: "2", name: "Bob" }),
-      createTestPerson({ id: "3", name: "Charlie" }),
+      createTestPerson({ id: getPersonId("1"), name: "Alice" }),
+      createTestPerson({ id: getPersonId("2"), name: "Bob" }),
+      createTestPerson({ id: getPersonId("3"), name: "Charlie" }),
     ];
 
     const models = createPersonModels(people);

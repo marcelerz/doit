@@ -3,23 +3,23 @@
  */
 
 import { createCustomChrono, parseWithCustomChrono, parseDateWithCustomChrono } from "@/utils/chronoCustom";
-import { DateTimeSettings, WorkHoursSettings } from "@/types/settings";
+import { DateTimeSettings, WorkHoursSettings, getShortTime, getWeekday, getMonth } from "@/types/settings";
 
 // Default test settings
 const defaultDateTimeSettings: DateTimeSettings = {
-  morning: "09:00",
-  noon: "12:00",
-  afternoon: "14:00",
-  evening: "18:00",
-  workWeekStart: 1, // Monday
-  fiscalYearStart: 1,
+  morning: getShortTime("09:00"),
+  noon: getShortTime("12:00"),
+  afternoon: getShortTime("14:00"),
+  evening: getShortTime("18:00"),
+  workWeekStart: getWeekday(1), // Monday
+  fiscalYearStart: getMonth(1),
 };
 
 const defaultWorkHoursSettings: WorkHoursSettings = {
   useCommonSchedule: true,
-  commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-  weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-  weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
+  commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+  weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+  weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
   customSchedules: {},
 };
 

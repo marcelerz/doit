@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { NotificationSettings, defaultNotificationSettings } from "@/types/settings";
+import { NotificationSettings, defaultNotificationSettings, getDurationHour, getDurationMin } from "@/types/settings";
 import {
   isNotificationSupported,
   getNotificationPermission,
@@ -247,7 +247,9 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
                   </label>
                   <select
                     value={notifications.dueSoonHours}
-                    onChange={(e) => onUpdate({ ...notifications, dueSoonHours: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      onUpdate({ ...notifications, dueSoonHours: getDurationHour(parseInt(e.target.value)) })
+                    }
                     className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value={1}>1 hour</option>
@@ -266,7 +268,9 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
                 </label>
                 <select
                   value={notifications.checkInterval}
-                  onChange={(e) => onUpdate({ ...notifications, checkInterval: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    onUpdate({ ...notifications, checkInterval: getDurationMin(parseInt(e.target.value)) })
+                  }
                   className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value={5}>5 minutes</option>

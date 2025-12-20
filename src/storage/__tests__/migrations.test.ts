@@ -4,7 +4,8 @@
 
 import { migrateSettings, migrateTodos, getCurrentVersion } from "@/storage/migrations";
 import { Todo } from "@/types/todo";
-import { Settings, defaultSettings } from "@/types/settings";
+import { Settings, defaultSettings, getColor, getDurationDay } from "@/types/settings";
+import { getPriorityId } from "@/types/priority";
 
 describe("migrations", () => {
   describe("getCurrentVersion", () => {
@@ -33,8 +34,8 @@ describe("migrations", () => {
 
     it("should preserve existing priorities", () => {
       const existingPriorities = [
-        { id: "1", name: "High", color: "#ff0000", order: 0 },
-        { id: "2", name: "Low", color: "#00ff00", order: 1 },
+        { id: getPriorityId("1"), name: "High", color: getColor("#ff0000"), order: 0 },
+        { id: getPriorityId("2"), name: "Low", color: getColor("#00ff00"), order: 1 },
       ];
       const result = migrateSettings({ priorities: existingPriorities });
 
@@ -43,7 +44,7 @@ describe("migrations", () => {
     });
 
     it("should add alternatives to priorities if missing", () => {
-      const priorities = [{ id: "1", name: "High", color: "#ff0000", order: 0 }];
+      const priorities = [{ id: getPriorityId("1"), name: "High", color: getColor("#ff0000"), order: 0 }];
       const result = migrateSettings({ priorities });
 
       expect(result.priorities[0].alternatives).toEqual([]);
@@ -101,7 +102,7 @@ describe("migrations", () => {
 
     it("should preserve kanban settings", () => {
       const kanban = {
-        states: [{ id: "1", name: "Todo", color: "#ccc", order: 0 }],
+        states: [{ id: "1", name: "Todo", color: getColor("#ccc"), order: 0 }],
       };
       const result = migrateSettings({ kanban });
 
@@ -110,11 +111,11 @@ describe("migrations", () => {
 
     it("should preserve sprints settings", () => {
       const sprints = {
-        defaultSprintDuration: 21,
+        defaultSprintDuration: getDurationDay(21),
       };
       const result = migrateSettings({ sprints });
 
-      expect(result.sprints.defaultSprintDuration).toBe(21);
+      expect(result.sprints.defaultSprintDuration).toBe(getDurationDay(21));
     });
 
     it("should remove startOfDay/endOfDay from dateTime", () => {
@@ -137,10 +138,10 @@ describe("migrations", () => {
     const defaultTestSettings: Settings = {
       ...defaultSettings,
       general: {
-        archiveDays: 7,
+        archiveDays: getDurationDay(7),
         autoDelete: {
           enabled: false,
-          deleteDays: 30,
+          deleteDays: getDurationDay(30),
         },
         theme: "system",
       },
@@ -330,10 +331,10 @@ describe("migrations", () => {
       const settingsWithAutoDelete: Settings = {
         ...defaultTestSettings,
         general: {
-          archiveDays: 7,
+          archiveDays: getDurationDay(7),
           autoDelete: {
             enabled: true,
-            deleteDays: 30,
+            deleteDays: getDurationDay(30),
           },
           theme: "system",
         },

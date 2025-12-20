@@ -3,7 +3,8 @@
  * Supports: Todoist, Things 3, Apple Reminders, CSV, JSON
  */
 
-import { Todo, TodoMetadata, Subtask, TodoState } from "@/types/todo";
+import { Todo, TodoMetadata, Subtask, TodoState, getSubtaskId, getTag } from "@/types/todo";
+import { getTimestamp, getActivityId } from "@/types/settings";
 
 // Supported import formats
 export type ImportFormat = "todoist" | "things" | "reminders" | "csv" | "json" | "auto";
@@ -621,11 +622,11 @@ export function convertToTodo(imported: ImportedTodo, existingProjects: string[]
   });
 
   // Build subtasks
-  const subtasks: Subtask[] = imported.subtasks.map((text) => ({
-    id: `subtask-${now}-${Math.random().toString(36).slice(2, 9)}`,
+  const subtasks: Subtask[] = (imported.subtasks ?? []).map((text) => ({
+    id: getSubtaskId(`subtask-${now}-${Math.random().toString(36).slice(2, 9)}`),
     text,
     completed: false,
-    createdAt: now,
+    createdAt: getTimestamp(now),
   }));
 
   const state: TodoState = imported.isCompleted ? "completed" : "active";
@@ -634,20 +635,30 @@ export function convertToTodo(imported: ImportedTodo, existingProjects: string[]
     text,
     plainText: imported.title,
     state,
-    createdAt: now,
-    updatedAt: now,
-    completedAt: imported.isCompleted ? now : undefined,
+    createdAt: getTimestamp(now),
+    updatedAt: getTimestamp(now),
+    completedAt: imported.isCompleted ? getTimestamp(now) : undefined,
+    context: "",
+    tags: (metadata.tags ?? []).map(getTag),
+    dependencies: [],
+    assignedPeople: [],
+    sourcePeople: [],
+    mentionedPeople: [],
+    projects: [],
+    priority: undefined,
+    dueDate: metadata.dueDate ? getTimestamp(new Date(metadata.dueDate).getTime()) : undefined,
+    duration: undefined,
     metadata,
     comments: [],
     activity: [
       {
-        id: `activity-${now}`,
-        timestamp: now,
+        id: getActivityId(`activity-${now}`),
+        timestamp: getTimestamp(now),
         type: "created",
         description: `Imported from ${imported.source}`,
       },
     ],
-    subtasks: subtasks.length > 0 ? subtasks : undefined,
+    subtasks: subtasks,
   };
 }
 

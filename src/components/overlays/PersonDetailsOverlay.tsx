@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { PersonModel } from "@/models/PersonModel";
-import { Person } from "@/types/settings";
+import { Person, getColor } from "@/types/settings";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
 import { ColorPicker } from "@/components/shared/ColorPicker";
@@ -18,8 +18,8 @@ interface PersonDetailsOverlayProps {
   onArchive?: (id: string) => void;
   onUnarchive?: (id: string) => void;
   onAddComment: (personId: string, content: string) => void;
-  onEditComment: (personId: string, commentId: number, content: string) => void;
-  onDeleteComment: (personId: string, commentId: number) => void;
+  onEditComment: (personId: string, commentId: string, content: string) => void;
+  onDeleteComment: (personId: string, commentId: string) => void;
 }
 
 export function PersonDetailsOverlay({
@@ -58,7 +58,7 @@ export function PersonDetailsOverlay({
         onUpdate(person.id, {
           name: editingName.trim(),
           alternatives: editingAlternatives,
-          color: editingColor,
+          color: editingColor ? getColor(editingColor) : undefined,
           context: editingContext.trim() || undefined,
         });
       }
@@ -165,7 +165,7 @@ export function PersonDetailsOverlay({
                   onUpdate(person.id, {
                     name: editingName.trim(),
                     alternatives: editingAlternatives,
-                    color: editingColor,
+                    color: editingColor ? getColor(editingColor) : undefined,
                     context: html.trim() || undefined,
                   });
                 }

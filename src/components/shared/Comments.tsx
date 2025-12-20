@@ -1,21 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Comment } from "@/types/settings";
+import { Comment, CommentId } from "@/types/settings";
 import RichTextEditor from "@/components/input/RichTextEditor";
 
 interface CommentsProps {
   comments: Comment[];
   onAddComment: (content: string) => void;
-  onEditComment: (commentId: number, content: string) => void;
-  onDeleteComment: (commentId: number) => void;
+  onEditComment: (commentId: CommentId, content: string) => void;
+  onDeleteComment: (commentId: CommentId) => void;
 }
 
 export function Comments({ comments, onAddComment, onEditComment, onDeleteComment }: CommentsProps) {
   const [newComment, setNewComment] = useState("");
-  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<CommentId | null>(null);
   const [editContent, setEditContent] = useState("");
-  const [expandedCommentId, setExpandedCommentId] = useState<number | null>(null);
+  const [expandedCommentId, setExpandedCommentId] = useState<CommentId | null>(null);
 
   // Helper to check if HTML content is empty
   const isHtmlEmpty = (html: string): boolean => {
@@ -40,7 +40,7 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
     setEditContent(latestEntry.content);
   };
 
-  const handleSaveEdit = (commentId: number) => {
+  const handleSaveEdit = (commentId: CommentId) => {
     if (!isHtmlEmpty(editContent)) {
       onEditComment(commentId, editContent);
       setEditingCommentId(null);
@@ -71,8 +71,8 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
 
   // Sort comments by most recent first
   const sortedComments = [...comments].sort((a, b) => {
-    const aLatest = a.history[a.history.length - 1]?.date || 0;
-    const bLatest = b.history[b.history.length - 1]?.date || 0;
+    const aLatest = a.history[a.history.length - 1]?.timestamp || 0;
+    const bLatest = b.history[b.history.length - 1]?.timestamp || 0;
     return bLatest - aLatest;
   });
 
@@ -186,7 +186,7 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-500">
-                      <span>{formatDate(latestEntry.date)}</span>
+                      <span>{formatDate(latestEntry.timestamp)}</span>
                       {hasHistory && (
                         <>
                           <span>•</span>
@@ -211,7 +211,7 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
                                 className="text-zinc-600 dark:text-zinc-400 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer"
                                 dangerouslySetInnerHTML={{ __html: entry.content }}
                               />
-                              <span className="text-zinc-500 dark:text-zinc-500">{formatDate(entry.date)}</span>
+                              <span className="text-zinc-500 dark:text-zinc-500">{formatDate(entry.timestamp)}</span>
                             </div>
                           ))}
                       </div>

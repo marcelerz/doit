@@ -1,6 +1,6 @@
 "use client";
 
-import { SprintSettings, defaultSprintSettings } from "@/types/settings";
+import { SprintSettings, defaultSprintSettings, getDurationDay } from "@/types/settings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface SprintsTabProps {
@@ -40,7 +40,9 @@ export function SprintsTab({ sprints, onUpdate }: SprintsTabProps) {
             min="1"
             max="90"
             value={sprints.defaultSprintDuration}
-            onChange={(e) => onUpdate({ ...sprints, defaultSprintDuration: parseInt(e.target.value) || 14 })}
+            onChange={(e) =>
+              onUpdate({ ...sprints, defaultSprintDuration: getDurationDay(parseInt(e.target.value) || 14) })
+            }
             className="w-full max-w-xs px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">

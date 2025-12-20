@@ -22,7 +22,7 @@ export interface BaseEntity {
   color?: string;
   context?: string;
   comments: Comment[];
-  activity: ActivityEntry[];
+  activity: ActivityEntry<string>[];
   archived?: boolean;
 }
 
@@ -68,7 +68,7 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
     return this.raw.comments;
   }
 
-  get activity(): ActivityEntry[] {
+  get activity(): ActivityEntry<string>[] {
     return this.raw.activity;
   }
 
@@ -168,7 +168,7 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
   /**
    * Get the most recent activity entry, if any
    */
-  get latestActivity(): ActivityEntry | undefined {
+  get latestActivity(): ActivityEntry<string> | undefined {
     if (this.activity.length === 0) return undefined;
     return this.activity[this.activity.length - 1];
   }

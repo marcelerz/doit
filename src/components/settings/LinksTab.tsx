@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LinkPattern } from "@/types/settings";
+import { LinkPattern, getColor } from "@/types/settings";
 import { IconButton } from "@/components/shared/IconButton";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
@@ -30,7 +30,7 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
       prefix: formData.prefix.trim().toUpperCase(),
       urlTemplate: formData.urlTemplate.trim(),
       description: formData.description.trim(),
-      color: formData.color,
+      color: getColor(formData.color),
     };
 
     if (editingId) {

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Sprint, SprintStatus } from "@/types/settings";
+import { Sprint, SprintStatus, getSprintId } from "@/types/sprint";
+import { getTimestamp, getActivityId, getCommentId } from "@/types/settings";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
 
@@ -173,15 +174,15 @@ export function useSprints() {
     const now = Date.now();
     const newSprint: Sprint = {
       ...sprint,
-      id: `sprint-${now}`,
+      id: getSprintId(`sprint-${now}`),
       status: "planning",
       state: "active",
       createdAt: now,
       comments: [],
       activity: [
         {
-          id: `${now}-created`,
-          timestamp: now,
+          id: getActivityId(`${now}-created`),
+          timestamp: getTimestamp(now),
           type: "created",
           description: "Sprint created",
         },
@@ -202,8 +203,8 @@ export function useSprints() {
             activity: [
               ...(s.activity || []),
               {
-                id: `${now}-updated`,
-                timestamp: now,
+                id: getActivityId(`${now}-updated`),
+                timestamp: getTimestamp(now),
                 type: "updated",
                 description: "Sprint updated",
               },
@@ -234,8 +235,8 @@ export function useSprints() {
             activity: [
               ...(s.activity || []),
               {
-                id: `${now}-started`,
-                timestamp: now,
+                id: getActivityId(`${now}-started`),
+                timestamp: getTimestamp(now),
                 type: "started",
                 description: "Sprint started",
               },
@@ -262,8 +263,8 @@ export function useSprints() {
             activity: [
               ...(s.activity || []),
               {
-                id: `${now}-completed`,
-                timestamp: now,
+                id: getActivityId(`${now}-completed`),
+                timestamp: getTimestamp(now),
                 type: "completed",
                 description: "Sprint completed",
               },
@@ -290,8 +291,8 @@ export function useSprints() {
             activity: [
               ...(s.activity || []),
               {
-                id: `${now}-cancelled`,
-                timestamp: now,
+                id: getActivityId(`${now}-cancelled`),
+                timestamp: getTimestamp(now),
                 type: "cancelled",
                 description: "Sprint cancelled",
               },
@@ -316,8 +317,8 @@ export function useSprints() {
             activity: [
               ...(s.activity || []),
               {
-                id: `${now}-archived`,
-                timestamp: now,
+                id: getActivityId(`${now}-archived`),
+                timestamp: getTimestamp(now),
                 type: "archived",
                 description: "Sprint archived",
               },
@@ -342,8 +343,8 @@ export function useSprints() {
             activity: [
               ...(s.activity || []),
               {
-                id: `${now}-unarchived`,
-                timestamp: now,
+                id: getActivityId(`${now}-unarchived`),
+                timestamp: getTimestamp(now),
                 type: "unarchived",
                 description: "Sprint unarchived",
               },
@@ -356,12 +357,13 @@ export function useSprints() {
   };
 
   const addSprintComment = (sprintId: string, content: string) => {
+    const now = Date.now();
     setSprints((prev) =>
       prev.map((s) => {
         if (s.id === sprintId) {
           const newComment = {
-            commentId: Date.now(),
-            history: [{ date: Date.now(), content }],
+            commentId: getCommentId(now.toString()),
+            history: [{ timestamp: getTimestamp(now), content }],
           };
           return {
             ...s,
@@ -373,14 +375,16 @@ export function useSprints() {
     );
   };
 
-  const editSprintComment = (sprintId: string, commentId: number, content: string) => {
+  const editSprintComment = (sprintId: string, commentId: string, content: string) => {
     setSprints((prev) =>
       prev.map((s) => {
         if (s.id === sprintId) {
           return {
             ...s,
             comments: (s.comments || []).map((c) =>
-              c.commentId === commentId ? { ...c, history: [...c.history, { date: Date.now(), content }] } : c,
+              c.commentId === commentId
+                ? { ...c, history: [...c.history, { timestamp: getTimestamp(Date.now()), content }] }
+                : c,
             ),
           };
         }
@@ -389,7 +393,7 @@ export function useSprints() {
     );
   };
 
-  const deleteSprintComment = (sprintId: string, commentId: number) => {
+  const deleteSprintComment = (sprintId: string, commentId: string) => {
     setSprints((prev) =>
       prev.map((s) => {
         if (s.id === sprintId) {

@@ -29,61 +29,70 @@ import {
 } from "@/utils/notifications";
 import { MockBrowserApis, setBrowserApis, resetBrowserApis } from "@/utils/browserApis";
 import { TodoModel } from "@/models/TodoModel";
-import { Todo, TodoMetadata } from "@/types/todo";
-import { Settings } from "@/types/settings";
+import { Todo, TodoMetadata, getTodoId } from "@/types/todo";
+import {
+  Settings,
+  getColor,
+  getShortTime,
+  getDurationDay,
+  getDurationMin,
+  getDurationSec,
+  getDurationHour,
+  getWeekday,
+  getMonth,
+  getTimestamp,
+} from "@/types/settings";
 
 // Helper to create test settings
 const createTestSettings = (): Settings => ({
   priorities: [],
   linkPatterns: [],
   markerColors: {
-    assigned: "#cce5ff",
-    source: "#d4fdd4",
-    mentioned: "#ffe5b4",
-    project: "#e2ccff",
-    priority: "#ffd4d4",
-    dueDate: "#fce4ec",
-    duration: "#d4faff",
-    recurring: "#e1f5e1",
-    dependency: "#fff4e6",
-    tag: "#ffe4cc",
-    sprint: "#dbeafe",
+    assigned: getColor("#cce5ff"),
+    source: getColor("#d4fdd4"),
+    mentioned: getColor("#ffe5b4"),
+    project: getColor("#e2ccff"),
+    priority: getColor("#ffd4d4"),
+    dueDate: getColor("#fce4ec"),
+    duration: getColor("#d4faff"),
+    recurring: getColor("#e1f5e1"),
+    dependency: getColor("#fff4e6"),
+    tag: getColor("#ffe4cc"),
+    sprint: getColor("#dbeafe"),
   },
   general: {
-    archiveDays: 30,
-    autoDelete: { enabled: false, deleteDays: 90 },
+    archiveDays: getDurationDay(30),
+    autoDelete: { enabled: false, deleteDays: getDurationDay(90) },
     theme: "system",
   },
   dateTime: {
-    morning: "09:00",
-    noon: "12:00",
-    afternoon: "14:00",
-    evening: "18:00",
-    workWeekStart: 1,
-    fiscalYearStart: 1,
+    morning: getShortTime("09:00"),
+    noon: getShortTime("12:00"),
+    afternoon: getShortTime("14:00"),
+    evening: getShortTime("18:00"),
+    workWeekStart: getWeekday(1),
+    fiscalYearStart: getMonth(1),
   },
   workHours: {
     useCommonSchedule: true,
-    commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-    weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-    weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
+    commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+    weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+    weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
     customSchedules: {},
   },
   gantt: {
     schedulingTechnique: "sequential",
-    defaultTaskDuration: 30,
+    defaultTaskDuration: getDurationMin(30),
     durationMultiplier: 1.0,
-    minimumRemainingDuration: 1,
-    contextSwitchingTime: 15,
-    pomodoroWorkDuration: 25,
-    pomodoroShortBreak: 5,
-    pomodoroLongBreak: 15,
+    minimumRemainingDuration: getDurationMin(1),
+    contextSwitchingTime: getDurationMin(15),
+    pomodoroWorkDuration: getDurationMin(25),
+    pomodoroShortBreak: getDurationMin(5),
+    pomodoroLongBreak: getDurationMin(15),
     pomodoroLongBreakInterval: 4,
-    pomodoroNotifications: true,
-    pomodoroSound: true,
-    flowWorkDuration: 52,
-    flowBreakDuration: 17,
-    flowContextSwitchingTime: 10,
+    flowWorkDuration: getDurationMin(52),
+    flowBreakDuration: getDurationMin(17),
+    flowContextSwitchingTime: getDurationMin(10),
     zoomLevel: "1hour",
     showWeekends: true,
     showDependencies: true,
@@ -104,7 +113,7 @@ const createTestSettings = (): Settings => ({
     cardDisplayFields: [],
   },
   sprints: {
-    defaultSprintDuration: 14,
+    defaultSprintDuration: getDurationDay(14),
     showBacklogInSprint: true,
   },
   autoAssign: {
@@ -112,12 +121,12 @@ const createTestSettings = (): Settings => ({
   },
   focus: {
     requireConfirmation: false,
-    confirmationRepeatInterval: 30,
+    confirmationRepeatInterval: getDurationSec(30),
     confirmationMaxRepeats: 5,
     autoTimeTracking: true,
     trackActualVsEstimated: true,
-    defaultExtendMinutes: 5,
-    extendOptions: [5, 10, 15, 30],
+    defaultExtendMinutes: getDurationMin(5),
+    extendOptions: [getDurationMin(5), getDurationMin(10), getDurationMin(15), getDurationMin(30)],
     showEarlyCompletePrompt: true,
     autoExtendOnOvertime: true,
     useTrackedTimeForDuration: true,
@@ -134,7 +143,7 @@ const createTestSettings = (): Settings => ({
   },
   categories: [],
   calendar: {
-    weekStartDay: 0,
+    weekStartDay: getWeekday(0),
     defaultView: "month",
     showWeekNumbers: false,
     taskDotLimit: 4,
@@ -148,8 +157,8 @@ const createTestSettings = (): Settings => ({
     notifyOverdue: true,
     notifyDueToday: true,
     notifyDueSoon: true,
-    dueSoonHours: 2,
-    checkInterval: 15,
+    dueSoonHours: getDurationHour(2),
+    checkInterval: getDurationMin(15),
   },
   features: {
     ganttView: true,
@@ -183,13 +192,21 @@ interface TestTodoOverrides extends Omit<Partial<Todo>, "metadata"> {
 
 // Helper to create a test todo
 const createTestTodo = (overrides: TestTodoOverrides = {}): Todo => ({
-  id: overrides.id || "test-todo-1",
+  id: getTodoId(overrides.id || "test-todo-1"),
   text: overrides.text || "Test todo",
   plainText: overrides.plainText || "Test todo",
   state: overrides.state || "active",
   metadata: { ...defaultTestMetadata, ...overrides.metadata },
-  createdAt: overrides.createdAt || Date.now(),
-  updatedAt: overrides.updatedAt || Date.now(),
+  createdAt: getTimestamp(overrides.createdAt || Date.now()),
+  updatedAt: getTimestamp(overrides.updatedAt || Date.now()),
+  context: "",
+  tags: [],
+  dependencies: [],
+  assignedPeople: [],
+  sourcePeople: [],
+  mentionedPeople: [],
+  projects: [],
+  subtasks: [],
   comments: overrides.comments || [],
   activity: overrides.activity || [],
 });
@@ -732,7 +749,7 @@ describe("notifications with MockBrowserApis", () => {
     it("notifyOverdueTask should create notification with todo info", () => {
       const settings = createTestSettings();
       const todo = createTestTodo({
-        id: "todo-1",
+        id: getTodoId("todo-1"),
         plainText: "Finish report",
         metadata: { dueDate: "2024-01-01" },
       });
@@ -794,7 +811,7 @@ describe("notifications with MockBrowserApis", () => {
       yesterday.setDate(yesterday.getDate() - 1);
 
       const todo = createTestTodo({
-        id: "overdue-1",
+        id: getTodoId("overdue-1"),
         plainText: "Overdue task",
         metadata: { dueDate: yesterday.toISOString() },
       });
@@ -818,7 +835,7 @@ describe("notifications with MockBrowserApis", () => {
       today.setHours(23, 30, 0, 0); // 11:30 PM today
 
       const todo = createTestTodo({
-        id: "today-1",
+        id: getTodoId("today-1"),
         plainText: "Today task",
         metadata: { dueDate: today.toISOString() },
       });
@@ -840,7 +857,7 @@ describe("notifications with MockBrowserApis", () => {
       soon.setTime(soon.getTime() + 1.5 * 60 * 60 * 1000); // 1.5 hours
 
       const todo = createTestTodo({
-        id: "soon-1",
+        id: getTodoId("soon-1"),
         plainText: "Soon task",
         metadata: { dueDate: soon.toISOString() },
       });
@@ -862,7 +879,7 @@ describe("notifications with MockBrowserApis", () => {
       yesterday.setDate(yesterday.getDate() - 1);
 
       const todo = createTestTodo({
-        id: "already-notified",
+        id: getTodoId("already-notified"),
         plainText: "Already notified",
         metadata: { dueDate: yesterday.toISOString() },
       });
@@ -884,7 +901,7 @@ describe("notifications with MockBrowserApis", () => {
       yesterday.setDate(yesterday.getDate() - 1);
 
       const todo = createTestTodo({
-        id: "completed-task",
+        id: getTodoId("completed-task"),
         state: "completed",
         plainText: "Completed task",
         metadata: { dueDate: yesterday.toISOString() },
@@ -904,7 +921,7 @@ describe("notifications with MockBrowserApis", () => {
     it("should skip tasks without due dates", () => {
       const settings = createTestSettings();
       const todo = createTestTodo({
-        id: "no-date",
+        id: getTodoId("no-date"),
         plainText: "No due date",
       });
       const model = new TodoModel(todo, settings);
@@ -926,7 +943,7 @@ describe("notifications with MockBrowserApis", () => {
       const dateStr = yesterday.toISOString().split("T")[0]; // YYYY-MM-DD
 
       const todo = createTestTodo({
-        id: "date-only",
+        id: getTodoId("date-only"),
         plainText: "Date only format",
         metadata: { dueDate: dateStr },
       });
@@ -945,7 +962,7 @@ describe("notifications with MockBrowserApis", () => {
     it("should handle invalid date formats gracefully", () => {
       const settings = createTestSettings();
       const todo = createTestTodo({
-        id: "invalid-date",
+        id: getTodoId("invalid-date"),
         plainText: "Invalid date",
         metadata: { dueDate: "not-a-date" },
       });

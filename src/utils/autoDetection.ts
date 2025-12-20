@@ -12,9 +12,25 @@
  */
 
 import * as chrono from "chrono-node";
-import { DateTimeSettings, WorkHoursSettings, Person, Project, Priority } from "@/types/settings";
+import { DateTimeSettings, WorkHoursSettings, Priority } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence, RecurringPattern } from "./recurringParser";
 import { createCustomChrono } from "./chronoCustom";
+
+/**
+ * Minimal interface for person-like objects (works with both Person and PersonModel)
+ */
+export interface PersonLike {
+  name: string;
+  alternatives: string[];
+}
+
+/**
+ * Minimal interface for project-like objects (works with both Project and ProjectModel)
+ */
+export interface ProjectLike {
+  name: string;
+  alternatives: string[];
+}
 
 export interface DetectedDate {
   text: string; // The text that was matched (e.g., "tomorrow at 3pm")
@@ -372,7 +388,7 @@ export function getDateAtPosition(position: number, dates: DetectedDate[]): Dete
  * Detect mentioned people in text without requiring ^ marker
  * Matches person names and their alternatives as whole words
  */
-export function detectMentionedPeople(text: string, availablePeople: Person[]): DetectedPerson[] {
+export function detectMentionedPeople(text: string, availablePeople: PersonLike[]): DetectedPerson[] {
   const results: DetectedPerson[] = [];
 
   // Blacklist common English words to avoid false positives
@@ -532,7 +548,7 @@ export function detectMentionedPeople(text: string, availablePeople: Person[]): 
  * - "for <project name>"
  * - "for project <project name>"
  */
-export function detectMentionedProjects(text: string, availableProjects: Project[]): DetectedProject[] {
+export function detectMentionedProjects(text: string, availableProjects: ProjectLike[]): DetectedProject[] {
   const results: DetectedProject[] = [];
 
   // Blacklist common words that might be project names
@@ -657,7 +673,7 @@ export interface DetectedAssignedPerson {
  * - "get <person name> to"
  * - "reminder for <person name>"
  */
-export function detectAssignedPeople(text: string, availablePeople: Person[]): DetectedAssignedPerson[] {
+export function detectAssignedPeople(text: string, availablePeople: PersonLike[]): DetectedAssignedPerson[] {
   const results: DetectedAssignedPerson[] = [];
 
   // Blacklist common English words
@@ -837,7 +853,7 @@ export function detectAssignedPeople(text: string, availablePeople: Person[]): D
  * - "cc'd by <person name>"
  * - "forwarded by <person name>"
  */
-export function detectSourcePeople(text: string, availablePeople: Person[]): DetectedSourcePerson[] {
+export function detectSourcePeople(text: string, availablePeople: PersonLike[]): DetectedSourcePerson[] {
   const results: DetectedSourcePerson[] = [];
 
   // Blacklist common English words

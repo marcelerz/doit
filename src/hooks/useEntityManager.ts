@@ -3,26 +3,34 @@
 import { useState, useEffect, useCallback } from "react";
 import { loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
-import { Comment, ActivityEntry } from "@/types/settings";
+import { Comment, ActivityEntry, getCommentId, getTimestamp, getActivityId } from "@/types/settings";
 
 /**
  * Base entity interface that all managed entities must implement
+ * Generic parameters:
+ * - IdType: The type for the entity's id (can be branded string types like PersonId, ProjectId)
+ * - ActivityType: The type for activity entry types (e.g., PersonActivityType, ProjectActivityType)
+ * - ColorType: The type for color (can be branded Color type or plain string)
  */
-export interface BaseEntity {
-  id: string;
+export interface BaseEntity<
+  IdType extends string = string,
+  ActivityType extends string = string,
+  ColorType extends string = string,
+> {
+  id: IdType;
   name: string;
   alternatives: string[];
-  color?: string;
+  color?: ColorType;
   context?: string;
   archived?: boolean;
   comments: Comment[];
-  activity?: ActivityEntry[];
+  activity: ActivityEntry<ActivityType>[];
 }
 
 /**
  * Configuration for the entity manager hook
  */
-interface EntityManagerConfig<T extends BaseEntity> {
+interface EntityManagerConfig<T extends BaseEntity<string, string, string>> {
   storageKey: string;
   entityName: string; // e.g., "Person" or "Project"
   createModels: (rawEntities: T[]) => unknown[];
@@ -39,7 +47,7 @@ interface EntityManagerConfig<T extends BaseEntity> {
  * - Comment management with history
  * - Activity tracking for all changes
  */
-export function useEntityManager<T extends BaseEntity, M>(
+export function useEntityManager<T extends BaseEntity<string, string, string>, M>(
   config: EntityManagerConfig<T>,
   createModelsTyped: (rawEntities: T[]) => M[],
 ) {
@@ -82,8 +90,8 @@ export function useEntityManager<T extends BaseEntity, M>(
         comments: [],
         activity: [
           {
-            id: `${now}-created`,
-            timestamp: now,
+            id: getActivityId(`${now}-created`),
+            timestamp: getTimestamp(now),
             type: "created",
             description: `${config.entityName} created`,
           },
@@ -138,8 +146,8 @@ export function useEntityManager<T extends BaseEntity, M>(
               updatedEntity.activity = [
                 ...(entity.activity || []),
                 {
-                  id: `${now}-edited`,
-                  timestamp: now,
+                  id: getActivityId(`${now}-edited`),
+                  timestamp: getTimestamp(now),
                   type: "edited",
                   description: `Updated ${changes.join("; ")}`,
                 },
@@ -165,8 +173,8 @@ export function useEntityManager<T extends BaseEntity, M>(
               activity: [
                 ...(entity.activity || []),
                 {
-                  id: `${now}-archived`,
-                  timestamp: now,
+                  id: getActivityId(`${now}-archived`),
+                  timestamp: getTimestamp(now),
                   type: "archived",
                   description: `${config.entityName} archived`,
                 },
@@ -192,8 +200,8 @@ export function useEntityManager<T extends BaseEntity, M>(
               activity: [
                 ...(entity.activity || []),
                 {
-                  id: `${now}-unarchived`,
-                  timestamp: now,
+                  id: getActivityId(`${now}-unarchived`),
+                  timestamp: getTimestamp(now),
                   type: "unarchived",
                   description: `${config.entityName} unarchived`,
                 },
@@ -217,8 +225,8 @@ export function useEntityManager<T extends BaseEntity, M>(
       prev.map((entity) => {
         if (entity.id === entityId) {
           const newComment: Comment = {
-            commentId: now,
-            history: [{ date: now, content }],
+            commentId: getCommentId(now.toString()),
+            history: [{ timestamp: getTimestamp(now), content }],
           };
           return {
             ...entity,
@@ -230,7 +238,7 @@ export function useEntityManager<T extends BaseEntity, M>(
     );
   }, []);
 
-  const editComment = useCallback((entityId: string, commentId: number, content: string) => {
+  const editComment = useCallback((entityId: string, commentId: string, content: string) => {
     const now = Date.now();
     setRawEntities((prev) =>
       prev.map((entity) => {
@@ -239,7 +247,7 @@ export function useEntityManager<T extends BaseEntity, M>(
             ...entity,
             comments: entity.comments.map((comment) =>
               comment.commentId === commentId
-                ? { ...comment, history: [...comment.history, { date: now, content }] }
+                ? { ...comment, history: [...comment.history, { timestamp: getTimestamp(now), content }] }
                 : comment,
             ),
           };
@@ -249,7 +257,7 @@ export function useEntityManager<T extends BaseEntity, M>(
     );
   }, []);
 
-  const deleteComment = useCallback((entityId: string, commentId: number) => {
+  const deleteComment = useCallback((entityId: string, commentId: string) => {
     setRawEntities((prev) =>
       prev.map((entity) => {
         if (entity.id === entityId) {

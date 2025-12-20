@@ -2,22 +2,27 @@
  * Activity logging utilities for tracking changes to todos
  */
 
-import { ActivityEntry, TodoMetadata } from "@/types/todo";
+import { ActivityEntry, TodoActivityType, TodoMetadata } from "@/types/todo";
+import { getActivityId, getTimestamp, ActivityId } from "@/types/settings";
 
 /**
  * Generate a unique ID for an activity entry
  */
-function generateActivityId(): string {
-  return `activity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+function generateActivityId(): ActivityId {
+  return getActivityId(`activity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 }
 
 /**
  * Create a new activity entry
  */
-export function createActivity(type: ActivityEntry["type"], description: string, metadata?: any): ActivityEntry {
+export function createActivity(
+  type: TodoActivityType,
+  description: string,
+  metadata?: any,
+): ActivityEntry<TodoActivityType> {
   return {
     id: generateActivityId(),
-    timestamp: Date.now(),
+    timestamp: getTimestamp(Date.now()),
     type,
     description,
     metadata,
@@ -27,8 +32,11 @@ export function createActivity(type: ActivityEntry["type"], description: string,
 /**
  * Compare two metadata objects and generate activities for changes
  */
-export function generateMetadataActivities(oldMetadata: TodoMetadata, newMetadata: TodoMetadata): ActivityEntry[] {
-  const activities: ActivityEntry[] = [];
+export function generateMetadataActivities(
+  oldMetadata: TodoMetadata,
+  newMetadata: TodoMetadata,
+): ActivityEntry<TodoActivityType>[] {
+  const activities: ActivityEntry<TodoActivityType>[] = [];
 
   // Check assigned people changes
   const addedAssigned = newMetadata.assignedPeople.filter((p) => !oldMetadata.assignedPeople.includes(p));
@@ -120,8 +128,10 @@ export function generateMetadataActivities(oldMetadata: TodoMetadata, newMetadat
   }
 
   // Check dependency changes
-  const addedDeps = newMetadata.dependencies.filter((d) => !oldMetadata.dependencies.includes(d));
-  const removedDeps = oldMetadata.dependencies.filter((d) => !newMetadata.dependencies.includes(d));
+  const newDeps = newMetadata.dependencies ?? [];
+  const oldDeps = oldMetadata.dependencies ?? [];
+  const addedDeps = newDeps.filter((d) => !oldDeps.includes(d));
+  const removedDeps = oldDeps.filter((d) => !newDeps.includes(d));
   addedDeps.forEach((dep) => {
     activities.push(createActivity("dependency_added", `Added dependency >${dep}`));
   });
@@ -130,8 +140,10 @@ export function generateMetadataActivities(oldMetadata: TodoMetadata, newMetadat
   });
 
   // Check tag changes
-  const addedTags = newMetadata.tags.filter((t) => !oldMetadata.tags.includes(t));
-  const removedTags = oldMetadata.tags.filter((t) => !newMetadata.tags.includes(t));
+  const newTags = newMetadata.tags ?? [];
+  const oldTags = oldMetadata.tags ?? [];
+  const addedTags = newTags.filter((t) => !oldTags.includes(t));
+  const removedTags = oldTags.filter((t) => !newTags.includes(t));
   addedTags.forEach((tag) => {
     activities.push(createActivity("tag_added", `Added tag &${tag}`));
   });

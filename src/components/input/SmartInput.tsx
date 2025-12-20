@@ -199,14 +199,14 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
     };
 
     // Helper to find person/project/priority by name or alternative
-    const findPersonByNameOrAlternative = (input: string): Person | undefined => {
+    const findPersonByNameOrAlternative = (input: string): PersonModel | undefined => {
       const lowerInput = input.toLowerCase();
       return availablePeople.find(
         (p) => p.name.toLowerCase() === lowerInput || p.alternatives.some((alt) => alt.toLowerCase() === lowerInput),
       );
     };
 
-    const findProjectByNameOrAlternative = (input: string): Project | undefined => {
+    const findProjectByNameOrAlternative = (input: string): ProjectModel | undefined => {
       const lowerInput = input.toLowerCase();
       return availableProjects.find(
         (p) => p.name.toLowerCase() === lowerInput || p.alternatives.some((alt) => alt.toLowerCase() === lowerInput),
@@ -220,7 +220,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       );
     };
 
-    const filterPeopleBySearch = (search: string): Person[] => {
+    const filterPeopleBySearch = (search: string): PersonModel[] => {
       const lowerSearch = search.toLowerCase();
       if (search === "") return availablePeople;
       return availablePeople.filter(
@@ -230,7 +230,7 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       );
     };
 
-    const filterProjectsBySearch = (search: string): Project[] => {
+    const filterProjectsBySearch = (search: string): ProjectModel[] => {
       const lowerSearch = search.toLowerCase();
       if (search === "") return availableProjects;
       return availableProjects.filter(

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FocusSettings, defaultFocusSettings } from "@/types/settings";
+import { FocusSettings, defaultFocusSettings, getDurationMin, getDurationSec } from "@/types/settings";
 import { playNotificationSound, AMBIENT_SOUNDS, playAmbientSound, stopAmbientSound } from "@/utils/notifications";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
@@ -42,14 +42,14 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
 
   const handleUpdateExtendOptions = (index: number, value: number) => {
     const newOptions = [...focus.extendOptions];
-    newOptions[index] = value;
+    newOptions[index] = getDurationMin(value);
     // Sort and dedupe
     const sorted = [...new Set(newOptions.filter((v) => v > 0))].sort((a, b) => a - b);
     onUpdate({ ...focus, extendOptions: sorted });
   };
 
   const handleAddExtendOption = () => {
-    const newValue = Math.max(...focus.extendOptions) + 5;
+    const newValue = getDurationMin(Math.max(...focus.extendOptions) + 5);
     onUpdate({ ...focus, extendOptions: [...focus.extendOptions, newValue].sort((a, b) => a - b) });
   };
 
@@ -112,7 +112,9 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
                   max="120"
                   step="5"
                   value={focus.confirmationRepeatInterval}
-                  onChange={(e) => onUpdate({ ...focus, confirmationRepeatInterval: parseInt(e.target.value) || 30 })}
+                  onChange={(e) =>
+                    onUpdate({ ...focus, confirmationRepeatInterval: getDurationSec(parseInt(e.target.value) || 30) })
+                  }
                   className="w-24 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
                 />
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">seconds</span>
@@ -205,7 +207,9 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
                 max="60"
                 step="1"
                 value={focus.defaultExtendMinutes}
-                onChange={(e) => onUpdate({ ...focus, defaultExtendMinutes: parseInt(e.target.value) || 5 })}
+                onChange={(e) =>
+                  onUpdate({ ...focus, defaultExtendMinutes: getDurationMin(parseInt(e.target.value) || 5) })
+                }
                 className="w-24 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
               />
               <span className="text-sm text-zinc-600 dark:text-zinc-400">minutes</span>

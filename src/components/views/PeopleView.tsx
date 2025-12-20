@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Person } from "@/types/settings";
+import { Person, getColor } from "@/types/settings";
 import { IconButton } from "@/components/shared/IconButton";
 
 interface PeopleTabProps {
@@ -30,7 +30,7 @@ export function PeopleTab({ people, onAdd, onUpdate, onDelete }: PeopleTabProps)
         .split(",")
         .map((a) => a.trim())
         .filter((a) => a),
-      color: formData.color || undefined, // Only set if provided
+      color: formData.color ? getColor(formData.color) : undefined, // Only set if provided
     };
 
     if (editingId) {

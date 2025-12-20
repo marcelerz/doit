@@ -1,7 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Todo, TodoMetadata, ActivityEntry, TimeEntry, TodoState } from "@/types/todo";
+import {
+  Todo,
+  TodoMetadata,
+  TimeEntry,
+  TodoState,
+  getTodoId,
+  getSubtaskId,
+  getTimeEntryId,
+  TodoActivityType,
+} from "@/types/todo";
+import { getTimestamp, getActivityId, getCommentId, ActivityEntry, CommentId, getDurationMin } from "@/types/settings";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/storage/migrations";
 import { defaultSettings, Settings } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
@@ -111,7 +121,7 @@ export function useTodos() {
         setRawTodos((prev) =>
           prev.map((todo) => {
             if (todo.id === action.todo.id) {
-              let activityType: ActivityEntry["type"];
+              let activityType: ActivityEntry<TodoActivityType>["type"];
               let description: string;
 
               if (action.type === "complete") {
@@ -159,17 +169,25 @@ export function useTodos() {
   );
 
   const addTodo = (text: string, plainText: string, metadata: TodoMetadata) => {
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     const newTodo: Todo = {
-      id: now.toString(),
+      id: getTodoId(now.toString()),
       text,
       plainText,
       state: "active",
       createdAt: now,
       updatedAt: now,
+      context: metadata.context || "",
+      tags: [],
+      dependencies: [],
+      assignedPeople: [],
+      sourcePeople: [],
+      mentionedPeople: [],
+      projects: [],
       metadata,
       comments: [],
       activity: [createActivity("created", "Task created")],
+      subtasks: [],
     };
     setRawTodos((prev) => [newTodo, ...prev]);
   };
@@ -178,14 +196,21 @@ export function useTodos() {
     const todoToDuplicate = rawTodos.find((t) => t.id === id);
     if (!todoToDuplicate) return;
 
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     const duplicatedTodo: Todo = {
-      id: now.toString(),
+      id: getTodoId(now.toString()),
       text: todoToDuplicate.text,
       plainText: todoToDuplicate.plainText,
       state: "active",
       createdAt: now,
       updatedAt: now,
+      context: todoToDuplicate.context || "",
+      tags: todoToDuplicate.tags || [],
+      dependencies: [],
+      assignedPeople: todoToDuplicate.assignedPeople || [],
+      sourcePeople: todoToDuplicate.sourcePeople || [],
+      mentionedPeople: todoToDuplicate.mentionedPeople || [],
+      projects: todoToDuplicate.projects || [],
       metadata: {
         ...todoToDuplicate.metadata,
         // Clear dependencies for the duplicate
@@ -193,6 +218,7 @@ export function useTodos() {
       },
       comments: [], // Don't copy comments
       activity: [createActivity("created", "Task duplicated from another task")],
+      subtasks: [],
     };
     setRawTodos((prev) => [duplicatedTodo, ...prev]);
     return duplicatedTodo.id;
@@ -217,7 +243,7 @@ export function useTodos() {
     }
 
     const previousState = JSON.parse(JSON.stringify(todoToToggle)); // Deep copy
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
 
     // Track activity
     const activity =
@@ -279,13 +305,20 @@ export function useTodos() {
         // Create new todo with updated due date
         const newRecurringTodo: Todo = {
           ...todoToToggle,
-          id: `todo-${now}-recurring`,
+          id: getTodoId(`todo-${now}-recurring`),
           state: "active",
           createdAt: now,
           updatedAt: now,
           completedAt: undefined,
           archivedAt: undefined,
           deletedAt: undefined,
+          context: todoToToggle.context || "",
+          tags: todoToToggle.tags || [],
+          dependencies: [],
+          assignedPeople: todoToToggle.assignedPeople || [],
+          sourcePeople: todoToToggle.sourcePeople || [],
+          mentionedPeople: todoToToggle.mentionedPeople || [],
+          projects: todoToToggle.projects || [],
           metadata: {
             ...todoToToggle.metadata,
             dueDate: nextDateString,
@@ -294,6 +327,7 @@ export function useTodos() {
           activity: [
             createActivity("created", `Task created from recurring pattern: ${todoToToggle.metadata.recurring}`),
           ],
+          subtasks: [], // New instance starts with no subtasks
         };
 
         // Reconstruct text with new due date
@@ -305,7 +339,7 @@ export function useTodos() {
         // Mentioned people don't need markers (they're auto-detected in text)
         newRecurringTodo.metadata.projects.forEach((p) => parts.push(`%${p}`));
         if (newRecurringTodo.metadata.priority) parts.push(`!!${newRecurringTodo.metadata.priority}`);
-        newRecurringTodo.metadata.tags.forEach((t) => parts.push(`#${t}`));
+        (newRecurringTodo.metadata.tags ?? []).forEach((t) => parts.push(`#${t}`));
         // Recurring pattern is kept with ~ marker
         if (newRecurringTodo.metadata.recurring) parts.push(`~${newRecurringTodo.metadata.recurring}`);
         // Note: dueDate will be auto-detected when the text is parsed
@@ -339,7 +373,7 @@ export function useTodos() {
     if (!todoToDelete) return;
 
     const previousState = JSON.parse(JSON.stringify(todoToDelete)); // Deep copy
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     const deletedTodo: Todo = {
       ...todoToDelete,
       state: "deleted",
@@ -390,7 +424,7 @@ export function useTodos() {
     }
 
     const previousState = JSON.parse(JSON.stringify(todoToArchive)); // Deep copy
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     const updatedTodo: Todo = {
       ...todoToArchive,
       state: "archived",
@@ -432,7 +466,7 @@ export function useTodos() {
             state: newState,
             archivedAt: undefined,
             deletedAt: undefined,
-            updatedAt: Date.now(),
+            updatedAt: getTimestamp(Date.now()),
             activity: [...todo.activity, createActivity("unarchived", "Task unarchived")],
           };
         }
@@ -446,7 +480,7 @@ export function useTodos() {
       prev.map((todo) => {
         if (todo.id === id) {
           // Track text edit and metadata changes
-          const activities: ActivityEntry[] = [];
+          const activities: ActivityEntry<TodoActivityType>[] = [];
 
           // Check if text changed
           if (todo.plainText !== plainText) {
@@ -462,7 +496,7 @@ export function useTodos() {
             text,
             plainText,
             metadata,
-            updatedAt: Date.now(),
+            updatedAt: getTimestamp(Date.now()),
             activity: [...todo.activity, ...activities],
           };
         }
@@ -472,12 +506,13 @@ export function useTodos() {
   };
 
   const addTodoComment = (todoId: string, content: string) => {
+    const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
           const newComment = {
-            commentId: Date.now(),
-            history: [{ date: Date.now(), content }],
+            commentId: getCommentId(now.toString()),
+            history: [{ timestamp: now, content }],
           };
           return {
             ...todo,
@@ -489,7 +524,7 @@ export function useTodos() {
     );
   };
 
-  const editTodoComment = (todoId: string, commentId: number, content: string) => {
+  const editTodoComment = (todoId: string, commentId: CommentId, content: string) => {
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
@@ -497,7 +532,7 @@ export function useTodos() {
             ...todo,
             comments: todo.comments.map((comment) =>
               comment.commentId === commentId
-                ? { ...comment, history: [...comment.history, { date: Date.now(), content }] }
+                ? { ...comment, history: [...comment.history, { timestamp: getTimestamp(Date.now()), content }] }
                 : comment,
             ),
           };
@@ -507,7 +542,7 @@ export function useTodos() {
     );
   };
 
-  const deleteTodoComment = (todoId: string, commentId: number) => {
+  const deleteTodoComment = (todoId: string, commentId: CommentId) => {
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
@@ -528,7 +563,7 @@ export function useTodos() {
       return prev.map((todo) => {
         const newOrder = orderMap.get(todo.id);
         if (newOrder !== undefined && newOrder !== todo.sortOrder) {
-          return { ...todo, sortOrder: newOrder, updatedAt: Date.now() };
+          return { ...todo, sortOrder: newOrder, updatedAt: getTimestamp(Date.now()) };
         }
         return todo;
       });
@@ -537,12 +572,12 @@ export function useTodos() {
 
   // Subtask management functions
   const addSubtask = (todoId: string, text: string) => {
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
           const newSubtask = {
-            id: `subtask-${now}`,
+            id: getSubtaskId(`subtask-${now}`),
             text,
             completed: false,
             createdAt: now,
@@ -559,7 +594,7 @@ export function useTodos() {
   };
 
   const toggleSubtask = (todoId: string, subtaskId: string) => {
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
@@ -583,7 +618,7 @@ export function useTodos() {
   };
 
   const editSubtask = (todoId: string, subtaskId: string, text: string) => {
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
@@ -601,7 +636,7 @@ export function useTodos() {
   };
 
   const deleteSubtask = (todoId: string, subtaskId: string) => {
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
@@ -618,16 +653,16 @@ export function useTodos() {
 
   // Time tracking functions
   const startTimeTracking = (todoId: string, note?: string) => {
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
           const newEntry: TimeEntry = {
-            id: `time-${now}`,
+            id: getTimeEntryId(`time-${now}`),
             startTime: now,
             note,
           };
-          const currentTracking = todo.timeTracking || { entries: [], totalMinutes: 0 };
+          const currentTracking = todo.timeTracking || { entries: [], totalMinutes: getDurationMin(0) };
           return {
             ...todo,
             timeTracking: {
@@ -643,18 +678,18 @@ export function useTodos() {
   };
 
   const stopTimeTracking = (todoId: string) => {
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId && todo.timeTracking) {
           const entries = todo.timeTracking.entries.map((entry) => {
             if (!entry.endTime) {
-              const duration = Math.round((now - entry.startTime) / 60000); // Convert to minutes
+              const duration = getDurationMin(Math.round((now - entry.startTime) / 60000)); // Convert to minutes
               return { ...entry, endTime: now, duration };
             }
             return entry;
           });
-          const totalMinutes = entries.reduce((sum, e) => sum + (e.duration || 0), 0);
+          const totalMinutes = getDurationMin(entries.reduce((sum, e) => sum + (e.duration || 0), 0));
           return {
             ...todo,
             timeTracking: { entries, totalMinutes },
@@ -667,23 +702,23 @@ export function useTodos() {
   };
 
   const addManualTimeEntry = (todoId: string, minutes: number, note?: string) => {
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
           const newEntry: TimeEntry = {
-            id: `time-${now}`,
-            startTime: now - minutes * 60000,
+            id: getTimeEntryId(`time-${now}`),
+            startTime: getTimestamp(now - minutes * 60000),
             endTime: now,
-            duration: minutes,
+            duration: getDurationMin(minutes),
             note,
           };
-          const currentTracking = todo.timeTracking || { entries: [], totalMinutes: 0 };
+          const currentTracking = todo.timeTracking || { entries: [], totalMinutes: getDurationMin(0) };
           return {
             ...todo,
             timeTracking: {
               entries: [...currentTracking.entries, newEntry],
-              totalMinutes: currentTracking.totalMinutes + minutes,
+              totalMinutes: getDurationMin(currentTracking.totalMinutes + minutes),
             },
             updatedAt: now,
           };
@@ -694,12 +729,12 @@ export function useTodos() {
   };
 
   const deleteTimeEntry = (todoId: string, entryId: string) => {
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId && todo.timeTracking) {
           const entries = todo.timeTracking.entries.filter((e) => e.id !== entryId);
-          const totalMinutes = entries.reduce((sum, e) => sum + (e.duration || 0), 0);
+          const totalMinutes = getDurationMin(entries.reduce((sum, e) => sum + (e.duration || 0), 0));
           return {
             ...todo,
             timeTracking: { entries, totalMinutes },
@@ -713,10 +748,10 @@ export function useTodos() {
 
   // Import todos from external source
   const importTodos = (todosToImport: Array<Omit<Todo, "id">>) => {
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     const newTodos = todosToImport.map((todo, index) => ({
       ...todo,
-      id: `todo-${now}-${index}`,
+      id: getTodoId(`todo-${now}-${index}`),
     }));
     setRawTodos((prev) => [...prev, ...newTodos]);
   };
@@ -741,7 +776,7 @@ export function useTodos() {
       }
     }
 
-    const now = Date.now();
+    const now = getTimestamp(Date.now());
     const newState = kanbanStates.find((s) => s.id === newStateId);
     const mappedTodoState = newState?.mapsToTodoState as TodoState | undefined;
 

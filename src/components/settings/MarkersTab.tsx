@@ -1,6 +1,6 @@
 "use client";
 
-import { MarkerColors, defaultMarkerColors } from "@/types/settings";
+import { MarkerColors, defaultMarkerColors, getColor } from "@/types/settings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface MarkersTabProps {
@@ -67,7 +67,7 @@ const markerInfo = [
 
 export function MarkersTab({ markerColors, onUpdate }: MarkersTabProps) {
   const handleColorChange = (key: keyof MarkerColors, color: string) => {
-    onUpdate({ [key]: color });
+    onUpdate({ [key]: getColor(color) } as Partial<MarkerColors>);
   };
 
   const handleResetToDefaults = () => {

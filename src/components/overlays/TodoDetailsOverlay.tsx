@@ -107,7 +107,7 @@ export function TodoDetailsOverlay({
   const [newComment, setNewComment] = useState("");
 
   // Calculate usage stats for suggestions
-  const usageStats = todos ? calculateUsageStats(todos) : null;
+  const usageStats = todos ? calculateUsageStats(todos.map((t) => t.raw)) : null;
   const sortedTags = usageStats ? sortStringsByUsage(Array.from(usageStats.tags.keys()), usageStats.tags) : [];
 
   // State for metadata editing
@@ -135,7 +135,7 @@ export function TodoDetailsOverlay({
       sourcePeople: [...todo.metadata.sourcePeople],
       mentionedPeople: [...todo.metadata.mentionedPeople],
       projects: [...todo.metadata.projects],
-      dependencies: [...todo.metadata.dependencies],
+      dependencies: [...(todo.metadata.dependencies ?? [])],
       priority: todo.metadata.priority,
       dueDate: normalizedDueDate || todo.metadata.dueDate,
       duration: todo.metadata.duration,
@@ -202,7 +202,7 @@ export function TodoDetailsOverlay({
     newMetadata.sourcePeople.forEach((p) => parts.push(`$${p}`));
     newMetadata.projects.forEach((p) => parts.push(`%${p}`));
     if (newMetadata.priority) parts.push(`!!${newMetadata.priority}`);
-    newMetadata.tags.forEach((t) => parts.push(`#${t}`));
+    (newMetadata.tags ?? []).forEach((t) => parts.push(`#${t}`));
 
     const newText = parts.join(" ");
     onEdit(todo.id, newText, todo.plainText, newMetadata);
@@ -696,19 +696,19 @@ export function TodoDetailsOverlay({
           <MetadataSection
             title="Tags"
             icon="🏷️"
-            values={editingMetadata.tags}
+            values={editingMetadata.tags ?? []}
             onRemove={(tag) => {
               handleMetadataChange({
                 ...editingMetadata,
-                tags: editingMetadata.tags.filter((t) => t !== tag),
+                tags: (editingMetadata.tags ?? []).filter((t) => t !== tag),
               });
             }}
             onAdd={(name) => {
               const newTag = name.trim();
-              if (newTag && !editingMetadata.tags.includes(newTag)) {
+              if (newTag && !(editingMetadata.tags ?? []).includes(newTag)) {
                 handleMetadataChange({
                   ...editingMetadata,
-                  tags: [...editingMetadata.tags, newTag],
+                  tags: [...(editingMetadata.tags ?? []), newTag],
                 });
               }
             }}
@@ -724,18 +724,18 @@ export function TodoDetailsOverlay({
           <MetadataSection
             title="Dependencies"
             icon="⛓️"
-            values={editingMetadata.dependencies}
+            values={editingMetadata.dependencies ?? []}
             tooltip={tooltipContent.dependencies}
             onRemove={(depId) => {
               handleMetadataChange({
                 ...editingMetadata,
-                dependencies: editingMetadata.dependencies.filter((d) => d !== depId),
+                dependencies: (editingMetadata.dependencies ?? []).filter((d) => d !== depId),
               });
             }}
             onAdd={(id) => {
               handleMetadataChange({
                 ...editingMetadata,
-                dependencies: [...editingMetadata.dependencies, id],
+                dependencies: [...(editingMetadata.dependencies ?? []), id],
               });
             }}
             availableItems={todos.filter((t) => t.id !== todo.id).map((t) => ({ id: t.id, label: t.plainText }))}
@@ -753,7 +753,7 @@ export function TodoDetailsOverlay({
                   onRemove={() => {
                     handleMetadataChange({
                       ...editingMetadata,
-                      dependencies: editingMetadata.dependencies.filter((d) => d !== depId),
+                      dependencies: (editingMetadata.dependencies ?? []).filter((d) => d !== depId),
                     });
                   }}
                 >

@@ -51,25 +51,25 @@ export function calculateUsageStats(todos: Todo[]): UsageStats {
     if (weight === 0) return; // Skip deleted todos
 
     // Track assigned people
-    todo.assignedPeople.forEach((person) => {
+    (todo.assignedPeople ?? []).forEach((person) => {
       const current = stats.assignedPeople.get(person) || 0;
       stats.assignedPeople.set(person, current + weight);
     });
 
     // Track source people
-    todo.sourcePeople.forEach((person) => {
+    (todo.sourcePeople ?? []).forEach((person) => {
       const current = stats.sourcePeople.get(person) || 0;
       stats.sourcePeople.set(person, current + weight);
     });
 
     // Track mentioned people
-    todo.mentionedPeople.forEach((person) => {
+    (todo.mentionedPeople ?? []).forEach((person) => {
       const current = stats.mentionedPeople.get(person) || 0;
       stats.mentionedPeople.set(person, current + weight);
     });
 
     // Track projects
-    todo.projects.forEach((project) => {
+    (todo.projects ?? []).forEach((project) => {
       const current = stats.projects.get(project) || 0;
       stats.projects.set(project, current + weight);
     });
@@ -81,7 +81,7 @@ export function calculateUsageStats(todos: Todo[]): UsageStats {
     }
 
     // Track tags
-    todo.tags.forEach((tag) => {
+    (todo.tags ?? []).forEach((tag) => {
       const current = stats.tags.get(tag) || 0;
       stats.tags.set(tag, current + weight);
     });

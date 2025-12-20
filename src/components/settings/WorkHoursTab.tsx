@@ -7,6 +7,10 @@ import {
   DEFAULT_BLOCK_TYPES,
   TimeBlockType,
   defaultWorkHoursSettings,
+  getBreakPeriodId,
+  getShortTime,
+  getColor,
+  getTimeBlockId,
 } from "@/types/settings";
 import { useState } from "react";
 import { getTextColor } from "@/utils/colors";
@@ -72,11 +76,11 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
       type === "common" ? "commonSchedule" : type === "weekday" ? "weekdaySchedule" : "weekendSchedule";
     const schedule = workHours[scheduleKey];
     const newBreak: BreakPeriod = {
-      id: `block-${Date.now()}`,
+      id: getBreakPeriodId(`block-${Date.now()}`),
       name: "Break",
-      startTime: "12:00",
-      endTime: "13:00",
-      blockType: "break",
+      startTime: getShortTime("12:00"),
+      endTime: getShortTime("13:00"),
+      blockType: getTimeBlockId("break"),
     };
     onUpdate({
       ...workHours,
@@ -142,7 +146,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                 <input
                   type="time"
                   value={schedule.startTime}
-                  onChange={(e) => updateSchedule(type, { startTime: e.target.value })}
+                  onChange={(e) => updateSchedule(type, { startTime: getShortTime(e.target.value) })}
                   className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -151,7 +155,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                 <input
                   type="time"
                   value={schedule.endTime}
-                  onChange={(e) => updateSchedule(type, { endTime: e.target.value })}
+                  onChange={(e) => updateSchedule(type, { endTime: getShortTime(e.target.value) })}
                   className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -197,7 +201,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                             <select
                               value={breakPeriod.blockType || "break"}
                               onChange={(e) => {
-                                const newType = e.target.value as TimeBlockType;
+                                const newType = getTimeBlockId(e.target.value);
                                 const typeConfig = DEFAULT_BLOCK_TYPES.find((t) => t.id === newType);
                                 updateBreak(type, breakPeriod.id, {
                                   blockType: newType,
@@ -239,14 +243,18 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                             <input
                               type="time"
                               value={breakPeriod.startTime}
-                              onChange={(e) => updateBreak(type, breakPeriod.id, { startTime: e.target.value })}
+                              onChange={(e) =>
+                                updateBreak(type, breakPeriod.id, { startTime: getShortTime(e.target.value) })
+                              }
                               className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                             />
                             <span className="text-zinc-400">→</span>
                             <input
                               type="time"
                               value={breakPeriod.endTime}
-                              onChange={(e) => updateBreak(type, breakPeriod.id, { endTime: e.target.value })}
+                              onChange={(e) =>
+                                updateBreak(type, breakPeriod.id, { endTime: getShortTime(e.target.value) })
+                              }
                               className="px-2 py-1 text-sm rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                             />
                           </div>
@@ -257,7 +265,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                             <input
                               type="color"
                               value={breakPeriod.color || getBlockColor(breakPeriod)}
-                              onChange={(e) => updateBreak(type, breakPeriod.id, { color: e.target.value })}
+                              onChange={(e) => updateBreak(type, breakPeriod.id, { color: getColor(e.target.value) })}
                               className="w-8 h-6 rounded border border-zinc-300 dark:border-zinc-700 cursor-pointer"
                               title="Custom color"
                             />
@@ -397,7 +405,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                           <input
                             type="time"
                             value={schedule.startTime}
-                            onChange={(e) => updateCustomSchedule(day, { startTime: e.target.value })}
+                            onChange={(e) => updateCustomSchedule(day, { startTime: getShortTime(e.target.value) })}
                             className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
@@ -408,7 +416,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                           <input
                             type="time"
                             value={schedule.endTime}
-                            onChange={(e) => updateCustomSchedule(day, { endTime: e.target.value })}
+                            onChange={(e) => updateCustomSchedule(day, { endTime: getShortTime(e.target.value) })}
                             className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
@@ -422,11 +430,11 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                             onClick={() => {
                               const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
                               const newBreak: BreakPeriod = {
-                                id: `block-${Date.now()}`,
+                                id: getBreakPeriodId(`block-${Date.now()}`),
                                 name: "Break",
-                                startTime: "12:00",
-                                endTime: "13:00",
-                                blockType: "break",
+                                startTime: getShortTime("12:00"),
+                                endTime: getShortTime("13:00"),
+                                blockType: getTimeBlockId("break"),
                               };
                               updateCustomSchedule(day, {
                                 breaks: [...existing.breaks, newBreak],
@@ -465,7 +473,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                                       <select
                                         value={breakPeriod.blockType || "break"}
                                         onChange={(e) => {
-                                          const newType = e.target.value as TimeBlockType;
+                                          const newType = getTimeBlockId(e.target.value);
                                           const typeConfig = DEFAULT_BLOCK_TYPES.find((t) => t.id === newType);
                                           const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
                                           updateCustomSchedule(day, {
@@ -530,7 +538,9 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                                           const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
                                           updateCustomSchedule(day, {
                                             breaks: existing.breaks.map((b) =>
-                                              b.id === breakPeriod.id ? { ...b, startTime: e.target.value } : b,
+                                              b.id === breakPeriod.id
+                                                ? { ...b, startTime: getShortTime(e.target.value) }
+                                                : b,
                                             ),
                                           });
                                         }}
@@ -544,7 +554,9 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                                           const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
                                           updateCustomSchedule(day, {
                                             breaks: existing.breaks.map((b) =>
-                                              b.id === breakPeriod.id ? { ...b, endTime: e.target.value } : b,
+                                              b.id === breakPeriod.id
+                                                ? { ...b, endTime: getShortTime(e.target.value) }
+                                                : b,
                                             ),
                                           });
                                         }}
@@ -562,7 +574,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                                           const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
                                           updateCustomSchedule(day, {
                                             breaks: existing.breaks.map((b) =>
-                                              b.id === breakPeriod.id ? { ...b, color: e.target.value } : b,
+                                              b.id === breakPeriod.id ? { ...b, color: getColor(e.target.value) } : b,
                                             ),
                                           });
                                         }}

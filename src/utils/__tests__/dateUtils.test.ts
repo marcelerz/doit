@@ -13,30 +13,30 @@ import {
   convertToTimeInputFormat,
   toLocalISOString,
 } from "@/utils/dateUtils";
-import { DateTimeSettings, WorkHoursSettings } from "@/types/settings";
+import { DateTimeSettings, WorkHoursSettings, getShortTime, getWeekday, getMonth } from "@/types/settings";
 
 // Mock the current date for consistent testing
 const mockDate = new Date("2025-12-09T14:30:00");
 const originalDate = global.Date;
 
 const createDateTimeSettings = (): DateTimeSettings => ({
-  morning: "09:00",
-  noon: "12:00",
-  afternoon: "14:00",
-  evening: "18:00",
-  workWeekStart: 1, // Monday
-  fiscalYearStart: 1, // January
+  morning: getShortTime("09:00"),
+  noon: getShortTime("12:00"),
+  afternoon: getShortTime("14:00"),
+  evening: getShortTime("18:00"),
+  workWeekStart: getWeekday(1), // Monday
+  fiscalYearStart: getMonth(1), // January
 });
 
 const createWorkHoursSettings = (): WorkHoursSettings => ({
   useCommonSchedule: true,
   commonSchedule: {
-    startTime: "09:00",
-    endTime: "17:00",
+    startTime: getShortTime("09:00"),
+    endTime: getShortTime("17:00"),
     breaks: [],
   },
-  weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-  weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
+  weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+  weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
   customSchedules: {},
 });
 

@@ -1,4 +1,4 @@
-import { ActivityEntry, Color, getColor } from "./types";
+import { ActivityEntry, Color, Comment, getColor } from "./types";
 
 // Unique branded type for Project IDs
 export type ProjectId = string & { readonly __brand: unique symbol };

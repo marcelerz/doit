@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ProjectCategory } from "@/types/settings";
+import { ProjectCategory, getColor } from "@/types/settings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface CategoriesTabProps {
@@ -17,7 +17,7 @@ export function CategoriesTab({ categories, onAdd, onUpdate, onDelete }: Categor
   const [isAdding, setIsAdding] = useState(false);
   const [newCategory, setNewCategory] = useState<Omit<ProjectCategory, "id">>({
     name: "",
-    color: "#3b82f6",
+    color: getColor("#3b82f6"),
     description: "",
   });
 
@@ -44,7 +44,7 @@ export function CategoriesTab({ categories, onAdd, onUpdate, onDelete }: Categor
       onAdd(newCategory);
       setNewCategory({
         name: "",
-        color: "#3b82f6",
+        color: getColor("#3b82f6"),
         description: "",
       });
       setIsAdding(false);
@@ -95,13 +95,13 @@ export function CategoriesTab({ categories, onAdd, onUpdate, onDelete }: Categor
                 <input
                   type="color"
                   value={newCategory.color}
-                  onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
+                  onChange={(e) => setNewCategory({ ...newCategory, color: getColor(e.target.value) })}
                   className="w-10 h-10 rounded cursor-pointer border border-zinc-300 dark:border-zinc-600"
                 />
                 <input
                   type="text"
                   value={newCategory.color}
-                  onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
+                  onChange={(e) => setNewCategory({ ...newCategory, color: getColor(e.target.value) })}
                   className="flex-1 px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded-md text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                 />
               </div>
@@ -129,7 +129,7 @@ export function CategoriesTab({ categories, onAdd, onUpdate, onDelete }: Categor
               <button
                 onClick={() => {
                   setIsAdding(false);
-                  setNewCategory({ name: "", color: "#3b82f6", description: "" });
+                  setNewCategory({ name: "", color: getColor("#3b82f6"), description: "" });
                 }}
                 className="flex-1 px-4 py-2 bg-zinc-300 hover:bg-zinc-400 dark:bg-zinc-600 dark:hover:bg-zinc-500 text-zinc-900 dark:text-zinc-100 rounded-md font-medium transition-colors"
               >
@@ -169,13 +169,13 @@ export function CategoriesTab({ categories, onAdd, onUpdate, onDelete }: Categor
                       <input
                         type="color"
                         value={editForm.color || "#3b82f6"}
-                        onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
+                        onChange={(e) => setEditForm({ ...editForm, color: getColor(e.target.value) })}
                         className="w-10 h-10 rounded cursor-pointer border border-zinc-300 dark:border-zinc-600"
                       />
                       <input
                         type="text"
                         value={editForm.color || ""}
-                        onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
+                        onChange={(e) => setEditForm({ ...editForm, color: getColor(e.target.value) })}
                         className="flex-1 px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded-md text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                       />
                     </div>

@@ -6,6 +6,7 @@ import {
   FeatureSettings,
   defaultFeatureSettings,
   defaultGeneralSettings,
+  getDurationDay,
 } from "@/types/settings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
@@ -25,7 +26,7 @@ export function GeneralTab({
   const handleArchiveDaysChange = (value: number) => {
     // Ensure value is at least 0
     const days = Math.max(0, value);
-    onUpdate({ archiveDays: days });
+    onUpdate({ archiveDays: getDurationDay(days) });
   };
 
   const handleAutoDeleteToggle = (enabled: boolean) => {
@@ -43,7 +44,7 @@ export function GeneralTab({
     onUpdate({
       autoDelete: {
         ...general.autoDelete,
-        deleteDays: days,
+        deleteDays: getDurationDay(days),
       },
     });
   };

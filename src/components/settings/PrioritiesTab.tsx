@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Priority } from "@/types/settings";
+import { Priority, getColor } from "@/types/settings";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { IconButton } from "@/components/shared/IconButton";
@@ -21,7 +21,7 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
   const [newPriority, setNewPriority] = useState<Omit<Priority, "id" | "comments" | "activity">>({
     name: "",
     alternatives: [],
-    color: "",
+    color: getColor(""),
     order: priorities.length + 1,
   });
 
@@ -52,7 +52,7 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
       setNewPriority({
         name: "",
         alternatives: [],
-        color: "",
+        color: getColor(""),
         order: priorities.length + 2,
       });
       setIsAdding(false);
@@ -111,7 +111,7 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
                 <div className="grid grid-cols-2 gap-3">
                   <ColorPicker
                     value={editForm.color}
-                    onChange={(color) => setEditForm({ ...editForm, color })}
+                    onChange={(color) => setEditForm({ ...editForm, color: color ? getColor(color) : undefined })}
                     defaultColor="#ffd4d4"
                     label="Color"
                   />
@@ -192,7 +192,7 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
           <div className="grid grid-cols-2 gap-3">
             <ColorPicker
               value={newPriority.color || undefined}
-              onChange={(color) => setNewPriority({ ...newPriority, color: color || "" })}
+              onChange={(color) => setNewPriority({ ...newPriority, color: getColor(color || "") })}
               defaultColor="#ffd4d4"
               label="Color"
             />
@@ -220,7 +220,7 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
                 setNewPriority({
                   name: "",
                   alternatives: [],
-                  color: "",
+                  color: getColor(""),
                   order: priorities.length + 1,
                 });
               }}

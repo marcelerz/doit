@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, CalendarView, CalendarDotColorBy, defaultCalendar } from "@/types/settings";
+import { Calendar, CalendarView, CalendarDotColorBy, defaultCalendar, getWeekday } from "@/types/settings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
 interface CalendarTabProps {
@@ -42,7 +42,7 @@ export function CalendarTab({ calendar, onUpdate }: CalendarTabProps) {
             </div>
             <select
               value={calendar.weekStartDay}
-              onChange={(e) => onUpdate({ weekStartDay: Number(e.target.value) as 0 | 1 })}
+              onChange={(e) => onUpdate({ weekStartDay: getWeekday(Number(e.target.value)) })}
               className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value={0}>Sunday</option>

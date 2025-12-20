@@ -1,7 +1,14 @@
-import { BreakPeriod, getBreakPeriodId } from "./breakPeriod";
-import { defaultLinkPatterns, LinkPattern } from "./linkPattern";
-import { defaultPriorities, Priority } from "./priority";
-import { defaultCategories, ProjectCategory } from "./project";
+import { BreakPeriod, BreakPeriodId, getBreakPeriodId } from "./breakPeriod";
+import { defaultLinkPatterns, LinkPattern, LinkPatternId } from "./linkPattern";
+import { defaultPriorities, Priority, PriorityId } from "./priority";
+import {
+  defaultCategories,
+  Project,
+  ProjectCategory,
+  ProjectCategoryId,
+  ProjectId,
+  getProjectCategoryId,
+} from "./project";
 import {
   DurationDay,
   DurationHour,
@@ -13,18 +20,146 @@ import {
   getDurationSec,
   getMonth,
   getShortTime,
+  getTimestamp,
   getWeekday,
   Month,
   ShortTime,
+  Timestamp,
   Weekday,
 } from "./time";
-import { getTimeBlockId } from "./timeBlock";
-import { defaultKanbanStates, KanbanState } from "./kanbanState";
-import { defaultKanbanViews, KanbanView } from "./kanbanView";
+import { defaultTimeBlock, getTimeBlockId, TimeBlockId, TimeBlockType, TimeBlockTypeConfig } from "./timeBlock";
+import { defaultKanbanStates, getKanbanStateId, KanbanState, KanbanStateId } from "./kanbanState";
+import { defaultKanbanViews, getKanbanViewId, KanbanView, KanbanViewId } from "./kanbanView";
 import { defaultKanbanTransitions, KanbanTransition } from "./kanbanTransition";
 import { defaultMarkerColors, MarkerColors } from "./markerColors";
-import { defaultGantt, Gantt } from "./gantt";
-import { Calendar, defaultCalendar } from "./calendar";
+import { defaultGantt, Gantt, GanttZoomLevel } from "./gantt";
+import { Calendar, CalendarDotColorBy, CalendarView, defaultCalendar } from "./calendar";
+import { Person, PersonId } from "./person";
+import { Sprint, SprintId, SprintState, SprintStatus } from "./sprint";
+import { defaultGanttPresets, GanttPreset, GanttPresetId, SchedulingTechnique, getGanttPresetId } from "./ganttPreset";
+import {
+  ActivityEntry,
+  Comment,
+  CommentHistoryEntry,
+  SearchHistoryEntry,
+  Color,
+  getColor,
+  CommentId,
+  ActivityId,
+  getCommentId,
+  getActivityId,
+} from "./types";
+
+// Re-export all types from sub-modules for backward compatibility
+export type {
+  // Person types
+  Person,
+  PersonId,
+  // Project types
+  Project,
+  ProjectId,
+  ProjectCategory,
+  ProjectCategoryId,
+  // Priority types
+  Priority,
+  PriorityId,
+  // Sprint types
+  Sprint,
+  SprintId,
+  SprintStatus,
+  SprintState,
+  // Link types
+  LinkPattern,
+  LinkPatternId,
+  // Marker types
+  MarkerColors,
+  // Time types
+  Timestamp,
+  ShortTime,
+  Weekday,
+  Month,
+  DurationDay,
+  DurationHour,
+  DurationMin,
+  DurationSec,
+  // TimeBlock types
+  TimeBlockId,
+  TimeBlockType,
+  TimeBlockTypeConfig,
+  // BreakPeriod types
+  BreakPeriod,
+  BreakPeriodId,
+  // Kanban types
+  KanbanState,
+  KanbanStateId,
+  KanbanView,
+  KanbanViewId,
+  KanbanTransition,
+  // Gantt types
+  Gantt,
+  GanttZoomLevel,
+  GanttPreset,
+  GanttPresetId,
+  SchedulingTechnique,
+  // Calendar types
+  Calendar,
+  CalendarView,
+  CalendarDotColorBy,
+  // Common types
+  Comment,
+  CommentId,
+  CommentHistoryEntry,
+  ActivityEntry,
+  ActivityId,
+  SearchHistoryEntry,
+  Color,
+};
+
+// Re-export default values and helper functions
+export {
+  // Person exports
+  // Project exports
+  defaultCategories,
+  getProjectCategoryId,
+  // Priority exports
+  defaultPriorities,
+  // Sprint exports
+  // Link exports
+  defaultLinkPatterns,
+  // Marker exports
+  defaultMarkerColors,
+  // Time exports
+  getTimestamp,
+  getShortTime,
+  getWeekday,
+  getMonth,
+  getDurationDay,
+  getDurationHour,
+  getDurationMin,
+  getDurationSec,
+  // TimeBlock exports
+  defaultTimeBlock,
+  defaultTimeBlock as DEFAULT_BLOCK_TYPES,
+  getTimeBlockId,
+  // BreakPeriod exports
+  getBreakPeriodId,
+  // Kanban exports
+  defaultKanbanStates,
+  defaultKanbanViews,
+  defaultKanbanTransitions,
+  getKanbanStateId,
+  getKanbanViewId,
+  // Gantt exports
+  defaultGantt,
+  defaultGanttPresets,
+  getGanttPresetId,
+  // Calendar exports
+  defaultCalendar,
+  // Common exports
+  getColor,
+  getCommentId,
+  getActivityId,
+};
 
 // General Tab Settings
 export type ThemeMode = "light" | "dark" | "system";

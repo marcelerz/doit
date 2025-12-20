@@ -1,4 +1,4 @@
-import { Color } from "./types";
+import { ActivityEntry, Color, Comment } from "./types";
 
 // Unique branded type for Sprint IDs
 export type SprintId = string & { readonly __brand: unique symbol };
@@ -28,27 +28,20 @@ export interface Sprint {
   completedAt?: number; // Timestamp when sprint was completed
   cancelledAt?: number; // Timestamp when sprint was cancelled
   archivedAt?: number; // Timestamp when sprint was archived
-  comments: Array<{
-    commentId: number;
-    history: Array<{ date: number; content: string }>;
-  }>;
-  activity: Array<{
-    id: string;
-    timestamp: number;
-    type:
-      | "created"
-      | "edited"
-      | "updated"
-      | "archived"
-      | "unarchived"
-      | "comment_added"
-      | "comment_edited"
-      | "comment_deleted"
-      | "started"
-      | "completed"
-      | "cancelled";
-    description: string;
-  }>;
+  comments: Comment[];
+  activity: ActivityEntry<
+    | "created"
+    | "edited"
+    | "updated"
+    | "archived"
+    | "unarchived"
+    | "comment_added"
+    | "comment_edited"
+    | "comment_deleted"
+    | "started"
+    | "completed"
+    | "cancelled"
+  >[];
 }
 
 // Search history

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { TaskTemplate } from "@/types/todo";
+import { TodoTemplate } from "@/types/todo";
 import { Modal } from "./Modal";
 import { Badge } from "./Badge";
 import { InfoTooltip, tooltipContent } from "./InfoTooltip";
 
 interface TemplatesManagerProps {
-  templates: TaskTemplate[];
+  templates: TodoTemplate[];
   onDelete: (templateId: string) => void;
   onClose: () => void;
 }
@@ -107,8 +107,8 @@ export function TemplatesManager({ templates, onDelete, onClose }: TemplatesMana
 interface CreateTemplateModalProps {
   initialText: string;
   initialPlainText: string;
-  initialMetadata: TaskTemplate["metadata"];
-  subtasks?: TaskTemplate["subtasks"];
+  initialMetadata: TodoTemplate["metadata"];
+  subtasks?: TodoTemplate["subtasks"];
   onSave: (
     name: string,
     description: string | undefined,
@@ -370,8 +370,8 @@ export function CreateTemplateModal({
 }
 
 interface TemplateDropdownProps {
-  templates: TaskTemplate[];
-  onSelect: (template: TaskTemplate) => void;
+  templates: TodoTemplate[];
+  onSelect: (template: TodoTemplate) => void;
   onManage: () => void;
 }
 

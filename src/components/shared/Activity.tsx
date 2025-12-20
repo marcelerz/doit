@@ -38,15 +38,15 @@ export function Activity({ activities, comments }: ActivityProps) {
 
   // Sort by timestamp (most recent first)
   const sortedItems = timelineItems.sort((a, b) => {
-    const aTime = a.type === "activity" ? a.data.timestamp : (a.data as Comment).history[0].date;
-    const bTime = b.type === "activity" ? b.data.timestamp : (b.data as Comment).history[0].date;
+    const aTime = a.type === "activity" ? a.data.timestamp : (a.data as Comment).history[0].timestamp;
+    const bTime = b.type === "activity" ? b.data.timestamp : (b.data as Comment).history[0].timestamp;
     return bTime - aTime;
   });
 
   // Group by date
   const groupedItems: { [date: string]: TimelineItem[] } = {};
   sortedItems.forEach((item) => {
-    const timestamp = item.type === "activity" ? item.data.timestamp : (item.data as Comment).history[0].date;
+    const timestamp = item.type === "activity" ? item.data.timestamp : (item.data as Comment).history[0].timestamp;
     const date = new Date(timestamp).toLocaleDateString();
     if (!groupedItems[date]) {
       groupedItems[date] = [];
@@ -166,7 +166,7 @@ export function Activity({ activities, comments }: ActivityProps) {
                   const entry = comment.history[0];
                   return (
                     <div
-                      key={`comment-${comment.commentId}-${entry.date}`}
+                      key={`comment-${comment.commentId}-${entry.timestamp}`}
                       className="flex items-start gap-2 text-sm py-1.5 px-2 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                     >
                       <span className="flex-shrink-0 text-base leading-none mt-0.5" title="comment">
@@ -183,9 +183,9 @@ export function Activity({ activities, comments }: ActivityProps) {
                       </div>
                       <span
                         className="flex-shrink-0 text-xs text-zinc-500 dark:text-zinc-500 ml-2"
-                        title={formatActivityDateTime(entry.date)}
+                        title={formatActivityDateTime(entry.timestamp)}
                       >
-                        {formatActivityTime(entry.date)}
+                        {formatActivityTime(entry.timestamp)}
                       </span>
                     </div>
                   );

@@ -49,10 +49,12 @@ export function parseTokensToMetadata(tokens: TokenMatch[]): TodoMetadata {
         metadata.recurring = token.value;
         break;
       case "dependency":
-        metadata.dependencies.push(token.value);
+        // Safe to use ! here since we initialized it above
+        metadata.dependencies!.push(token.value);
         break;
       case "tag":
-        metadata.tags.push(token.value);
+        // Safe to use ! here since we initialized it above
+        metadata.tags!.push(token.value);
         break;
     }
   });

@@ -3,62 +3,76 @@
  */
 
 import { TodoModel, createTodoModel, createTodoModels } from "@/models/TodoModel";
-import { Todo, TodoState } from "@/types/todo";
+import { Todo, TodoState, getTodoId, getSubtaskId, getTimeEntryId } from "@/types/todo";
 import { Settings } from "@/types/settings";
+import { getPriorityId } from "@/types/priority";
+import { getColor, getCommentId, getActivityId } from "@/types/types";
+import {
+  getShortTime,
+  getWeekday,
+  getMonth,
+  getDurationDay,
+  getTimestamp,
+  getDurationMin,
+  getDurationSec,
+  getDurationHour,
+} from "@/types/time";
 
 // Helper to create minimal settings
 const createSettings = (overrides: Partial<Settings> = {}): Settings => ({
   priorities: [
-    { id: "1", name: "urgent", alternatives: ["critical"], order: 1, color: "#ff0000", comments: [], activity: [] },
-    { id: "2", name: "high", alternatives: ["important"], order: 2, color: "#ff6600", comments: [], activity: [] },
-    { id: "3", name: "medium", alternatives: [], order: 3, color: "#ffcc00", comments: [], activity: [] },
-    { id: "4", name: "low", alternatives: [], order: 4, color: "#00cc00", comments: [], activity: [] },
+    { id: getPriorityId("1"), name: "urgent", alternatives: ["critical"], order: 1, color: getColor("#ff0000") },
+    { id: getPriorityId("2"), name: "high", alternatives: ["important"], order: 2, color: getColor("#ff6600") },
+    { id: getPriorityId("3"), name: "medium", alternatives: [], order: 3, color: getColor("#ffcc00") },
+    { id: getPriorityId("4"), name: "low", alternatives: [], order: 4, color: getColor("#00cc00") },
   ],
   linkPatterns: [],
   markerColors: {
-    assigned: "#cce5ff",
-    source: "#fff3cd",
-    mentioned: "#ffe8cc",
-    project: "#e2ccff",
-    tag: "#d4edda",
-    dueDate: "#f8d7da",
-    duration: "#e2e3e5",
-    recurring: "#cff4fc",
-    dependency: "#ffcccc",
-    priority: "#ffcccc",
-    sprint: "#dbeafe",
+    assigned: getColor("#cce5ff"),
+    source: getColor("#fff3cd"),
+    mentioned: getColor("#ffe8cc"),
+    project: getColor("#e2ccff"),
+    tag: getColor("#d4edda"),
+    dueDate: getColor("#f8d7da"),
+    duration: getColor("#e2e3e5"),
+    recurring: getColor("#cff4fc"),
+    dependency: getColor("#ffcccc"),
+    priority: getColor("#ffcccc"),
+    sprint: getColor("#dbeafe"),
   },
-  general: { archiveDays: 7, autoDelete: { enabled: false, deleteDays: 90 }, theme: "system" },
+  general: {
+    archiveDays: getDurationDay(7),
+    autoDelete: { enabled: false, deleteDays: getDurationDay(90) },
+    theme: "system",
+  },
   dateTime: {
-    morning: "09:00",
-    noon: "12:00",
-    afternoon: "14:00",
-    evening: "18:00",
-    workWeekStart: 1,
-    fiscalYearStart: 1,
+    morning: getShortTime("09:00"),
+    noon: getShortTime("12:00"),
+    afternoon: getShortTime("14:00"),
+    evening: getShortTime("18:00"),
+    workWeekStart: getWeekday(1),
+    fiscalYearStart: getMonth(1),
   },
   workHours: {
     useCommonSchedule: true,
-    commonSchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-    weekdaySchedule: { startTime: "09:00", endTime: "17:00", breaks: [] },
-    weekendSchedule: { startTime: "10:00", endTime: "14:00", breaks: [] },
+    commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+    weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+    weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
     customSchedules: {},
   },
   gantt: {
     schedulingTechnique: "sequential",
-    defaultTaskDuration: 30,
+    defaultTaskDuration: getDurationMin(30),
     durationMultiplier: 1.0,
-    minimumRemainingDuration: 1,
-    contextSwitchingTime: 5,
-    pomodoroWorkDuration: 25,
-    pomodoroShortBreak: 5,
-    pomodoroLongBreak: 15,
+    minimumRemainingDuration: getDurationMin(1),
+    contextSwitchingTime: getDurationMin(5),
+    pomodoroWorkDuration: getDurationMin(25),
+    pomodoroShortBreak: getDurationMin(5),
+    pomodoroLongBreak: getDurationMin(15),
     pomodoroLongBreakInterval: 4,
-    pomodoroNotifications: true,
-    pomodoroSound: true,
-    flowWorkDuration: 52,
-    flowBreakDuration: 17,
-    flowContextSwitchingTime: 10,
+    flowWorkDuration: getDurationMin(52),
+    flowBreakDuration: getDurationMin(17),
+    flowContextSwitchingTime: getDurationMin(10),
     zoomLevel: "1hour",
     showWeekends: true,
     showDependencies: true,
@@ -78,7 +92,7 @@ const createSettings = (overrides: Partial<Settings> = {}): Settings => ({
     showTaskCount: true,
     cardDisplayFields: [],
   },
-  sprints: { defaultSprintDuration: 14, showBacklogInSprint: true },
+  sprints: { defaultSprintDuration: getDurationDay(14), showBacklogInSprint: true },
   autoAssign: {
     enabled: false,
     assignedPerson: undefined,
@@ -90,7 +104,7 @@ const createSettings = (overrides: Partial<Settings> = {}): Settings => ({
     recurring: undefined,
   },
   calendar: {
-    weekStartDay: 0,
+    weekStartDay: getWeekday(0),
     defaultView: "month",
     showWeekNumbers: false,
     taskDotLimit: 4,
@@ -101,12 +115,12 @@ const createSettings = (overrides: Partial<Settings> = {}): Settings => ({
   },
   focus: {
     requireConfirmation: false,
-    confirmationRepeatInterval: 30,
+    confirmationRepeatInterval: getDurationSec(30),
     confirmationMaxRepeats: 5,
     autoTimeTracking: true,
     trackActualVsEstimated: true,
-    defaultExtendMinutes: 5,
-    extendOptions: [5, 10, 15, 30],
+    defaultExtendMinutes: getDurationMin(5),
+    extendOptions: [getDurationMin(5), getDurationMin(10), getDurationMin(15), getDurationMin(30)],
     showEarlyCompletePrompt: true,
     autoExtendOnOvertime: true,
     useTrackedTimeForDuration: true,
@@ -127,8 +141,8 @@ const createSettings = (overrides: Partial<Settings> = {}): Settings => ({
     notifyOverdue: true,
     notifyDueToday: true,
     notifyDueSoon: true,
-    dueSoonHours: 2,
-    checkInterval: 15,
+    dueSoonHours: getDurationHour(2),
+    checkInterval: getDurationMin(15),
   },
   features: {
     ganttView: true,
@@ -147,35 +161,36 @@ const createSettings = (overrides: Partial<Settings> = {}): Settings => ({
 });
 
 // Helper to create a minimal Todo
-const createTodo = (overrides: Partial<Todo> = {}): Todo => ({
-  id: overrides.id || `todo-${Date.now()}`,
-  text: overrides.text || "Test todo",
-  plainText: overrides.plainText || "Test todo",
-  state: overrides.state || "active",
-  createdAt: overrides.createdAt || Date.now(),
-  metadata: {
-    assignedPeople: [],
-    sourcePeople: [],
-    mentionedPeople: [],
-    projects: [],
-    tags: [],
-    dependencies: [],
-    ...overrides.metadata,
-  },
-  comments: overrides.comments || [],
-  activity: overrides.activity || [],
-  ...overrides,
-});
+const createTodo = (overrides: Partial<Todo> = {}): Todo =>
+  ({
+    id: overrides.id || getTodoId(`todo-${Date.now()}`),
+    text: overrides.text || "Test todo",
+    plainText: overrides.plainText || "Test todo",
+    state: overrides.state || "active",
+    createdAt: overrides.createdAt || getTimestamp(Date.now()),
+    metadata: {
+      assignedPeople: [],
+      sourcePeople: [],
+      mentionedPeople: [],
+      projects: [],
+      tags: [],
+      dependencies: [],
+      ...overrides.metadata,
+    },
+    comments: overrides.comments || [],
+    activity: overrides.activity || [],
+    ...overrides,
+  } as Todo);
 
 describe("TodoModel", () => {
   describe("core properties", () => {
     it("should expose todo properties correctly", () => {
       const todo = createTodo({
-        id: "test-123",
+        id: getTodoId("test-123"),
         text: "Rich text",
         plainText: "Plain text",
         state: "active",
-        createdAt: 1000000,
+        createdAt: getTimestamp(1000000),
       });
       const settings = createSettings();
       const model = new TodoModel(todo, settings);
@@ -208,7 +223,7 @@ describe("TodoModel", () => {
     });
 
     it("should correctly identify completed state", () => {
-      const todo = createTodo({ state: "completed", completedAt: Date.now() });
+      const todo = createTodo({ state: "completed", completedAt: getTimestamp(Date.now()) });
       const model = new TodoModel(todo, createSettings());
 
       expect(model.isActive).toBe(false);
@@ -218,7 +233,7 @@ describe("TodoModel", () => {
     });
 
     it("should correctly identify archived state", () => {
-      const todo = createTodo({ state: "archived", archivedAt: Date.now() });
+      const todo = createTodo({ state: "archived", archivedAt: getTimestamp(Date.now()) });
       const model = new TodoModel(todo, createSettings());
 
       expect(model.isActive).toBe(false);
@@ -228,7 +243,7 @@ describe("TodoModel", () => {
     });
 
     it("should correctly identify deleted state", () => {
-      const todo = createTodo({ state: "deleted", deletedAt: Date.now() });
+      const todo = createTodo({ state: "deleted", deletedAt: getTimestamp(Date.now()) });
       const model = new TodoModel(todo, createSettings());
 
       expect(model.isActive).toBe(false);
@@ -459,7 +474,7 @@ describe("TodoModel", () => {
     it("should not mark completed tasks as overdue", () => {
       const completedTodo = createTodo({
         state: "completed",
-        completedAt: Date.now(),
+        completedAt: getTimestamp(Date.now()),
         metadata: {
           assignedPeople: [],
           sourcePeople: [],
@@ -566,7 +581,7 @@ describe("TodoModel", () => {
     });
 
     it("should not allow completing already completed tasks", () => {
-      const todo = createTodo({ state: "completed", completedAt: Date.now() });
+      const todo = createTodo({ state: "completed", completedAt: getTimestamp(Date.now()) });
       const model = new TodoModel(todo, createSettings());
 
       const result = model.canComplete([]);
@@ -576,7 +591,7 @@ describe("TodoModel", () => {
     });
 
     it("should not allow completing archived tasks", () => {
-      const todo = createTodo({ state: "archived", archivedAt: Date.now() });
+      const todo = createTodo({ state: "archived", archivedAt: getTimestamp(Date.now()) });
       const model = new TodoModel(todo, createSettings());
 
       const result = model.canComplete([]);
@@ -587,7 +602,7 @@ describe("TodoModel", () => {
 
     it("should block completion when dependencies are incomplete", () => {
       const dependency = createTodo({
-        id: "dep-1",
+        id: getTodoId("dep-1"),
         state: "active",
         plainText: "Dependency task",
       });
@@ -614,9 +629,9 @@ describe("TodoModel", () => {
 
     it("should allow completion when dependencies are complete", () => {
       const dependency = createTodo({
-        id: "dep-1",
+        id: getTodoId("dep-1"),
         state: "completed",
-        completedAt: Date.now(),
+        completedAt: getTimestamp(Date.now()),
       });
       const todo = createTodo({
         metadata: {
@@ -638,7 +653,7 @@ describe("TodoModel", () => {
     });
 
     it("should allow archiving completed tasks", () => {
-      const todo = createTodo({ state: "completed", completedAt: Date.now() });
+      const todo = createTodo({ state: "completed", completedAt: getTimestamp(Date.now()) });
       const model = new TodoModel(todo, createSettings());
 
       const result = model.canArchive([]);
@@ -656,7 +671,7 @@ describe("TodoModel", () => {
     });
 
     it("should not allow deleting already deleted tasks", () => {
-      const todo = createTodo({ state: "deleted", deletedAt: Date.now() });
+      const todo = createTodo({ state: "deleted", deletedAt: getTimestamp(Date.now()) });
       const model = new TodoModel(todo, createSettings());
 
       const result = model.canDelete();
@@ -670,15 +685,15 @@ describe("TodoModel", () => {
       const settings = createSettings();
 
       expect(new TodoModel(createTodo({ state: "active" }), settings).statusBadge).toBe("Active");
-      expect(new TodoModel(createTodo({ state: "completed", completedAt: Date.now() }), settings).statusBadge).toBe(
-        "Completed",
-      );
-      expect(new TodoModel(createTodo({ state: "archived", archivedAt: Date.now() }), settings).statusBadge).toBe(
-        "Archived",
-      );
-      expect(new TodoModel(createTodo({ state: "deleted", deletedAt: Date.now() }), settings).statusBadge).toBe(
-        "Deleted",
-      );
+      expect(
+        new TodoModel(createTodo({ state: "completed", completedAt: getTimestamp(Date.now()) }), settings).statusBadge,
+      ).toBe("Completed");
+      expect(
+        new TodoModel(createTodo({ state: "archived", archivedAt: getTimestamp(Date.now()) }), settings).statusBadge,
+      ).toBe("Archived");
+      expect(
+        new TodoModel(createTodo({ state: "deleted", deletedAt: getTimestamp(Date.now()) }), settings).statusBadge,
+      ).toBe("Deleted");
     });
 
     it("should get priority color from settings", () => {
@@ -774,14 +789,18 @@ describe("TodoModel", () => {
     });
 
     it("should create array of TodoModels with createTodoModels", () => {
-      const todos = [createTodo({ id: "1" }), createTodo({ id: "2" }), createTodo({ id: "3" })];
+      const todos = [
+        createTodo({ id: getTodoId("1") }),
+        createTodo({ id: getTodoId("2") }),
+        createTodo({ id: getTodoId("3") }),
+      ];
       const settings = createSettings();
 
       const models = createTodoModels(todos, settings);
 
       expect(models).toHaveLength(3);
       expect(models[0]).toBeInstanceOf(TodoModel);
-      expect(models.map((m) => m.id)).toEqual(["1", "2", "3"]);
+      expect(models.map((m) => m.id)).toEqual([getTodoId("1"), getTodoId("2"), getTodoId("3")]);
     });
   });
 
@@ -789,9 +808,9 @@ describe("TodoModel", () => {
     it("should report subtask count correctly", () => {
       const todo = createTodo({
         subtasks: [
-          { id: "1", text: "Subtask 1", completed: false, createdAt: Date.now() },
-          { id: "2", text: "Subtask 2", completed: true, createdAt: Date.now() },
-          { id: "3", text: "Subtask 3", completed: false, createdAt: Date.now() },
+          { id: getSubtaskId("1"), text: "Subtask 1", completed: false, createdAt: getTimestamp(Date.now()) },
+          { id: getSubtaskId("2"), text: "Subtask 2", completed: true, createdAt: getTimestamp(Date.now()) },
+          { id: getSubtaskId("3"), text: "Subtask 3", completed: false, createdAt: getTimestamp(Date.now()) },
         ],
       });
       const model = new TodoModel(todo, createSettings());
@@ -804,10 +823,10 @@ describe("TodoModel", () => {
     it("should calculate subtask progress", () => {
       const todo = createTodo({
         subtasks: [
-          { id: "1", text: "Subtask 1", completed: true, createdAt: Date.now() },
-          { id: "2", text: "Subtask 2", completed: true, createdAt: Date.now() },
-          { id: "3", text: "Subtask 3", completed: false, createdAt: Date.now() },
-          { id: "4", text: "Subtask 4", completed: false, createdAt: Date.now() },
+          { id: getSubtaskId("1"), text: "Subtask 1", completed: true, createdAt: getTimestamp(Date.now()) },
+          { id: getSubtaskId("2"), text: "Subtask 2", completed: true, createdAt: getTimestamp(Date.now()) },
+          { id: getSubtaskId("3"), text: "Subtask 3", completed: false, createdAt: getTimestamp(Date.now()) },
+          { id: getSubtaskId("4"), text: "Subtask 4", completed: false, createdAt: getTimestamp(Date.now()) },
         ],
       });
       const model = new TodoModel(todo, createSettings());
@@ -830,12 +849,12 @@ describe("TodoModel", () => {
       const todo = createTodo({
         comments: [
           {
-            commentId: 1,
-            history: [{ content: "Comment 1", date: Date.now() }],
+            commentId: getCommentId("1"),
+            history: [{ content: "Comment 1", timestamp: getTimestamp(Date.now()) }],
           },
           {
-            commentId: 2,
-            history: [{ content: "Comment 2", date: Date.now() }],
+            commentId: getCommentId("2"),
+            history: [{ content: "Comment 2", timestamp: getTimestamp(Date.now()) }],
           },
         ],
       });
@@ -849,10 +868,10 @@ describe("TodoModel", () => {
       const todo = createTodo({
         comments: [
           {
-            commentId: 1,
+            commentId: getCommentId("1"),
             history: [
-              { content: "Original", date: 1000 },
-              { content: "Edited", date: 2000 },
+              { content: "Original", timestamp: getTimestamp(1000) },
+              { content: "Edited", timestamp: getTimestamp(2000) },
             ],
           },
         ],
@@ -860,14 +879,19 @@ describe("TodoModel", () => {
       const model = new TodoModel(todo, createSettings());
 
       expect(model.latestComment?.content).toBe("Edited");
-      expect(model.latestComment?.date).toBe(2000);
+      expect(model.latestComment?.timestamp).toBe(getTimestamp(2000));
     });
 
     it("should report activity count", () => {
       const todo = createTodo({
         activity: [
-          { id: "1", type: "created" as const, timestamp: 1000, description: "Created" },
-          { id: "2", type: "completed" as const, timestamp: 2000, description: "Completed" },
+          { id: getActivityId("1"), type: "created" as const, timestamp: getTimestamp(1000), description: "Created" },
+          {
+            id: getActivityId("2"),
+            type: "completed" as const,
+            timestamp: getTimestamp(2000),
+            description: "Completed",
+          },
         ],
       });
       const model = new TodoModel(todo, createSettings());
@@ -879,20 +903,25 @@ describe("TodoModel", () => {
     it("should get latest activity", () => {
       const todo = createTodo({
         activity: [
-          { id: "1", type: "created" as const, timestamp: 1000, description: "Created" },
-          { id: "2", type: "completed" as const, timestamp: 2000, description: "Completed" },
+          { id: getActivityId("1"), type: "created" as const, timestamp: getTimestamp(1000), description: "Created" },
+          {
+            id: getActivityId("2"),
+            type: "completed" as const,
+            timestamp: getTimestamp(2000),
+            description: "Completed",
+          },
         ],
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.latestActivity?.id).toBe("2");
+      expect(model.latestActivity?.id).toBe(getActivityId("2"));
       expect(model.latestActivity?.type).toBe("completed");
     });
   });
 
   describe("date display methods", () => {
     it("should format created date", () => {
-      const timestamp = new Date("2025-12-09T10:30:00").getTime();
+      const timestamp = getTimestamp(new Date("2025-12-09T10:30:00").getTime());
       const todo = createTodo({ createdAt: timestamp });
       const model = new TodoModel(todo, createSettings());
 
@@ -907,7 +936,7 @@ describe("TodoModel", () => {
     });
 
     it("should format updated date when present", () => {
-      const timestamp = new Date("2025-12-09T10:30:00").getTime();
+      const timestamp = getTimestamp(new Date("2025-12-09T10:30:00").getTime());
       const todo = createTodo({ updatedAt: timestamp });
       const model = new TodoModel(todo, createSettings());
 
@@ -923,7 +952,7 @@ describe("TodoModel", () => {
     });
 
     it("should format completed date when present", () => {
-      const timestamp = new Date("2025-12-09T10:30:00").getTime();
+      const timestamp = getTimestamp(new Date("2025-12-09T10:30:00").getTime());
       const todo = createTodo({ state: "completed", completedAt: timestamp });
       const model = new TodoModel(todo, createSettings());
 
@@ -938,7 +967,7 @@ describe("TodoModel", () => {
     });
 
     it("should format archived date when present", () => {
-      const timestamp = new Date("2025-12-09T10:30:00").getTime();
+      const timestamp = getTimestamp(new Date("2025-12-09T10:30:00").getTime());
       const todo = createTodo({ state: "archived", archivedAt: timestamp });
       const model = new TodoModel(todo, createSettings());
 
@@ -948,49 +977,49 @@ describe("TodoModel", () => {
 
   describe("age display", () => {
     it("should show 'just now' for recent todos", () => {
-      const todo = createTodo({ createdAt: Date.now() - 30000 }); // 30 seconds ago
+      const todo = createTodo({ createdAt: getTimestamp(Date.now() - 30000) }); // 30 seconds ago
       const model = new TodoModel(todo, createSettings());
 
       expect(model.ageDisplay).toBe("just now");
     });
 
     it("should show minutes for recent todos", () => {
-      const todo = createTodo({ createdAt: Date.now() - 5 * 60 * 1000 }); // 5 minutes ago
+      const todo = createTodo({ createdAt: getTimestamp(Date.now() - 5 * 60 * 1000) }); // 5 minutes ago
       const model = new TodoModel(todo, createSettings());
 
       expect(model.ageDisplay).toBe("5 minutes ago");
     });
 
     it("should show singular minute", () => {
-      const todo = createTodo({ createdAt: Date.now() - 1 * 60 * 1000 }); // 1 minute ago
+      const todo = createTodo({ createdAt: getTimestamp(Date.now() - 1 * 60 * 1000) }); // 1 minute ago
       const model = new TodoModel(todo, createSettings());
 
       expect(model.ageDisplay).toBe("1 minute ago");
     });
 
     it("should show hours for older todos", () => {
-      const todo = createTodo({ createdAt: Date.now() - 3 * 60 * 60 * 1000 }); // 3 hours ago
+      const todo = createTodo({ createdAt: getTimestamp(Date.now() - 3 * 60 * 60 * 1000) }); // 3 hours ago
       const model = new TodoModel(todo, createSettings());
 
       expect(model.ageDisplay).toBe("3 hours ago");
     });
 
     it("should show singular hour", () => {
-      const todo = createTodo({ createdAt: Date.now() - 1 * 60 * 60 * 1000 }); // 1 hour ago
+      const todo = createTodo({ createdAt: getTimestamp(Date.now() - 1 * 60 * 60 * 1000) }); // 1 hour ago
       const model = new TodoModel(todo, createSettings());
 
       expect(model.ageDisplay).toBe("1 hour ago");
     });
 
     it("should show days for old todos", () => {
-      const todo = createTodo({ createdAt: Date.now() - 5 * 24 * 60 * 60 * 1000 }); // 5 days ago
+      const todo = createTodo({ createdAt: getTimestamp(Date.now() - 5 * 24 * 60 * 60 * 1000) }); // 5 days ago
       const model = new TodoModel(todo, createSettings());
 
       expect(model.ageDisplay).toBe("5 days ago");
     });
 
     it("should show singular day", () => {
-      const todo = createTodo({ createdAt: Date.now() - 1 * 24 * 60 * 60 * 1000 }); // 1 day ago
+      const todo = createTodo({ createdAt: getTimestamp(Date.now() - 1 * 24 * 60 * 60 * 1000) }); // 1 day ago
       const model = new TodoModel(todo, createSettings());
 
       expect(model.ageDisplay).toBe("1 day ago");
@@ -1153,9 +1182,9 @@ describe("TodoModel", () => {
 
   describe("isBlockerFor", () => {
     it("should find todos that depend on this one", () => {
-      const blocker = createTodo({ id: "blocker", state: "active" });
+      const blocker = createTodo({ id: getTodoId("blocker"), state: "active" });
       const dependent = createTodo({
-        id: "dependent",
+        id: getTodoId("dependent"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1163,7 +1192,7 @@ describe("TodoModel", () => {
           mentionedPeople: [],
           projects: [],
           tags: [],
-          dependencies: ["blocker"],
+          dependencies: [getTodoId("blocker")],
         },
       });
 
@@ -1179,9 +1208,9 @@ describe("TodoModel", () => {
     });
 
     it("should not include completed dependents", () => {
-      const blocker = createTodo({ id: "blocker", state: "active" });
+      const blocker = createTodo({ id: getTodoId("blocker"), state: "active" });
       const completedDependent = createTodo({
-        id: "completed-dependent",
+        id: getTodoId("completed-dependent"),
         state: "completed",
         metadata: {
           assignedPeople: [],
@@ -1189,7 +1218,7 @@ describe("TodoModel", () => {
           mentionedPeople: [],
           projects: [],
           tags: [],
-          dependencies: ["blocker"],
+          dependencies: [getTodoId("blocker")],
         },
       });
 
@@ -1532,9 +1561,9 @@ describe("TodoModel", () => {
 
   describe("canArchive with dependencies", () => {
     it("should return false if dependencies are incomplete", () => {
-      const dependency = createTodo({ id: "dep-1", state: "active", plainText: "Dependency task" });
+      const dependency = createTodo({ id: getTodoId("dep-1"), state: "active", plainText: "Dependency task" });
       const todo = createTodo({
-        id: "main",
+        id: getTodoId("main"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1542,7 +1571,7 @@ describe("TodoModel", () => {
           mentionedPeople: [],
           projects: [],
           tags: [],
-          dependencies: ["dep-1"],
+          dependencies: [getTodoId("dep-1")],
         },
       });
 
@@ -1556,9 +1585,9 @@ describe("TodoModel", () => {
     });
 
     it("should return true if all dependencies are completed", () => {
-      const dependency = createTodo({ id: "dep-1", state: "completed" });
+      const dependency = createTodo({ id: getTodoId("dep-1"), state: "completed" });
       const todo = createTodo({
-        id: "main",
+        id: getTodoId("main"),
         state: "active",
         metadata: {
           assignedPeople: [],
@@ -1566,7 +1595,7 @@ describe("TodoModel", () => {
           mentionedPeople: [],
           projects: [],
           tags: [],
-          dependencies: ["dep-1"],
+          dependencies: [getTodoId("dep-1")],
         },
       });
 

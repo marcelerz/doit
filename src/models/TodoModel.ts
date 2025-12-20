@@ -1,4 +1,5 @@
 import { Todo, TodoMetadata, TodoState, ActivityEntry } from "@/types/todo";
+import { DurationMin, getDurationMin } from "@/types/time";
 import { Settings } from "@/types/settings";
 import { normalizeDateValue, parseDate } from "@/utils/dateUtils";
 import { parseRecurringPattern } from "@/utils/recurringParser";
@@ -63,7 +64,7 @@ export class TodoModel {
     return this._todo.comments;
   }
 
-  get activity(): ActivityEntry[] {
+  get activity(): ActivityEntry<string>[] {
     return this._todo.activity;
   }
 
@@ -273,11 +274,11 @@ export class TodoModel {
   }
 
   get dependencies(): string[] {
-    return this._todo.metadata.dependencies;
+    return this._todo.metadata.dependencies ?? [];
   }
 
   get tags(): string[] {
-    return this._todo.metadata.tags;
+    return this._todo.metadata.tags ?? [];
   }
 
   // ===== State Checks =====
@@ -680,11 +681,11 @@ export class TodoModel {
   /**
    * Get total tracked time in minutes (includes active tracking)
    */
-  get totalTrackedMinutes(): number {
-    if (!this._todo.timeTracking) return 0;
+  get totalTrackedMinutes(): DurationMin {
+    if (!this._todo.timeTracking) return getDurationMin(0);
 
     // Start with cached total (completed entries)
-    let total = this._todo.timeTracking.totalMinutes;
+    let total = this._todo.timeTracking.totalMinutes as number;
 
     // Add elapsed time for any active entry
     const activeEntry = this._todo.timeTracking.entries.find((e) => !e.endTime);
@@ -693,7 +694,7 @@ export class TodoModel {
       total += elapsedMinutes;
     }
 
-    return total;
+    return getDurationMin(total);
   }
 
   /**
@@ -741,7 +742,7 @@ export class TodoModel {
     return {
       commentId: comment.commentId,
       content: latestHistory.content,
-      date: latestHistory.date,
+      timestamp: latestHistory.timestamp,
     };
   }
 

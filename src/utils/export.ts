@@ -66,7 +66,7 @@ function formatTodoMarkdown(todo: TodoModel, completed: boolean): string {
   if (todo.metadata.projects.length > 0) {
     metadata.push(`Project: ${todo.metadata.projects.join(", ")}`);
   }
-  if (todo.metadata.tags.length > 0) {
+  if (todo.metadata.tags && todo.metadata.tags.length > 0) {
     metadata.push(`Tags: ${todo.metadata.tags.join(", ")}`);
   }
 
@@ -105,7 +105,7 @@ export function exportToCSV(todos: TodoModel[]): string {
       todo.metadata.duration || "",
       todo.metadata.assignedPeople.join("; "),
       todo.metadata.projects.join("; "),
-      todo.metadata.tags.join("; "),
+      (todo.metadata.tags ?? []).join("; "),
       todo.raw.createdAt ? new Date(todo.raw.createdAt).toISOString() : "",
       todo.raw.completedAt ? new Date(todo.raw.completedAt).toISOString() : "",
     ]);

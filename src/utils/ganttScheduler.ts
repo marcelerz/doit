@@ -13,7 +13,10 @@ import {
   DaySchedule,
   SchedulingTechnique,
   DEFAULT_BLOCK_TYPES,
+  getDurationMin,
 } from "@/types/settings";
+
+import { DurationMin } from "@/types/time";
 
 // ============================================================================
 // Types
@@ -153,17 +156,17 @@ export function getScheduleForDate(date: Date, workHours: WorkHoursSettings): Da
 /**
  * Calculate Pomodoro break duration based on session count
  */
-export function getPomodoroBreakDuration(sessionCount: number, ganttSettings: Gantt): number {
+export function getPomodoroBreakDuration(sessionCount: number, ganttSettings: Gantt): DurationMin {
   const { pomodoroShortBreak, pomodoroLongBreak, pomodoroLongBreakInterval } = ganttSettings;
 
   const tasksForLongBreak = pomodoroLongBreakInterval ?? 4;
 
   // Long break after every N sessions
   if (sessionCount > 0 && sessionCount % tasksForLongBreak === 0) {
-    return pomodoroLongBreak ?? 15;
+    return pomodoroLongBreak ?? getDurationMin(15);
   }
 
-  return pomodoroShortBreak ?? 5;
+  return pomodoroShortBreak ?? getDurationMin(5);
 }
 
 /**
@@ -459,7 +462,7 @@ export function createTaskSchedulingMap(todos: TodoModel[], config: SchedulingCo
           flowBreakDuration,
           flowContextSwitchingTime,
         } = ganttSettings;
-        let breakMinutes = contextSwitchingTime ?? 5;
+        let breakMinutes = contextSwitchingTime ?? getDurationMin(5);
 
         if (schedulingTechnique === "pomodoro") {
           workTimeSinceBreak += durationMinutes;
@@ -474,10 +477,10 @@ export function createTaskSchedulingMap(todos: TodoModel[], config: SchedulingCo
           const workDuration = flowWorkDuration ?? 52;
           if (workTimeSinceBreak >= workDuration) {
             // Flow break + context switching time
-            breakMinutes = (flowBreakDuration ?? 17) + (flowContextSwitchingTime ?? 10);
+            breakMinutes = getDurationMin((flowBreakDuration ?? 17) + (flowContextSwitchingTime ?? 10));
             workTimeSinceBreak = 0;
           } else {
-            breakMinutes = flowContextSwitchingTime ?? 10;
+            breakMinutes = flowContextSwitchingTime ?? getDurationMin(10);
           }
         }
 

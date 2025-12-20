@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { SearchHistoryEntry } from "@/types/todo";
+import { getSearchHistoryId } from "@/types/types";
+import { getTimestamp } from "@/types/time";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
 
@@ -42,9 +44,9 @@ export function useSearchHistory() {
 
       // Add new entry at the beginning
       const newEntry: SearchHistoryEntry = {
-        id: `search-${Date.now()}`,
+        id: getSearchHistoryId(`search-${Date.now()}`),
         query: trimmedQuery,
-        timestamp: Date.now(),
+        timestamp: getTimestamp(Date.now()),
       };
 
       // Keep only MAX_HISTORY_ITEMS

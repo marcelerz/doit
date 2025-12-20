@@ -4,7 +4,7 @@
  */
 
 import { Todo, TodoMetadata, TodoState } from "@/types/todo";
-import { Settings, defaultSettings, Person, Project, Priority } from "@/types/settings";
+import { Settings, defaultSettings, Person, Project, Priority, getTimestamp } from "@/types/settings";
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
 import { STORAGE_KEYS, saveToStorage, getStorageAdapter } from "./storage";
 
@@ -249,7 +249,7 @@ export function migrateTodos(loadedTodos: any[], settings: Settings): Todo[] {
         return {
           ...todo,
           state: "archived" as TodoState,
-          archivedAt: Date.now(),
+          archivedAt: getTimestamp(Date.now()),
         };
       }
       return todo;
