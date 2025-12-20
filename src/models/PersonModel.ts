@@ -40,14 +40,12 @@ export class PersonModel extends BaseEntityModel<Person> {
    * @param allTodos Optional array of todos to check for dependencies
    * @returns Validation result with reason if not allowed
    */
-  canDelete(allTodos?: Array<{ assignedPeople?: string[]; sourcePeople?: string[] }>): {
+  canDelete(allTodos?: Array<{ assignedPeople?: string[] }>): {
     canDelete: boolean;
     reason?: string;
   } {
     if (allTodos) {
-      const isAssigned = allTodos.some(
-        (todo) => todo.assignedPeople?.includes(this.id) || todo.sourcePeople?.includes(this.id),
-      );
+      const isAssigned = allTodos.some((todo) => todo.assignedPeople?.includes(this.id));
       if (isAssigned) {
         return { canDelete: false, reason: "Person is assigned to active todos" };
       }

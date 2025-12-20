@@ -34,10 +34,10 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
    * The raw entity object wrapped by this model.
    * Access this when you need to save or pass the data to storage/hooks.
    */
-  public readonly raw: T;
+  protected readonly _raw: T;
 
   constructor(entity: T) {
-    this.raw = entity;
+    this._raw = entity;
   }
 
   // ============================================================================
@@ -45,35 +45,35 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
   // ============================================================================
 
   get id(): string {
-    return this.raw.id;
+    return this._raw.id;
   }
 
   get name(): string {
-    return this.raw.name;
+    return this._raw.name;
   }
 
   get alternatives(): string[] {
-    return this.raw.alternatives;
+    return this._raw.alternatives;
   }
 
   get color(): string | undefined {
-    return this.raw.color;
+    return this._raw.color;
   }
 
   get context(): string | undefined {
-    return this.raw.context;
+    return this._raw.context;
   }
 
   get comments(): Comment[] {
-    return this.raw.comments;
+    return this._raw.comments;
   }
 
   get activity(): ActivityEntry<string>[] {
-    return this.raw.activity;
+    return this._raw.activity;
   }
 
   get archived(): boolean {
-    return this.raw.archived ?? false;
+    return this._raw.archived ?? false;
   }
 
   // ============================================================================
