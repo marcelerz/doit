@@ -70,7 +70,8 @@ describe("BaseEntityModel", () => {
         { commentId: getCommentId("1"), history: [{ timestamp: getTimestamp(Date.now()), content: "First comment" }] },
       ];
       const model = new TestEntityModel(createTestEntity({ comments }));
-      expect(model.comments).toBe(comments);
+      expect(model.comments).toEqual(comments);
+      expect(model.comments).not.toBe(comments); // Should be a copy
     });
 
     it("should expose activity array", () => {
@@ -78,7 +79,8 @@ describe("BaseEntityModel", () => {
         { id: getActivityId("act-1"), timestamp: getTimestamp(Date.now()), type: "created", description: "Created" },
       ];
       const model = new TestEntityModel(createTestEntity({ activity }));
-      expect(model.activity).toBe(activity);
+      expect(model.activity).toEqual(activity);
+      expect(model.activity).not.toBe(activity); // Should be a copy
     });
   });
 

@@ -209,12 +209,13 @@ describe("TodoModel", () => {
       expect(model.createdAt).toBe(1000000);
     });
 
-    it("should expose raw todo object", () => {
+    it("should expose raw todo object as a copy", () => {
       const todo = createTodo();
       const settings = createSettings();
       const model = new TodoModel(todo, settings);
 
-      expect(model.raw).toBe(todo);
+      expect(model.raw).toEqual(todo);
+      expect(model.raw).not.toBe(todo); // Should be a copy
     });
   });
 

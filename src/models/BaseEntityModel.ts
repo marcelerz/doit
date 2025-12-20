@@ -57,7 +57,7 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
   }
 
   get alternatives(): string[] {
-    return this._raw.alternatives;
+    return [...this._raw.alternatives];
   }
 
   get color(): string | undefined {
@@ -69,11 +69,11 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
   }
 
   get comments(): Comment[] {
-    return this._raw.comments;
+    return this._raw.comments.map((c) => structuredClone(c));
   }
 
   get activity(): ActivityEntry<string>[] {
-    return this._raw.activity;
+    return this._raw.activity.map((a) => structuredClone(a));
   }
 
   get archived(): boolean {
@@ -137,44 +137,46 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
    * Whether this entity has any comments
    */
   get hasComments(): boolean {
-    return this.comments.length > 0;
+    return this._raw.comments.length > 0;
   }
 
   /**
    * Total number of comments
    */
   get commentCount(): number {
-    return this.comments.length;
+    return this._raw.comments.length;
   }
 
   /**
    * Get the most recent comment, if any
+   * Returns a copy to prevent external modification of internal state
    */
   get latestComment(): Comment | undefined {
-    if (this.comments.length === 0) return undefined;
-    return this.comments[this.comments.length - 1];
+    if (this._raw.comments.length === 0) return undefined;
+    return structuredClone(this._raw.comments[this._raw.comments.length - 1]);
   }
 
   /**
    * Whether this entity has any activity
    */
   get hasActivity(): boolean {
-    return this.activity.length > 0;
+    return this._raw.activity.length > 0;
   }
 
   /**
    * Total number of activity entries
    */
   get activityCount(): number {
-    return this.activity.length;
+    return this._raw.activity.length;
   }
 
   /**
    * Get the most recent activity entry, if any
+   * Returns a copy to prevent external modification of internal state
    */
   get latestActivity(): ActivityEntry<string> | undefined {
-    if (this.activity.length === 0) return undefined;
-    return this.activity[this.activity.length - 1];
+    if (this._raw.activity.length === 0) return undefined;
+    return structuredClone(this._raw.activity[this._raw.activity.length - 1]);
   }
 
   // ============================================================================
@@ -286,8 +288,9 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
 
   /**
    * Get all names (including alternatives) as a flat array
+   * Returns a copy to prevent external modification
    */
   get allNames(): string[] {
-    return [this.name, ...this.alternatives];
+    return [this.name, ...this._raw.alternatives];
   }
 }

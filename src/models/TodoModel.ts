@@ -70,11 +70,11 @@ export class TodoModel {
   }
 
   get comments() {
-    return this._raw.comments;
+    return this._raw.comments.map((c) => structuredClone(c));
   }
 
   get activity(): ActivityEntry<string>[] {
-    return this._raw.activity;
+    return this._raw.activity.map((a) => structuredClone(a));
   }
 
   get context(): string | undefined {
@@ -85,10 +85,11 @@ export class TodoModel {
 
   /**
    * Get assigned people with auto-assign fallback if enabled and empty
+   * Returns a copy to prevent external modification of internal state
    */
   get assignedPeople(): string[] {
     if (this._raw.metadata.assignedPeople.length > 0) {
-      return this._raw.metadata.assignedPeople;
+      return [...this._raw.metadata.assignedPeople];
     }
     // Apply auto-assign if enabled and no explicit assignment
     const defaultPerson = this._settingsModel.defaultAssignedPerson;
@@ -100,17 +101,19 @@ export class TodoModel {
 
   /**
    * Get raw assigned people without auto-assign fallback
+   * Returns a copy to prevent external modification of internal state
    */
   get assignedPeopleRaw(): string[] {
-    return this._raw.metadata.assignedPeople;
+    return [...this._raw.metadata.assignedPeople];
   }
 
   /**
    * Get source people with auto-assign fallback if enabled and empty
+   * Returns a copy to prevent external modification of internal state
    */
   get sourcePeople(): string[] {
     if (this._raw.metadata.sourcePeople.length > 0) {
-      return this._raw.metadata.sourcePeople;
+      return [...this._raw.metadata.sourcePeople];
     }
     // Apply auto-assign if enabled and no explicit source
     const defaultSource = this._settingsModel.defaultSourcePerson;
@@ -122,21 +125,23 @@ export class TodoModel {
 
   /**
    * Get raw source people without auto-assign fallback
+   * Returns a copy to prevent external modification of internal state
    */
   get sourcePeopleRaw(): string[] {
-    return this._raw.metadata.sourcePeople;
+    return [...this._raw.metadata.sourcePeople];
   }
 
   get mentionedPeople(): string[] {
-    return this._raw.metadata.mentionedPeople;
+    return [...this._raw.metadata.mentionedPeople];
   }
 
   /**
    * Get projects with auto-assign fallback if enabled and empty
+   * Returns a copy to prevent external modification of internal state
    */
   get projects(): string[] {
     if (this._raw.metadata.projects.length > 0) {
-      return this._raw.metadata.projects;
+      return [...this._raw.metadata.projects];
     }
     // Apply auto-assign if enabled and no explicit project
     const defaultProject = this._settingsModel.defaultProject;
@@ -148,9 +153,10 @@ export class TodoModel {
 
   /**
    * Get raw projects without auto-assign fallback
+   * Returns a copy to prevent external modification of internal state
    */
   get projectsRaw(): string[] {
-    return this._raw.metadata.projects;
+    return [...this._raw.metadata.projects];
   }
 
   /**
@@ -278,11 +284,11 @@ export class TodoModel {
   }
 
   get dependencies(): string[] {
-    return this._raw.metadata.dependencies ?? [];
+    return [...(this._raw.metadata.dependencies ?? [])];
   }
 
   get tags(): string[] {
-    return this._raw.metadata.tags ?? [];
+    return [...(this._raw.metadata.tags ?? [])];
   }
 
   get sprint(): string | undefined {
@@ -362,16 +368,18 @@ export class TodoModel {
 
   /**
    * Get the raw metadata object
+   * Returns a deep copy to prevent external modification of internal state
    */
   get metadata(): TodoMetadata {
-    return this._raw.metadata;
+    return structuredClone(this._raw.metadata);
   }
 
   /**
    * Get the raw underlying todo object
+   * WARNING: Returns reference to internal state - do not modify
    */
   get raw(): Todo {
-    return this._raw;
+    return structuredClone(this._raw);
   }
 
   /**
@@ -608,68 +616,72 @@ export class TodoModel {
    * Get number of comments
    */
   get commentCount(): number {
-    return this.comments.length;
+    return this._raw.comments.length;
   }
 
   /**
    * Check if this todo has comments
    */
   get hasComments(): boolean {
-    return this.comments.length > 0;
+    return this._raw.comments.length > 0;
   }
 
   // ===== Subtask Properties =====
 
   /**
    * Get all subtasks
+   * Returns deep copies to prevent external modification of internal state
    */
   get subtasks() {
-    return this._raw.subtasks || [];
+    return (this._raw.subtasks || []).map((s) => structuredClone(s));
   }
 
   /**
    * Check if this todo has subtasks
    */
   get hasSubtasks(): boolean {
-    return this.subtasks.length > 0;
+    return (this._raw.subtasks || []).length > 0;
   }
 
   /**
    * Get the number of subtasks
    */
   get subtaskCount(): number {
-    return this.subtasks.length;
+    return (this._raw.subtasks || []).length;
   }
 
   /**
    * Get the number of completed subtasks
    */
   get completedSubtaskCount(): number {
-    return this.subtasks.filter((s) => s.completed).length;
+    return (this._raw.subtasks || []).filter((s) => s.completed).length;
   }
 
   /**
    * Get subtask completion progress as a percentage (0-100)
    */
   get subtaskProgress(): number {
-    if (this.subtasks.length === 0) return 0;
-    return Math.round((this.completedSubtaskCount / this.subtaskCount) * 100);
+    const subtasks = this._raw.subtasks || [];
+    if (subtasks.length === 0) return 0;
+    return Math.round((this.completedSubtaskCount / subtasks.length) * 100);
   }
 
   /**
    * Check if all subtasks are completed
    */
   get allSubtasksCompleted(): boolean {
-    return this.subtasks.length > 0 && this.completedSubtaskCount === this.subtaskCount;
+    const subtasks = this._raw.subtasks || [];
+    return subtasks.length > 0 && this.completedSubtaskCount === subtasks.length;
   }
 
   // ===== Time Tracking Properties =====
 
   /**
    * Get time tracking data
+   * Returns a deep copy to prevent external modification of internal state
    */
   get timeTracking() {
-    return this._raw.timeTracking;
+    return this._raw.timeTracking ? structuredClone(this._raw.timeTracking) : undefined;
   }
 
   /**
@@ -721,32 +733,35 @@ export class TodoModel {
 
   /**
    * Get the currently active time entry (if tracking)
+   * Returns a copy to prevent external modification of internal state
    */
   get activeTimeEntry() {
     if (!this._raw.timeTracking) return undefined;
-    return this._raw.timeTracking.entries.find((e) => !e.endTime);
+    const entry = this._raw.timeTracking.entries.find((e) => !e.endTime);
+    return entry ? structuredClone(entry) : undefined;
   }
 
   /**
    * Get number of activity entries
    */
   get activityCount(): number {
-    return this.activity.length;
+    return this._raw.activity.length;
   }
 
   /**
    * Check if this todo has activity
    */
   get hasActivity(): boolean {
-    return this.activity.length > 0;
+    return this._raw.activity.length > 0;
   }
 
   /**
    * Get the most recent comment
+   * Returns a new object to prevent external modification
    */
   get latestComment() {
-    if (this.comments.length === 0) return undefined;
-    const comment = this.comments[this.comments.length - 1];
+    if (this._raw.comments.length === 0) return undefined;
+    const comment = this._raw.comments[this._raw.comments.length - 1];
     const latestHistory = comment.history[comment.history.length - 1];
     return {
       commentId: comment.commentId,
@@ -757,10 +772,11 @@ export class TodoModel {
 
   /**
    * Get the most recent activity
+   * Returns a copy to prevent external modification of internal state
    */
   get latestActivity() {
-    if (this.activity.length === 0) return undefined;
-    return this.activity[this.activity.length - 1];
+    if (this._raw.activity.length === 0) return undefined;
+    return structuredClone(this._raw.activity[this._raw.activity.length - 1]);
   }
 
   /**

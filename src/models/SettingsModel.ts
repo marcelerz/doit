@@ -84,21 +84,28 @@ export class SettingsModel {
 
   /**
    * Get the schedule for a specific date based on work hours settings
+   * Returns a copy to prevent external modification of internal state
    */
   getScheduleForDate(date: Date): DaySchedule {
-    const dayOfWeek = date.getDay();
-    const dayName = DAY_NAMES[dayOfWeek];
     const workHours = this._raw.workHours;
 
+    let schedule: DaySchedule;
     if (workHours.useCommonSchedule) {
-      return workHours.commonSchedule;
+      schedule = workHours.commonSchedule;
+    } else {
+      const dayOfWeek = date.getDay();
+      const dayName = DAY_NAMES[dayOfWeek];
+
+      const customSchedule = workHours.customSchedules[dayName];
+      if (customSchedule) {
+        schedule = customSchedule;
+      } else {
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        schedule = isWeekend ? workHours.weekendSchedule : workHours.weekdaySchedule;
+      }
     }
 
-    const customSchedule = workHours.customSchedules[dayName];
-    if (customSchedule) return customSchedule;
-
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    return isWeekend ? workHours.weekendSchedule : workHours.weekdaySchedule;
+    return structuredClone(schedule);
   }
 
   /**
@@ -201,19 +208,22 @@ export class SettingsModel {
 
   /**
    * Get all priorities sorted by order
+   * Returns deep copies to prevent external modification of internal state
    */
   get priorities(): Priority[] {
-    return [...this._raw.priorities].sort((a, b) => a.order - b.order);
+    return this._raw.priorities.map((p) => structuredClone(p)).sort((a, b) => a.order - b.order);
   }
 
   /**
    * Find a priority by name (case-insensitive, checks alternatives too)
+   * Returns a copy to prevent external modification of internal state
    */
   findPriority(name: string): Priority | undefined {
     const lowerName = name.toLowerCase();
-    return this._raw.priorities.find(
+    const found = this._raw.priorities.find(
       (p) => p.name.toLowerCase() === lowerName || p.alternatives.some((alt) => alt.toLowerCase() === lowerName),
     );
+    return found ? structuredClone(found) : undefined;
   }
 
   /**
@@ -312,30 +322,35 @@ export class SettingsModel {
 
   /**
    * Get all kanban states sorted by order
+   * Returns deep copies to prevent external modification of internal state
    */
   get kanbanStates(): KanbanState[] {
-    return [...this._raw.kanban.states].sort((a, b) => a.order - b.order);
+    return this._raw.kanban.states.map((s) => structuredClone(s)).sort((a, b) => a.order - b.order);
   }
 
   /**
    * Find a kanban state by ID
+   * Returns a copy to prevent external modification of internal state
    */
   findKanbanState(stateId: string): KanbanState | undefined {
-    return this._raw.kanban.states.find((s) => s.id === stateId);
+    const found = this._raw.kanban.states.find((s) => s.id === stateId);
+    return found ? structuredClone(found) : undefined;
   }
 
   /**
    * Get the system states (Backlog, Completed, Archived)
+   * Returns deep copies to prevent external modification of internal state
    */
   get systemKanbanStates(): KanbanState[] {
-    return this._raw.kanban.states.filter((s) => s.isSystem);
+    return this._raw.kanban.states.filter((s) => s.isSystem).map((s) => structuredClone(s));
   }
 
   /**
    * Get non-system (custom) kanban states
+   * Returns deep copies to prevent external modification of internal state
    */
   get customKanbanStates(): KanbanState[] {
-    return this._raw.kanban.states.filter((s) => !s.isSystem);
+    return this._raw.kanban.states.filter((s) => !s.isSystem).map((s) => structuredClone(s));
   }
 
   /**
@@ -347,34 +362,40 @@ export class SettingsModel {
 
   /**
    * Get allowed target states from a given state
+   * Returns deep copies to prevent external modification of internal state
    */
   getAllowedTransitionsFrom(stateId: string): KanbanState[] {
     const allowedIds = this._raw.kanban.allowedTransitions
       .filter((t) => t.fromStateId === stateId)
       .map((t) => t.toStateId);
 
-    return this._raw.kanban.states.filter((s) => allowedIds.includes(s.id));
+    return this._raw.kanban.states.filter((s) => allowedIds.includes(s.id)).map((s) => structuredClone(s));
   }
 
   /**
    * Get all kanban views
+   * Returns deep copies to prevent external modification of internal state
    */
   get kanbanViews(): KanbanView[] {
-    return this._raw.kanban.views;
+    return this._raw.kanban.views.map((v) => structuredClone(v));
   }
 
   /**
    * Get the active kanban view
+   * Returns a copy to prevent external modification of internal state
    */
   get activeKanbanView(): KanbanView | undefined {
-    return this._raw.kanban.views.find((v) => v.id === this._raw.kanban.activeViewId);
+    const found = this._raw.kanban.views.find((v) => v.id === this._raw.kanban.activeViewId);
+    return found ? structuredClone(found) : undefined;
   }
 
   /**
    * Find a kanban view by ID
+   * Returns a copy to prevent external modification of internal state
    */
   findKanbanView(viewId: string): KanbanView | undefined {
-    return this._raw.kanban.views.find((v) => v.id === viewId);
+    const found = this._raw.kanban.views.find((v) => v.id === viewId);
+    return found ? structuredClone(found) : undefined;
   }
 
   // ============================================================================
@@ -680,16 +701,18 @@ export class SettingsModel {
 
   /**
    * Get dateTime settings for use with date utilities
+   * Returns a copy to prevent external modification of internal state
    */
   get dateTime(): DateTimeSettings {
-    return this._raw.dateTime;
+    return structuredClone(this._raw.dateTime);
   }
 
   /**
    * Get workHours settings for use with date utilities
+   * Returns a copy to prevent external modification of internal state
    */
   get workHours(): WorkHoursSettings {
-    return this._raw.workHours;
+    return structuredClone(this._raw.workHours);
   }
 }
 
