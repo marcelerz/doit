@@ -1,7 +1,11 @@
-import { Todo, TodoMetadata, TodoState } from "@/types/todo";
+import { Todo, TodoId, TodoMetadata, TodoState, Tag } from "@/types/todo";
+import type { PersonId } from "@/types/person";
+import type { ProjectId } from "@/types/project";
+import type { PriorityId } from "@/types/priority";
+import type { SprintId } from "@/types/sprint";
+import type { Timestamp, DurationSec } from "@/types/time";
 import { ActivityEntry } from "@/types/types";
 import { DurationMin, getDurationMin } from "@/types/time";
-import { normalizeDateValue, parseDate } from "@/utils/dateUtils";
 import { parseRecurringPattern } from "@/utils/recurringParser";
 import { SettingsModel } from "./SettingsModel";
 
@@ -77,142 +81,193 @@ export class TodoModel {
     return this._raw.activity.map((a) => structuredClone(a));
   }
 
-  get context(): string | undefined {
-    return this._raw.metadata.context;
+  get context(): string {
+    return this._raw.context;
   }
 
-  // ===== Smart Metadata Getters with Auto-Assign =====
+  // ===== Actual Field Getters (IDs) =====
 
   /**
-   * Get assigned people with auto-assign fallback if enabled and empty
+   * Get assigned people IDs (actual field)
+   * Returns a copy to prevent external modification of internal state
+   */
+  get assignedPeopleIds(): PersonId[] {
+    return [...this._raw.assignedPeople];
+  }
+
+  /**
+   * Get source people IDs (actual field)
+   * Returns a copy to prevent external modification of internal state
+   */
+  get sourcePeopleIds(): PersonId[] {
+    return [...this._raw.sourcePeople];
+  }
+
+  /**
+   * Get mentioned people IDs (actual field)
+   * Returns a copy to prevent external modification of internal state
+   */
+  get mentionedPeopleIds(): PersonId[] {
+    return [...this._raw.mentionedPeople];
+  }
+
+  /**
+   * Get project IDs (actual field)
+   * Returns a copy to prevent external modification of internal state
+   */
+  get projectIds(): ProjectId[] {
+    return [...this._raw.projects];
+  }
+
+  /**
+   * Get priority ID (actual field)
+   */
+  get priorityId(): PriorityId | undefined {
+    return this._raw.priority;
+  }
+
+  /**
+   * Get due date timestamp (actual field)
+   */
+  get dueDateTimestamp(): Timestamp | undefined {
+    return this._raw.dueDate;
+  }
+
+  /**
+   * Get duration in seconds (actual field)
+   */
+  get durationSeconds(): DurationSec | undefined {
+    return this._raw.duration;
+  }
+
+  /**
+   * Get dependency IDs (actual field)
+   * Returns a copy to prevent external modification of internal state
+   */
+  get dependencyIds(): TodoId[] {
+    return [...this._raw.dependencies];
+  }
+
+  /**
+   * Get tags (actual field)
+   * Returns a copy to prevent external modification of internal state
+   */
+  get tagIds(): Tag[] {
+    return [...this._raw.tags];
+  }
+
+  /**
+   * Get sprint ID (actual field)
+   */
+  get sprintId(): SprintId | undefined {
+    return this._raw.sprint;
+  }
+
+  // ===== Metadata Getters (string representations from input) =====
+
+  /**
+   * Get assigned people strings from metadata (for editing/display)
    * Returns a copy to prevent external modification of internal state
    */
   get assignedPeople(): string[] {
-    if (this._raw.metadata.assignedPeople.length > 0) {
-      return [...this._raw.metadata.assignedPeople];
-    }
-    // Apply auto-assign if enabled and no explicit assignment
-    const defaultPerson = this._settingsModel.defaultAssignedPerson;
-    if (defaultPerson) {
-      return [defaultPerson];
-    }
-    return [];
+    return [...this._raw.metadata.assignedPeople];
   }
 
   /**
-   * Get source people with auto-assign fallback if enabled and empty
+   * Get source people strings from metadata (for editing/display)
    * Returns a copy to prevent external modification of internal state
    */
   get sourcePeople(): string[] {
-    if (this._raw.metadata.sourcePeople.length > 0) {
-      return [...this._raw.metadata.sourcePeople];
-    }
-    // Apply auto-assign if enabled and no explicit source
-    const defaultSource = this._settingsModel.defaultSourcePerson;
-    if (defaultSource) {
-      return [defaultSource];
-    }
-    return [];
+    return [...this._raw.metadata.sourcePeople];
   }
 
+  /**
+   * Get mentioned people strings from metadata (for editing/display)
+   */
   get mentionedPeople(): string[] {
     return [...this._raw.metadata.mentionedPeople];
   }
 
   /**
-   * Get projects with auto-assign fallback if enabled and empty
+   * Get project strings from metadata (for editing/display)
    * Returns a copy to prevent external modification of internal state
    */
   get projects(): string[] {
-    if (this._raw.metadata.projects.length > 0) {
-      return [...this._raw.metadata.projects];
-    }
-    // Apply auto-assign if enabled and no explicit project
-    const defaultProject = this._settingsModel.defaultProject;
-    if (defaultProject) {
-      return [defaultProject];
-    }
-    return [];
+    return [...this._raw.metadata.projects];
   }
 
   /**
-   * Get priority with auto-assign fallback if enabled and empty
+   * Get priority string from metadata (for editing/display)
    */
   get priority(): string | undefined {
-    if (this._raw.metadata.priority) {
-      return this._raw.metadata.priority;
-    }
-    // Apply auto-assign if enabled and no explicit priority
-    return this._settingsModel.defaultPriority;
+    return this._raw.metadata.priority;
   }
 
   /**
-   * Get due date with auto-assign fallback and normalization
+   * Get due date string from metadata (for editing/display)
+   * This is the descriptive date like "tomorrow", "next friday", etc.
    */
-  get dueDate(): string | undefined {
-    const rawDueDate = this._raw.metadata.dueDate;
-    if (rawDueDate) {
-      // Normalize shorthand values like "today", "tomorrow", etc.
-      return normalizeDateValue(rawDueDate, this._settingsModel.dateTime, this._settingsModel.workHours);
-    }
-    // Apply auto-assign if enabled and no explicit due date
-    const defaultDueDate = this._settingsModel.defaultDueDate;
-    if (defaultDueDate) {
-      return normalizeDateValue(defaultDueDate, this._settingsModel.dateTime, this._settingsModel.workHours);
-    }
-    return undefined;
+  get dueDateString(): string | undefined {
+    return this._raw.metadata.dueDate;
   }
 
   /**
-   * Get due date as a Date object
+   * Get duration string from metadata (for editing/display)
+   * This is the descriptive duration like "2h", "30m", etc.
    */
-  get dueDateObject(): Date | undefined {
-    const dateStr = this.dueDate;
-    if (!dateStr) return undefined;
-    const parsed = parseDate(dateStr, this._settingsModel.dateTime, this._settingsModel.workHours);
-    return parsed ? new Date(parsed.timestamp) : undefined;
+  get durationString(): string | undefined {
+    return this._raw.metadata.duration;
   }
 
   /**
-   * Get duration with auto-assign fallback if enabled and empty
-   */
-  get duration(): string | undefined {
-    if (this._raw.metadata.duration) {
-      return this._raw.metadata.duration;
-    }
-    // Apply auto-assign if enabled and no explicit duration
-    return this._settingsModel.defaultDuration;
-  }
-
-  /**
-   * Get duration in minutes
-   */
-  get durationMinutes(): number | undefined {
-    const dur = this.duration;
-    if (!dur) return undefined;
-
-    // Parse duration string (e.g., "30m", "2h", "1.5h", "90m")
-    const match = dur.match(/^(\d+(?:\.\d+)?)(m|h|min|mins|hour|hours)?$/i);
-    if (!match) return undefined;
-
-    const value = parseFloat(match[1]);
-    const unit = (match[2] || "m").toLowerCase();
-
-    if (unit.startsWith("h")) {
-      return value * 60;
-    }
-    return value;
-  }
-
-  /**
-   * Get recurring pattern with auto-assign fallback if enabled and empty
+   * Get recurring pattern from metadata
+   * Only in metadata since it gets re-evaluated on completion
    */
   get recurring(): string | undefined {
-    if (this._raw.metadata.recurring) {
-      return this._raw.metadata.recurring;
-    }
-    // Apply auto-assign if enabled and no explicit recurring
-    return this._settingsModel.defaultRecurring;
+    return this._raw.metadata.recurring;
+  }
+
+  /**
+   * Get tags (string array for backward compatibility)
+   * Maps from Tag[] to string[]
+   */
+  get tags(): string[] {
+    return this._raw.tags.map((t) => t as string);
+  }
+
+  /**
+   * Get dependencies (string array for backward compatibility)
+   * Maps from TodoId[] to string[]
+   */
+  get dependencies(): string[] {
+    return this._raw.dependencies.map((d) => d as string);
+  }
+
+  /**
+   * Get sprint (string for backward compatibility)
+   */
+  get sprint(): string | undefined {
+    return this._raw.sprint as string | undefined;
+  }
+
+  // ===== Computed Properties =====
+
+  /**
+   * Get due date as a Date object (from actual timestamp field)
+   */
+  get dueDateObject(): Date | undefined {
+    const timestamp = this._raw.dueDate;
+    if (!timestamp) return undefined;
+    return new Date(timestamp);
+  }
+
+  /**
+   * Get duration in minutes (from actual seconds field)
+   */
+  get durationMinutes(): number | undefined {
+    const seconds = this._raw.duration;
+    if (!seconds) return undefined;
+    return Math.round(seconds / 60);
   }
 
   /**
@@ -229,18 +284,6 @@ export class TodoModel {
     const pattern = this.recurring;
     if (!pattern) return null;
     return parseRecurringPattern(pattern);
-  }
-
-  get dependencies(): string[] {
-    return [...(this._raw.metadata.dependencies ?? [])];
-  }
-
-  get tags(): string[] {
-    return [...(this._raw.metadata.tags ?? [])];
-  }
-
-  get sprint(): string | undefined {
-    return this._raw.metadata.sprint;
   }
 
   // ===== State Checks =====
@@ -338,7 +381,25 @@ export class TodoModel {
   }
 
   /**
-   * Check if the todo has any metadata assigned (excluding context)
+   * Check if the todo has any actual fields assigned (excluding context)
+   */
+  get hasFields(): boolean {
+    return (
+      this._raw.assignedPeople.length > 0 ||
+      this._raw.sourcePeople.length > 0 ||
+      this._raw.mentionedPeople.length > 0 ||
+      this._raw.projects.length > 0 ||
+      !!this._raw.priority ||
+      !!this._raw.dueDate ||
+      !!this._raw.duration ||
+      this._raw.dependencies.length > 0 ||
+      this._raw.tags.length > 0 ||
+      !!this._raw.sprint
+    );
+  }
+
+  /**
+   * Check if the todo has any metadata from input text
    */
   get hasMetadata(): boolean {
     const m = this._raw.metadata;
@@ -356,58 +417,30 @@ export class TodoModel {
     );
   }
 
-  /**
-   * Check if auto-assign would apply to this todo (has no explicit values)
-   */
-  get wouldAutoAssignApply(): boolean {
-    if (!this._settingsModel.isAutoAssignEnabled) return false;
-    const m = this._raw.metadata;
-    return (
-      (m.assignedPeople.length === 0 && !!this._settingsModel.defaultAssignedPerson) ||
-      (m.sourcePeople.length === 0 && !!this._settingsModel.defaultSourcePerson) ||
-      (m.projects.length === 0 && !!this._settingsModel.defaultProject) ||
-      (!m.priority && !!this._settingsModel.defaultPriority) ||
-      (!m.dueDate && !!this._settingsModel.defaultDueDate) ||
-      (!m.duration && !!this._settingsModel.defaultDuration) ||
-      (!m.recurring && !!this._settingsModel.defaultRecurring)
-    );
-  }
-
-  /**
-   * Get effective metadata with auto-assign defaults applied
-   */
-  get effectiveMetadata(): TodoMetadata {
-    return {
-      assignedPeople: this.assignedPeople,
-      sourcePeople: this.sourcePeople,
-      mentionedPeople: this.mentionedPeople,
-      projects: this.projects,
-      priority: this.priority,
-      dueDate: this.dueDate,
-      duration: this.duration,
-      recurring: this.recurring,
-      dependencies: this.dependencies,
-      tags: this.tags,
-      context: this.context,
-    };
-  }
-
   // ===== Display Helpers =====
 
   /**
-   * Get priority color from settings
+   * Get priority color from settings (using actual priority ID)
    */
   get priorityColor(): string | undefined {
-    if (!this.priority) return undefined;
-    return this._settingsModel.findPriority(this.priority)?.color;
+    if (!this._raw.priority) return undefined;
+    return this._settingsModel.getPriorityColorById(this._raw.priority);
   }
 
   /**
-   * Get priority order (lower is higher priority)
+   * Get priority order (lower is higher priority, using actual priority ID)
    */
   get priorityOrder(): number | undefined {
-    if (!this.priority) return undefined;
-    return this._settingsModel.findPriority(this.priority)?.order;
+    if (!this._raw.priority) return undefined;
+    return this._settingsModel.getPriorityOrderById(this._raw.priority);
+  }
+
+  /**
+   * Get priority name for display (using actual priority ID)
+   */
+  get priorityName(): string | undefined {
+    if (!this._raw.priority) return undefined;
+    return this._settingsModel.findPriorityById(this._raw.priority)?.name;
   }
 
   /**
@@ -823,33 +856,35 @@ export class TodoModel {
 
   /**
    * Get metadata summary for display (e.g., "2 people, 1 project, High priority")
+   * Uses actual fields, not metadata strings
    */
   get metadataSummary(): string {
     const parts: string[] = [];
 
-    const assignedCount = this.assignedPeople.length;
+    const assignedCount = this._raw.assignedPeople.length;
     if (assignedCount > 0) {
       parts.push(`${assignedCount} ${assignedCount === 1 ? "person" : "people"}`);
     }
 
-    const projectCount = this.projects.length;
+    const projectCount = this._raw.projects.length;
     if (projectCount > 0) {
       parts.push(`${projectCount} ${projectCount === 1 ? "project" : "projects"}`);
     }
 
-    if (this.priority) {
-      parts.push(`${this.priority} priority`);
+    const priorityName = this.priorityName;
+    if (priorityName) {
+      parts.push(`${priorityName} priority`);
     }
 
-    if (this.dueDate) {
+    if (this._raw.dueDate) {
       parts.push(`due ${this.dueDateDisplay}`);
     }
 
-    if (this.duration) {
-      parts.push(`${this.duration} duration`);
+    if (this._raw.duration) {
+      parts.push(`${this.durationDisplay} duration`);
     }
 
-    const tagCount = this.tags.length;
+    const tagCount = this._raw.tags.length;
     if (tagCount > 0) {
       parts.push(`${tagCount} ${tagCount === 1 ? "tag" : "tags"}`);
     }
@@ -859,28 +894,28 @@ export class TodoModel {
 
   /**
    * Check if todo matches search text
+   * Note: This searches metadata strings for flexibility, not IDs
    */
   matchesSearch(searchText: string): boolean {
-    if (!searchText) return true;
+    if (searchText === "") return true;
     const search = searchText.toLowerCase();
     return (
       this.plainText.toLowerCase().includes(search) ||
-      this.assignedPeople.some((p) => p.toLowerCase().includes(search)) ||
-      this.sourcePeople.some((p) => p.toLowerCase().includes(search)) ||
-      this.mentionedPeople.some((p) => p.toLowerCase().includes(search)) ||
-      this.projects.some((p) => p.toLowerCase().includes(search)) ||
-      this.tags.some((t) => t.toLowerCase().includes(search)) ||
-      (!!this.priority && this.priority.toLowerCase().includes(search))
+      this._raw.metadata.assignedPeople.some((p) => p.toLowerCase().includes(search)) ||
+      this._raw.metadata.sourcePeople.some((p) => p.toLowerCase().includes(search)) ||
+      this._raw.metadata.mentionedPeople.some((p) => p.toLowerCase().includes(search)) ||
+      this._raw.metadata.projects.some((p) => p.toLowerCase().includes(search)) ||
+      this._raw.tags.some((t) => (t as string).toLowerCase().includes(search)) ||
+      (!!this._raw.metadata.priority && this._raw.metadata.priority.toLowerCase().includes(search))
     );
   }
 
   /**
-   * Get a display-friendly duration string
+   * Get a display-friendly duration string (from actual seconds field)
    */
   get durationDisplay(): string | undefined {
-    if (!this.duration) return undefined;
     const minutes = this.durationMinutes;
-    if (!minutes) return this.duration;
+    if (!minutes) return undefined;
 
     if (minutes < 60) {
       return `${minutes}m`;

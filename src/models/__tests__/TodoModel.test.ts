@@ -4,9 +4,11 @@
 
 import { TodoModel, createTodoModel, createTodoModels } from "@/models/TodoModel";
 import { SettingsModel, createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
-import { Todo, TodoState, getTodoId, getSubtaskId, getTimeEntryId } from "@/types/todo";
+import { Todo, TodoState, getTodoId, getSubtaskId, getTimeEntryId, getTag, Tag } from "@/types/todo";
 import { Settings } from "@/types/settings";
 import { getPriorityId } from "@/types/priority";
+import { getPersonId } from "@/types/person";
+import { getProjectId } from "@/types/project";
 import { getColor, getCommentId, getActivityId } from "@/types/types";
 import {
   getShortTime,
@@ -170,6 +172,19 @@ const createTodo = (overrides: Partial<Todo> = {}): Todo =>
     plainText: overrides.plainText || "Test todo",
     state: overrides.state || "active",
     createdAt: overrides.createdAt || getTimestamp(Date.now()),
+    context: overrides.context || "",
+    // Actual fields (typed IDs)
+    assignedPeople: overrides.assignedPeople || [],
+    sourcePeople: overrides.sourcePeople || [],
+    mentionedPeople: overrides.mentionedPeople || [],
+    projects: overrides.projects || [],
+    tags: overrides.tags || [],
+    dependencies: overrides.dependencies || [],
+    priority: overrides.priority,
+    dueDate: overrides.dueDate,
+    duration: overrides.duration,
+    sprint: overrides.sprint,
+    // Metadata (strings from input)
     metadata: {
       assignedPeople: [],
       sourcePeople: [],
@@ -181,6 +196,7 @@ const createTodo = (overrides: Partial<Todo> = {}): Todo =>
     },
     comments: overrides.comments || [],
     activity: overrides.activity || [],
+    subtasks: overrides.subtasks || [],
     ...overrides,
   } as Todo);
 
@@ -262,6 +278,9 @@ describe("TodoModel", () => {
   });
 
   describe("auto-assign functionality", () => {
+    // Note: Auto-assign now happens at todo creation time, not at model read time.
+    // These tests verify the model correctly reads actual field values.
+
     it("should not apply auto-assign when disabled", () => {
       const todo = createTodo();
       const settings = createSettings({
@@ -273,25 +292,32 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, settings);
 
+      // Model reads from actual fields, which are empty
       expect(model.assignedPeople).toEqual([]);
       expect(model.projects).toEqual([]);
     });
 
-    it("should apply auto-assign for assignedPeople when enabled and empty", () => {
-      const todo = createTodo();
-      const settings = createSettings({
-        autoAssign: {
-          enabled: true,
-          assignedPerson: "Default Person",
+    it("should read from actual fields (assignedPeople)", () => {
+      const todo = createTodo({
+        assignedPeople: [getPersonId("person-1")],
+        metadata: {
+          assignedPeople: ["John Doe"],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
         },
       });
+      const settings = createSettings();
       const model = new TodoModel(todo, settings);
 
-      expect(model.assignedPeople).toEqual(["Default Person"]);
+      // Model reads from actual fields (IDs) - string accessor reads from metadata
+      expect(model.assignedPeopleIds).toEqual([getPersonId("person-1")]);
+      expect(model.assignedPeople).toEqual(["John Doe"]);
     });
 
     it("should not apply auto-assign when explicit value exists", () => {
       const todo = createTodo({
+        assignedPeople: [getPersonId("person-1")],
         metadata: {
           assignedPeople: ["Explicit Person"],
           sourcePeople: [],
@@ -312,100 +338,63 @@ describe("TodoModel", () => {
       expect(model.assignedPeople).toEqual(["Explicit Person"]);
     });
 
-    it("should apply auto-assign for multiple fields", () => {
-      const todo = createTodo();
-      const settings = createSettings({
-        autoAssign: {
-          enabled: true,
-          assignedPerson: "Default Person",
-          sourcePerson: "Default Source",
-          project: "Default Project",
+    it("should read actual fields for multiple metadata types", () => {
+      const todo = createTodo({
+        assignedPeople: [getPersonId("person-1")],
+        sourcePeople: [getPersonId("person-2")],
+        projects: [getProjectId("project-1")],
+        priority: getPriorityId("3"),
+        duration: getDurationSec(30 * 60), // 30 minutes in seconds
+        metadata: {
+          assignedPeople: ["John"],
+          sourcePeople: ["Jane"],
+          mentionedPeople: [],
+          projects: ["Project A"],
           priority: "medium",
           duration: "30m",
         },
       });
+      const settings = createSettings();
       const model = new TodoModel(todo, settings);
 
-      expect(model.assignedPeople).toEqual(["Default Person"]);
-      expect(model.sourcePeople).toEqual(["Default Source"]);
-      expect(model.projects).toEqual(["Default Project"]);
+      // ID-based accessors
+      expect(model.assignedPeopleIds).toEqual([getPersonId("person-1")]);
+      expect(model.sourcePeopleIds).toEqual([getPersonId("person-2")]);
+      expect(model.projectIds).toEqual([getProjectId("project-1")]);
+      expect(model.priorityId).toBe(getPriorityId("3"));
+      expect(model.durationSeconds).toBe(getDurationSec(1800));
+
+      // String-based accessors (from metadata)
+      expect(model.assignedPeople).toEqual(["John"]);
+      expect(model.sourcePeople).toEqual(["Jane"]);
+      expect(model.projects).toEqual(["Project A"]);
       expect(model.priority).toBe("medium");
-      expect(model.duration).toBe("30m");
-    });
-
-    it("should report wouldAutoAssignApply correctly", () => {
-      const todo = createTodo();
-      const settings = createSettings({
-        autoAssign: {
-          enabled: true,
-          assignedPerson: "Default Person",
-        },
-      });
-      const model = new TodoModel(todo, settings);
-
-      expect(model.wouldAutoAssignApply).toBe(true);
-    });
-
-    it("should report wouldAutoAssignApply false when auto-assign disabled", () => {
-      const todo = createTodo();
-      const settings = createSettings({
-        autoAssign: {
-          enabled: false,
-          assignedPerson: "Default Person",
-        },
-      });
-      const model = new TodoModel(todo, settings);
-
-      expect(model.wouldAutoAssignApply).toBe(false);
+      expect(model.durationString).toBe("30m");
     });
   });
 
   describe("duration calculations", () => {
-    it("should parse duration in minutes", () => {
+    it("should return duration in minutes from seconds", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "30m",
-        },
+        duration: getDurationSec(30 * 60), // 30 minutes in seconds
       });
       const model = new TodoModel(todo, createSettings());
 
       expect(model.durationMinutes).toBe(30);
     });
 
-    it("should parse duration in hours", () => {
+    it("should return duration in minutes for hours", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "2h",
-        },
+        duration: getDurationSec(2 * 60 * 60), // 2 hours in seconds
       });
       const model = new TodoModel(todo, createSettings());
 
       expect(model.durationMinutes).toBe(120);
     });
 
-    it("should parse decimal hours", () => {
+    it("should handle fractional hours", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "1.5h",
-        },
+        duration: getDurationSec(90 * 60), // 1.5 hours in seconds
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -421,26 +410,10 @@ describe("TodoModel", () => {
 
     it("should format duration display", () => {
       const shortTodo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "30m",
-        },
+        duration: getDurationSec(30 * 60), // 30 minutes
       });
       const longTodo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "90m",
-        },
+        duration: getDurationSec(90 * 60), // 90 minutes
       });
 
       expect(new TodoModel(shortTodo, createSettings()).durationDisplay).toBe("30m");
@@ -461,17 +434,11 @@ describe("TodoModel", () => {
     });
 
     it("should correctly identify overdue tasks", () => {
+      // Yesterday at noon
+      const yesterday = new Date("2025-12-08T12:00:00").getTime();
       const overdueTodo = createTodo({
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-08", // Yesterday
-        },
+        dueDate: getTimestamp(yesterday),
       });
       const model = new TodoModel(overdueTodo, createSettings());
 
@@ -479,18 +446,11 @@ describe("TodoModel", () => {
     });
 
     it("should not mark completed tasks as overdue", () => {
+      const yesterday = new Date("2025-12-08T12:00:00").getTime();
       const completedTodo = createTodo({
         state: "completed",
         completedAt: getTimestamp(Date.now()),
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-08", // Yesterday
-        },
+        dueDate: getTimestamp(yesterday),
       });
       const model = new TodoModel(completedTodo, createSettings());
 
@@ -498,18 +458,11 @@ describe("TodoModel", () => {
     });
 
     it("should correctly identify tasks due today", () => {
-      // Use explicit ISO datetime to avoid timezone issues
+      // Today at 5pm
+      const todayEvening = new Date("2025-12-09T17:00:00").getTime();
       const todayTodo = createTodo({
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-09T17:00", // Today with time
-        },
+        dueDate: getTimestamp(todayEvening),
       });
       const model = new TodoModel(todayTodo, createSettings());
 
@@ -517,17 +470,11 @@ describe("TodoModel", () => {
     });
 
     it("should correctly identify tasks due this week", () => {
+      // 3 days from now
+      const thisWeek = new Date("2025-12-12T12:00:00").getTime();
       const thisWeekTodo = createTodo({
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-12", // 3 days from now
-        },
+        dueDate: getTimestamp(thisWeek),
       });
       const model = new TodoModel(thisWeekTodo, createSettings());
 
@@ -535,17 +482,11 @@ describe("TodoModel", () => {
     });
 
     it("should calculate days until due", () => {
+      // 5 days from now
+      const future = new Date("2025-12-14T12:00:00").getTime();
       const futureTodo = createTodo({
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-14T12:00", // Future date with time
-        },
+        dueDate: getTimestamp(future),
       });
       const model = new TodoModel(futureTodo, createSettings());
 
@@ -555,17 +496,11 @@ describe("TodoModel", () => {
     });
 
     it("should return negative days for overdue", () => {
+      // 2 days ago
+      const past = new Date("2025-12-07T12:00:00").getTime();
       const overdueTodo = createTodo({
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-07T12:00", // Past date with time
-        },
+        dueDate: getTimestamp(past),
       });
       const model = new TodoModel(overdueTodo, createSettings());
 
@@ -614,14 +549,7 @@ describe("TodoModel", () => {
         plainText: "Dependency task",
       });
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: ["dep-1"],
-        },
+        dependencies: [getTodoId("dep-1")], // Use actual field
       });
       const settings = createSettings();
       const depModel = new TodoModel(dependency, settings);
@@ -641,14 +569,7 @@ describe("TodoModel", () => {
         completedAt: getTimestamp(Date.now()),
       });
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: ["dep-1"],
-        },
+        dependencies: [getTodoId("dep-1")], // Use actual field
       });
       const settings = createSettings();
       const depModel = new TodoModel(dependency, settings);
@@ -705,13 +626,12 @@ describe("TodoModel", () => {
 
     it("should get priority color from settings", () => {
       const todo = createTodo({
+        priority: getPriorityId("1"), // Use actual field with ID
         metadata: {
           assignedPeople: [],
           sourcePeople: [],
           mentionedPeople: [],
           projects: [],
-          tags: [],
-          dependencies: [],
           priority: "urgent",
         },
       });
@@ -722,14 +642,13 @@ describe("TodoModel", () => {
 
     it("should find priority by alternative name", () => {
       const todo = createTodo({
+        priority: getPriorityId("1"), // Use actual field - alternatives resolved to ID
         metadata: {
           assignedPeople: [],
           sourcePeople: [],
           mentionedPeople: [],
           projects: [],
-          tags: [],
-          dependencies: [],
-          priority: "critical", // Alternative for "urgent"
+          priority: "critical", // Alternative for "urgent" in metadata
         },
       });
       const model = new TodoModel(todo, createSettings());
@@ -763,13 +682,13 @@ describe("TodoModel", () => {
     it("should match search text in various fields", () => {
       const todo = createTodo({
         plainText: "Buy groceries",
+        tags: [getTag("personal")], // Use actual tags field
+        priority: getPriorityId("2"), // Use actual priority field
         metadata: {
           assignedPeople: ["Alice"],
           sourcePeople: [],
           mentionedPeople: [],
           projects: ["Shopping"],
-          tags: ["personal"],
-          dependencies: [],
           priority: "high",
         },
       });
@@ -1148,14 +1067,7 @@ describe("TodoModel", () => {
 
     it("should match tags", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: ["important", "urgent"],
-          dependencies: [],
-        },
+        tags: [getTag("important"), getTag("urgent")], // Use actual tags field
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1164,13 +1076,12 @@ describe("TodoModel", () => {
 
     it("should match priority", () => {
       const todo = createTodo({
+        priority: getPriorityId("2"), // Use actual priority field
         metadata: {
           assignedPeople: [],
           sourcePeople: [],
           mentionedPeople: [],
           projects: [],
-          tags: [],
-          dependencies: [],
           priority: "high",
         },
       });
@@ -1180,7 +1091,10 @@ describe("TodoModel", () => {
     });
 
     it("should not match when text is not found", () => {
-      const todo = createTodo({ plainText: "Test task" });
+      const todo = createTodo({
+        plainText: "Test task",
+        tags: [], // Explicit empty tags
+      });
       const model = new TodoModel(todo, createSettings());
 
       expect(model.matchesSearch("nonexistent")).toBe(false);
@@ -1193,14 +1107,7 @@ describe("TodoModel", () => {
       const dependent = createTodo({
         id: getTodoId("dependent"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [getTodoId("blocker")],
-        },
+        dependencies: [getTodoId("blocker")], // Use actual dependencies field
       });
 
       const settings = createSettings();
@@ -1219,14 +1126,7 @@ describe("TodoModel", () => {
       const completedDependent = createTodo({
         id: getTodoId("completed-dependent"),
         state: "completed",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [getTodoId("blocker")],
-        },
+        dependencies: [getTodoId("blocker")], // Use actual dependencies field
       });
 
       const settings = createSettings();
@@ -1243,14 +1143,7 @@ describe("TodoModel", () => {
   describe("metadata summary", () => {
     it("should return 'No metadata' for todo without metadata", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-        },
+        // All actual fields empty (from createTodo defaults)
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1259,14 +1152,7 @@ describe("TodoModel", () => {
 
     it("should include assigned people count", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: ["John", "Jane"],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-        },
+        assignedPeople: [getPersonId("person-1"), getPersonId("person-2")],
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1275,14 +1161,7 @@ describe("TodoModel", () => {
 
     it("should include project count", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: ["Project A"],
-          tags: [],
-          dependencies: [],
-        },
+        projects: [getProjectId("project-1")],
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1291,15 +1170,7 @@ describe("TodoModel", () => {
 
     it("should include duration", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "2h",
-        },
+        duration: getDurationSec(2 * 60 * 60), // 2 hours
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1308,14 +1179,7 @@ describe("TodoModel", () => {
 
     it("should include tags count", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: ["tag1", "tag2", "tag3"],
-          dependencies: [],
-        },
+        tags: [getTag("tag1"), getTag("tag2"), getTag("tag3")],
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1333,15 +1197,7 @@ describe("TodoModel", () => {
 
     it("should format minutes", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "45m",
-        },
+        duration: getDurationSec(45 * 60), // 45 minutes
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1350,15 +1206,7 @@ describe("TodoModel", () => {
 
     it("should format hours", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "2h",
-        },
+        duration: getDurationSec(2 * 60 * 60), // 2 hours
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1367,15 +1215,7 @@ describe("TodoModel", () => {
 
     it("should format fractional hours", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "90m",
-        },
+        duration: getDurationSec(90 * 60), // 90 minutes
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1391,8 +1231,6 @@ describe("TodoModel", () => {
           sourcePeople: [],
           mentionedPeople: [],
           projects: [],
-          tags: [],
-          dependencies: [],
           recurring: "every monday",
         },
       });
@@ -1402,7 +1240,8 @@ describe("TodoModel", () => {
       expect(model.isRecurring).toBe(true);
     });
 
-    it("should apply auto-assign recurring when enabled", () => {
+    it("should not apply auto-assign recurring at read time", () => {
+      // Note: Auto-assign now happens at todo creation time, not at model read time
       const settings = createSettings({
         autoAssign: {
           enabled: true,
@@ -1418,7 +1257,8 @@ describe("TodoModel", () => {
       const todo = createTodo();
       const model = new TodoModel(todo, settings);
 
-      expect(model.recurring).toBe("daily");
+      // Model should not auto-assign - it returns undefined for empty recurring
+      expect(model.recurring).toBeUndefined();
     });
 
     it("should parse recurring pattern", () => {
@@ -1428,8 +1268,6 @@ describe("TodoModel", () => {
           sourcePeople: [],
           mentionedPeople: [],
           projects: [],
-          tags: [],
-          dependencies: [],
           recurring: "every monday",
         },
       });
@@ -1441,27 +1279,11 @@ describe("TodoModel", () => {
   });
 
   describe("due date display", () => {
-    // Helper to format date as local YYYY-MM-DD (avoiding timezone issues with toISOString)
-    const formatLocalDate = (date: Date): string => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    };
-
     it("should return 'Today' for today's date", () => {
       const today = new Date();
-      const dateStr = formatLocalDate(today);
+      today.setHours(17, 0, 0, 0); // Set to 5pm today
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: dateStr,
-        },
+        dueDate: getTimestamp(today.getTime()),
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1471,17 +1293,9 @@ describe("TodoModel", () => {
     it("should return 'Tomorrow' for tomorrow's date", () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateStr = formatLocalDate(tomorrow);
+      tomorrow.setHours(12, 0, 0, 0);
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: dateStr,
-        },
+        dueDate: getTimestamp(tomorrow.getTime()),
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1491,17 +1305,9 @@ describe("TodoModel", () => {
     it("should return 'Yesterday' for yesterday's date", () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      const dateStr = formatLocalDate(yesterday);
+      yesterday.setHours(12, 0, 0, 0);
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: dateStr,
-        },
+        dueDate: getTimestamp(yesterday.getTime()),
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1509,16 +1315,9 @@ describe("TodoModel", () => {
     });
 
     it("should return formatted date for other dates", () => {
+      const futureDate = new Date("2025-12-25T12:00:00");
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-25",
-        },
+        dueDate: getTimestamp(futureDate.getTime()),
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1579,14 +1378,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         id: getTodoId("main"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [getTodoId("dep-1")],
-        },
+        dependencies: [getTodoId("dep-1")], // Use actual dependencies field
       });
 
       const settings = createSettings();
@@ -1603,14 +1395,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         id: getTodoId("main"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [getTodoId("dep-1")],
-        },
+        dependencies: [getTodoId("dep-1")], // Use actual dependencies field
       });
 
       const settings = createSettings();
@@ -1624,24 +1409,24 @@ describe("TodoModel", () => {
 
   describe("updateSettings", () => {
     it("should update the settings", () => {
-      const todo = createTodo();
+      // Note: Auto-assign now happens at todo creation time, not at model read time
+      // This test verifies that updateSettings changes the settings reference
+      const todo = createTodo({
+        assignedPeople: [getPersonId("person-1")],
+        metadata: {
+          assignedPeople: ["John"],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+        },
+      });
       const settings = createSettings();
       const model = new TodoModel(todo, settings);
 
-      const newSettings = createSettings({
-        autoAssign: {
-          enabled: true,
-          assignedPerson: "John",
-          sourcePerson: undefined,
-          project: undefined,
-          priority: undefined,
-          dueDate: undefined,
-          duration: undefined,
-          recurring: undefined,
-        },
-      });
-
+      const newSettings = createSettings();
       model.updateSettings(newSettings);
+
+      // Model should read from actual fields, not auto-assign
       expect(model.assignedPeople).toContain("John");
     });
   });

@@ -11,7 +11,7 @@
  */
 
 import type { Settings, DaySchedule, WorkHoursSettings, DateTimeSettings, ThemeMode } from "@/types/settings";
-import type { Priority } from "@/types/priority";
+import type { Priority, PriorityId } from "@/types/priority";
 import type { KanbanState } from "@/types/kanbanState";
 import type { KanbanView } from "@/types/kanbanView";
 
@@ -247,6 +247,32 @@ export class SettingsModel {
    */
   isValidPriority(name: string): boolean {
     return this.findPriority(name) !== null;
+  }
+
+  /**
+   * Find a priority by ID
+   * Returns null if not found
+   * Returns a copy to prevent external modification of internal state
+   */
+  findPriorityById(id: PriorityId): Priority | null {
+    const found = this._raw.priorities.find((p) => p.id === id);
+    return found ? structuredClone(found) : null;
+  }
+
+  /**
+   * Get priority color by ID, with fallback
+   */
+  getPriorityColorById(id: PriorityId): string {
+    const priority = this.findPriorityById(id);
+    return priority?.color || this.priorityColor;
+  }
+
+  /**
+   * Get priority order by ID (for sorting)
+   */
+  getPriorityOrderById(id: PriorityId): number {
+    const priority = this.findPriorityById(id);
+    return priority?.order ?? 999;
   }
 
   // ============================================================================
