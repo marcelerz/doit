@@ -394,8 +394,8 @@ export function KanbanView({
         if (filters.dueDates.has("overdue") && todo.isOverdue) matches = true;
         if (filters.dueDates.has("today") && todo.isDueToday) matches = true;
         if (filters.dueDates.has("thisWeek") && todo.isDueThisWeek && !todo.isDueToday) matches = true;
-        if (filters.dueDates.has("later") && todo.dueDateRaw && !todo.isDueThisWeek) matches = true;
-        if (filters.dueDates.has("noDueDate") && !todo.dueDateRaw) matches = true;
+        if (filters.dueDates.has("later") && todo.dueDate && !todo.isDueThisWeek) matches = true;
+        if (filters.dueDates.has("noDueDate") && !todo.dueDate) matches = true;
         if (!matches) return;
       }
 
@@ -445,8 +445,8 @@ export function KanbanView({
             return (aUpdated - bUpdated) * direction;
           }
           case "dueDate": {
-            const aDate = a.dueDateRaw ? new Date(a.dueDateRaw).getTime() : Infinity;
-            const bDate = b.dueDateRaw ? new Date(b.dueDateRaw).getTime() : Infinity;
+            const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+            const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
             return (aDate - bDate) * direction;
           }
           case "priority": {
@@ -1217,7 +1217,7 @@ export function KanbanView({
                         {/* Card Metadata */}
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {/* Due Date */}
-                          {todo.dueDateRaw && (
+                          {todo.dueDate && (
                             <span
                               className={`px-1.5 py-0.5 text-xs rounded ${
                                 todo.isOverdue

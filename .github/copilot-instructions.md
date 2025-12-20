@@ -346,7 +346,7 @@ Wraps `Todo` objects with 30+ methods and properties:
 **Smart Getters (with auto-assign):**
 
 - `assignedPeople`, `sourcePeople`, `projects`, `priority`, `dueDate`, `duration`, `recurring`
-- Raw versions available: `assignedPeopleRaw`, `projectsRaw`, etc.
+- Use `metadata` property for exact stored values (for editing)
 
 **Display & Search:**
 

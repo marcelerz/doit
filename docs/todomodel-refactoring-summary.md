@@ -95,7 +95,7 @@ todo.metadata.assignedPeople; // []
 
 // With TodoModel (if auto-assign is enabled)
 todoModel.assignedPeople; // ["Marcel"] - automatically applies default
-todoModel.assignedPeopleRaw; // [] - get the raw value without auto-assign
+todoModel.metadata.assignedPeople; // [] - get the exact stored value
 ```
 
 This works for: `assignedPeople`, `sourcePeople`, `projects`, `priority`, `dueDate`, `duration`, `recurring`
@@ -384,7 +384,7 @@ Additional business logic that could be added to TodoModel:
 
 - Core: `id`, `text`, `plainText`, `state`, `createdAt`, `updatedAt`, `completedAt`, `archivedAt`, `deletedAt`
 - Metadata (with auto-assign): `assignedPeople`, `sourcePeople`, `projects`, `priority`, `dueDate`, `duration`, `recurring`, `dependencies`, `tags`
-- Metadata (raw): `assignedPeopleRaw`, `sourcePeopleRaw`, `projectsRaw`, `priorityRaw`, `dueDateRaw`, `durationRaw`, `recurringRaw`
+- Metadata (exact stored values): `metadata` property returns full TodoMetadata object
 - State checks: `isActive`, `isCompleted`, `isArchived`, `isDeleted`, `isRecurring`
 - Date properties: `isOverdue`, `isDueToday`, `isDueThisWeek`, `daysUntilDue`, `dueDateObject`, `dueDateDisplay`
 - UI properties: `hasComments`, `commentCount`, `hasActivity`, `activityCount`, `hasMetadata`

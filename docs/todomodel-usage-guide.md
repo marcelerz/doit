@@ -64,23 +64,10 @@ todoModel.duration; // Returns auto-assign value if undefined
 todoModel.recurring; // Returns auto-assign value if undefined
 ```
 
-### Raw Getters (exact values)
+### When to Use
 
-```typescript
-todoModel.assignedPeopleRaw; // Exact value from metadata
-todoModel.sourcePeopleRaw; // Exact value from metadata
-todoModel.projectsRaw; // Exact value from metadata
-todoModel.priorityRaw; // Exact value from metadata
-todoModel.dueDateRaw; // Exact value from metadata (not normalized)
-todoModel.durationRaw; // Exact value from metadata
-todoModel.recurringRaw; // Exact value from metadata
-```
-
-### When to Use Each
-
-- **Use smart getters** when displaying data to users (shows what they'll see)
-- **Use raw getters** when checking if user explicitly set a value
-- **Use raw getters** when saving data back to storage
+- **Use smart getters** when displaying data to users (shows what they'll see including auto-assign)
+- **Use `metadata` property** when you need exact stored values for editing or saving
 
 ## Example: Display Component
 
@@ -157,15 +144,16 @@ function FilteredTodoList({ todos, settings, assignedFilter }: Props) {
 
 ## Example: Edit Component
 
-When editing, use raw getters to show actual stored values:
+When editing, use the `metadata` property to get the exact stored values:
 
 ```typescript
 function TodoEditor({ todo, settings, onSave }: Props) {
   const todoModel = new TodoModel(todo, settings);
+  const metadata = todoModel.metadata;
 
-  // Use raw values for editing (don't show auto-assign as if user set it)
-  const [assignedPeople, setAssignedPeople] = useState(todoModel.assignedPeopleRaw);
-  const [dueDate, setDueDate] = useState(todoModel.dueDateRaw);
+  // Use metadata for editing (don't show auto-assign as if user set it)
+  const [assignedPeople, setAssignedPeople] = useState(metadata.assignedPeople);
+  const [dueDate, setDueDate] = useState(metadata.dueDate ?? "");
 
   // Show indicator that auto-assign will apply if empty
   const willAutoAssign =
@@ -194,10 +182,7 @@ function TodoEditor({ todo, settings, onSave }: Props) {
 
 - `assignedPeople`, `sourcePeople`, `projects`, `priority`, `dueDate`, `duration`, `recurring`
 - `mentionedPeople`, `dependencies`, `tags` (no auto-assign for these)
-
-### Raw Metadata (exact values)
-
-- `assignedPeopleRaw`, `sourcePeopleRaw`, `projectsRaw`, `priorityRaw`, `dueDateRaw`, `durationRaw`, `recurringRaw`
+- `metadata`: Full TodoMetadata object (for editing - exact stored values)
 
 ### Date Helpers
 
@@ -237,7 +222,7 @@ To migrate existing components:
 2. **Create TodoModel**: Add `const todoModel = new TodoModel(todo, settings);` at the top
 3. **Replace direct access**: Change `todo.metadata.assignedPeople` to `todoModel.assignedPeople`
 4. **Use helpers**: Replace manual calculations with built-in helpers like `isOverdue`, `dueDateDisplay`
-5. **Raw values for editing**: Use `*Raw` getters when editing to show actual stored values
+5. **Exact values for editing**: Use `todoModel.metadata` when you need the exact stored values
 
 ## Benefits
 

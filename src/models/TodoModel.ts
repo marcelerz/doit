@@ -100,14 +100,6 @@ export class TodoModel {
   }
 
   /**
-   * Get raw assigned people without auto-assign fallback
-   * Returns a copy to prevent external modification of internal state
-   */
-  get assignedPeopleRaw(): string[] {
-    return [...this._raw.metadata.assignedPeople];
-  }
-
-  /**
    * Get source people with auto-assign fallback if enabled and empty
    * Returns a copy to prevent external modification of internal state
    */
@@ -121,14 +113,6 @@ export class TodoModel {
       return [defaultSource];
     }
     return [];
-  }
-
-  /**
-   * Get raw source people without auto-assign fallback
-   * Returns a copy to prevent external modification of internal state
-   */
-  get sourcePeopleRaw(): string[] {
-    return [...this._raw.metadata.sourcePeople];
   }
 
   get mentionedPeople(): string[] {
@@ -152,14 +136,6 @@ export class TodoModel {
   }
 
   /**
-   * Get raw projects without auto-assign fallback
-   * Returns a copy to prevent external modification of internal state
-   */
-  get projectsRaw(): string[] {
-    return [...this._raw.metadata.projects];
-  }
-
-  /**
    * Get priority with auto-assign fallback if enabled and empty
    */
   get priority(): string | undefined {
@@ -168,13 +144,6 @@ export class TodoModel {
     }
     // Apply auto-assign if enabled and no explicit priority
     return this._settingsModel.defaultPriority;
-  }
-
-  /**
-   * Get raw priority without auto-assign fallback
-   */
-  get priorityRaw(): string | undefined {
-    return this._raw.metadata.priority;
   }
 
   /**
@@ -192,13 +161,6 @@ export class TodoModel {
       return normalizeDateValue(defaultDueDate, this._settingsModel.dateTime, this._settingsModel.workHours);
     }
     return undefined;
-  }
-
-  /**
-   * Get raw due date without auto-assign fallback or normalization
-   */
-  get dueDateRaw(): string | undefined {
-    return this._raw.metadata.dueDate;
   }
 
   /**
@@ -220,13 +182,6 @@ export class TodoModel {
     }
     // Apply auto-assign if enabled and no explicit duration
     return this._settingsModel.defaultDuration;
-  }
-
-  /**
-   * Get raw duration without auto-assign fallback
-   */
-  get durationRaw(): string | undefined {
-    return this._raw.metadata.duration;
   }
 
   /**
@@ -258,13 +213,6 @@ export class TodoModel {
     }
     // Apply auto-assign if enabled and no explicit recurring
     return this._settingsModel.defaultRecurring;
-  }
-
-  /**
-   * Get raw recurring pattern without auto-assign fallback
-   */
-  get recurringRaw(): string | undefined {
-    return this._raw.metadata.recurring;
   }
 
   /**
@@ -393,17 +341,18 @@ export class TodoModel {
    * Check if the todo has any metadata assigned (excluding context)
    */
   get hasMetadata(): boolean {
+    const m = this._raw.metadata;
     return (
-      this.assignedPeopleRaw.length > 0 ||
-      this.sourcePeopleRaw.length > 0 ||
-      this.mentionedPeople.length > 0 ||
-      this.projectsRaw.length > 0 ||
-      !!this.priorityRaw ||
-      !!this.dueDateRaw ||
-      !!this.durationRaw ||
-      !!this.recurringRaw ||
-      this.dependencies.length > 0 ||
-      this.tags.length > 0
+      m.assignedPeople.length > 0 ||
+      m.sourcePeople.length > 0 ||
+      m.mentionedPeople.length > 0 ||
+      m.projects.length > 0 ||
+      !!m.priority ||
+      !!m.dueDate ||
+      !!m.duration ||
+      !!m.recurring ||
+      (m.dependencies?.length ?? 0) > 0 ||
+      (m.tags?.length ?? 0) > 0
     );
   }
 
@@ -412,14 +361,15 @@ export class TodoModel {
    */
   get wouldAutoAssignApply(): boolean {
     if (!this._settingsModel.isAutoAssignEnabled) return false;
+    const m = this._raw.metadata;
     return (
-      (this.assignedPeopleRaw.length === 0 && !!this._settingsModel.defaultAssignedPerson) ||
-      (this.sourcePeopleRaw.length === 0 && !!this._settingsModel.defaultSourcePerson) ||
-      (this.projectsRaw.length === 0 && !!this._settingsModel.defaultProject) ||
-      (!this.priorityRaw && !!this._settingsModel.defaultPriority) ||
-      (!this.dueDateRaw && !!this._settingsModel.defaultDueDate) ||
-      (!this.durationRaw && !!this._settingsModel.defaultDuration) ||
-      (!this.recurringRaw && !!this._settingsModel.defaultRecurring)
+      (m.assignedPeople.length === 0 && !!this._settingsModel.defaultAssignedPerson) ||
+      (m.sourcePeople.length === 0 && !!this._settingsModel.defaultSourcePerson) ||
+      (m.projects.length === 0 && !!this._settingsModel.defaultProject) ||
+      (!m.priority && !!this._settingsModel.defaultPriority) ||
+      (!m.dueDate && !!this._settingsModel.defaultDueDate) ||
+      (!m.duration && !!this._settingsModel.defaultDuration) ||
+      (!m.recurring && !!this._settingsModel.defaultRecurring)
     );
   }
 

@@ -288,7 +288,6 @@ describe("TodoModel", () => {
       const model = new TodoModel(todo, settings);
 
       expect(model.assignedPeople).toEqual(["Default Person"]);
-      expect(model.assignedPeopleRaw).toEqual([]); // Raw should be unchanged
     });
 
     it("should not apply auto-assign when explicit value exists", () => {
@@ -1420,7 +1419,6 @@ describe("TodoModel", () => {
       const model = new TodoModel(todo, settings);
 
       expect(model.recurring).toBe("daily");
-      expect(model.recurringRaw).toBeUndefined();
     });
 
     it("should parse recurring pattern", () => {
