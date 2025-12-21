@@ -4,10 +4,20 @@
 
 import { calculateUsageStats, sortByUsage, sortStringsByUsage, getTopUsed } from "@/utils/usageStats";
 import { Todo, TodoState, getTodoId, getTag } from "@/types/todo";
-import { getDurationSec, getTimestamp } from "@/types/time";
+import {
+  getDurationSec,
+  getTimestamp,
+  getShortTime,
+  getWeekday,
+  getMonth,
+  getDurationDay,
+  getDurationMin,
+} from "@/types/time";
 import { getPersonId } from "@/types/person";
 import { getProjectId } from "@/types/project";
 import { getPriorityId } from "@/types/priority";
+import { createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
+import { defaultSettings } from "@/types/settings";
 
 // Helper to convert duration string to seconds (e.g., "1h" -> 3600, "30m" -> 1800)
 function parseDurationToSeconds(duration: string): number {
@@ -19,6 +29,15 @@ function parseDurationToSeconds(duration: string): number {
 }
 
 describe("usageStats", () => {
+  // Initialize SettingsModel before tests
+  beforeEach(() => {
+    resetSettingsModel_DONOTUSE();
+    createSettingsModel(defaultSettings);
+  });
+
+  afterEach(() => {
+    resetSettingsModel_DONOTUSE();
+  });
   // Helper to create a minimal todo
   const createTodo = (
     state: TodoState,

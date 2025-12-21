@@ -7,7 +7,8 @@ import { PersonId } from "@/types/person";
 import { PriorityId } from "@/types/priority";
 import { ProjectId } from "@/types/project";
 import { Tag, Todo } from "@/types/todo";
-import { TodoModel } from "@/models/TodoModel";
+import { createTodoModel } from "@/models/TodoModel";
+import { SettingsModel } from "@/models/SettingsModel";
 
 export interface UsageStats {
   assignedPeople: Map<PersonId, number>;
@@ -32,7 +33,8 @@ const STATE_WEIGHTS = {
 };
 
 /**
- * Calculate usage statistics from all todos
+ * Calculate usage statistics from all todos.
+ * Uses SettingsModel singleton for formatting due dates.
  */
 export function calculateUsageStats(todos: Todo[]): UsageStats {
   const stats: UsageStats = {
@@ -89,16 +91,24 @@ export function calculateUsageStats(todos: Todo[]): UsageStats {
 
     // Track due date (convert timestamp to display string)
     if (todo.dueDate) {
-      const display = TodoModel.formatDueDateDisplay(todo.dueDate);
-      const current = stats.dueDates.get(display) || 0;
-      stats.dueDates.set(display, current + weight);
+      const settings = SettingsModel.getInstance();
+      const model = createTodoModel(todo, settings);
+      const display = model.formattedDueDateDisplay;
+      if (display) {
+        const current = stats.dueDates.get(display) || 0;
+        stats.dueDates.set(display, current + weight);
+      }
     }
 
     // Track duration (convert seconds to display string)
     if (todo.duration) {
-      const display = TodoModel.formatDurationDisplay(todo.duration);
-      const current = stats.durations.get(display) || 0;
-      stats.durations.set(display, current + weight);
+      const settings = SettingsModel.getInstance();
+      const model = createTodoModel(todo, settings);
+      const display = model.formattedDurationDisplay;
+      if (display) {
+        const current = stats.durations.get(display) || 0;
+        stats.durations.set(display, current + weight);
+      }
     }
 
     // Track recurring

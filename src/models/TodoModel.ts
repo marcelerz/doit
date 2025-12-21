@@ -374,31 +374,14 @@ export class TodoModel {
       });
     };
 
-    // Helper to format duration from seconds to string
-    const formatDuration = (seconds: DurationSec | undefined): string | undefined => {
-      if (!seconds) return undefined;
-      const minutes = Math.round(seconds / 60);
-      if (minutes < 60) return `${minutes}m`;
-      const hours = minutes / 60;
-      if (hours === Math.floor(hours)) return `${Math.floor(hours)}h`;
-      return `${hours.toFixed(1)}h`;
-    };
-
-    // Helper to format timestamp to date string
-    const formatDate = (timestamp: Timestamp | undefined): string | undefined => {
-      if (!timestamp) return undefined;
-      const date = new Date(timestamp);
-      return date.toISOString().split("T")[0]; // YYYY-MM-DD
-    };
-
     return {
       assignedPeople: resolvePeopleNames(this._raw.assignedPeople || []),
       sourcePeople: resolvePeopleNames(this._raw.sourcePeople || []),
       mentionedPeople: resolvePeopleNames(this._raw.mentionedPeople || []),
       projects: resolveProjectNames(this._raw.projects || []),
       priority: this.priorityName,
-      dueDate: formatDate(this._raw.dueDate),
-      duration: formatDuration(this._raw.duration),
+      dueDate: this.dueDate,
+      duration: this.durationDisplay,
       recurring: this._raw.recurring,
       tags: this.tags,
       dependencies: this.dependencies,
@@ -1093,6 +1076,157 @@ export class TodoModel {
   }
 
   /**
+   * Get a human-readable due date display string using the instance's settings.
+   * Shows proximity-based output with time-of-day detection.
+   *
+   * @see TodoModel.formatDueDateDisplay for output format details
+   */
+  get formattedDueDateDisplay(): string | undefined {
+    const timestamp = this._raw.dueDate;
+    if (!timestamp) return undefined;
+
+    const date = new Date(timestamp);
+    const now = new Date();
+
+    // Reset times for day comparison
+    const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const todayDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const diffMs = dateDay.getTime() - todayDay.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+    // Get time portion for BOD/EOD detection
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const timeStr = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+
+    // Helper to parse time string "HH:MM" to { hours, minutes }
+    const parseTime = (time: string): { hours: number; minutes: number } => {
+      const [h, m] = time.split(":").map(Number);
+      return { hours: h, minutes: m };
+    };
+
+    // Get settings-defined times
+    const settings = this._settingsModel;
+    const bodTime = settings.getBod(date);
+    const eodTime = settings.getEod(date);
+    const morningTime = settings.morningTime;
+    const noonTime = settings.noonTime;
+    const afternoonTime = settings.afternoonTime;
+    const eveningTime = settings.eveningTime;
+
+    // Parse time boundaries
+    const morning = parseTime(morningTime);
+    const noon = parseTime(noonTime);
+    const afternoon = parseTime(afternoonTime);
+    const evening = parseTime(eveningTime);
+
+    // Helper to get time description (only for nearby dates)
+    const getTimeDescription = (): string => {
+      // Skip if midnight (likely no specific time set)
+      if (hours === 0 && minutes === 0) return "";
+
+      // Check for exact BOD/EOD/noon matches
+      if (timeStr === bodTime) return " BOD";
+      if (timeStr === eodTime) return " EOD";
+      if (timeStr === noonTime) return " noon";
+
+      // Determine time of day based on settings-defined boundaries
+      // Convert to minutes for easier comparison
+      const currentMinutes = hours * 60 + minutes;
+      const morningMinutes = morning.hours * 60 + morning.minutes;
+      const noonMinutes = noon.hours * 60 + noon.minutes;
+      const afternoonMinutes = afternoon.hours * 60 + afternoon.minutes;
+      const eveningMinutes = evening.hours * 60 + evening.minutes;
+
+      // Time period detection (morning → noon → afternoon → evening → night)
+      if (currentMinutes >= morningMinutes && currentMinutes < noonMinutes) return " morning";
+      if (currentMinutes >= noonMinutes && currentMinutes < afternoonMinutes) return " noon";
+      if (currentMinutes >= afternoonMinutes && currentMinutes < eveningMinutes) return " afternoon";
+      if (currentMinutes >= eveningMinutes && currentMinutes < 21 * 60) return " evening";
+
+      // Outside normal hours - show actual time
+      return ` ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+    };
+
+    // Past dates
+    if (diffDays < 0) {
+      const absDays = Math.abs(diffDays);
+      if (absDays === 1) return "Yesterday";
+      if (absDays < 7) return `${absDays} days ago`;
+      if (absDays < 30) {
+        const weeks = Math.round(absDays / 7);
+        return `${weeks} ${weeks === 1 ? "week" : "weeks"} ago`;
+      }
+      if (absDays < 365) {
+        const months = Math.round(absDays / 30);
+        return `${months} ${months === 1 ? "month" : "months"} ago`;
+      }
+      const years = Math.round(absDays / 365);
+      return `${years} ${years === 1 ? "year" : "years"} ago`;
+    }
+
+    // Today
+    if (diffDays === 0) {
+      const timeDesc = getTimeDescription();
+      return timeDesc ? `Today${timeDesc}` : "Today";
+    }
+
+    // Tomorrow
+    if (diffDays === 1) {
+      const timeDesc = getTimeDescription();
+      return timeDesc ? `Tomorrow${timeDesc}` : "Tomorrow";
+    }
+
+    // 2-5 days: show day name with optional time
+    if (diffDays <= 5) {
+      const dayName = date.toLocaleDateString(undefined, { weekday: "long" });
+      const timeDesc = getTimeDescription();
+      return timeDesc ? `${dayName}${timeDesc}` : `on ${dayName}`;
+    }
+
+    // 6-10 days: "in X days"
+    if (diffDays <= 10) {
+      return `in ${diffDays} days`;
+    }
+
+    // 11 days - 8 weeks: "in X weeks"
+    if (diffDays <= 56) {
+      const weeks = Math.round(diffDays / 7);
+      return `in ${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+    }
+
+    // 2-12 months
+    if (diffDays <= 365) {
+      const months = Math.round(diffDays / 30);
+      return `in ${months} ${months === 1 ? "month" : "months"}`;
+    }
+
+    // More than a year
+    const years = Math.round(diffDays / 365);
+    return `in ${years} ${years === 1 ? "year" : "years"}`;
+  }
+
+  /**
+   * Get a formatted duration display string using the instance's duration.
+   * Format: "30m", "2h", "1.5h"
+   */
+  get formattedDurationDisplay(): string | undefined {
+    const seconds = this._raw.duration;
+    if (!seconds) return undefined;
+
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) {
+      return `${minutes}m`;
+    }
+    const hours = minutes / 60;
+    if (hours === Math.floor(hours)) {
+      return `${hours}h`;
+    }
+    return `${hours.toFixed(1)}h`;
+  }
+
+  /**
    * Check if this todo is a blocker for other todos
    */
   isBlockerFor(allTodos: TodoModel[]): TodoModel[] {
@@ -1106,33 +1240,6 @@ export class TodoModel {
     // Note: This requires allTodos, so we can't compute it here
     // Consumers should use isBlockerFor(allTodos).length
     return 0;
-  }
-
-  // ===== Static Utility Methods =====
-
-  /**
-   * Format a duration in seconds to a display string (e.g., "30m", "2h", "1.5h")
-   * Use this when you have a raw DurationSec value and need a display string.
-   */
-  static formatDurationDisplay(seconds: number): string {
-    const minutes = Math.round(seconds / 60);
-    if (minutes < 60) {
-      return `${minutes}m`;
-    }
-    const hours = minutes / 60;
-    if (hours === Math.floor(hours)) {
-      return `${hours}h`;
-    }
-    return `${hours.toFixed(1)}h`;
-  }
-
-  /**
-   * Format a timestamp to a date display string (YYYY-MM-DD format)
-   * Use this when you have a raw Timestamp value and need a simple date string.
-   */
-  static formatDueDateDisplay(timestamp: number): string {
-    const date = new Date(timestamp);
-    return date.toISOString().split("T")[0]; // YYYY-MM-DD format
   }
 }
 
