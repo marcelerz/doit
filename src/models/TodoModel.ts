@@ -1,4 +1,4 @@
-import { Todo, TodoId, TodoMetadata, TodoState, Tag } from "@/types/todo";
+import { Todo, TodoId, TodoState, Tag, TodoMetadata } from "@/types/todo";
 import type { PersonId } from "@/types/person";
 import type { ProjectId } from "@/types/project";
 import type { PriorityId } from "@/types/priority";
@@ -236,70 +236,6 @@ export class TodoModel {
     return this._raw.sprint;
   }
 
-  // ===== Metadata Getters (string representations from input) =====
-
-  /**
-   * Get assigned people strings from metadata (for editing/display)
-   * Returns a copy to prevent external modification of internal state
-   */
-  get assignedPeople(): string[] {
-    return [...this._raw.metadata.assignedPeople];
-  }
-
-  /**
-   * Get source people strings from metadata (for editing/display)
-   * Returns a copy to prevent external modification of internal state
-   */
-  get sourcePeople(): string[] {
-    return [...this._raw.metadata.sourcePeople];
-  }
-
-  /**
-   * Get mentioned people strings from metadata (for editing/display)
-   */
-  get mentionedPeople(): string[] {
-    return [...this._raw.metadata.mentionedPeople];
-  }
-
-  /**
-   * Get project strings from metadata (for editing/display)
-   * Returns a copy to prevent external modification of internal state
-   */
-  get projects(): string[] {
-    return [...this._raw.metadata.projects];
-  }
-
-  /**
-   * Get priority string from metadata (for editing/display)
-   */
-  get priority(): string | undefined {
-    return this._raw.metadata.priority;
-  }
-
-  /**
-   * Get due date string from metadata (for editing/display)
-   * This is the descriptive date like "tomorrow", "next friday", etc.
-   */
-  get dueDateString(): string | undefined {
-    return this._raw.metadata.dueDate;
-  }
-
-  /**
-   * Get duration string from metadata (for editing/display)
-   * This is the descriptive duration like "2h", "30m", etc.
-   */
-  get durationString(): string | undefined {
-    return this._raw.metadata.duration;
-  }
-
-  /**
-   * Get recurring pattern from metadata
-   * Only in metadata since it gets re-evaluated on completion
-   */
-  get recurring(): string | undefined {
-    return this._raw.metadata.recurring;
-  }
-
   /**
    * Get tags (string array for backward compatibility)
    * Maps from Tag[] to string[]
@@ -317,10 +253,158 @@ export class TodoModel {
   }
 
   /**
+   * Get assigned people names (string array for UI display)
+   * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
+   */
+  get assignedPeople(): string[] {
+    const ids = this._raw.assignedPeople || [];
+    if (!this._registry) {
+      return ids.map((id) => id as string);
+    }
+    return ids.map((id) => {
+      const person = this._registry!.getPerson(id);
+      return person ? person.name : (id as string);
+    });
+  }
+
+  /**
+   * Get source people names (string array for UI display)
+   * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
+   */
+  get sourcePeople(): string[] {
+    const ids = this._raw.sourcePeople || [];
+    if (!this._registry) {
+      return ids.map((id) => id as string);
+    }
+    return ids.map((id) => {
+      const person = this._registry!.getPerson(id);
+      return person ? person.name : (id as string);
+    });
+  }
+
+  /**
+   * Get mentioned people names (string array for UI display)
+   * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
+   */
+  get mentionedPeople(): string[] {
+    const ids = this._raw.mentionedPeople || [];
+    if (!this._registry) {
+      return ids.map((id) => id as string);
+    }
+    return ids.map((id) => {
+      const person = this._registry!.getPerson(id);
+      return person ? person.name : (id as string);
+    });
+  }
+
+  /**
+   * Get project names (string array for UI display)
+   * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
+   */
+  get projects(): string[] {
+    const ids = this._raw.projects || [];
+    if (!this._registry) {
+      return ids.map((id) => id as string);
+    }
+    return ids.map((id) => {
+      const project = this._registry!.getProject(id);
+      return project ? project.name : (id as string);
+    });
+  }
+
+  /**
+   * Get priority name (string for UI display/backward compatibility)
+   * Resolves priority ID to name via settings
+   */
+  get priority(): string | undefined {
+    if (!this._raw.priority) return undefined;
+    return this._settingsModel.findPriorityById(this._raw.priority)?.name;
+  }
+
+  /**
+   * Get due date as display string (YYYY-MM-DD format for UI display/backward compatibility)
+   */
+  get dueDate(): string | undefined {
+    if (!this._raw.dueDate) return undefined;
+    const date = new Date(this._raw.dueDate);
+    return date.toISOString().split("T")[0];
+  }
+
+  /**
    * Get sprint (string for backward compatibility)
    */
   get sprint(): string | undefined {
     return this._raw.sprint as string | undefined;
+  }
+
+  /**
+   * Get recurring pattern (actual field)
+   * This is kept as a string for later re-evaluation when completing the task
+   */
+  get recurring(): string | undefined {
+    return this._raw.recurring;
+  }
+
+  /**
+   * Get metadata for UI editing purposes.
+   * Converts typed ID fields to string-based TodoMetadata.
+   * Uses registry to resolve person/project IDs to names.
+   * Falls back to ID strings if registry not available.
+   */
+  get metadata(): TodoMetadata {
+    // Helper to resolve person IDs to names
+    const resolvePeopleNames = (ids: PersonId[]): string[] => {
+      if (!this._registry) {
+        return ids.map((id) => id as string);
+      }
+      return ids.map((id) => {
+        const person = this._registry!.getPerson(id);
+        return person ? person.name : (id as string);
+      });
+    };
+
+    // Helper to resolve project IDs to names
+    const resolveProjectNames = (ids: ProjectId[]): string[] => {
+      if (!this._registry) {
+        return ids.map((id) => id as string);
+      }
+      return ids.map((id) => {
+        const project = this._registry!.getProject(id);
+        return project ? project.name : (id as string);
+      });
+    };
+
+    // Helper to format duration from seconds to string
+    const formatDuration = (seconds: DurationSec | undefined): string | undefined => {
+      if (!seconds) return undefined;
+      const minutes = Math.round(seconds / 60);
+      if (minutes < 60) return `${minutes}m`;
+      const hours = minutes / 60;
+      if (hours === Math.floor(hours)) return `${Math.floor(hours)}h`;
+      return `${hours.toFixed(1)}h`;
+    };
+
+    // Helper to format timestamp to date string
+    const formatDate = (timestamp: Timestamp | undefined): string | undefined => {
+      if (!timestamp) return undefined;
+      const date = new Date(timestamp);
+      return date.toISOString().split("T")[0]; // YYYY-MM-DD
+    };
+
+    return {
+      assignedPeople: resolvePeopleNames(this._raw.assignedPeople || []),
+      sourcePeople: resolvePeopleNames(this._raw.sourcePeople || []),
+      mentionedPeople: resolvePeopleNames(this._raw.mentionedPeople || []),
+      projects: resolveProjectNames(this._raw.projects || []),
+      priority: this.priorityName,
+      dueDate: formatDate(this._raw.dueDate),
+      duration: formatDuration(this._raw.duration),
+      recurring: this._raw.recurring,
+      tags: this.tags,
+      dependencies: this.dependencies,
+      sprint: this._raw.sprint as string | undefined,
+      context: this._raw.context,
+    };
   }
 
   // ===== Computed Properties =====
@@ -431,14 +515,6 @@ export class TodoModel {
   // ===== Metadata Operations =====
 
   /**
-   * Get the raw metadata object
-   * Returns a deep copy to prevent external modification of internal state
-   */
-  get metadata(): TodoMetadata {
-    return structuredClone(this._raw.metadata);
-  }
-
-  /**
    * Get the raw underlying todo object
    * WARNING: Returns reference to internal state - do not modify
    */
@@ -468,25 +544,6 @@ export class TodoModel {
       this._raw.dependencies.length > 0 ||
       this._raw.tags.length > 0 ||
       !!this._raw.sprint
-    );
-  }
-
-  /**
-   * Check if the todo has any metadata from input text
-   */
-  get hasMetadata(): boolean {
-    const m = this._raw.metadata;
-    return (
-      m.assignedPeople.length > 0 ||
-      m.sourcePeople.length > 0 ||
-      m.mentionedPeople.length > 0 ||
-      m.projects.length > 0 ||
-      !!m.priority ||
-      !!m.dueDate ||
-      !!m.duration ||
-      !!m.recurring ||
-      (m.dependencies?.length ?? 0) > 0 ||
-      (m.tags?.length ?? 0) > 0
     );
   }
 
@@ -970,20 +1027,52 @@ export class TodoModel {
 
   /**
    * Check if todo matches search text
-   * Note: This searches metadata strings for flexibility, not IDs
+   * Uses registry to look up names from IDs for searching
    */
   matchesSearch(searchText: string): boolean {
     if (searchText === "") return true;
     const search = searchText.toLowerCase();
-    return (
-      this.plainText.toLowerCase().includes(search) ||
-      this._raw.metadata.assignedPeople.some((p) => p.toLowerCase().includes(search)) ||
-      this._raw.metadata.sourcePeople.some((p) => p.toLowerCase().includes(search)) ||
-      this._raw.metadata.mentionedPeople.some((p) => p.toLowerCase().includes(search)) ||
-      this._raw.metadata.projects.some((p) => p.toLowerCase().includes(search)) ||
-      this._raw.tags.some((t) => (t as string).toLowerCase().includes(search)) ||
-      (!!this._raw.metadata.priority && this._raw.metadata.priority.toLowerCase().includes(search))
-    );
+
+    // Search plain text
+    if (this.plainText.toLowerCase().includes(search)) return true;
+
+    // Search tags
+    if ((this._raw.tags || []).some((t) => (t as string).toLowerCase().includes(search))) return true;
+
+    // Search priority name
+    if (this._raw.priority) {
+      const priorityName = this._settingsModel.findPriorityById(this._raw.priority)?.name;
+      if (priorityName && priorityName.toLowerCase().includes(search)) return true;
+    }
+
+    // Search people and projects using registry if available
+    if (this._registry) {
+      // Search assigned people
+      for (const personId of this._raw.assignedPeople || []) {
+        const person = this._registry.getPerson(personId);
+        if (person && person.matchesSearch(search)) return true;
+      }
+
+      // Search source people
+      for (const personId of this._raw.sourcePeople || []) {
+        const person = this._registry.getPerson(personId);
+        if (person && person.matchesSearch(search)) return true;
+      }
+
+      // Search mentioned people
+      for (const personId of this._raw.mentionedPeople || []) {
+        const person = this._registry.getPerson(personId);
+        if (person && person.matchesSearch(search)) return true;
+      }
+
+      // Search projects
+      for (const projectId of this._raw.projects || []) {
+        const project = this._registry.getProject(projectId);
+        if (project && project.matchesSearch(search)) return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -1017,6 +1106,33 @@ export class TodoModel {
     // Note: This requires allTodos, so we can't compute it here
     // Consumers should use isBlockerFor(allTodos).length
     return 0;
+  }
+
+  // ===== Static Utility Methods =====
+
+  /**
+   * Format a duration in seconds to a display string (e.g., "30m", "2h", "1.5h")
+   * Use this when you have a raw DurationSec value and need a display string.
+   */
+  static formatDurationDisplay(seconds: number): string {
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) {
+      return `${minutes}m`;
+    }
+    const hours = minutes / 60;
+    if (hours === Math.floor(hours)) {
+      return `${hours}h`;
+    }
+    return `${hours.toFixed(1)}h`;
+  }
+
+  /**
+   * Format a timestamp to a date display string (YYYY-MM-DD format)
+   * Use this when you have a raw Timestamp value and need a simple date string.
+   */
+  static formatDueDateDisplay(timestamp: number): string {
+    const date = new Date(timestamp);
+    return date.toISOString().split("T")[0]; // YYYY-MM-DD format
   }
 }
 

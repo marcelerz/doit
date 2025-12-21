@@ -63,8 +63,6 @@ export interface Todo {
   sprint?: SprintId; // Sprint ID for scrum planning
   sortOrder?: number; // Manual sort order (lower = higher priority)
 
-  metadata: TodoMetadata; // Metadata extracted from text (doesn't necessarily match fields)
-
   // Actual metadata fields
   assignedPeople: PersonId[]; // Actual assigned people
   sourcePeople: PersonId[]; // Actual source people
@@ -73,6 +71,7 @@ export interface Todo {
   priority?: PriorityId; // Actual priority used
   dueDate?: Timestamp; // Actual due date timestamp
   duration?: DurationSec; // Actual duration used
+  recurring?: string; // auto-detected or via field (~ pattern)
 
   comments: Comment[]; // Comments for todos
   activity: ActivityEntry<TodoActivityType>[]; // Activity log for the todo
@@ -84,18 +83,27 @@ export interface Todo {
 const TODO_STATES = ["active", "completed", "archived", "deleted"] as const;
 export type TodoState = (typeof TODO_STATES)[number];
 
-// Metadata for a todo item
+/**
+ * TodoMetadata - String-based editing interface for todos.
+ *
+ * This is used for:
+ * 1. UI editing flow (user types names, not IDs)
+ * 2. Token parsing from SmartInput (produces string values)
+ * 3. Activity logging (tracks human-readable changes)
+ *
+ * Note: This is NOT stored on Todo - it's converted to typed ID fields when saving.
+ */
 export interface TodoMetadata {
-  assignedPeople: string[]; // @ marker
-  sourcePeople: string[]; // $ marker
-  mentionedPeople: string[]; // auto-detected (no marker)
-  projects: string[]; // % marker
-  priority?: string; // !! marker
-  dueDate?: string; // auto-detected or via field
-  duration?: string; // auto-detected or via field
+  assignedPeople: string[]; // @ marker - person names
+  sourcePeople: string[]; // $ marker - person names
+  mentionedPeople: string[]; // auto-detected (no marker) - person names
+  projects: string[]; // % marker - project names
+  priority?: string; // !! marker - priority name
+  dueDate?: string; // auto-detected or via field - date string like "tomorrow", "2025-12-15"
+  duration?: string; // auto-detected or via field - duration string like "2h", "30m"
   recurring?: string; // auto-detected or via field (~ pattern)
   tags?: string[]; // # marker - free-form tags
-  dependencies?: string[]; // via field (no marker)
+  dependencies?: string[]; // via field (no marker) - todo IDs as strings
   sprint?: string; // Sprint ID for scrum planning
   context?: string; // Rich text context
 }

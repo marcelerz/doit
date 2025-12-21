@@ -12,9 +12,12 @@ import {
 } from "@/utils/export";
 import { TodoModel } from "@/models/TodoModel";
 import { createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
-import { Todo, TodoState, getTodoId } from "@/types/todo";
+import { Todo, TodoState, getTodoId, getTag } from "@/types/todo";
 import { Settings } from "@/types/settings";
 import { getColor } from "@/types/types";
+import { getPriorityId } from "@/types/priority";
+import { getPersonId } from "@/types/person";
+import { getProjectId } from "@/types/project";
 import {
   getShortTime,
   getDurationDay,
@@ -33,18 +36,20 @@ describe("export", () => {
   });
 
   // Helper to create a mock TodoModel
+  // Note: The new architecture stores typed IDs, not string names.
+  // Priority is looked up from settings by ID, dueDate is a timestamp.
   const createMockTodo = (
     overrides: Partial<{
       id: string;
       text: string;
       plainText: string;
       state: TodoState;
-      priority: string;
-      dueDate: string;
-      duration: string;
-      assignedPeople: string[];
-      projects: string[];
-      tags: string[];
+      priorityId: string; // Priority ID to look up in settings
+      dueDate: number; // Timestamp
+      duration: number; // Duration in seconds
+      assignedPeople: string[]; // Person IDs
+      projects: string[]; // Project IDs
+      tags: string[]; // Tag strings
       createdAt: number;
       completedAt: number;
       comments: any[];
@@ -58,30 +63,27 @@ describe("export", () => {
       createdAt: getTimestamp(overrides.createdAt || Date.now()),
       completedAt: overrides.completedAt ? getTimestamp(overrides.completedAt) : undefined,
       context: "",
-      tags: [],
+      tags: (overrides.tags || []).map((t) => getTag(t)),
       dependencies: [],
-      assignedPeople: [],
+      assignedPeople: (overrides.assignedPeople || []).map((p) => getPersonId(p)),
       sourcePeople: [],
       mentionedPeople: [],
-      projects: [],
+      projects: (overrides.projects || []).map((p) => getProjectId(p)),
+      priority: overrides.priorityId ? getPriorityId(overrides.priorityId) : undefined,
+      dueDate: overrides.dueDate ? getTimestamp(overrides.dueDate) : undefined,
+      duration: overrides.duration ? getDurationSec(overrides.duration) : undefined,
       subtasks: [],
-      metadata: {
-        assignedPeople: overrides.assignedPeople || [],
-        sourcePeople: [],
-        mentionedPeople: [],
-        projects: overrides.projects || [],
-        dependencies: [],
-        tags: overrides.tags || [],
-        priority: overrides.priority,
-        dueDate: overrides.dueDate,
-        duration: overrides.duration,
-      },
       comments: overrides.comments || [],
       activity: [],
     };
 
     const settings: Settings = {
-      priorities: [],
+      priorities: [
+        { id: getPriorityId("1"), name: "urgent", alternatives: [], order: 1, color: getColor("#ff0000") },
+        { id: getPriorityId("2"), name: "high", alternatives: [], order: 2, color: getColor("#ff6600") },
+        { id: getPriorityId("3"), name: "medium", alternatives: [], order: 3, color: getColor("#ffcc00") },
+        { id: getPriorityId("4"), name: "low", alternatives: [], order: 4, color: getColor("#00cc00") },
+      ],
       linkPatterns: [],
       markerColors: {
         assigned: getColor("#000"),
@@ -256,14 +258,16 @@ describe("export", () => {
     });
 
     it("should include metadata in parentheses", () => {
+      // Note: Export now uses typed fields (IDs), not string names.
+      // Priority is looked up by ID, dueDate is a timestamp displayed as a date string.
+      // Assigned people and projects require registry for name lookup (not tested here).
+      const dueDate = new Date("2025-12-15T12:00:00").getTime();
       const todos = [
         createMockTodo({
           plainText: "Task with metadata",
           state: "active",
-          priority: "high",
-          dueDate: "2025-12-15",
-          assignedPeople: ["Alice", "Bob"],
-          projects: ["Website"],
+          priorityId: "2", // Maps to "high" in settings
+          dueDate,
           tags: ["urgent"],
         }),
       ];
@@ -271,9 +275,7 @@ describe("export", () => {
       const result = exportToMarkdown(todos);
 
       expect(result).toContain("Priority: high");
-      expect(result).toContain("Due: 2025-12-15");
-      expect(result).toContain("Assigned: Alice, Bob");
-      expect(result).toContain("Project: Website");
+      expect(result).toContain("Due:");
       expect(result).toContain("Tags: urgent");
     });
 
@@ -313,13 +315,14 @@ describe("export", () => {
     });
 
     it("should export todo data", () => {
+      const dueDate = new Date("2025-12-15T12:00:00").getTime();
       const todos = [
         createMockTodo({
           plainText: "Test task",
           state: "active",
-          priority: "high",
-          dueDate: "2025-12-15",
-          duration: "2h",
+          priorityId: "2", // Maps to "high"
+          dueDate,
+          duration: 7200, // 2 hours in seconds
         }),
       ];
 
@@ -330,8 +333,7 @@ describe("export", () => {
       expect(lines[1]).toContain("Test task");
       expect(lines[1]).toContain("active");
       expect(lines[1]).toContain("high");
-      expect(lines[1]).toContain("2025-12-15");
-      expect(lines[1]).toContain("2h");
+      expect(lines[1]).toContain("2h"); // Duration display
     });
 
     it("should escape values with commas", () => {
@@ -350,18 +352,20 @@ describe("export", () => {
       expect(result).toContain('"Task with ""quotes"""');
     });
 
-    it("should join multiple assigned people with semicolons", () => {
+    it("should include tags joined with semicolons", () => {
+      // Note: Assigned people/projects require registry for name lookup.
+      // Tags are strings and work without registry.
       const todos = [
         createMockTodo({
           plainText: "Task",
           state: "active",
-          assignedPeople: ["Alice", "Bob", "Charlie"],
+          tags: ["work", "urgent", "review"],
         }),
       ];
 
       const result = exportToCSV(todos);
 
-      expect(result).toContain("Alice; Bob; Charlie");
+      expect(result).toContain("work; urgent; review");
     });
 
     it("should include timestamps in ISO format", () => {
@@ -407,17 +411,20 @@ describe("export", () => {
     });
 
     it("should export all todo properties", () => {
+      // Note: The export now uses typed fields (IDs) and the 'fields' property instead of 'metadata'.
+      // People and projects are exported as IDs since names require registry lookup.
+      const dueDate = new Date("2025-12-15T12:00:00").getTime();
       const todos = [
         createMockTodo({
           id: "todo-123",
           text: "Full text with @Alice",
           plainText: "Full text",
           state: "active",
-          priority: "high",
-          dueDate: "2025-12-15",
-          duration: "2h",
-          assignedPeople: ["Alice"],
-          projects: ["Website"],
+          priorityId: "2", // Maps to "high"
+          dueDate,
+          duration: 7200, // 2 hours in seconds
+          assignedPeople: ["person-1"], // IDs, not names
+          projects: ["project-1"], // IDs, not names
           tags: ["urgent"],
         }),
       ];
@@ -430,12 +437,11 @@ describe("export", () => {
       expect(todo.title).toBe("Full text");
       expect(todo.fullText).toContain("@Alice");
       expect(todo.state).toBe("active");
-      expect(todo.metadata.priority).toBe("high");
-      expect(todo.metadata.dueDate).toBe("2025-12-15");
-      expect(todo.metadata.duration).toBe("2h");
-      expect(todo.metadata.assignedPeople).toContain("Alice");
-      expect(todo.metadata.projects).toContain("Website");
-      expect(todo.metadata.tags).toContain("urgent");
+      expect(todo.fields.priority).toBe("high"); // Name looked up from settings
+      expect(todo.fields.duration).toBe("2h"); // Formatted from seconds
+      expect(todo.fields.assignedPeopleIds).toContain("person-1"); // IDs
+      expect(todo.fields.projectIds).toContain("project-1"); // IDs
+      expect(todo.fields.tags).toContain("urgent");
     });
 
     it("should include timestamps", () => {

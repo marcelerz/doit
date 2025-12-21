@@ -7,6 +7,7 @@ import { PersonId } from "@/types/person";
 import { PriorityId } from "@/types/priority";
 import { ProjectId } from "@/types/project";
 import { Tag, Todo } from "@/types/todo";
+import { TodoModel } from "@/models/TodoModel";
 
 export interface UsageStats {
   assignedPeople: Map<PersonId, number>;
@@ -86,22 +87,24 @@ export function calculateUsageStats(todos: Todo[]): UsageStats {
       stats.tags.set(tag, current + weight);
     });
 
-    // Track due date
-    if (todo.metadata.dueDate) {
-      const current = stats.dueDates.get(todo.metadata.dueDate) || 0;
-      stats.dueDates.set(todo.metadata.dueDate, current + weight);
+    // Track due date (convert timestamp to display string)
+    if (todo.dueDate) {
+      const display = TodoModel.formatDueDateDisplay(todo.dueDate);
+      const current = stats.dueDates.get(display) || 0;
+      stats.dueDates.set(display, current + weight);
     }
 
-    // Track duration
-    if (todo.metadata.duration) {
-      const current = stats.durations.get(todo.metadata.duration) || 0;
-      stats.durations.set(todo.metadata.duration, current + weight);
+    // Track duration (convert seconds to display string)
+    if (todo.duration) {
+      const display = TodoModel.formatDurationDisplay(todo.duration);
+      const current = stats.durations.get(display) || 0;
+      stats.durations.set(display, current + weight);
     }
 
     // Track recurring
-    if (todo.metadata.recurring) {
-      const current = stats.recurring.get(todo.metadata.recurring) || 0;
-      stats.recurring.set(todo.metadata.recurring, current + weight);
+    if (todo.recurring) {
+      const current = stats.recurring.get(todo.recurring) || 0;
+      stats.recurring.set(todo.recurring, current + weight);
     }
   });
 

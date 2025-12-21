@@ -215,7 +215,7 @@ describe("migrations", () => {
       expect(result[0].plainText).toBe("Test todo");
     });
 
-    it("should ensure metadata exists with all fields", () => {
+    it("should ensure direct fields exist with defaults", () => {
       const todos = [
         {
           id: "1",
@@ -225,10 +225,9 @@ describe("migrations", () => {
       ];
       const result = migrateTodos(todos, defaultTestSettings);
 
-      expect(result[0].metadata).toBeDefined();
-      expect(result[0].metadata.assignedPeople).toEqual([]);
-      expect(result[0].metadata.projects).toEqual([]);
-      expect(result[0].metadata.tags).toEqual([]);
+      expect(result[0].assignedPeople).toEqual([]);
+      expect(result[0].projects).toEqual([]);
+      expect(result[0].tags).toEqual([]);
     });
 
     it("should migrate legacy priorities array to single priority", () => {
@@ -242,7 +241,7 @@ describe("migrations", () => {
       ];
       const result = migrateTodos(todos, defaultTestSettings);
 
-      expect(result[0].metadata.priority).toBe("high");
+      expect(result[0].priority).toBe("high");
     });
 
     it("should migrate legacy dueDates array to single dueDate", () => {
@@ -256,7 +255,7 @@ describe("migrations", () => {
       ];
       const result = migrateTodos(todos, defaultTestSettings);
 
-      expect(result[0].metadata.dueDate).toBe("2025-01-01");
+      expect(result[0].dueDate).toBe("2025-01-01");
     });
 
     it("should ensure comments array exists", () => {
@@ -368,7 +367,7 @@ describe("migrations", () => {
       ];
       const result = migrateTodos(todos, defaultTestSettings);
 
-      expect(result[0].metadata.sprint).toBe("sprint-1");
+      expect(result[0].sprint).toBe("sprint-1");
     });
 
     it("should set timestamps if missing", () => {

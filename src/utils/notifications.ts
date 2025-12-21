@@ -422,7 +422,7 @@ export function sendNotification(title: string, options?: NotificationOptions): 
  */
 export function notifyOverdueTask(todo: TodoModel): Notification | null {
   return sendNotification(`Overdue: ${todo.plainText}`, {
-    body: `This task was due ${todo.dueDateDisplay || todo.metadata.dueDate}`,
+    body: `This task was due ${todo.dueDateDisplay}`,
     tag: `overdue-${todo.id}`,
     requireInteraction: false,
   });
@@ -433,7 +433,7 @@ export function notifyOverdueTask(todo: TodoModel): Notification | null {
  */
 export function notifyDueToday(todo: TodoModel): Notification | null {
   return sendNotification(`Due Today: ${todo.plainText}`, {
-    body: todo.metadata.priority ? `Priority: ${todo.metadata.priority}` : "Remember to complete this task",
+    body: todo.priorityName ? `Priority: ${todo.priorityName}` : "Remember to complete this task",
     tag: `due-today-${todo.id}`,
     requireInteraction: false,
   });
@@ -444,7 +444,7 @@ export function notifyDueToday(todo: TodoModel): Notification | null {
  */
 export function notifyDueSoon(todo: TodoModel, hours: number): Notification | null {
   return sendNotification(`Due in ${hours} hour${hours === 1 ? "" : "s"}: ${todo.plainText}`, {
-    body: todo.metadata.priority ? `Priority: ${todo.metadata.priority}` : "Task deadline approaching",
+    body: todo.priorityName ? `Priority: ${todo.priorityName}` : "Task deadline approaching",
     tag: `due-soon-${todo.id}`,
     requireInteraction: false,
   });
@@ -467,15 +467,13 @@ export function checkAndNotifyDueTasks(
   const now = new Date();
 
   todos.forEach((todo) => {
-    if (!todo.isActive || !todo.metadata.dueDate) return;
+    // Use the dueDateObject from TodoModel which is derived from the dueDate timestamp
+    if (!todo.isActive || !todo.dueDateObject) return;
 
     // Skip if already notified
     if (notifiedIds.has(todo.id)) return;
 
-    // Parse due date
-    const dueDate = parseDueDate(todo.metadata.dueDate);
-    if (!dueDate) return;
-
+    const dueDate = todo.dueDateObject;
     const diffMs = dueDate.getTime() - now.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
 
@@ -512,6 +510,7 @@ export function checkAndNotifyDueTasks(
 
 /**
  * Parse a due date string into a Date object
+ * @deprecated Use TodoModel.dueDateObject instead
  */
 function parseDueDate(dueDate: string): Date | null {
   // Try parsing as ISO date

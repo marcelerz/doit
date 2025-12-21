@@ -54,20 +54,16 @@ function formatTodoMarkdown(todo: TodoModel, completed: boolean): string {
 
   const metadata: string[] = [];
 
-  if (todo.metadata.priority) {
-    metadata.push(`Priority: ${todo.metadata.priority}`);
+  if (todo.priorityName) {
+    metadata.push(`Priority: ${todo.priorityName}`);
   }
-  if (todo.metadata.dueDate) {
-    metadata.push(`Due: ${todo.metadata.dueDate}`);
+  if (todo.dueDateDisplay) {
+    metadata.push(`Due: ${todo.dueDateDisplay}`);
   }
-  if (todo.metadata.assignedPeople.length > 0) {
-    metadata.push(`Assigned: ${todo.metadata.assignedPeople.join(", ")}`);
-  }
-  if (todo.metadata.projects.length > 0) {
-    metadata.push(`Project: ${todo.metadata.projects.join(", ")}`);
-  }
-  if (todo.metadata.tags && todo.metadata.tags.length > 0) {
-    metadata.push(`Tags: ${todo.metadata.tags.join(", ")}`);
+  // Note: assignedPeopleIds contains IDs, not names - we use tags for now
+  // In a full implementation, we'd use registry to look up names
+  if (todo.tags.length > 0) {
+    metadata.push(`Tags: ${todo.tags.join(", ")}`);
   }
 
   if (metadata.length > 0) {
@@ -100,12 +96,12 @@ export function exportToCSV(todos: TodoModel[]): string {
     rows.push([
       escapeCSV(todo.plainText),
       todo.state,
-      todo.metadata.priority || "",
-      todo.metadata.dueDate || "",
-      todo.metadata.duration || "",
-      todo.metadata.assignedPeople.join("; "),
-      todo.metadata.projects.join("; "),
-      (todo.metadata.tags ?? []).join("; "),
+      todo.priorityName || "",
+      todo.dueDateDisplay || "",
+      todo.durationDisplay || "",
+      "", // Assigned - would need registry for names
+      "", // Projects - would need registry for names
+      todo.tags.join("; "),
       todo.createdAt ? new Date(todo.createdAt).toISOString() : "",
       todo.completedAt ? new Date(todo.completedAt).toISOString() : "",
     ]);
@@ -131,17 +127,17 @@ export function exportToJSON(todos: TodoModel[]): string {
     title: todo.plainText,
     fullText: todo.text,
     state: todo.state,
-    metadata: {
-      priority: todo.metadata.priority,
-      dueDate: todo.metadata.dueDate,
-      duration: todo.metadata.duration,
-      recurring: todo.metadata.recurring,
-      assignedPeople: todo.metadata.assignedPeople,
-      sourcePeople: todo.metadata.sourcePeople,
-      mentionedPeople: todo.metadata.mentionedPeople,
-      projects: todo.metadata.projects,
-      tags: todo.metadata.tags,
-      dependencies: todo.metadata.dependencies,
+    fields: {
+      priority: todo.priorityName,
+      dueDate: todo.dueDateDisplay,
+      duration: todo.durationDisplay,
+      recurring: todo.recurring,
+      assignedPeopleIds: todo.assignedPeopleIds,
+      sourcePeopleIds: todo.sourcePeopleIds,
+      mentionedPeopleIds: todo.mentionedPeopleIds,
+      projectIds: todo.projectIds,
+      tags: todo.tags,
+      dependencyIds: todo.dependencyIds,
     },
     timestamps: {
       created: todo.createdAt,

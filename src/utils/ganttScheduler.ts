@@ -201,29 +201,21 @@ export function sortTodosForScheduling(
 
       // For active tasks, sort by priority then due date
       if (a.state === "active" && b.state === "active") {
-        const aPriorityObj = availablePriorities.find(
-          (p) => p.name === a.metadata.priority || p.alternatives.includes(a.metadata.priority || ""),
-        );
-        const bPriorityObj = availablePriorities.find(
-          (p) => p.name === b.metadata.priority || p.alternatives.includes(b.metadata.priority || ""),
-        );
-
-        const aOrder = aPriorityObj?.order ?? 999;
-        const bOrder = bPriorityObj?.order ?? 999;
+        const aOrder = a.priorityOrder ?? 999;
+        const bOrder = b.priorityOrder ?? 999;
 
         if (aOrder !== bOrder) {
           return aOrder - bOrder;
         }
 
         // Secondary sort: due date (earliest first)
-        if (!a.metadata.dueDate && !b.metadata.dueDate) return 0;
-        if (!a.metadata.dueDate) return 1;
-        if (!b.metadata.dueDate) return -1;
+        const aTimestamp = a.dueDateTimestamp;
+        const bTimestamp = b.dueDateTimestamp;
+        if (!aTimestamp && !bTimestamp) return 0;
+        if (!aTimestamp) return 1;
+        if (!bTimestamp) return -1;
 
-        const aDate = new Date(a.metadata.dueDate);
-        const bDate = new Date(b.metadata.dueDate);
-
-        return aDate.getTime() - bDate.getTime();
+        return aTimestamp - bTimestamp;
       }
 
       // For completed/archived, sort by completion/archive date
@@ -240,14 +232,13 @@ export function sortTodosForScheduling(
 
       // For active tasks, sort by due date
       if (a.state === "active" && b.state === "active") {
-        if (!a.metadata.dueDate && !b.metadata.dueDate) return 0;
-        if (!a.metadata.dueDate) return 1;
-        if (!b.metadata.dueDate) return -1;
+        const aTimestamp = a.dueDateTimestamp;
+        const bTimestamp = b.dueDateTimestamp;
+        if (!aTimestamp && !bTimestamp) return 0;
+        if (!aTimestamp) return 1;
+        if (!bTimestamp) return -1;
 
-        const aDate = new Date(a.metadata.dueDate);
-        const bDate = new Date(b.metadata.dueDate);
-
-        return aDate.getTime() - bDate.getTime();
+        return aTimestamp - bTimestamp;
       }
 
       // For completed/archived, sort by completion/archive date
@@ -272,14 +263,13 @@ export function sortTodosForScheduling(
         }
 
         // Secondary sort: due date (earliest first)
-        if (!a.metadata.dueDate && !b.metadata.dueDate) return 0;
-        if (!a.metadata.dueDate) return 1;
-        if (!b.metadata.dueDate) return -1;
+        const aTimestamp = a.dueDateTimestamp;
+        const bTimestamp = b.dueDateTimestamp;
+        if (!aTimestamp && !bTimestamp) return 0;
+        if (!aTimestamp) return 1;
+        if (!bTimestamp) return -1;
 
-        const aDate = new Date(a.metadata.dueDate);
-        const bDate = new Date(b.metadata.dueDate);
-
-        return aDate.getTime() - bDate.getTime();
+        return aTimestamp - bTimestamp;
       }
 
       // For completed/archived, sort by completion/archive date
@@ -343,7 +333,7 @@ export function createTaskSchedulingMap(todos: TodoModel[], config: SchedulingCo
       }, 0);
 
       // Calculate remaining time
-      const originalDurationMinutes = parseDuration(todo.metadata.duration) * ganttSettings.durationMultiplier;
+      const originalDurationMinutes = parseDuration(todo.durationDisplay) * ganttSettings.durationMultiplier;
       const minimumRemaining = ganttSettings.minimumRemainingDuration ?? 1;
       const remainingMinutes = Math.max(minimumRemaining, originalDurationMinutes - totalTrackedMinutes);
 
@@ -440,7 +430,7 @@ export function createTaskSchedulingMap(todos: TodoModel[], config: SchedulingCo
       if (currentTime >= dayEnd) break;
 
       // Calculate task duration (tasks with tracked time are handled separately above)
-      const durationMinutes = parseDuration(todo.metadata.duration) * ganttSettings.durationMultiplier;
+      const durationMinutes = parseDuration(todo.durationDisplay) * ganttSettings.durationMultiplier;
 
       const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
 
@@ -575,20 +565,12 @@ export function scheduleDayTasks(
     // For completed/archived tasks, schedule based on their actual completion time
     if ((todo.isCompleted || todo.isArchived) && todo.completedAt) {
       const completionDate = new Date(todo.completedAt);
-      const durationMinutes = parseDuration(todo.metadata.duration);
+      const durationMinutes = parseDuration(todo.durationDisplay);
 
       let targetDate: Date;
-      if (todo.metadata.dueDate) {
-        const dueDateStr = todo.metadata.dueDate;
-        if (dueDateStr.includes("T") || dueDateStr.includes("Z")) {
-          targetDate = new Date(dueDateStr);
-        } else if (dueDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          const [year, month, day] = dueDateStr.split("-").map(Number);
-          targetDate = new Date(year, month - 1, day);
-          targetDate.setHours(23, 59, 59, 999);
-        } else {
-          targetDate = new Date(dueDateStr);
-        }
+      const dueDateObj = todo.dueDateObject;
+      if (dueDateObj) {
+        targetDate = dueDateObj;
       } else {
         targetDate = completionDate;
       }
@@ -732,7 +714,7 @@ export function scheduleDayTasks(
     const isScheduledForThisDate = scheduledTodoIds ? scheduledTodoIds.has(todo.id) : true;
 
     // Calculate remaining duration considering ALL tracked time (not just this date)
-    const originalDurationMinutes = parseDuration(todo.metadata.duration) * ganttSettings.durationMultiplier;
+    const originalDurationMinutes = parseDuration(todo.durationDisplay) * ganttSettings.durationMultiplier;
     const minimumRemaining = ganttSettings.minimumRemainingDuration ?? 1;
     const remainingAfterTracking = Math.max(minimumRemaining, originalDurationMinutes - totalTrackedMinutesAllTime);
 
@@ -950,17 +932,9 @@ export function scheduleDayTasks(
     const scheduledMinutes = scheduledSegments.reduce((sum, s) => sum + s.durationMinutes, 0);
 
     let targetDate: Date;
-    if (todo.metadata.dueDate) {
-      const dueDateStr = todo.metadata.dueDate;
-      if (dueDateStr.includes("T") || dueDateStr.includes("Z")) {
-        targetDate = new Date(dueDateStr);
-      } else if (dueDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        const [year, month, day] = dueDateStr.split("-").map(Number);
-        targetDate = new Date(year, month - 1, day);
-        targetDate.setHours(23, 59, 59, 999);
-      } else {
-        targetDate = new Date(dueDateStr);
-      }
+    const dueDateObj = todo.dueDateObject;
+    if (dueDateObj) {
+      targetDate = dueDateObj;
     } else {
       targetDate = isToday && now > dayStartTime && now < dayEndTime ? now : dayEndTime;
     }

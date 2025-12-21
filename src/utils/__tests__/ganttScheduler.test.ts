@@ -40,7 +40,7 @@ import { defaultCategories } from "@/types/project";
 import { TodoModel } from "@/models/TodoModel";
 import { createSettingsModel, SettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { Todo, getTodoId, getTimeEntryId } from "@/types/todo";
-import { getTimestamp, getShortTime, getDurationMin } from "@/types/time";
+import { getTimestamp, getShortTime, getDurationMin, getDurationSec } from "@/types/time";
 import { getBreakPeriodId } from "@/types/breakPeriod";
 import { getColor } from "@/types/types";
 
@@ -101,15 +101,6 @@ const createTodo = (overrides: Partial<Todo> = {}): Todo => ({
   plainText: overrides.plainText || "Test todo",
   state: overrides.state || "active",
   createdAt: overrides.createdAt || getTimestamp(Date.now()),
-  metadata: {
-    assignedPeople: [],
-    sourcePeople: [],
-    mentionedPeople: [],
-    projects: [],
-    tags: [],
-    dependencies: [],
-    ...overrides.metadata,
-  },
   comments: [],
   activity: [],
   subtasks: [],
@@ -365,41 +356,17 @@ describe("ganttScheduler", () => {
       const urgentTodo = createTodo({
         id: getTodoId("urgent"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          priority: "urgent",
-        },
+        priority: getPriorityId("1"), // urgent priority
       });
       const lowTodo = createTodo({
         id: getTodoId("low"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          priority: "low",
-        },
+        priority: getPriorityId("4"), // low priority
       });
       const mediumTodo = createTodo({
         id: getTodoId("medium"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          priority: "medium",
-        },
+        priority: getPriorityId("3"), // medium priority
       });
 
       const todos = [lowTodo, mediumTodo, urgentTodo].map((t) => new TodoModel(t, settings));
@@ -415,41 +382,17 @@ describe("ganttScheduler", () => {
       const earlyTodo = createTodo({
         id: getTodoId("early"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-10",
-        },
+        dueDate: getTimestamp(new Date("2025-12-10").getTime()),
       });
       const lateTodo = createTodo({
         id: getTodoId("late"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-20",
-        },
+        dueDate: getTimestamp(new Date("2025-12-20").getTime()),
       });
       const middleTodo = createTodo({
         id: getTodoId("middle"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-15",
-        },
+        dueDate: getTimestamp(new Date("2025-12-15").getTime()),
       });
 
       const todos = [lateTodo, earlyTodo, middleTodo].map((t) => new TodoModel(t, settings));
@@ -465,15 +408,7 @@ describe("ganttScheduler", () => {
       const withDate = createTodo({
         id: getTodoId("with-date"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-10",
-        },
+        dueDate: getTimestamp(new Date("2025-12-10").getTime()),
       });
       const withoutDate = createTodo({
         id: getTodoId("without-date"),
@@ -558,15 +493,7 @@ describe("ganttScheduler", () => {
       const activeTodo = createTodo({
         id: getTodoId("active"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-10",
-        },
+        dueDate: getTimestamp(new Date("2025-12-10").getTime()),
       });
 
       const todos = [archivedTodo, completedTodo, activeTodo].map((t) => new TodoModel(t, settings));
@@ -582,28 +509,12 @@ describe("ganttScheduler", () => {
       const noDueDate1 = createTodo({
         id: getTodoId("no-date-1"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          priority: "medium",
-        },
+        priority: getPriorityId("3"),
       });
       const noDueDate2 = createTodo({
         id: getTodoId("no-date-2"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          priority: "medium",
-        },
+        priority: getPriorityId("3"),
       });
 
       const todos = [noDueDate1, noDueDate2].map((t) => new TodoModel(t, settings));
@@ -655,30 +566,14 @@ describe("ganttScheduler", () => {
       const todo1 = createTodo({
         id: getTodoId("todo-1"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-09",
-          duration: "30m",
-        },
+        dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+        duration: getDurationSec(1800),
       });
       const todo2 = createTodo({
         id: getTodoId("todo-2"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-10",
-          duration: "60m",
-        },
+        dueDate: getTimestamp(new Date("2025-12-10").getTime()),
+        duration: getDurationSec(3600),
       });
 
       const todos = [todo1, todo2].map((t) => new TodoModel(t, settings));
@@ -709,15 +604,7 @@ describe("ganttScheduler", () => {
         id: getTodoId("completed"),
         state: "completed",
         completedAt: getTimestamp(Date.now()),
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-09",
-        },
+        dueDate: getTimestamp(new Date("2025-12-09").getTime()),
       });
 
       const todos = [completedTodo].map((t) => new TodoModel(t, settings));
@@ -732,16 +619,8 @@ describe("ganttScheduler", () => {
       const trackedTodo = createTodo({
         id: getTodoId("tracked"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-09",
-          duration: "60m",
-        },
+        dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+        duration: getDurationSec(3600),
         timeTracking: {
           entries: [],
           totalMinutes: getDurationMin(30), // 30 minutes already tracked
@@ -771,16 +650,8 @@ describe("ganttScheduler", () => {
       const longTodo = createTodo({
         id: getTodoId("long-task"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-15",
-          duration: "8h", // 480 minutes - would span multiple days
-        },
+        dueDate: getTimestamp(new Date("2025-12-15").getTime()),
+        duration: getDurationSec(28800), // 480 minutes - would span multiple days
       });
 
       const todos = [longTodo].map((t) => new TodoModel(t, settings));
@@ -797,16 +668,8 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("multiplied"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-09",
-          duration: "60m",
-        },
+        dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+        duration: getDurationSec(3600),
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -821,16 +684,8 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("map-test"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-09",
-          duration: "30m",
-        },
+        dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+        duration: getDurationSec(1800),
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -849,15 +704,7 @@ describe("ganttScheduler", () => {
         state: "archived",
         archivedAt: getTimestamp(Date.now()),
         completedAt: getTimestamp(completionDate.getTime()),
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-10",
-        },
+        dueDate: getTimestamp(new Date("2025-12-10").getTime()),
       });
 
       const todos = [archivedTodo].map((t) => new TodoModel(t, settings));
@@ -873,16 +720,8 @@ describe("ganttScheduler", () => {
       const trackedTodo = createTodo({
         id: getTodoId("tracked-task"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-15",
-          duration: "2h",
-        },
+        dueDate: getTimestamp(new Date("2025-12-15").getTime()),
+        duration: getDurationSec(7200),
         timeTracking: {
           entries: [
             {
@@ -912,28 +751,12 @@ describe("ganttScheduler", () => {
       const todo1 = createTodo({
         id: getTodoId("pomo-1"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "25m",
-        },
+        duration: getDurationSec(1500),
       });
       const todo2 = createTodo({
         id: getTodoId("pomo-2"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "25m",
-        },
+        duration: getDurationSec(1500),
       });
 
       const todos = [todo1, todo2].map((t) => new TodoModel(t, settings));
@@ -950,15 +773,7 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("flow-1"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "52m",
-        },
+        duration: getDurationSec(3120),
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -974,15 +789,7 @@ describe("ganttScheduler", () => {
       const partiallyTrackedTodo = createTodo({
         id: getTodoId("partial-track"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "4h", // 240 minutes total
-        },
+        duration: getDurationSec(14400), // 240 minutes total
         timeTracking: {
           entries: [
             {
@@ -1014,15 +821,7 @@ describe("ganttScheduler", () => {
             createTodo({
               id: getTodoId(`overflow-${i}`),
               state: "active",
-              metadata: {
-                assignedPeople: [],
-                sourcePeople: [],
-                mentionedPeople: [],
-                projects: [],
-                tags: [],
-                dependencies: [],
-                duration: "8h", // Full work day each
-              },
+              duration: getDurationSec(28800), // Full work day each
             }),
             settings,
           ),
@@ -1065,15 +864,7 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("task-1"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "30m",
-        },
+        duration: getDurationSec(1800),
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -1090,15 +881,7 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("task-1"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "30m",
-        },
+        duration: getDurationSec(1800),
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -1124,28 +907,12 @@ describe("ganttScheduler", () => {
       const todo1 = createTodo({
         id: getTodoId("seq-1"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "30m",
-        },
+        duration: getDurationSec(1800),
       });
       const todo2 = createTodo({
         id: getTodoId("seq-2"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "30m",
-        },
+        duration: getDurationSec(1800),
       });
 
       const todos = [todo1, todo2].map((t) => new TodoModel(t, settings));
@@ -1161,15 +928,7 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("pomo-1"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "50m", // Longer than one pomodoro session
-        },
+        duration: getDurationSec(3000), // 50m - Longer than one pomodoro session
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -1186,15 +945,7 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("flow-1"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "90m",
-        },
+        duration: getDurationSec(5400),
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -1211,15 +962,7 @@ describe("ganttScheduler", () => {
         id: getTodoId("completed-1"),
         state: "completed",
         completedAt: getTimestamp(Date.now()),
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "30m",
-        },
+        duration: getDurationSec(1800),
       });
 
       const todos = [completedTodo].map((t) => new TodoModel(t, settings));
@@ -1235,15 +978,7 @@ describe("ganttScheduler", () => {
         id: getTodoId("archived-1"),
         state: "archived",
         archivedAt: getTimestamp(Date.now()),
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "30m",
-        },
+        duration: getDurationSec(1800),
       });
 
       const todos = [archivedTodo].map((t) => new TodoModel(t, settings));
@@ -1273,15 +1008,7 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("break-test"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "4h", // 4 hours - should span before and after lunch
-        },
+        duration: getDurationSec(14400), // 4 hours - should span before and after lunch
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -1298,41 +1025,17 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("morning-1"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            duration: "2h",
-          },
+          duration: getDurationSec(7200), // 2h
         }),
         createTodo({
           id: getTodoId("morning-2"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            duration: "2h",
-          },
+          duration: getDurationSec(7200), // 2h
         }),
         createTodo({
           id: getTodoId("afternoon-1"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            duration: "2h",
-          },
+          duration: getDurationSec(7200), // 2h
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -1349,15 +1052,7 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("too-long"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "20h", // 20 hours - more than a workday
-        },
+        duration: getDurationSec(72000), // 20 hours - more than a workday
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -1378,28 +1073,12 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("cs-1"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            duration: "30m",
-          },
+          duration: getDurationSec(1800), // 30m
         }),
         createTodo({
           id: getTodoId("cs-2"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            duration: "30m",
-          },
+          duration: getDurationSec(1800), // 30m
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -1434,16 +1113,8 @@ describe("ganttScheduler", () => {
           ],
           totalMinutes: getDurationMin(30),
         },
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: dateStr,
-          duration: "30m",
-        },
+        dueDate: getTimestamp(new Date(dateStr).getTime()),
+        duration: getDurationSec(1800), // 30m
       });
 
       const todos = [completedWithEntries].map((t) => new TodoModel(t, settings));
@@ -1491,16 +1162,8 @@ describe("ganttScheduler", () => {
           ],
           totalMinutes: getDurationMin(55),
         },
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: dateStr,
-          duration: "55m",
-        },
+        dueDate: getTimestamp(new Date(dateStr).getTime()),
+        duration: getDurationSec(3300), // 55m
       });
 
       const todos = [completedWithMultipleEntries].map((t) => new TodoModel(t, settings));
@@ -1533,16 +1196,8 @@ describe("ganttScheduler", () => {
           ],
           totalMinutes: getDurationMin(30),
         },
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-09T17:00:00Z", // ISO format due date
-          duration: "30m",
-        },
+        dueDate: getTimestamp(new Date("2025-12-09T17:00:00Z").getTime()),
+        duration: getDurationSec(1800), // 30m
       });
 
       const todos = [completedWithISODueDate].map((t) => new TodoModel(t, settings));
@@ -1570,16 +1225,8 @@ describe("ganttScheduler", () => {
           ],
           totalMinutes: getDurationMin(30),
         },
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-09",
-          duration: "60m", // 60m total, 30m tracked = 30m remaining
-        },
+        dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+        duration: getDurationSec(3600), // 60m total, 30m tracked = 30m remaining
       });
 
       const todos = [activeWithTracking].map((t) => new TodoModel(t, settings));
@@ -1607,16 +1254,8 @@ describe("ganttScheduler", () => {
           ],
           totalMinutes: getDurationMin(0),
         },
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-09",
-          duration: "60m",
-        },
+        dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+        duration: getDurationSec(3600), // 60m
       });
 
       const todos = [inProgressTask].map((t) => new TodoModel(t, settings));
@@ -1635,15 +1274,7 @@ describe("ganttScheduler", () => {
           entries: [],
           totalMinutes: getDurationMin(20), // 20 minutes already done
         },
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "60m", // 60 minutes total, 40 remaining
-        },
+        duration: getDurationSec(3600), // 60 minutes total, 40 remaining
       });
 
       const todos = [todoWithTrackedTime].map((t) => new TodoModel(t, settings));
@@ -1671,16 +1302,8 @@ describe("ganttScheduler", () => {
           ],
           totalMinutes: getDurationMin(30),
         },
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-09",
-          duration: "60m", // 60 minutes total, 30 tracked = 30 remaining
-        },
+        dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+        duration: getDurationSec(3600), // 60 minutes total, 30 tracked = 30 remaining
       });
 
       const todos = [todoWithEntries].map((t) => new TodoModel(t, settings));
@@ -1716,15 +1339,7 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("non-work-day"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "2h",
-        },
+        duration: getDurationSec(7200), // 2h
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -1750,58 +1365,26 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("short-1"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "15m",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(900), // 15m
         }),
         createTodo({
           id: getTodoId("short-2"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "15m",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(900), // 15m
         }),
         createTodo({
           id: getTodoId("short-3"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "15m",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(900), // 15m
         }),
         createTodo({
           id: getTodoId("short-4"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "15m",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(900), // 15m
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -1839,30 +1422,14 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("flow-1"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "1h",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(3600), // 1h
         }),
         createTodo({
           id: getTodoId("flow-2"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "1h",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(3600), // 1h
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -1880,15 +1447,7 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("multiplied"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "30m",
-        },
+        duration: getDurationSec(1800), // 30m
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -1910,15 +1469,7 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("weekend-task"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "2h",
-        },
+        duration: getDurationSec(7200), // 2h
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -1945,15 +1496,7 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("disabled-day"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "2h",
-        },
+        duration: getDurationSec(7200), // 2h
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -1969,41 +1512,17 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("first"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            duration: "30m",
-          },
+          duration: getDurationSec(1800), // 30m
         }),
         createTodo({
           id: getTodoId("second"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            duration: "30m",
-          },
+          duration: getDurationSec(1800), // 30m
         }),
         createTodo({
           id: getTodoId("third"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            duration: "30m",
-          },
+          duration: getDurationSec(1800), // 30m
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -2018,15 +1537,7 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("props-test"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          duration: "30m",
-        },
+        duration: getDurationSec(1800), // 30m
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -2075,16 +1586,8 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("week-task"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-12",
-          duration: "2h",
-        },
+        dueDate: getTimestamp(new Date("2025-12-12").getTime()),
+        duration: getDurationSec(7200), // 2h
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -2115,31 +1618,15 @@ describe("ganttScheduler", () => {
       const mondayTask = createTodo({
         id: getTodoId("monday"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-08",
-          duration: "30m",
-        },
+        dueDate: getTimestamp(new Date("2025-12-08").getTime()),
+        duration: getDurationSec(1800), // 30m
       });
 
       const wednesdayTask = createTodo({
         id: getTodoId("wednesday"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-10",
-          duration: "30m",
-        },
+        dueDate: getTimestamp(new Date("2025-12-10").getTime()),
+        duration: getDurationSec(1800), // 30m
       });
 
       const todos = [mondayTask, wednesdayTask].map((t) => new TodoModel(t, settings));
@@ -2155,16 +1642,8 @@ describe("ganttScheduler", () => {
       const longTask = createTodo({
         id: getTodoId("multi-day"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-12",
-          duration: "20h", // Would span multiple days
-        },
+        dueDate: getTimestamp(new Date("2025-12-12").getTime()),
+        duration: getDurationSec(72000), // 20h
       });
 
       const todos = [longTask].map((t) => new TodoModel(t, settings));
@@ -2233,16 +1712,8 @@ describe("ganttScheduler", () => {
         id: getTodoId("completed-week"),
         state: "completed",
         completedAt: getTimestamp(Date.now()),
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-09",
-          duration: "30m",
-        },
+        dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+        duration: getDurationSec(1800), // 30m
       });
 
       const todos = [completedTask].map((t) => new TodoModel(t, settings));
@@ -2257,16 +1728,8 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("positioned"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-09",
-          duration: "2h",
-        },
+        dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+        duration: getDurationSec(7200), // 2h
       });
 
       const todos = [todo].map((t) => new TodoModel(t, settings));
@@ -2292,16 +1755,8 @@ describe("ganttScheduler", () => {
       const todo = createTodo({
         id: getTodoId("technique-test"),
         state: "active",
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-          dueDate: "2025-12-09",
-          duration: "2h",
-        },
+        dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+        duration: getDurationSec(7200), // 2h
       });
 
       for (const technique of techniques) {
@@ -2364,30 +1819,14 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("pomo-week-1"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "50m",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(3000), // 50m
         }),
         createTodo({
           id: getTodoId("pomo-week-2"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "50m",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(3000), // 50m
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -2413,30 +1852,14 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("flow-week-1"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "90m",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(5400), // 90m
         }),
         createTodo({
           id: getTodoId("flow-week-2"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "90m",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(5400), // 90m
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -2463,30 +1886,14 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("break-calc-1"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "60m",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(3600), // 60m
         }),
         createTodo({
           id: getTodoId("break-calc-2"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "60m",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(3600), // 60m
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -2530,31 +1937,15 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("before-lunch-1"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "2h",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(7200), // 2h
         }),
         // Tasks after lunch
         createTodo({
           id: getTodoId("after-lunch-1"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "2h",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(7200), // 2h
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -2593,30 +1984,14 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("flow-reset-1"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "2h",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(7200), // 2h
         }),
         createTodo({
           id: getTodoId("flow-reset-2"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "2h",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(7200), // 2h
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -2652,30 +2027,14 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("seq-1"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "3h",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(10800), // 3h
         }),
         createTodo({
           id: getTodoId("seq-2"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "3h",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(10800), // 3h
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -2691,30 +2050,14 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("seg-viz-1"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "2h",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(7200), // 2h
         }),
         createTodo({
           id: getTodoId("seg-viz-2"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "2h",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(7200), // 2h
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -2748,16 +2091,8 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("long-pomo"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "2h",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(7200), // 2h
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -2786,44 +2121,20 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("task-a"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "30m",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(1800), // 30m
         }),
         createTodo({
           id: getTodoId("task-b"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "30m",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(1800), // 30m
         }),
         createTodo({
           id: getTodoId("task-c"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "30m",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(1800), // 30m
         }),
       ].map((t) => new TodoModel(t, settings));
 
@@ -2871,30 +2182,14 @@ describe("ganttScheduler", () => {
         createTodo({
           id: getTodoId("before-lunch"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "3h",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(10800), // 3h
         }),
         createTodo({
           id: getTodoId("after-lunch"),
           state: "active",
-          metadata: {
-            assignedPeople: [],
-            sourcePeople: [],
-            mentionedPeople: [],
-            projects: [],
-            tags: [],
-            dependencies: [],
-            dueDate: "2025-12-09",
-            duration: "3h",
-          },
+          dueDate: getTimestamp(new Date("2025-12-09").getTime()),
+          duration: getDurationSec(10800), // 3h
         }),
       ].map((t) => new TodoModel(t, settings));
 

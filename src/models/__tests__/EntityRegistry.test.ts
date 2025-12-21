@@ -1,5 +1,5 @@
 import { EntityRegistry, createEntityRegistry } from "../EntityRegistry";
-import { SettingsModel } from "../SettingsModel";
+import { SettingsModel, createSettingsModel } from "../SettingsModel";
 import type { Todo } from "@/types/todo";
 import type { Person } from "@/types/person";
 import type { Project } from "@/types/project";
@@ -22,12 +22,6 @@ function createTestTodo(overrides: Partial<Todo> = {}): Todo {
     context: "",
     tags: [],
     dependencies: [],
-    metadata: {
-      assignedPeople: [],
-      sourcePeople: [],
-      mentionedPeople: [],
-      projects: [],
-    },
     assignedPeople: [],
     sourcePeople: [],
     mentionedPeople: [],
@@ -67,7 +61,7 @@ describe("EntityRegistry", () => {
   let settings: SettingsModel;
 
   beforeEach(() => {
-    settings = new SettingsModel(defaultSettings);
+    settings = createSettingsModel(defaultSettings);
   });
 
   describe("constructor", () => {

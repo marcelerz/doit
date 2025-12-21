@@ -30,9 +30,10 @@ import {
 import { MockBrowserApis, setBrowserApis, resetBrowserApis } from "@/utils/browserApis";
 import { TodoModel } from "@/models/TodoModel";
 import { createSettingsModel, SettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
-import { Todo, TodoMetadata, getTodoId } from "@/types/todo";
+import { Todo, getTodoId } from "@/types/todo";
 import { Settings } from "@/types/settings";
 import { getColor } from "@/types/types";
+import { getPriorityId } from "@/types/priority";
 import {
   getShortTime,
   getDurationDay,
@@ -47,7 +48,12 @@ import {
 // Helper to create test settings
 const createTestSettings = (): SettingsModel =>
   createSettingsModel({
-    priorities: [],
+    priorities: [
+      { id: getPriorityId("1"), name: "urgent", alternatives: [], order: 1 },
+      { id: getPriorityId("2"), name: "high", alternatives: [], order: 2 },
+      { id: getPriorityId("3"), name: "medium", alternatives: [], order: 3 },
+      { id: getPriorityId("4"), name: "low", alternatives: [], order: 4 },
+    ],
     linkPatterns: [],
     markerColors: {
       assigned: getColor("#cce5ff"),
@@ -177,28 +183,12 @@ const createTestSettings = (): SettingsModel =>
     },
   });
 
-// Default metadata for test todos
-const defaultTestMetadata: TodoMetadata = {
-  assignedPeople: [],
-  sourcePeople: [],
-  mentionedPeople: [],
-  projects: [],
-  dependencies: [],
-  tags: [],
-};
-
-// Interface for test todo overrides that allows partial metadata
-interface TestTodoOverrides extends Omit<Partial<Todo>, "metadata"> {
-  metadata?: Partial<TodoMetadata>;
-}
-
 // Helper to create a test todo
-const createTestTodo = (overrides: TestTodoOverrides = {}): Todo => ({
+const createTestTodo = (overrides: Partial<Todo> = {}): Todo => ({
   id: getTodoId(overrides.id || "test-todo-1"),
   text: overrides.text || "Test todo",
   plainText: overrides.plainText || "Test todo",
   state: overrides.state || "active",
-  metadata: { ...defaultTestMetadata, ...overrides.metadata },
   createdAt: getTimestamp(overrides.createdAt || Date.now()),
   updatedAt: getTimestamp(overrides.updatedAt || Date.now()),
   context: "",
@@ -211,6 +201,7 @@ const createTestTodo = (overrides: TestTodoOverrides = {}): Todo => ({
   subtasks: [],
   comments: overrides.comments || [],
   activity: overrides.activity || [],
+  ...overrides,
 });
 
 describe("notifications", () => {
@@ -759,7 +750,7 @@ describe("notifications with MockBrowserApis", () => {
       const todo = createTestTodo({
         id: getTodoId("todo-1"),
         plainText: "Finish report",
-        metadata: { dueDate: "2024-01-01" },
+        dueDate: getTimestamp(new Date("2024-01-01").getTime()),
       });
       const model = new TodoModel(todo, settings);
 
@@ -774,7 +765,7 @@ describe("notifications with MockBrowserApis", () => {
       const settings = createTestSettings();
       const todo = createTestTodo({
         plainText: "Urgent task",
-        metadata: { priority: "high" },
+        priority: getPriorityId("2"), // "high" priority
       });
       const model = new TodoModel(todo, settings);
 
@@ -821,7 +812,7 @@ describe("notifications with MockBrowserApis", () => {
       const todo = createTestTodo({
         id: getTodoId("overdue-1"),
         plainText: "Overdue task",
-        metadata: { dueDate: yesterday.toISOString() },
+        dueDate: getTimestamp(yesterday.getTime()),
       });
       const model = new TodoModel(todo, settings);
 
@@ -845,7 +836,7 @@ describe("notifications with MockBrowserApis", () => {
       const todo = createTestTodo({
         id: getTodoId("today-1"),
         plainText: "Today task",
-        metadata: { dueDate: today.toISOString() },
+        dueDate: getTimestamp(today.getTime()),
       });
       const model = new TodoModel(todo, settings);
 
@@ -867,7 +858,7 @@ describe("notifications with MockBrowserApis", () => {
       const todo = createTestTodo({
         id: getTodoId("soon-1"),
         plainText: "Soon task",
-        metadata: { dueDate: soon.toISOString() },
+        dueDate: getTimestamp(soon.getTime()),
       });
       const model = new TodoModel(todo, settings);
 
@@ -889,7 +880,7 @@ describe("notifications with MockBrowserApis", () => {
       const todo = createTestTodo({
         id: getTodoId("already-notified"),
         plainText: "Already notified",
-        metadata: { dueDate: yesterday.toISOString() },
+        dueDate: getTimestamp(yesterday.getTime()),
       });
       const model = new TodoModel(todo, settings);
 
@@ -912,7 +903,7 @@ describe("notifications with MockBrowserApis", () => {
         id: getTodoId("completed-task"),
         state: "completed",
         plainText: "Completed task",
-        metadata: { dueDate: yesterday.toISOString() },
+        dueDate: getTimestamp(yesterday.getTime()),
       });
       const model = new TodoModel(todo, settings);
 
@@ -948,12 +939,11 @@ describe("notifications with MockBrowserApis", () => {
       const settings = createTestSettings();
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      const dateStr = yesterday.toISOString().split("T")[0]; // YYYY-MM-DD
 
       const todo = createTestTodo({
         id: getTodoId("date-only"),
         plainText: "Date only format",
-        metadata: { dueDate: dateStr },
+        dueDate: getTimestamp(yesterday.getTime()),
       });
       const model = new TodoModel(todo, settings);
 
@@ -967,12 +957,12 @@ describe("notifications with MockBrowserApis", () => {
       expect(result.has("date-only")).toBe(true);
     });
 
-    it("should handle invalid date formats gracefully", () => {
+    it("should handle tasks without dueDate gracefully", () => {
       const settings = createTestSettings();
       const todo = createTestTodo({
-        id: getTodoId("invalid-date"),
-        plainText: "Invalid date",
-        metadata: { dueDate: "not-a-date" },
+        id: getTodoId("no-duedate"),
+        plainText: "No due date",
+        // No dueDate field set
       });
       const model = new TodoModel(todo, settings);
 

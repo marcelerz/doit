@@ -10,8 +10,14 @@ import {
   getSubtaskId,
   getTimeEntryId,
   TodoActivityType,
+  getTag,
 } from "@/types/todo";
-import { getTimestamp, getDurationMin } from "@/types/time";
+import { getTimestamp, getDurationSec, getDurationMin } from "@/types/time";
+import { getPersonId } from "@/types/person";
+import { getProjectId } from "@/types/project";
+import { getPriorityId } from "@/types/priority";
+import { getSprintId } from "@/types/sprint";
+import { parseDuration } from "@/utils/ganttScheduler";
 import { getActivityId, getCommentId, ActivityEntry, CommentId } from "@/types/types";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/storage/migrations";
 import { defaultSettings, Settings } from "@/types/settings";
@@ -21,6 +27,86 @@ import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage"
 import { waitForStorageInit } from "@/storage/storageInit";
 import { TodoModel, createTodoModels } from "@/models/TodoModel";
 import { SettingsModel, createSettingsModel } from "@/models/SettingsModel";
+import { parseDate } from "@/utils/dateUtils";
+
+/**
+ * Convert TodoMetadata string values to typed Todo fields.
+ * Note: This uses names as IDs temporarily. Proper ID resolution should happen
+ * in the UI layer using EntityRegistry before calling addTodo/editTodo.
+ */
+function metadataToTodoFields(metadata: TodoMetadata, settings: Settings) {
+  // Parse duration string to seconds
+  let durationSec: number | undefined;
+  if (metadata.duration) {
+    const minutes = parseDuration(metadata.duration);
+    durationSec = minutes * 60;
+  }
+
+  // Parse date string to timestamp
+  let dueTimestamp: number | undefined;
+  if (metadata.dueDate) {
+    const parsed = parseDate(metadata.dueDate, settings.dateTime, settings.workHours);
+    if (parsed) {
+      dueTimestamp = parsed.timestamp;
+    }
+  }
+
+  return {
+    // Arrays: convert string names to IDs (using names as IDs temporarily)
+    assignedPeople: (metadata.assignedPeople || []).map((name) => getPersonId(name)),
+    sourcePeople: (metadata.sourcePeople || []).map((name) => getPersonId(name)),
+    mentionedPeople: (metadata.mentionedPeople || []).map((name) => getPersonId(name)),
+    projects: (metadata.projects || []).map((name) => getProjectId(name)),
+    tags: (metadata.tags || []).map((tag) => getTag(tag)),
+    dependencies: (metadata.dependencies || []).map((id) => getTodoId(id)),
+    // Singular fields
+    priority: metadata.priority ? getPriorityId(metadata.priority) : undefined,
+    dueDate: dueTimestamp ? getTimestamp(dueTimestamp) : undefined,
+    duration: durationSec ? getDurationSec(durationSec) : undefined,
+    recurring: metadata.recurring,
+    sprint: metadata.sprint ? getSprintId(metadata.sprint) : undefined,
+    context: metadata.context || "",
+  };
+}
+
+/**
+ * Reconstruct TodoMetadata from a Todo's typed fields for activity comparison.
+ * This is the inverse of metadataToTodoFields - converts IDs back to string representation.
+ */
+function todoToMetadata(todo: Todo): TodoMetadata {
+  return {
+    assignedPeople: (todo.assignedPeople || []).map((id) => id as string),
+    sourcePeople: (todo.sourcePeople || []).map((id) => id as string),
+    mentionedPeople: (todo.mentionedPeople || []).map((id) => id as string),
+    projects: (todo.projects || []).map((id) => id as string),
+    tags: (todo.tags || []).map((tag) => tag as string),
+    dependencies: (todo.dependencies || []).map((id) => id as string),
+    priority: todo.priority as string | undefined,
+    // Convert timestamp back to ISO string for comparison
+    dueDate: todo.dueDate ? new Date(todo.dueDate).toISOString() : undefined,
+    // Convert seconds back to duration string (e.g., "30m", "2h")
+    duration: todo.duration ? formatDurationFromSeconds(todo.duration) : undefined,
+    recurring: todo.recurring,
+    sprint: todo.sprint as string | undefined,
+    context: todo.context || "",
+  };
+}
+
+/**
+ * Format duration in seconds to a human-readable string (e.g., "30m", "2h", "1h30m")
+ */
+function formatDurationFromSeconds(seconds: number): string {
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (remainingMinutes === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h${remainingMinutes}m`;
+}
 
 export type UndoAction = {
   id: string;
@@ -175,6 +261,7 @@ export function useTodos() {
 
   const addTodo = (text: string, plainText: string, metadata: TodoMetadata) => {
     const now = getTimestamp(Date.now());
+    const fields = metadataToTodoFields(metadata, settings);
     const newTodo: Todo = {
       id: getTodoId(now.toString()),
       text,
@@ -182,14 +269,18 @@ export function useTodos() {
       state: "active",
       createdAt: now,
       updatedAt: now,
-      context: metadata.context || "",
-      tags: [],
-      dependencies: [],
-      assignedPeople: [],
-      sourcePeople: [],
-      mentionedPeople: [],
-      projects: [],
-      metadata,
+      context: fields.context,
+      tags: fields.tags,
+      dependencies: fields.dependencies,
+      assignedPeople: fields.assignedPeople,
+      sourcePeople: fields.sourcePeople,
+      mentionedPeople: fields.mentionedPeople,
+      projects: fields.projects,
+      priority: fields.priority,
+      dueDate: fields.dueDate,
+      duration: fields.duration,
+      recurring: fields.recurring,
+      sprint: fields.sprint,
       comments: [],
       activity: [createActivity("created", "Task created")],
       subtasks: [],
@@ -211,16 +302,15 @@ export function useTodos() {
       updatedAt: now,
       context: todoToDuplicate.context || "",
       tags: todoToDuplicate.tags || [],
-      dependencies: [],
+      dependencies: [], // Clear dependencies for the duplicate
       assignedPeople: todoToDuplicate.assignedPeople || [],
       sourcePeople: todoToDuplicate.sourcePeople || [],
       mentionedPeople: todoToDuplicate.mentionedPeople || [],
       projects: todoToDuplicate.projects || [],
-      metadata: {
-        ...todoToDuplicate.metadata,
-        // Clear dependencies for the duplicate
-        dependencies: [],
-      },
+      priority: todoToDuplicate.priority,
+      dueDate: todoToDuplicate.dueDate,
+      duration: todoToDuplicate.duration,
+      recurring: todoToDuplicate.recurring,
       comments: [], // Don't copy comments
       activity: [createActivity("created", "Task duplicated from another task")],
       subtasks: [],
@@ -257,7 +347,7 @@ export function useTodos() {
         : createActivity("uncompleted", "Task marked as active");
 
     // Update duration to tracked time if completing and setting is enabled
-    let updatedMetadata = todoToToggle.metadata;
+    let updatedDuration = todoToToggle.duration;
     if (
       newState === "completed" &&
       settings.focus?.autoExtendOnOvertime !== false &&
@@ -265,10 +355,7 @@ export function useTodos() {
       todoToToggle.timeTracking.totalMinutes > 0
     ) {
       const trackedMinutes = Math.ceil(todoToToggle.timeTracking.totalMinutes);
-      updatedMetadata = {
-        ...todoToToggle.metadata,
-        duration: `${trackedMinutes}m`,
-      };
+      updatedDuration = (trackedMinutes * 60) as typeof updatedDuration; // Convert to seconds
     }
 
     const updatedTodo: Todo = {
@@ -279,33 +366,22 @@ export function useTodos() {
       deletedAt: undefined,
       updatedAt: now,
       activity: [...todoToToggle.activity, activity],
-      metadata: updatedMetadata,
+      duration: updatedDuration,
     };
 
     setRawTodos((prev) => prev.map((todo) => (todo.id === id ? updatedTodo : todo)));
 
     // If completing a recurring task, create a new instance
-    if (newState === "completed" && todoToToggle.metadata.recurring) {
-      const recurringPattern = parseRecurringPattern(todoToToggle.metadata.recurring);
+    if (newState === "completed" && todoToToggle.recurring) {
+      const recurringPattern = parseRecurringPattern(todoToToggle.recurring);
       if (recurringPattern) {
         // Calculate next occurrence from the current due date (if set) or today
         // This ensures proper interval calculation (e.g., "every 2 weeks" from the due date)
-        const baseDate = todoToToggle.metadata.dueDate ? new Date(todoToToggle.metadata.dueDate) : new Date();
+        const baseDate = todoToToggle.dueDate ? new Date(todoToToggle.dueDate) : new Date();
         const nextDate = calculateNextOccurrence(recurringPattern, baseDate);
 
-        // Preserve time if the original due date had time, otherwise use the calculated time
-        let nextDateString: string;
-        const originalDueDate = todoToToggle.metadata.dueDate || "";
-        const hasTime = originalDueDate.includes("T");
-
-        if (hasTime) {
-          // Preserve the time component from original due date
-          const originalTime = originalDueDate.split("T")[1] || "";
-          nextDateString = `${nextDate.toISOString().split("T")[0]}T${originalTime}`;
-        } else {
-          // Date only format
-          nextDateString = nextDate.toISOString().split("T")[0];
-        }
+        // Convert nextDate to timestamp
+        const nextDueDate = getTimestamp(nextDate.getTime());
 
         // Create new todo with updated due date
         const newRecurringTodo: Todo = {
@@ -324,31 +400,18 @@ export function useTodos() {
           sourcePeople: todoToToggle.sourcePeople || [],
           mentionedPeople: todoToToggle.mentionedPeople || [],
           projects: todoToToggle.projects || [],
-          metadata: {
-            ...todoToToggle.metadata,
-            dueDate: nextDateString,
-          },
+          priority: todoToToggle.priority,
+          dueDate: nextDueDate,
+          duration: todoToToggle.duration,
+          recurring: todoToToggle.recurring,
           comments: [], // New instance starts with no comments
-          activity: [
-            createActivity("created", `Task created from recurring pattern: ${todoToToggle.metadata.recurring}`),
-          ],
+          activity: [createActivity("created", `Task created from recurring pattern: ${todoToToggle.recurring}`)],
           subtasks: [], // New instance starts with no subtasks
         };
 
-        // Reconstruct text with new due date
-        // Markers: @ = assigned, $ = source, % = projects, !! = priority, # = tags, ~ = recurring
-        // Note: dueDate and duration are auto-detected, no explicit markers needed in text
-        const parts: string[] = [todoToToggle.plainText];
-        newRecurringTodo.metadata.assignedPeople.forEach((p) => parts.push(`@${p}`));
-        newRecurringTodo.metadata.sourcePeople.forEach((p) => parts.push(`$${p}`));
-        // Mentioned people don't need markers (they're auto-detected in text)
-        newRecurringTodo.metadata.projects.forEach((p) => parts.push(`%${p}`));
-        if (newRecurringTodo.metadata.priority) parts.push(`!!${newRecurringTodo.metadata.priority}`);
-        (newRecurringTodo.metadata.tags ?? []).forEach((t) => parts.push(`#${t}`));
-        // Recurring pattern is kept with ~ marker
-        if (newRecurringTodo.metadata.recurring) parts.push(`~${newRecurringTodo.metadata.recurring}`);
-        // Note: dueDate will be auto-detected when the text is parsed
-        newRecurringTodo.text = parts.join(" ");
+        // For recurring tasks, the text is copied as-is since markers will be re-parsed
+        // The due date is stored in the actual field, not in text
+        newRecurringTodo.text = todoToToggle.text;
 
         // Add the new recurring todo to the list
         setRawTodos((prev) => [newRecurringTodo, ...prev]);
@@ -492,15 +555,32 @@ export function useTodos() {
             activities.push(createActivity("edited", "Task text edited"));
           }
 
+          // Reconstruct old metadata from todo's current fields for comparison
+          const oldMetadata = todoToMetadata(todo);
+
           // Check for metadata changes
-          const metadataActivities = generateMetadataActivities(todo.metadata, metadata);
+          const metadataActivities = generateMetadataActivities(oldMetadata, metadata);
           activities.push(...metadataActivities);
+
+          // Convert new metadata to typed fields
+          const fields = metadataToTodoFields(metadata, settings);
 
           return {
             ...todo,
             text,
             plainText,
-            metadata,
+            context: fields.context,
+            tags: fields.tags,
+            dependencies: fields.dependencies,
+            assignedPeople: fields.assignedPeople,
+            sourcePeople: fields.sourcePeople,
+            mentionedPeople: fields.mentionedPeople,
+            projects: fields.projects,
+            priority: fields.priority,
+            dueDate: fields.dueDate,
+            duration: fields.duration,
+            recurring: fields.recurring,
+            sprint: fields.sprint,
             updatedAt: getTimestamp(Date.now()),
             activity: [...todo.activity, ...activities],
           };

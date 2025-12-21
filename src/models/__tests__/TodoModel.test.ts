@@ -183,17 +183,8 @@ const createTodo = (overrides: Partial<Todo> = {}): Todo =>
     priority: overrides.priority,
     dueDate: overrides.dueDate,
     duration: overrides.duration,
+    recurring: overrides.recurring,
     sprint: overrides.sprint,
-    // Metadata (strings from input)
-    metadata: {
-      assignedPeople: [],
-      sourcePeople: [],
-      mentionedPeople: [],
-      projects: [],
-      tags: [],
-      dependencies: [],
-      ...overrides.metadata,
-    },
     comments: overrides.comments || [],
     activity: overrides.activity || [],
     subtasks: overrides.subtasks || [],
@@ -293,39 +284,24 @@ describe("TodoModel", () => {
       const model = new TodoModel(todo, settings);
 
       // Model reads from actual fields, which are empty
-      expect(model.assignedPeople).toEqual([]);
-      expect(model.projects).toEqual([]);
+      expect(model.assignedPeopleIds).toEqual([]);
+      expect(model.projectIds).toEqual([]);
     });
 
     it("should read from actual fields (assignedPeople)", () => {
       const todo = createTodo({
         assignedPeople: [getPersonId("person-1")],
-        metadata: {
-          assignedPeople: ["John Doe"],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-        },
       });
       const settings = createSettings();
       const model = new TodoModel(todo, settings);
 
-      // Model reads from actual fields (IDs) - string accessor reads from metadata
+      // Model reads from actual fields (IDs)
       expect(model.assignedPeopleIds).toEqual([getPersonId("person-1")]);
-      expect(model.assignedPeople).toEqual(["John Doe"]);
     });
 
     it("should not apply auto-assign when explicit value exists", () => {
       const todo = createTodo({
         assignedPeople: [getPersonId("person-1")],
-        metadata: {
-          assignedPeople: ["Explicit Person"],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-        },
       });
       const settings = createSettings({
         autoAssign: {
@@ -335,7 +311,8 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, settings);
 
-      expect(model.assignedPeople).toEqual(["Explicit Person"]);
+      // Should use the explicit value, not the auto-assign default
+      expect(model.assignedPeopleIds).toEqual([getPersonId("person-1")]);
     });
 
     it("should read actual fields for multiple metadata types", () => {
@@ -345,14 +322,6 @@ describe("TodoModel", () => {
         projects: [getProjectId("project-1")],
         priority: getPriorityId("3"),
         duration: getDurationSec(30 * 60), // 30 minutes in seconds
-        metadata: {
-          assignedPeople: ["John"],
-          sourcePeople: ["Jane"],
-          mentionedPeople: [],
-          projects: ["Project A"],
-          priority: "medium",
-          duration: "30m",
-        },
       });
       const settings = createSettings();
       const model = new TodoModel(todo, settings);
@@ -363,13 +332,7 @@ describe("TodoModel", () => {
       expect(model.projectIds).toEqual([getProjectId("project-1")]);
       expect(model.priorityId).toBe(getPriorityId("3"));
       expect(model.durationSeconds).toBe(getDurationSec(1800));
-
-      // String-based accessors (from metadata)
-      expect(model.assignedPeople).toEqual(["John"]);
-      expect(model.sourcePeople).toEqual(["Jane"]);
-      expect(model.projects).toEqual(["Project A"]);
-      expect(model.priority).toBe("medium");
-      expect(model.durationString).toBe("30m");
+      expect(model.durationMinutes).toBe(30);
     });
   });
 
@@ -627,13 +590,6 @@ describe("TodoModel", () => {
     it("should get priority color from settings", () => {
       const todo = createTodo({
         priority: getPriorityId("1"), // Use actual field with ID
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          priority: "urgent",
-        },
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -643,13 +599,6 @@ describe("TodoModel", () => {
     it("should find priority by alternative name", () => {
       const todo = createTodo({
         priority: getPriorityId("1"), // Use actual field - alternatives resolved to ID
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          priority: "critical", // Alternative for "urgent" in metadata
-        },
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -682,24 +631,25 @@ describe("TodoModel", () => {
     it("should match search text in various fields", () => {
       const todo = createTodo({
         plainText: "Buy groceries",
-        tags: [getTag("personal")], // Use actual tags field
-        priority: getPriorityId("2"), // Use actual priority field
-        metadata: {
-          assignedPeople: ["Alice"],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: ["Shopping"],
-          priority: "high",
-        },
+        tags: [getTag("personal")],
+        priority: getPriorityId("2"), // Maps to "high" in test settings
       });
       const model = new TodoModel(todo, createSettings());
 
+      // Search in plain text
       expect(model.matchesSearch("groceries")).toBe(true);
-      expect(model.matchesSearch("Alice")).toBe(true);
-      expect(model.matchesSearch("Shopping")).toBe(true);
+
+      // Search in tags
       expect(model.matchesSearch("personal")).toBe(true);
+
+      // Search in priority name (looked up from settings)
       expect(model.matchesSearch("high")).toBe(true);
+
+      // Unknown text should not match
       expect(model.matchesSearch("unknown")).toBe(false);
+
+      // Note: Searching people/projects by name requires a registry
+      // which is not set up in this basic test
     });
   });
 
@@ -1017,57 +967,13 @@ describe("TodoModel", () => {
       expect(model.matchesSearch("SEARCH")).toBe(true); // case insensitive
     });
 
-    it("should match assigned people", () => {
-      const todo = createTodo({
-        metadata: {
-          assignedPeople: ["John Doe"],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-        },
-      });
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.matchesSearch("john")).toBe(true);
-    });
-
-    it("should match source people", () => {
-      const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: ["Jane Smith"],
-          mentionedPeople: [],
-          projects: [],
-          tags: [],
-          dependencies: [],
-        },
-      });
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.matchesSearch("jane")).toBe(true);
-    });
-
-    it("should match projects", () => {
-      const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: ["Project Alpha"],
-          tags: [],
-          dependencies: [],
-        },
-      });
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.matchesSearch("alpha")).toBe(true);
-    });
+    // Note: Tests for matching assigned people, source people, and projects
+    // require an EntityRegistry to be set. These are covered in integration tests.
+    // Without a registry, only plain text, tags, and priority can be searched.
 
     it("should match tags", () => {
       const todo = createTodo({
-        tags: [getTag("important"), getTag("urgent")], // Use actual tags field
+        tags: [getTag("important"), getTag("urgent")],
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1076,14 +982,7 @@ describe("TodoModel", () => {
 
     it("should match priority", () => {
       const todo = createTodo({
-        priority: getPriorityId("2"), // Use actual priority field
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          priority: "high",
-        },
+        priority: getPriorityId("2"), // Maps to "high" in test settings
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1093,7 +992,7 @@ describe("TodoModel", () => {
     it("should not match when text is not found", () => {
       const todo = createTodo({
         plainText: "Test task",
-        tags: [], // Explicit empty tags
+        tags: [],
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1226,13 +1125,7 @@ describe("TodoModel", () => {
   describe("recurring properties", () => {
     it("should return recurring pattern when set", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          recurring: "every monday",
-        },
+        recurring: "every monday",
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1263,13 +1156,7 @@ describe("TodoModel", () => {
 
     it("should parse recurring pattern", () => {
       const todo = createTodo({
-        metadata: {
-          assignedPeople: [],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-          recurring: "every monday",
-        },
+        recurring: "every monday",
       });
       const model = new TodoModel(todo, createSettings());
 
@@ -1413,12 +1300,6 @@ describe("TodoModel", () => {
       // This test verifies that updateSettings changes the settings reference
       const todo = createTodo({
         assignedPeople: [getPersonId("person-1")],
-        metadata: {
-          assignedPeople: ["John"],
-          sourcePeople: [],
-          mentionedPeople: [],
-          projects: [],
-        },
       });
       const settings = createSettings();
       const model = new TodoModel(todo, settings);
@@ -1426,8 +1307,8 @@ describe("TodoModel", () => {
       const newSettings = createSettings();
       model.updateSettings(newSettings);
 
-      // Model should read from actual fields, not auto-assign
-      expect(model.assignedPeople).toContain("John");
+      // Model should read from actual fields (IDs)
+      expect(model.assignedPeopleIds).toContain(getPersonId("person-1"));
     });
   });
 

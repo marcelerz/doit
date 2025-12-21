@@ -514,11 +514,9 @@ My Task,yes`;
 
       expect(result.plainText).toBe("Test task");
       expect(result.state).toBe("active");
-      expect(result.metadata.dueDate).toBe("2025-12-15");
-      expect(result.metadata.priority).toBe("high");
-      expect(result.metadata.projects).toEqual(["Work"]);
-      expect(result.metadata.tags).toEqual(["urgent"]);
-      expect(result.metadata.context).toBe("Some notes");
+      expect(result.dueDate).toBeDefined(); // Now a Timestamp
+      expect(result.context).toBe("Some notes");
+      expect(result.tags).toEqual(["urgent"]); // Tags are Tag branded strings
       expect(result.subtasks).toHaveLength(2);
       expect(result.subtasks![0].text).toBe("Step 1");
     });

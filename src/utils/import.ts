@@ -3,7 +3,7 @@
  * Supports: Todoist, Things 3, Apple Reminders, CSV, JSON
  */
 
-import { Todo, TodoMetadata, Subtask, TodoState, getSubtaskId, getTag } from "@/types/todo";
+import { Todo, Subtask, TodoState, getSubtaskId, getTag } from "@/types/todo";
 import { getTimestamp } from "@/types/time";
 import { getActivityId } from "@/types/types";
 
@@ -601,19 +601,6 @@ export function importTodos(content: string, format: ImportFormat = "auto", file
 export function convertToTodo(imported: ImportedTodo, existingProjects: string[] = []): Omit<Todo, "id"> {
   const now = Date.now();
 
-  // Build metadata
-  const metadata: TodoMetadata = {
-    assignedPeople: [],
-    sourcePeople: [],
-    mentionedPeople: [],
-    projects: imported.project ? [imported.project] : [],
-    dependencies: [],
-    priority: imported.priority,
-    dueDate: imported.dueDate,
-    tags: imported.tags,
-    context: imported.notes,
-  };
-
   // Build text with markers
   let text = imported.title;
   if (imported.project) text += ` %${imported.project}`;
@@ -639,17 +626,17 @@ export function convertToTodo(imported: ImportedTodo, existingProjects: string[]
     createdAt: getTimestamp(now),
     updatedAt: getTimestamp(now),
     completedAt: imported.isCompleted ? getTimestamp(now) : undefined,
-    context: "",
-    tags: (metadata.tags ?? []).map(getTag),
+    context: imported.notes || "",
+    tags: (imported.tags ?? []).map(getTag),
     dependencies: [],
     assignedPeople: [],
     sourcePeople: [],
     mentionedPeople: [],
-    projects: [],
-    priority: undefined,
-    dueDate: metadata.dueDate ? getTimestamp(new Date(metadata.dueDate).getTime()) : undefined,
+    projects: [], // Note: Projects are strings in imported data but need to be ProjectIds after resolution
+    priority: undefined, // Note: Needs to be resolved to PriorityId
+    dueDate: imported.dueDate ? getTimestamp(new Date(imported.dueDate).getTime()) : undefined,
     duration: undefined,
-    metadata,
+    recurring: undefined,
     comments: [],
     activity: [
       {

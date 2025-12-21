@@ -3,7 +3,7 @@
  * Ensures backward compatibility when data structures change
  */
 
-import { Todo, TodoMetadata, TodoState } from "@/types/todo";
+import { Todo, TodoState } from "@/types/todo";
 import { Settings, defaultSettings } from "@/types/settings";
 import { Person } from "@/types/person";
 import { Project } from "@/types/project";
@@ -67,30 +67,33 @@ function migrateTodo(todo: any): Todo {
     }
   }
 
+  // Extract metadata values from legacy metadata object or direct fields
+  const metadata = todo.metadata || {};
+
   return {
     ...todo,
     state,
     // Ensure plainText exists
     plainText: todo.plainText || todo.text || "",
-    // Ensure metadata exists with all required fields
-    metadata: {
-      assignedPeople: todo.metadata?.assignedPeople || [],
-      sourcePeople: todo.metadata?.sourcePeople || [],
-      mentionedPeople: todo.metadata?.mentionedPeople || [],
-      projects: todo.metadata?.projects || [],
-      dependencies: todo.metadata?.dependencies || [],
-      priority: todo.metadata?.priority || todo.metadata?.priorities?.[0],
-      dueDate: todo.metadata?.dueDate || todo.metadata?.dueDates?.[0],
-      duration: todo.metadata?.duration || todo.metadata?.durations?.[0],
-      recurring: todo.metadata?.recurring,
-      context: todo.metadata?.context,
-      tags: todo.metadata?.tags || [],
-      sprint: todo.metadata?.sprint,
-    } as TodoMetadata,
+    // Direct fields (new format) - prefer direct fields, fallback to legacy metadata
+    assignedPeople: todo.assignedPeople || metadata.assignedPeople || [],
+    sourcePeople: todo.sourcePeople || metadata.sourcePeople || [],
+    mentionedPeople: todo.mentionedPeople || metadata.mentionedPeople || [],
+    projects: todo.projects || metadata.projects || [],
+    dependencies: todo.dependencies || metadata.dependencies || [],
+    tags: todo.tags || metadata.tags || [],
+    priority: todo.priority || metadata.priority || metadata.priorities?.[0],
+    dueDate: todo.dueDate || metadata.dueDate || metadata.dueDates?.[0],
+    duration: todo.duration || metadata.duration || metadata.durations?.[0],
+    recurring: todo.recurring || metadata.recurring,
+    context: todo.context || metadata.context || "",
+    sprint: todo.sprint || metadata.sprint,
     // Ensure comments array exists
     comments: todo.comments || [],
     // Ensure activity array exists
     activity: todo.activity || [],
+    // Ensure subtasks array exists
+    subtasks: todo.subtasks || [],
     // Ensure timestamps exist
     createdAt: todo.createdAt || Date.now(),
     updatedAt: todo.updatedAt || todo.createdAt || Date.now(),

@@ -1212,7 +1212,7 @@ export function TodoDetailsOverlay({
               entries={todo.timeTracking?.entries || []}
               totalMinutes={todo.totalTrackedMinutes}
               isTracking={todo.isTrackingTime}
-              activeEntry={todo.activeTimeEntry}
+              activeEntry={todo.activeTimeEntry ?? undefined}
               onStart={(note) => onStartTimeTracking(todo.id, note)}
               onStop={() => onStopTimeTracking?.(todo.id)}
               onAddManual={(minutes, note) => onAddManualTimeEntry?.(todo.id, minutes, note)}

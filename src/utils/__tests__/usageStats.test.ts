@@ -4,10 +4,19 @@
 
 import { calculateUsageStats, sortByUsage, sortStringsByUsage, getTopUsed } from "@/utils/usageStats";
 import { Todo, TodoState, getTodoId, getTag } from "@/types/todo";
-import { getTimestamp } from "@/types/time";
+import { getDurationSec, getTimestamp } from "@/types/time";
 import { getPersonId } from "@/types/person";
 import { getProjectId } from "@/types/project";
 import { getPriorityId } from "@/types/priority";
+
+// Helper to convert duration string to seconds (e.g., "1h" -> 3600, "30m" -> 1800)
+function parseDurationToSeconds(duration: string): number {
+  const match = duration.match(/^(\d+(?:\.\d+)?)(m|h)$/);
+  if (!match) return 0;
+  const value = parseFloat(match[1]);
+  const unit = match[2];
+  return unit === "h" ? value * 3600 : value * 60;
+}
 
 describe("usageStats", () => {
   // Helper to create a minimal todo
@@ -37,18 +46,9 @@ describe("usageStats", () => {
     mentionedPeople: (overrides.mentionedPeople || []).map(getPersonId),
     projects: (overrides.projects || []).map(getProjectId),
     priority: overrides.priority ? getPriorityId(overrides.priority) : undefined,
+    duration: overrides.duration ? getDurationSec(parseDurationToSeconds(overrides.duration)) : undefined,
+    recurring: overrides.recurring,
     subtasks: [],
-    metadata: {
-      assignedPeople: overrides.assignedPeople || [],
-      sourcePeople: overrides.sourcePeople || [],
-      mentionedPeople: overrides.mentionedPeople || [],
-      projects: overrides.projects || [],
-      dependencies: [],
-      tags: overrides.tags || [],
-      priority: overrides.priority,
-      duration: overrides.duration,
-      recurring: overrides.recurring,
-    },
     comments: [],
     activity: [],
   });
