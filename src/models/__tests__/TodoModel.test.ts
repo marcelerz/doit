@@ -1165,68 +1165,12 @@ describe("TodoModel", () => {
     });
   });
 
-  describe("due date display", () => {
-    it("should return 'Today' for today's date", () => {
-      const today = new Date();
-      today.setHours(17, 0, 0, 0); // Set to 5pm today
-      const todo = createTodo({
-        dueDate: getTimestamp(today.getTime()),
-      });
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.dueDateDisplay).toBe("Today");
-    });
-
-    it("should return 'Tomorrow' for tomorrow's date", () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(12, 0, 0, 0);
-      const todo = createTodo({
-        dueDate: getTimestamp(tomorrow.getTime()),
-      });
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.dueDateDisplay).toBe("Tomorrow");
-    });
-
-    it("should return 'Yesterday' for yesterday's date", () => {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      yesterday.setHours(12, 0, 0, 0);
-      const todo = createTodo({
-        dueDate: getTimestamp(yesterday.getTime()),
-      });
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.dueDateDisplay).toBe("Yesterday");
-    });
-
-    it("should return formatted date for other dates", () => {
-      const futureDate = new Date("2025-12-25T12:00:00");
-      const todo = createTodo({
-        dueDate: getTimestamp(futureDate.getTime()),
-      });
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.dueDateDisplay).toBeDefined();
-      expect(model.dueDateDisplay).not.toBe("Today");
-      expect(model.dueDateDisplay).not.toBe("Tomorrow");
-    });
-
-    it("should return undefined for no due date", () => {
-      const todo = createTodo();
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.dueDateDisplay).toBeUndefined();
-    });
-  });
-
-  describe("formattedDueDateDisplay", () => {
+  describe("dueDateDisplay", () => {
     it("should return undefined when no due date", () => {
       const todo = createTodo();
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBeUndefined();
+      expect(model.dueDateDisplay).toBeUndefined();
     });
 
     it("should return 'Today' for today's date at midnight", () => {
@@ -1237,7 +1181,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("Today");
+      expect(model.dueDateDisplay).toBe("Today");
     });
 
     it("should return 'Today BOD' for today at BOD time (9am default)", () => {
@@ -1248,7 +1192,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("Today BOD");
+      expect(model.dueDateDisplay).toBe("Today BOD");
     });
 
     it("should return 'Today EOD' for today at EOD time (5pm default)", () => {
@@ -1259,7 +1203,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("Today EOD");
+      expect(model.dueDateDisplay).toBe("Today EOD");
     });
 
     it("should return 'Today noon' for today at noon time", () => {
@@ -1270,7 +1214,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("Today noon");
+      expect(model.dueDateDisplay).toBe("Today noon");
     });
 
     it("should return 'Today morning' for today in the morning", () => {
@@ -1281,7 +1225,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("Today morning");
+      expect(model.dueDateDisplay).toBe("Today morning");
     });
 
     it("should return 'Today afternoon' for today in the afternoon", () => {
@@ -1292,7 +1236,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("Today afternoon");
+      expect(model.dueDateDisplay).toBe("Today afternoon");
     });
 
     it("should return 'Today evening' for today in the evening", () => {
@@ -1303,7 +1247,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("Today evening");
+      expect(model.dueDateDisplay).toBe("Today evening");
     });
 
     it("should return 'Tomorrow' for tomorrow at midnight", () => {
@@ -1315,7 +1259,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("Tomorrow");
+      expect(model.dueDateDisplay).toBe("Tomorrow");
     });
 
     it("should return 'Tomorrow EOD' for tomorrow at EOD", () => {
@@ -1327,7 +1271,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("Tomorrow EOD");
+      expect(model.dueDateDisplay).toBe("Tomorrow EOD");
     });
 
     it("should return 'Yesterday' for yesterday", () => {
@@ -1339,7 +1283,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("Yesterday");
+      expect(model.dueDateDisplay).toBe("Yesterday");
     });
 
     it("should return 'X days ago' for dates 2-6 days in the past", () => {
@@ -1351,7 +1295,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("3 days ago");
+      expect(model.dueDateDisplay).toBe("3 days ago");
     });
 
     it("should return 'X weeks ago' for dates 1-4 weeks in the past", () => {
@@ -1363,7 +1307,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("2 weeks ago");
+      expect(model.dueDateDisplay).toBe("2 weeks ago");
     });
 
     it("should return day name for 2-5 days in future at midnight", () => {
@@ -1376,7 +1320,7 @@ describe("TodoModel", () => {
       const model = new TodoModel(todo, createSettings());
 
       const expectedDay = future.toLocaleDateString(undefined, { weekday: "long" });
-      expect(model.formattedDueDateDisplay).toBe(`on ${expectedDay}`);
+      expect(model.dueDateDisplay).toBe(`on ${expectedDay}`);
     });
 
     it("should return day name with time for 2-5 days in future with time", () => {
@@ -1389,7 +1333,7 @@ describe("TodoModel", () => {
       const model = new TodoModel(todo, createSettings());
 
       const expectedDay = future.toLocaleDateString(undefined, { weekday: "long" });
-      expect(model.formattedDueDateDisplay).toBe(`${expectedDay} EOD`);
+      expect(model.dueDateDisplay).toBe(`${expectedDay} EOD`);
     });
 
     it("should return 'in X days' for 6-10 days in future", () => {
@@ -1401,7 +1345,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("in 8 days");
+      expect(model.dueDateDisplay).toBe("in 8 days");
     });
 
     it("should return 'in X weeks' for 2-8 weeks in future", () => {
@@ -1413,7 +1357,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("in 3 weeks");
+      expect(model.dueDateDisplay).toBe("in 3 weeks");
     });
 
     it("should return 'in X months' for 2-12 months in future", () => {
@@ -1425,7 +1369,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("in 3 months");
+      expect(model.dueDateDisplay).toBe("in 3 months");
     });
 
     it("should return 'in X years' for more than a year in future", () => {
@@ -1437,7 +1381,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, createSettings());
 
-      expect(model.formattedDueDateDisplay).toBe("in 2 years");
+      expect(model.dueDateDisplay).toBe("in 2 years");
     });
 
     it("should use custom BOD/EOD times from settings", () => {
@@ -1458,61 +1402,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, settings);
 
-      expect(model.formattedDueDateDisplay).toBe("Today BOD");
-    });
-  });
-
-  describe("formattedDurationDisplay", () => {
-    it("should return undefined when no duration", () => {
-      const todo = createTodo();
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.formattedDurationDisplay).toBeUndefined();
-    });
-
-    it("should format minutes", () => {
-      const todo = createTodo({
-        duration: getDurationSec(45 * 60), // 45 minutes
-      });
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.formattedDurationDisplay).toBe("45m");
-    });
-
-    it("should format whole hours", () => {
-      const todo = createTodo({
-        duration: getDurationSec(2 * 60 * 60), // 2 hours
-      });
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.formattedDurationDisplay).toBe("2h");
-    });
-
-    it("should format fractional hours", () => {
-      const todo = createTodo({
-        duration: getDurationSec(90 * 60), // 90 minutes = 1.5 hours
-      });
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.formattedDurationDisplay).toBe("1.5h");
-    });
-
-    it("should format 30 minutes", () => {
-      const todo = createTodo({
-        duration: getDurationSec(30 * 60),
-      });
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.formattedDurationDisplay).toBe("30m");
-    });
-
-    it("should format 1 hour", () => {
-      const todo = createTodo({
-        duration: getDurationSec(60 * 60),
-      });
-      const model = new TodoModel(todo, createSettings());
-
-      expect(model.formattedDurationDisplay).toBe("1h");
+      expect(model.dueDateDisplay).toBe("Today BOD");
     });
   });
 

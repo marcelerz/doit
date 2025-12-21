@@ -93,7 +93,7 @@ export function calculateUsageStats(todos: Todo[]): UsageStats {
     if (todo.dueDate) {
       const settings = SettingsModel.getInstance();
       const model = createTodoModel(todo, settings);
-      const display = model.formattedDueDateDisplay;
+      const display = model.dueDateDisplay;
       if (display) {
         const current = stats.dueDates.get(display) || 0;
         stats.dueDates.set(display, current + weight);
@@ -104,7 +104,7 @@ export function calculateUsageStats(todos: Todo[]): UsageStats {
     if (todo.duration) {
       const settings = SettingsModel.getInstance();
       const model = createTodoModel(todo, settings);
-      const display = model.formattedDurationDisplay;
+      const display = model.durationDisplay;
       if (display) {
         const current = stats.durations.get(display) || 0;
         stats.durations.set(display, current + weight);

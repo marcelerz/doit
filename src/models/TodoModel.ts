@@ -557,47 +557,141 @@ export class TodoModel {
   }
 
   /**
-   * Get a display-friendly due date string
+   * Get a human-readable due date display string using the instance's settings.
+   * Shows proximity-based output with time-of-day detection.
+   *
+   * Output formats:
+   * - "Today", "Today BOD", "Today EOD", "Today morning", "Today afternoon", "Today evening"
+   * - "Tomorrow", "Tomorrow EOD", etc.
+   * - "Yesterday"
+   * - "X days ago", "X weeks ago", "X months ago", "X years ago"
+   * - "on Monday", "Tuesday EOD" (2-5 days in future)
+   * - "in X days", "in X weeks", "in X months", "in X years"
    */
   get dueDateDisplay(): string | undefined {
-    const date = this.dueDateObject;
-    if (!date) return undefined;
+    const timestamp = this._raw.dueDate;
+    if (!timestamp) return undefined;
 
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
+    const date = new Date(timestamp);
+    const now = new Date();
 
-    // Check if it's today
-    if (
-      date.getFullYear() === today.getFullYear() &&
-      date.getMonth() === today.getMonth() &&
-      date.getDate() === today.getDate()
-    ) {
-      return "Today";
+    // Reset times for day comparison
+    const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const todayDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const diffMs = dateDay.getTime() - todayDay.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+    // Get time portion for BOD/EOD detection
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const timeStr = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+
+    // Helper to parse time string "HH:MM" to { hours, minutes }
+    const parseTime = (time: string): { hours: number; minutes: number } => {
+      const [h, m] = time.split(":").map(Number);
+      return { hours: h, minutes: m };
+    };
+
+    // Get settings-defined times
+    const settings = this._settingsModel;
+    const bodTime = settings.getBod(date);
+    const eodTime = settings.getEod(date);
+    const morningTime = settings.morningTime;
+    const noonTime = settings.noonTime;
+    const afternoonTime = settings.afternoonTime;
+    const eveningTime = settings.eveningTime;
+
+    // Parse time boundaries
+    const morning = parseTime(morningTime);
+    const noon = parseTime(noonTime);
+    const afternoon = parseTime(afternoonTime);
+    const evening = parseTime(eveningTime);
+
+    // Helper to get time description (only for nearby dates)
+    const getTimeDescription = (): string => {
+      // Skip if midnight (likely no specific time set)
+      if (hours === 0 && minutes === 0) return "";
+
+      // Check for exact BOD/EOD/noon matches
+      if (timeStr === bodTime) return " BOD";
+      if (timeStr === eodTime) return " EOD";
+      if (timeStr === noonTime) return " noon";
+
+      // Determine time of day based on settings-defined boundaries
+      // Convert to minutes for easier comparison
+      const currentMinutes = hours * 60 + minutes;
+      const morningMinutes = morning.hours * 60 + morning.minutes;
+      const noonMinutes = noon.hours * 60 + noon.minutes;
+      const afternoonMinutes = afternoon.hours * 60 + afternoon.minutes;
+      const eveningMinutes = evening.hours * 60 + evening.minutes;
+
+      // Time period detection (morning → noon → afternoon → evening → night)
+      if (currentMinutes >= morningMinutes && currentMinutes < noonMinutes) return " morning";
+      if (currentMinutes >= noonMinutes && currentMinutes < afternoonMinutes) return " noon";
+      if (currentMinutes >= afternoonMinutes && currentMinutes < eveningMinutes) return " afternoon";
+      if (currentMinutes >= eveningMinutes && currentMinutes < 21 * 60) return " evening";
+
+      // Outside normal hours - show actual time
+      return ` ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+    };
+
+    // Past dates
+    if (diffDays < 0) {
+      const absDays = Math.abs(diffDays);
+      if (absDays === 1) return "Yesterday";
+      if (absDays < 7) return `${absDays} days ago`;
+      if (absDays < 30) {
+        const weeks = Math.round(absDays / 7);
+        return `${weeks} ${weeks === 1 ? "week" : "weeks"} ago`;
+      }
+      if (absDays < 365) {
+        const months = Math.round(absDays / 30);
+        return `${months} ${months === 1 ? "month" : "months"} ago`;
+      }
+      const years = Math.round(absDays / 365);
+      return `${years} ${years === 1 ? "year" : "years"} ago`;
     }
 
-    // Check if it's tomorrow
-    if (
-      date.getFullYear() === tomorrow.getFullYear() &&
-      date.getMonth() === tomorrow.getMonth() &&
-      date.getDate() === tomorrow.getDate()
-    ) {
-      return "Tomorrow";
+    // Today
+    if (diffDays === 0) {
+      const timeDesc = getTimeDescription();
+      return timeDesc ? `Today${timeDesc}` : "Today";
     }
 
-    // Check if it's yesterday
-    if (
-      date.getFullYear() === yesterday.getFullYear() &&
-      date.getMonth() === yesterday.getMonth() &&
-      date.getDate() === yesterday.getDate()
-    ) {
-      return "Yesterday";
+    // Tomorrow
+    if (diffDays === 1) {
+      const timeDesc = getTimeDescription();
+      return timeDesc ? `Tomorrow${timeDesc}` : "Tomorrow";
     }
 
-    // Otherwise return formatted date
-    return date.toLocaleDateString();
+    // 2-5 days: show day name with optional time
+    if (diffDays <= 5) {
+      const dayName = date.toLocaleDateString(undefined, { weekday: "long" });
+      const timeDesc = getTimeDescription();
+      return timeDesc ? `${dayName}${timeDesc}` : `on ${dayName}`;
+    }
+
+    // 6-10 days: "in X days"
+    if (diffDays <= 10) {
+      return `in ${diffDays} days`;
+    }
+
+    // 11 days - 8 weeks: "in X weeks"
+    if (diffDays <= 56) {
+      const weeks = Math.round(diffDays / 7);
+      return `in ${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+    }
+
+    // 2-12 months
+    if (diffDays <= 365) {
+      const months = Math.round(diffDays / 30);
+      return `in ${months} ${months === 1 ? "month" : "months"}`;
+    }
+
+    // More than a year
+    const years = Math.round(diffDays / 365);
+    return `in ${years} ${years === 1 ? "year" : "years"}`;
   }
 
   /**
@@ -993,7 +1087,10 @@ export class TodoModel {
     }
 
     if (this._raw.dueDate) {
-      parts.push(`due ${this.dueDateDisplay}`);
+      // Use simple date format for summary (dueDateDisplay may be verbose like "Today morning")
+      const date = new Date(this._raw.dueDate);
+      const simpleDisplay = date.toLocaleDateString();
+      parts.push(`due ${simpleDisplay}`);
     }
 
     if (this._raw.duration) {
@@ -1076,154 +1173,17 @@ export class TodoModel {
   }
 
   /**
-   * Get a human-readable due date display string using the instance's settings.
-   * Shows proximity-based output with time-of-day detection.
-   *
-   * @see TodoModel.formatDueDateDisplay for output format details
+   * @deprecated Use dueDateDisplay instead - this getter is kept for backward compatibility
    */
   get formattedDueDateDisplay(): string | undefined {
-    const timestamp = this._raw.dueDate;
-    if (!timestamp) return undefined;
-
-    const date = new Date(timestamp);
-    const now = new Date();
-
-    // Reset times for day comparison
-    const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const todayDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    const diffMs = dateDay.getTime() - todayDay.getTime();
-    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-
-    // Get time portion for BOD/EOD detection
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    const timeStr = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
-
-    // Helper to parse time string "HH:MM" to { hours, minutes }
-    const parseTime = (time: string): { hours: number; minutes: number } => {
-      const [h, m] = time.split(":").map(Number);
-      return { hours: h, minutes: m };
-    };
-
-    // Get settings-defined times
-    const settings = this._settingsModel;
-    const bodTime = settings.getBod(date);
-    const eodTime = settings.getEod(date);
-    const morningTime = settings.morningTime;
-    const noonTime = settings.noonTime;
-    const afternoonTime = settings.afternoonTime;
-    const eveningTime = settings.eveningTime;
-
-    // Parse time boundaries
-    const morning = parseTime(morningTime);
-    const noon = parseTime(noonTime);
-    const afternoon = parseTime(afternoonTime);
-    const evening = parseTime(eveningTime);
-
-    // Helper to get time description (only for nearby dates)
-    const getTimeDescription = (): string => {
-      // Skip if midnight (likely no specific time set)
-      if (hours === 0 && minutes === 0) return "";
-
-      // Check for exact BOD/EOD/noon matches
-      if (timeStr === bodTime) return " BOD";
-      if (timeStr === eodTime) return " EOD";
-      if (timeStr === noonTime) return " noon";
-
-      // Determine time of day based on settings-defined boundaries
-      // Convert to minutes for easier comparison
-      const currentMinutes = hours * 60 + minutes;
-      const morningMinutes = morning.hours * 60 + morning.minutes;
-      const noonMinutes = noon.hours * 60 + noon.minutes;
-      const afternoonMinutes = afternoon.hours * 60 + afternoon.minutes;
-      const eveningMinutes = evening.hours * 60 + evening.minutes;
-
-      // Time period detection (morning → noon → afternoon → evening → night)
-      if (currentMinutes >= morningMinutes && currentMinutes < noonMinutes) return " morning";
-      if (currentMinutes >= noonMinutes && currentMinutes < afternoonMinutes) return " noon";
-      if (currentMinutes >= afternoonMinutes && currentMinutes < eveningMinutes) return " afternoon";
-      if (currentMinutes >= eveningMinutes && currentMinutes < 21 * 60) return " evening";
-
-      // Outside normal hours - show actual time
-      return ` ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
-    };
-
-    // Past dates
-    if (diffDays < 0) {
-      const absDays = Math.abs(diffDays);
-      if (absDays === 1) return "Yesterday";
-      if (absDays < 7) return `${absDays} days ago`;
-      if (absDays < 30) {
-        const weeks = Math.round(absDays / 7);
-        return `${weeks} ${weeks === 1 ? "week" : "weeks"} ago`;
-      }
-      if (absDays < 365) {
-        const months = Math.round(absDays / 30);
-        return `${months} ${months === 1 ? "month" : "months"} ago`;
-      }
-      const years = Math.round(absDays / 365);
-      return `${years} ${years === 1 ? "year" : "years"} ago`;
-    }
-
-    // Today
-    if (diffDays === 0) {
-      const timeDesc = getTimeDescription();
-      return timeDesc ? `Today${timeDesc}` : "Today";
-    }
-
-    // Tomorrow
-    if (diffDays === 1) {
-      const timeDesc = getTimeDescription();
-      return timeDesc ? `Tomorrow${timeDesc}` : "Tomorrow";
-    }
-
-    // 2-5 days: show day name with optional time
-    if (diffDays <= 5) {
-      const dayName = date.toLocaleDateString(undefined, { weekday: "long" });
-      const timeDesc = getTimeDescription();
-      return timeDesc ? `${dayName}${timeDesc}` : `on ${dayName}`;
-    }
-
-    // 6-10 days: "in X days"
-    if (diffDays <= 10) {
-      return `in ${diffDays} days`;
-    }
-
-    // 11 days - 8 weeks: "in X weeks"
-    if (diffDays <= 56) {
-      const weeks = Math.round(diffDays / 7);
-      return `in ${weeks} ${weeks === 1 ? "week" : "weeks"}`;
-    }
-
-    // 2-12 months
-    if (diffDays <= 365) {
-      const months = Math.round(diffDays / 30);
-      return `in ${months} ${months === 1 ? "month" : "months"}`;
-    }
-
-    // More than a year
-    const years = Math.round(diffDays / 365);
-    return `in ${years} ${years === 1 ? "year" : "years"}`;
+    return this.dueDateDisplay;
   }
 
   /**
-   * Get a formatted duration display string using the instance's duration.
-   * Format: "30m", "2h", "1.5h"
+   * @deprecated Use durationDisplay instead - this getter is kept for backward compatibility
    */
   get formattedDurationDisplay(): string | undefined {
-    const seconds = this._raw.duration;
-    if (!seconds) return undefined;
-
-    const minutes = Math.round(seconds / 60);
-    if (minutes < 60) {
-      return `${minutes}m`;
-    }
-    const hours = minutes / 60;
-    if (hours === Math.floor(hours)) {
-      return `${hours}h`;
-    }
-    return `${hours.toFixed(1)}h`;
+    return this.durationDisplay;
   }
 
   /**
@@ -1252,7 +1212,8 @@ export function createTodoModel(todo: Todo, settings: SettingsModel, registry?: 
 
 /**
  * Create TodoModel instances from an array of todos
+ * Filters out any undefined/null entries
  */
 export function createTodoModels(todos: Todo[], settings: SettingsModel, registry?: EntityRegistry): TodoModel[] {
-  return todos.map((todo) => new TodoModel(todo, settings, registry));
+  return todos.filter((todo) => todo != null).map((todo) => new TodoModel(todo, settings, registry));
 }
