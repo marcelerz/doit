@@ -385,8 +385,8 @@ export function TodoApp() {
     todos
       .filter((t) => t.isActive)
       .forEach((todo) => {
-        // Count assigned people
-        todo.metadata.assignedPeople.forEach((personName) => {
+        // Count assigned people - use TodoModel.assignedPeople
+        todo.assignedPeople.forEach((personName) => {
           // Find matching person by name or alternatives
           const person = people.find((p) => p.matchesAnyName([personName]));
           if (person) {
@@ -402,8 +402,8 @@ export function TodoApp() {
     todos
       .filter((t) => t.isActive)
       .forEach((todo) => {
-        // Count projects
-        todo.metadata.projects.forEach((projectName) => {
+        // Count projects - use TodoModel.projects
+        todo.projects.forEach((projectName) => {
           // Find matching project by name or alternatives
           const project = projects.find((p) => p.matchesAnyName([projectName]));
           if (project) {
@@ -711,17 +711,17 @@ export function TodoApp() {
     });
   }, [sprints, sprintsSearch, showArchivedSprints]);
 
-  // Count todos per sprint
+  // Count todos per sprint - use TodoModel.sprint
   const todoCountBySprint = useMemo(() => {
     const counts: Record<string, { total: number; completed: number }> = {};
     todos.forEach((todo) => {
-      if (todo.metadata.sprint) {
-        if (!counts[todo.metadata.sprint]) {
-          counts[todo.metadata.sprint] = { total: 0, completed: 0 };
+      if (todo.sprint) {
+        if (!counts[todo.sprint]) {
+          counts[todo.sprint] = { total: 0, completed: 0 };
         }
-        counts[todo.metadata.sprint].total++;
+        counts[todo.sprint].total++;
         if (todo.state === "completed") {
-          counts[todo.metadata.sprint].completed++;
+          counts[todo.sprint].completed++;
         }
       }
     });
@@ -732,51 +732,17 @@ export function TodoApp() {
   type QuickFilter = "all" | "today" | "overdue" | "thisWeek" | "noDueDate";
   const [activeQuickFilter, setActiveQuickFilter] = useState<QuickFilter>("all");
 
-  // Helper to check if date is today
-  const isToday = useCallback((dateStr: string | undefined) => {
-    if (!dateStr) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const date = new Date(dateStr);
-    date.setHours(0, 0, 0, 0);
-    return date.getTime() === today.getTime();
-  }, []);
-
-  // Helper to check if date is overdue
-  const isOverdue = useCallback((dateStr: string | undefined) => {
-    if (!dateStr) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const date = new Date(dateStr);
-    date.setHours(0, 0, 0, 0);
-    return date.getTime() < today.getTime();
-  }, []);
-
-  // Helper to check if date is this week
-  const isThisWeek = useCallback((dateStr: string | undefined) => {
-    if (!dateStr) return false;
-    const today = new Date();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-    const date = new Date(dateStr);
-    return date >= startOfWeek && date <= endOfWeek;
-  }, []);
-
-  // Quick filter counts
+  // Quick filter counts - use TodoModel properties instead of parsing metadata
   const quickFilterCounts = useMemo(() => {
     const activeTodosAll = todos.filter((t) => t.isActive);
     return {
       all: activeTodosAll.length,
-      today: activeTodosAll.filter((t) => isToday(t.metadata.dueDate)).length,
-      overdue: activeTodosAll.filter((t) => isOverdue(t.metadata.dueDate)).length,
-      thisWeek: activeTodosAll.filter((t) => isThisWeek(t.metadata.dueDate)).length,
-      noDueDate: activeTodosAll.filter((t) => !t.metadata.dueDate).length,
+      today: activeTodosAll.filter((t) => t.isDueToday).length,
+      overdue: activeTodosAll.filter((t) => t.isOverdue).length,
+      thisWeek: activeTodosAll.filter((t) => t.isDueThisWeek).length,
+      noDueDate: activeTodosAll.filter((t) => !t.hasDueDate).length,
     };
-  }, [todos, isToday, isOverdue, isThisWeek]);
+  }, [todos]);
 
   // Selection mode handlers
   const toggleSelectionMode = useCallback(() => {
@@ -1644,6 +1610,7 @@ export function TodoApp() {
   };
 
   // Extract unique values from all todos for filter options
+  // Use TodoModel getters for display values
   const filterOptions = useMemo(() => {
     const assignedPeople = new Set<string>();
     const sourcePeople = new Set<string>();
@@ -1659,10 +1626,10 @@ export function TodoApp() {
     const usedCategoryIds = new Set<string>();
 
     todos.forEach((todo) => {
-      todo.metadata.assignedPeople.forEach((p) => assignedPeople.add(p));
-      todo.metadata.sourcePeople.forEach((p) => sourcePeople.add(p));
-      todo.metadata.mentionedPeople.forEach((p) => mentionedPeople.add(p));
-      todo.metadata.projects.forEach((projectName) => {
+      todo.assignedPeople.forEach((p) => assignedPeople.add(p));
+      todo.sourcePeople.forEach((p) => sourcePeople.add(p));
+      todo.mentionedPeople.forEach((p) => mentionedPeople.add(p));
+      todo.projects.forEach((projectName) => {
         projectNames.add(projectName);
         // Find the project and add its category if it has one
         const project = projects.find((p) => p.matchesAnyName([projectName]));
@@ -1670,12 +1637,12 @@ export function TodoApp() {
           usedCategoryIds.add(project.category);
         }
       });
-      if (todo.metadata.priority) priorities.add(todo.metadata.priority);
-      if (todo.metadata.dueDate) dueDates.add(todo.metadata.dueDate);
-      if (todo.metadata.duration) durations.add(todo.metadata.duration);
-      (todo.metadata.tags ?? []).forEach((t) => tags.add(t));
-      if (todo.metadata.recurring) recurring.add(todo.metadata.recurring);
-      (todo.metadata.dependencies ?? []).forEach((d) => dependencies.add(d));
+      if (todo.priority) priorities.add(todo.priority);
+      if (todo.dueDateDisplay) dueDates.add(todo.dueDateDisplay);
+      if (todo.durationDisplay) durations.add(todo.durationDisplay);
+      todo.tags.forEach((t) => tags.add(t));
+      if (todo.recurring) recurring.add(todo.recurring);
+      todo.dependencies.forEach((d) => dependencies.add(d));
     });
 
     // Categories: only show categories that are actually used by projects in todos
@@ -1798,20 +1765,20 @@ export function TodoApp() {
   // Apply filters to todos
   const applyFilters = (todoList: typeof todos) => {
     return todoList.filter((todo) => {
-      // Quick filter (only for active todos)
+      // Quick filter (only for active todos) - use TodoModel properties
       if (activeQuickFilter !== "all" && todo.isActive) {
         switch (activeQuickFilter) {
           case "today":
-            if (!isToday(todo.metadata.dueDate)) return false;
+            if (!todo.isDueToday) return false;
             break;
           case "overdue":
-            if (!isOverdue(todo.metadata.dueDate)) return false;
+            if (!todo.isOverdue) return false;
             break;
           case "thisWeek":
-            if (!isThisWeek(todo.metadata.dueDate)) return false;
+            if (!todo.isDueThisWeek) return false;
             break;
           case "noDueDate":
-            if (todo.metadata.dueDate) return false;
+            if (todo.hasDueDate) return false;
             break;
         }
       }
@@ -1822,33 +1789,34 @@ export function TodoApp() {
       }
 
       // Metadata filters (OR logic within each category)
+      // Use TodoModel getters which already provide the display values
       if (filters.assignedPeople.size > 0) {
-        if (!arrayHasAnyFromSet(todo.metadata.assignedPeople, filters.assignedPeople)) {
+        if (!arrayHasAnyFromSet(todo.assignedPeople, filters.assignedPeople)) {
           return false;
         }
       }
 
       if (filters.sourcePeople.size > 0) {
-        if (!arrayHasAnyFromSet(todo.metadata.sourcePeople, filters.sourcePeople)) {
+        if (!arrayHasAnyFromSet(todo.sourcePeople, filters.sourcePeople)) {
           return false;
         }
       }
 
       if (filters.mentionedPeople.size > 0) {
-        if (!arrayHasAnyFromSet(todo.metadata.mentionedPeople, filters.mentionedPeople)) {
+        if (!arrayHasAnyFromSet(todo.mentionedPeople, filters.mentionedPeople)) {
           return false;
         }
       }
 
       if (filters.projects.size > 0) {
-        if (!arrayHasAnyFromSet(todo.metadata.projects, filters.projects)) {
+        if (!arrayHasAnyFromSet(todo.projects, filters.projects)) {
           return false;
         }
       }
 
       // Category filter - check if any of the todo's projects belong to selected categories
       if (filters.categories.size > 0) {
-        const todoCategories = todo.metadata.projects
+        const todoCategories = todo.projects
           .map((projectName) => {
             const project = projects.find((p) => p.matchesAnyName([projectName]));
             return project?.category;
@@ -1861,37 +1829,37 @@ export function TodoApp() {
       }
 
       if (filters.priorities.size > 0) {
-        if (!setHasValue(filters.priorities, todo.metadata.priority)) {
+        if (!setHasValue(filters.priorities, todo.priority)) {
           return false;
         }
       }
 
       if (filters.dueDates.size > 0) {
-        if (!setHasValue(filters.dueDates, todo.metadata.dueDate)) {
+        if (!setHasValue(filters.dueDates, todo.dueDateDisplay)) {
           return false;
         }
       }
 
       if (filters.durations.size > 0) {
-        if (!setHasValue(filters.durations, todo.metadata.duration)) {
+        if (!setHasValue(filters.durations, todo.durationDisplay)) {
           return false;
         }
       }
 
       if (filters.tags.size > 0) {
-        if (!arrayHasAnyFromSet(todo.metadata.tags ?? [], filters.tags)) {
+        if (!arrayHasAnyFromSet(todo.tags, filters.tags)) {
           return false;
         }
       }
 
       if (filters.recurring.size > 0) {
-        if (!setHasValue(filters.recurring, todo.metadata.recurring)) {
+        if (!setHasValue(filters.recurring, todo.recurring)) {
           return false;
         }
       }
 
       if (filters.dependencies.size > 0) {
-        if (!arrayHasAnyFromSet(todo.metadata.dependencies ?? [], filters.dependencies)) {
+        if (!arrayHasAnyFromSet(todo.dependencies, filters.dependencies)) {
           return false;
         }
       }
@@ -1914,58 +1882,52 @@ export function TodoApp() {
           break;
 
         case "dueDate":
-          const aDate = a.metadata.dueDate || "";
-          const bDate = b.metadata.dueDate || "";
-          comparison = aDate.localeCompare(bDate);
+          // Use actual timestamps for proper date sorting
+          const aTimestamp = a.dueDate ?? 0;
+          const bTimestamp = b.dueDate ?? 0;
+          comparison = aTimestamp - bTimestamp;
           // Put empty dates at the end
-          if (!aDate && bDate) return 1;
-          if (aDate && !bDate) return -1;
+          if (aTimestamp === 0 && bTimestamp !== 0) return 1;
+          if (aTimestamp !== 0 && bTimestamp === 0) return -1;
           break;
 
         case "duration":
-          const aDuration = a.metadata.duration || "";
-          const bDuration = b.metadata.duration || "";
-          comparison = aDuration.localeCompare(bDuration);
-          if (!aDuration && bDuration) return 1;
-          if (aDuration && !bDuration) return -1;
+          // Use numeric minutes for proper duration sorting
+          const aDuration = a.durationMinutes ?? 0;
+          const bDuration = b.durationMinutes ?? 0;
+          comparison = aDuration - bDuration;
+          if (aDuration === 0 && bDuration !== 0) return 1;
+          if (aDuration !== 0 && bDuration === 0) return -1;
           break;
 
         case "assigned":
-          const aAssigned = a.metadata.assignedPeople[0] || "";
-          const bAssigned = b.metadata.assignedPeople[0] || "";
+          const aAssigned = a.assignedPeople[0] || "";
+          const bAssigned = b.assignedPeople[0] || "";
           comparison = aAssigned.localeCompare(bAssigned);
           break;
 
         case "source":
-          const aSource = a.metadata.sourcePeople[0] || "";
-          const bSource = b.metadata.sourcePeople[0] || "";
+          const aSource = a.sourcePeople[0] || "";
+          const bSource = b.sourcePeople[0] || "";
           comparison = aSource.localeCompare(bSource);
           break;
 
         case "mentioned":
-          const aMentioned = a.metadata.mentionedPeople[0] || "";
-          const bMentioned = b.metadata.mentionedPeople[0] || "";
+          const aMentioned = a.mentionedPeople[0] || "";
+          const bMentioned = b.mentionedPeople[0] || "";
           comparison = aMentioned.localeCompare(bMentioned);
           break;
 
         case "project":
-          const aProject = a.metadata.projects[0] || "";
-          const bProject = b.metadata.projects[0] || "";
+          const aProject = a.projects[0] || "";
+          const bProject = b.projects[0] || "";
           comparison = aProject.localeCompare(bProject);
           break;
 
         case "priority":
-          const priorityOrder: Record<string, number> = {};
-          settings.priorities.forEach((p, idx) => {
-            priorityOrder[p.name.toLowerCase()] = p.order;
-            p.alternatives.forEach((alt) => {
-              priorityOrder[alt.toLowerCase()] = p.order;
-            });
-          });
-          const aPriority = a.metadata.priority?.toLowerCase() || "";
-          const bPriority = b.metadata.priority?.toLowerCase() || "";
-          const aOrder = priorityOrder[aPriority] ?? 999;
-          const bOrder = priorityOrder[bPriority] ?? 999;
+          // Use TodoModel.priorityOrder for sorting (lower = higher priority)
+          const aOrder = a.priorityOrder ?? 999;
+          const bOrder = b.priorityOrder ?? 999;
           comparison = aOrder - bOrder;
           break;
 
@@ -2010,40 +1972,25 @@ export function TodoApp() {
       todoList.forEach((todo) => {
         let groupKey = "No Due Date";
 
-        if (todo.metadata.dueDate) {
-          try {
-            // Parse the due date string - handle both YYYY-MM-DD and YYYY-MM-DDTHH:mm formats
-            let dueDate: Date;
-            const dueDateStr = todo.metadata.dueDate;
+        // Use TodoModel.dueDateObject instead of parsing metadata string
+        const dueDate = todo.dueDateObject;
+        if (dueDate) {
+          const dueDateNormalized = new Date(dueDate);
+          dueDateNormalized.setHours(0, 0, 0, 0);
+          const dueDateMs = dueDateNormalized.getTime();
 
-            if (dueDateStr.includes("T")) {
-              // Has time component - extract date part and parse locally
-              const [year, month, day] = dueDateStr.split("T")[0].split("-").map(Number);
-              dueDate = new Date(year, month - 1, day);
-            } else {
-              // Date only format
-              const [year, month, day] = dueDateStr.split("-").map(Number);
-              dueDate = new Date(year, month - 1, day);
-            }
-
-            dueDate.setHours(0, 0, 0, 0);
-            const dueDateMs = dueDate.getTime();
-
-            if (dueDateMs < todayMs) {
-              groupKey = "Overdue";
-            } else if (dueDateMs === todayMs) {
-              groupKey = "Today";
-            } else if (dueDateMs === todayMs + oneDayMs) {
-              groupKey = "Tomorrow";
-            } else if (dueDateMs <= todayMs + 7 * oneDayMs) {
-              groupKey = "This Week";
-            } else if (dueDateMs <= todayMs + 30 * oneDayMs) {
-              groupKey = "This Month";
-            } else {
-              groupKey = "Later";
-            }
-          } catch (e) {
-            groupKey = "Invalid Date";
+          if (dueDateMs < todayMs) {
+            groupKey = "Overdue";
+          } else if (dueDateMs === todayMs) {
+            groupKey = "Today";
+          } else if (dueDateMs === todayMs + oneDayMs) {
+            groupKey = "Tomorrow";
+          } else if (dueDateMs <= todayMs + 7 * oneDayMs) {
+            groupKey = "This Week";
+          } else if (dueDateMs <= todayMs + 30 * oneDayMs) {
+            groupKey = "This Month";
+          } else {
+            groupKey = "Later";
           }
         }
 
@@ -2078,7 +2025,7 @@ export function TodoApp() {
       const grouped: Record<string, typeof todos> = {};
 
       todoList.forEach((todo) => {
-        const groupKey = todo.metadata.priority || "No Priority";
+        const groupKey = todo.priority || "No Priority";
         if (!grouped[groupKey]) {
           grouped[groupKey] = [];
         }
@@ -2114,7 +2061,7 @@ export function TodoApp() {
       const grouped: Record<string, typeof todos> = {};
 
       todoList.forEach((todo) => {
-        const projectName = todo.metadata.projects[0] || "No Project";
+        const projectName = todo.projects[0] || "No Project";
         if (!grouped[projectName]) {
           grouped[projectName] = [];
         }
@@ -2142,8 +2089,8 @@ export function TodoApp() {
       todoList.forEach((todo) => {
         // Find category from first project
         let categoryName = "No Category";
-        if (todo.metadata.projects.length > 0) {
-          const projectName = todo.metadata.projects[0];
+        if (todo.projects.length > 0) {
+          const projectName = todo.projects[0];
           const project = projects.find((p) => p.matchesAnyName([projectName]));
           if (project?.category) {
             const category = settings.categories.find((c) => c.id === project.category);
@@ -2176,7 +2123,7 @@ export function TodoApp() {
       const grouped: Record<string, typeof todos> = {};
 
       todoList.forEach((todo) => {
-        const assignedName = todo.metadata.assignedPeople[0] || "Unassigned";
+        const assignedName = todo.assignedPeople[0] || "Unassigned";
         if (!grouped[assignedName]) {
           grouped[assignedName] = [];
         }
@@ -2203,8 +2150,8 @@ export function TodoApp() {
 
       todoList.forEach((todo) => {
         let groupKey = "Backlog";
-        if (todo.metadata.sprint) {
-          const sprint = sprints.find((s) => s.id === todo.metadata.sprint);
+        if (todo.sprint) {
+          const sprint = sprints.find((s) => s.id === todo.sprint);
           groupKey = sprint?.name || "Unknown Sprint";
         }
         if (!grouped[groupKey]) {
@@ -2245,27 +2192,11 @@ export function TodoApp() {
   };
 
   // Sort todos by priority (legacy - now part of sortTodos)
+  // Uses TodoModel.priorityOrder for proper sorting
   const sortByPriority = (todoList: typeof todos) => {
-    const priorityOrder: Record<string, number> = {
-      "0": 0,
-      ubn: 0,
-      "1": 1,
-      high: 1,
-      "2": 2,
-      med: 2,
-      medium: 2,
-      "3": 3,
-      low: 3,
-      "4": 4,
-      wish: 4,
-    };
-
     return [...todoList].sort((a, b) => {
-      const aPriority = a.metadata.priority?.toLowerCase() || "";
-      const bPriority = b.metadata.priority?.toLowerCase() || "";
-
-      const aOrder = priorityOrder[aPriority] ?? 999;
-      const bOrder = priorityOrder[bPriority] ?? 999;
+      const aOrder = a.priorityOrder ?? 999;
+      const bOrder = b.priorityOrder ?? 999;
 
       if (aOrder !== bOrder) {
         return aOrder - bOrder;

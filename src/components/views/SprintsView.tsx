@@ -77,17 +77,17 @@ export function SprintsView({
     return sprints.find((s) => s.status === "active");
   }, [sprints]);
 
-  // Count todos per sprint
+  // Count todos per sprint - use TodoModel.sprint
   const todoCountBySprint = useMemo(() => {
     const counts: Record<string, { total: number; completed: number }> = {};
     todos.forEach((todo) => {
-      if (todo.metadata.sprint) {
-        if (!counts[todo.metadata.sprint]) {
-          counts[todo.metadata.sprint] = { total: 0, completed: 0 };
+      if (todo.sprint) {
+        if (!counts[todo.sprint]) {
+          counts[todo.sprint] = { total: 0, completed: 0 };
         }
-        counts[todo.metadata.sprint].total++;
+        counts[todo.sprint].total++;
         if (todo.state === "completed") {
-          counts[todo.metadata.sprint].completed++;
+          counts[todo.sprint].completed++;
         }
       }
     });

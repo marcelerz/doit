@@ -374,12 +374,38 @@ export class TodoModel {
   }
 
   /**
+   * Check if this task has a due date set
+   */
+  get hasDueDate(): boolean {
+    return this.dueDate !== undefined;
+  }
+
+  /**
+   * Get due date as a date key string (YYYY-MM-DD format) for calendar grouping
+   */
+  get dueDateKey(): string | undefined {
+    const date = this.dueDateObject;
+    if (!date) return undefined;
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  /**
    * Get duration in minutes (from actual seconds field)
    */
   get durationMinutes(): number | undefined {
     const seconds = this._raw.duration;
     if (!seconds) return undefined;
     return Math.round(seconds / 60);
+  }
+
+  /**
+   * Check if this task has a duration set
+   */
+  get hasDuration(): boolean {
+    return this.durationSeconds !== undefined;
   }
 
   /**

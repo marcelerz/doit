@@ -204,69 +204,44 @@ export function CalendarView({
     return days;
   }, [calendarSettings.weekStartDay]);
 
-  // Get todos by date
-  const todosByDate = useMemo(() => {
-    const map = new Map<string, TodoModel[]>();
+  // Get today's date key for todos without dates
+  const todayKey = useMemo(() => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
     const year = today.getFullYear();
     const month = (today.getMonth() + 1).toString().padStart(2, "0");
     const day = today.getDate().toString().padStart(2, "0");
-    const todayKey = `${year}-${month}-${day}`;
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  // Get todos by date - uses TodoModel.dueDateKey instead of parsing metadata
+  const todosByDate = useMemo(() => {
+    const map = new Map<string, TodoModel[]>();
 
     // First, add todos without due dates to today (if toggle is on)
     if (showTasksWithoutDates) {
-      const todosWithoutDates = todos.filter((todo) => !todo.metadata.dueDate && todo.state !== "deleted");
+      const todosWithoutDates = todos.filter((todo) => !todo.hasDueDate && !todo.isDeleted);
       if (todosWithoutDates.length > 0) {
         map.set(todayKey, [...todosWithoutDates]);
       }
     }
 
-    // Then add todos with due dates
+    // Then add todos with due dates using the model's dueDateKey
     todos
-      .filter((todo) => todo.metadata.dueDate && todo.state !== "deleted")
+      .filter((todo) => todo.hasDueDate && !todo.isDeleted)
       .forEach((todo) => {
-        try {
-          let dueDate: Date;
-          const dueDateStr = todo.metadata.dueDate!;
-
-          if (dueDateStr.includes("T") || dueDateStr.includes("Z")) {
-            const datePartMatch = dueDateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-            if (datePartMatch) {
-              const [, year, month, day] = datePartMatch;
-              dueDate = new Date(Number(year), Number(month) - 1, Number(day));
-            } else {
-              dueDate = new Date(dueDateStr);
-            }
-          } else if (dueDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            const [year, month, day] = dueDateStr.split("-").map(Number);
-            dueDate = new Date(year, month - 1, day);
-          } else {
-            dueDate = new Date(dueDateStr);
-          }
-
-          if (isNaN(dueDate.getTime())) return;
-
-          const dateYear = dueDate.getFullYear();
-          const dateMonth = (dueDate.getMonth() + 1).toString().padStart(2, "0");
-          const dateDay = dueDate.getDate().toString().padStart(2, "0");
-          const dateKey = `${dateYear}-${dateMonth}-${dateDay}`;
-
-          if (!map.has(dateKey)) {
-            map.set(dateKey, []);
-          }
-          map.get(dateKey)!.push(todo);
-        } catch {
-          // Invalid date, skip
+        const dateKey = todo.dueDateKey!;
+        if (!map.has(dateKey)) {
+          map.set(dateKey, []);
         }
+        map.get(dateKey)!.push(todo);
       });
 
     return map;
-  }, [todos, showTasksWithoutDates]);
+  }, [todos, showTasksWithoutDates, todayKey]);
 
   // Count todos without due dates
-  const todosWithoutDates = useMemo(() => {
-    return todos.filter((todo) => !todo.metadata.dueDate && todo.state !== "deleted").length;
+  const todosWithoutDatesCount = useMemo(() => {
+    return todos.filter((todo) => !todo.hasDueDate && !todo.isDeleted).length;
   }, [todos]);
 
   // Generate calendar days
@@ -302,8 +277,8 @@ export function CalendarView({
       currentDate.setHours(0, 0, 0, 0);
       const overdueTasks = todosForDay.filter((todo) => todo.state === "active" && currentDate < today);
 
-      // Check for recurring tasks
-      const recurringTasks = todosForDay.filter((todo) => todo.metadata.recurring);
+      // Check for recurring tasks - use TodoModel.isRecurring
+      const recurringTasks = todosForDay.filter((todo) => todo.isRecurring);
 
       days.push({
         date: new Date(current),
@@ -462,14 +437,14 @@ export function CalendarView({
       let comparison = 0;
 
       if (sortField === "priority") {
-        const priorityOrder: Record<string, number> = { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4 };
-        const aPriority = priorityOrder[a.metadata.priority?.toLowerCase() || ""] ?? 999;
-        const bPriority = priorityOrder[b.metadata.priority?.toLowerCase() || ""] ?? 999;
+        // Use TodoModel.priorityOrder for proper sorting (lower = higher priority)
+        const aPriority = a.priorityOrder ?? 999;
+        const bPriority = b.priorityOrder ?? 999;
         comparison = aPriority - bPriority;
       } else if (sortField === "duration") {
-        const aDuration = a.metadata.duration || "";
-        const bDuration = b.metadata.duration || "";
-        comparison = aDuration.localeCompare(bDuration);
+        const aDuration = a.durationMinutes ?? 0;
+        const bDuration = b.durationMinutes ?? 0;
+        comparison = aDuration - bDuration;
       } else {
         comparison = b.createdAt - a.createdAt;
       }
@@ -486,15 +461,16 @@ export function CalendarView({
   const getDotColor = (todo: TodoModel) => {
     switch (calendarSettings.dotColorBy) {
       case "priority": {
-        const priority = todo.metadata.priority?.toLowerCase();
-        if (priority === "urgent" || priority === "1") return "bg-red-500";
-        if (priority === "high" || priority === "2") return "bg-orange-500";
-        if (priority === "medium" || priority === "3") return "bg-yellow-500";
-        if (priority === "low" || priority === "4") return "bg-green-500";
+        // Use priorityOrder for comparison (lower order = higher priority)
+        const order = todo.priorityOrder;
+        if (order === 0) return "bg-red-500"; // urgent
+        if (order === 1) return "bg-orange-500"; // high
+        if (order === 2) return "bg-yellow-500"; // medium
+        if (order === 3) return "bg-green-500"; // low
         return "bg-zinc-400";
       }
       case "project": {
-        const projectName = todo.metadata.projects?.[0];
+        const projectName = todo.projects[0];
         if (projectName) {
           const project = availableProjects.find(
             (p) => p.name === projectName || p.alternatives?.includes(projectName),
@@ -521,7 +497,7 @@ export function CalendarView({
 
   const getProjectColor = (todo: TodoModel): string | undefined => {
     if (calendarSettings.dotColorBy !== "project") return undefined;
-    const projectName = todo.metadata.projects?.[0];
+    const projectName = todo.projects[0];
     if (projectName) {
       const project = availableProjects.find((p) => p.name === projectName || p.alternatives?.includes(projectName));
       return project?.color;
@@ -648,7 +624,7 @@ export function CalendarView({
       data-testid="calendar-view"
     >
       {/* Toggle for todos without dates */}
-      {todosWithoutDates > 0 && (
+      {todosWithoutDatesCount > 0 && (
         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg border border-blue-200 dark:border-blue-800 print:hidden">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <svg
@@ -666,7 +642,7 @@ export function CalendarView({
             </svg>
             <div className="flex-1 min-w-0">
               <p className="text-xs sm:text-sm font-medium text-blue-900 dark:text-blue-100">
-                {todosWithoutDates} {todosWithoutDates === 1 ? "task" : "tasks"} without dates
+                {todosWithoutDatesCount} {todosWithoutDatesCount === 1 ? "task" : "tasks"} without dates
               </p>
               <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5 hidden sm:block">
                 {showTasksWithoutDates ? "Shown under today's date" : "Not shown in calendar"}

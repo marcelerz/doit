@@ -121,20 +121,11 @@ export function StatisticsView({ todos, projects = [], categories = [] }: Statis
       return createdDate >= today;
     });
 
-    // Overdue count
-    const overdueTodos = activeTodos.filter((t) => {
-      if (!t.metadata.dueDate) return false;
-      const dueDate = new Date(t.metadata.dueDate);
-      dueDate.setHours(23, 59, 59, 999);
-      return dueDate < now;
-    });
+    // Overdue count - use TodoModel.isOverdue which already handles all logic
+    const overdueTodos = activeTodos.filter((t) => t.isOverdue);
 
-    // Due today
-    const dueToday = activeTodos.filter((t) => {
-      if (!t.metadata.dueDate) return false;
-      const dueDate = new Date(t.metadata.dueDate);
-      return dueDate.toDateString() === today.toDateString();
-    });
+    // Due today - use TodoModel.isDueToday
+    const dueToday = activeTodos.filter((t) => t.isDueToday);
 
     // Average completion time (from creation to completion)
     const completedWithTimes = completedTodos.filter((t) => t.createdAt && t.completedAt);
@@ -158,7 +149,7 @@ export function StatisticsView({ todos, projects = [], categories = [] }: Statis
 
     // Tasks by priority
     const byPriority = activeTodos.reduce((acc, t) => {
-      const priority = t.metadata.priority || "none";
+      const priority = t.priority || "none";
       acc[priority] = (acc[priority] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);

@@ -689,7 +689,7 @@ export function FocusView({
         timeRemaining: s.timeRemaining + minutes * 60,
       }));
 
-      const currentDurationMinutes = parseDuration(freshTodo.metadata.duration);
+      const currentDurationMinutes = freshTodo.durationMinutes ?? 0;
       const newDurationMinutes = currentDurationMinutes + minutes;
       onEdit(freshTodo.id, freshTodo.text, freshTodo.plainText, {
         ...freshTodo.metadata,
@@ -1211,10 +1211,10 @@ export function FocusView({
           {currentTodo && (
             <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl p-8 mb-8">
               {/* Priority Badge */}
-              {currentTodo.metadata.priority && (
+              {currentTodo.priority && (
                 <div className="mb-4">
                   <Badge variant="red" size="md">
-                    {currentTodo.metadata.priority}
+                    {currentTodo.priority}
                   </Badge>
                 </div>
               )}
@@ -1226,28 +1226,28 @@ export function FocusView({
 
               {/* Metadata */}
               <div className="flex flex-wrap gap-3 text-sm mb-6">
-                {currentTodo.metadata.dueDate && (
+                {currentTodo.hasDueDate && (
                   <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                     <span>📅</span>
-                    <span>{currentTodo.dueDateDisplay || currentTodo.metadata.dueDate}</span>
+                    <span>{currentTodo.dueDateDisplay}</span>
                   </div>
                 )}
-                {currentTodo.metadata.duration && (
+                {currentTodo.hasDuration && (
                   <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                     <span>⏱️</span>
                     <span>{currentTodo.durationDisplay}</span>
                   </div>
                 )}
-                {currentTodo.metadata.assignedPeople.length > 0 && (
+                {currentTodo.assignedPeople.length > 0 && (
                   <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                     <span>👤</span>
-                    <span>{currentTodo.metadata.assignedPeople.join(", ")}</span>
+                    <span>{currentTodo.assignedPeople.join(", ")}</span>
                   </div>
                 )}
-                {currentTodo.metadata.projects.length > 0 && (
+                {currentTodo.projects.length > 0 && (
                   <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                     <span>📁</span>
-                    <span>{currentTodo.metadata.projects.join(", ")}</span>
+                    <span>{currentTodo.projects.join(", ")}</span>
                   </div>
                 )}
               </div>

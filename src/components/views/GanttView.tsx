@@ -342,7 +342,7 @@ export function GanttView({
     todosForDate.forEach((todo) => {
       if ((todo.isCompleted || todo.isArchived) && todo.completedAt) {
         const completionDate = new Date(todo.completedAt);
-        const durationMinutes = parseDuration(todo.metadata.duration);
+        const durationMinutes = todo.durationMinutes ?? 0;
         const taskStartTime = new Date(completionDate.getTime() - durationMinutes * 60 * 1000);
 
         if (taskStartTime < minTime) {
@@ -614,8 +614,8 @@ export function GanttView({
       if (todo.isArchived) return "#fef08a"; // yellow-200
 
       // If todo has a project, look up the project entity and use its custom color
-      if (todo.metadata.projects && todo.metadata.projects.length > 0) {
-        const projectName = todo.metadata.projects[0];
+      if (todo.projects.length > 0) {
+        const projectName = todo.projects[0];
         const color = projectColorMap.get(projectName);
         if (color) return color;
       }
@@ -1635,10 +1635,10 @@ export function GanttView({
                                               </span>
                                             )}
                                             {/* Recurring indicator */}
-                                            {task.todo.metadata.recurring && (
+                                            {task.todo.isRecurring && (
                                               <span
                                                 className="text-[10px] opacity-70"
-                                                title={`Recurring: ${task.todo.metadata.recurring}`}
+                                                title={`Recurring: ${task.todo.recurring}`}
                                               >
                                                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                   <path
@@ -1650,21 +1650,20 @@ export function GanttView({
                                               </span>
                                             )}
                                             {/* Dependencies indicator */}
-                                            {task.todo.metadata.dependencies &&
-                                              task.todo.metadata.dependencies.length > 0 && (
-                                                <span
-                                                  className="text-[10px] opacity-70"
-                                                  title={`Has ${task.todo.metadata.dependencies.length} dependency(ies)`}
-                                                >
-                                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path
-                                                      fillRule="evenodd"
-                                                      d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
-                                                      clipRule="evenodd"
-                                                    />
-                                                  </svg>
-                                                </span>
-                                              )}
+                                            {task.todo.dependencies.length > 0 && (
+                                              <span
+                                                className="text-[10px] opacity-70"
+                                                title={`Has ${task.todo.dependencies.length} dependency(ies)`}
+                                              >
+                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                  <path
+                                                    fillRule="evenodd"
+                                                    d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
+                                                    clipRule="evenodd"
+                                                  />
+                                                </svg>
+                                              </span>
+                                            )}
                                             <span className="text-xs opacity-80 whitespace-nowrap">
                                               {formatDuration(task.durationMinutes)}
                                             </span>
@@ -1960,7 +1959,7 @@ export function GanttView({
                         </marker>
                       </defs>
                       {activeTasks.map((task, taskIndex) => {
-                        const deps = task.todo.metadata.dependencies || [];
+                        const deps = task.todo.dependencies;
                         return deps.map((depId) => {
                           const depTaskIndex = activeTasks.findIndex((t) => t.todo.id === depId);
                           if (depTaskIndex === -1) return null;
@@ -2111,9 +2110,9 @@ export function GanttView({
 
                 {/* Assigned row */}
                 <span className="text-zinc-500 dark:text-zinc-400">Assigned</span>
-                {hoveredTodo.metadata.assignedPeople.length > 0 ? (
+                {hoveredTodo.assignedPeople.length > 0 ? (
                   <div className="flex flex-wrap gap-1">
-                    {hoveredTodo.metadata.assignedPeople.map((person, idx) => {
+                    {hoveredTodo.assignedPeople.map((person, idx) => {
                       const bgColor = getPersonColor(person);
                       return (
                         <span
@@ -2132,9 +2131,9 @@ export function GanttView({
 
                 {/* Project row */}
                 <span className="text-zinc-500 dark:text-zinc-400">Project</span>
-                {hoveredTodo.metadata.projects.length > 0 ? (
+                {hoveredTodo.projects.length > 0 ? (
                   <div className="flex flex-wrap gap-1">
-                    {hoveredTodo.metadata.projects.map((project, idx) => {
+                    {hoveredTodo.projects.map((project, idx) => {
                       const bgColor = getProjectColorForTooltip(project);
                       return (
                         <span
@@ -2154,7 +2153,7 @@ export function GanttView({
                 {/* Due date + Duration row (time-related fields together) */}
                 <span className="text-zinc-500 dark:text-zinc-400">Due</span>
                 <div className="flex items-center gap-2">
-                  {hoveredTodo.metadata.dueDate ? (
+                  {hoveredTodo.hasDueDate ? (
                     <span
                       className={`px-1.5 py-0.5 rounded ${
                         hoveredTodo.isOverdue
@@ -2169,7 +2168,7 @@ export function GanttView({
                   ) : (
                     <span className="text-zinc-300 dark:text-zinc-600">—</span>
                   )}
-                  {hoveredTodo.metadata.duration && (
+                  {hoveredTodo.hasDuration && (
                     <span className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
                       ({hoveredTodo.durationDisplay})
                     </span>
@@ -2178,15 +2177,15 @@ export function GanttView({
 
                 {/* Priority row */}
                 <span className="text-zinc-500 dark:text-zinc-400">Priority</span>
-                {hoveredTodo.metadata.priority ? (
+                {hoveredTodo.priority ? (
                   <span
                     className="px-1.5 py-0.5 rounded font-medium w-fit"
                     style={{
-                      backgroundColor: getPriorityColor(hoveredTodo.metadata.priority),
-                      color: getTextColor(getPriorityColor(hoveredTodo.metadata.priority)),
+                      backgroundColor: hoveredTodo.priorityColor || getPriorityColor(hoveredTodo.priority),
+                      color: getTextColor(hoveredTodo.priorityColor || getPriorityColor(hoveredTodo.priority)),
                     }}
                   >
-                    {hoveredTodo.metadata.priority}
+                    {hoveredTodo.priority}
                   </span>
                 ) : (
                   <span className="text-zinc-300 dark:text-zinc-600">—</span>
