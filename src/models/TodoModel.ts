@@ -241,7 +241,7 @@ export class TodoModel {
    * Maps from Tag[] to string[]
    */
   get tags(): string[] {
-    return (this._raw.tags || []).map((t) => t as string);
+    return this.tagIds.map((t) => t as string);
   }
 
   /**
@@ -249,7 +249,7 @@ export class TodoModel {
    * Maps from TodoId[] to string[]
    */
   get dependencies(): string[] {
-    return (this._raw.dependencies || []).map((d) => d as string);
+    return this.dependencyIds.map((d) => d as string);
   }
 
   /**
@@ -320,15 +320,18 @@ export class TodoModel {
    * Resolves priority ID to name via settings
    */
   get priority(): string | undefined {
-    if (!this._raw.priority) return undefined;
-    return this._settingsModel.findPriorityById(this._raw.priority)?.name;
+    const id = this.priorityId;
+    if (!id) return undefined;
+    return this._settingsModel.findPriorityById(id)?.name;
   }
 
   /**
-   * Get sprint (string for backward compatibility)
+   * Get sprint name (string for backward compatibility)
+   * Note: Currently returns sprint ID as there's no sprint registry
+   * TODO: When EntityRegistry supports sprints, resolve ID to name
    */
   get sprint(): string | undefined {
-    return this._raw.sprint as string | undefined;
+    return this.sprintId as string | undefined;
   }
 
   /**
@@ -354,11 +357,11 @@ export class TodoModel {
       priority: this.priorityName,
       dueDate: this.dueDateDisplay,
       duration: this.durationDisplay,
-      recurring: this._raw.recurring,
+      recurring: this.recurring,
       tags: this.tags,
       dependencies: this.dependencies,
-      sprint: this._raw.sprint as string | undefined,
-      context: this._raw.context,
+      sprint: this.sprint,
+      context: this.context,
     };
   }
 
@@ -393,10 +396,10 @@ export class TodoModel {
   }
 
   /**
-   * Get duration in minutes (from actual seconds field)
+   * Get duration in minutes (from durationSeconds with auto-assign)
    */
   get durationMinutes(): number | undefined {
-    const seconds = this._raw.duration;
+    const seconds = this.durationSeconds;
     if (!seconds) return undefined;
     return Math.round(seconds / 60);
   }
@@ -427,19 +430,19 @@ export class TodoModel {
   // ===== State Checks =====
 
   get isActive(): boolean {
-    return this._raw.state === "active";
+    return this.state === "active";
   }
 
   get isCompleted(): boolean {
-    return this._raw.state === "completed";
+    return this.state === "completed";
   }
 
   get isArchived(): boolean {
-    return this._raw.state === "archived";
+    return this.state === "archived";
   }
 
   get isDeleted(): boolean {
-    return this._raw.state === "deleted";
+    return this.state === "deleted";
   }
 
   // ===== Date Calculations =====
@@ -512,6 +515,7 @@ export class TodoModel {
 
   /**
    * Check if the todo has any actual fields assigned (excluding context)
+   * Note: Uses raw for performance - this checks actual stored values, not auto-assigned
    */
   get hasFields(): boolean {
     return (
@@ -531,27 +535,30 @@ export class TodoModel {
   // ===== Display Helpers =====
 
   /**
-   * Get priority color from settings (using actual priority ID)
+   * Get priority color from settings (using priority ID with auto-assign)
    */
   get priorityColor(): string | undefined {
-    if (!this._raw.priority) return undefined;
-    return this._settingsModel.getPriorityColorById(this._raw.priority);
+    const id = this.priorityId;
+    if (!id) return undefined;
+    return this._settingsModel.getPriorityColorById(id);
   }
 
   /**
-   * Get priority order (lower is higher priority, using actual priority ID)
+   * Get priority order (lower is higher priority, using priority ID with auto-assign)
    */
   get priorityOrder(): number | undefined {
-    if (!this._raw.priority) return undefined;
-    return this._settingsModel.getPriorityOrderById(this._raw.priority);
+    const id = this.priorityId;
+    if (!id) return undefined;
+    return this._settingsModel.getPriorityOrderById(id);
   }
 
   /**
-   * Get priority name for display (using actual priority ID)
+   * Get priority name for display (using priority ID with auto-assign)
    */
   get priorityName(): string | undefined {
-    if (!this._raw.priority) return undefined;
-    return this._settingsModel.findPriorityById(this._raw.priority)?.name;
+    const id = this.priorityId;
+    if (!id) return undefined;
+    return this._settingsModel.findPriorityById(id)?.name;
   }
 
   /**
@@ -805,6 +812,7 @@ export class TodoModel {
 
   /**
    * Get number of comments
+   * Note: Uses _raw for performance - avoids cloning the comments array
    */
   get commentCount(): number {
     return this._raw.comments.length;
@@ -812,6 +820,7 @@ export class TodoModel {
 
   /**
    * Check if this todo has comments
+   * Note: Uses _raw for performance - avoids cloning the comments array
    */
   get hasComments(): boolean {
     return this._raw.comments.length > 0;
@@ -831,11 +840,12 @@ export class TodoModel {
    * Check if this todo has subtasks
    */
   get hasSubtasks(): boolean {
-    return (this._raw.subtasks || []).length > 0;
+    return this.subtaskCount > 0;
   }
 
   /**
    * Get the number of subtasks
+   * Note: Uses _raw for performance - avoids cloning the array
    */
   get subtaskCount(): number {
     return (this._raw.subtasks || []).length;
@@ -843,6 +853,7 @@ export class TodoModel {
 
   /**
    * Get the number of completed subtasks
+   * Note: Uses _raw for performance - avoids cloning the array
    */
   get completedSubtaskCount(): number {
     return (this._raw.subtasks || []).filter((s) => s.completed).length;
@@ -852,17 +863,17 @@ export class TodoModel {
    * Get subtask completion progress as a percentage (0-100)
    */
   get subtaskProgress(): number {
-    const subtasks = this._raw.subtasks || [];
-    if (subtasks.length === 0) return 0;
-    return Math.round((this.completedSubtaskCount / subtasks.length) * 100);
+    const count = this.subtaskCount;
+    if (count === 0) return 0;
+    return Math.round((this.completedSubtaskCount / count) * 100);
   }
 
   /**
    * Check if all subtasks are completed
    */
   get allSubtasksCompleted(): boolean {
-    const subtasks = this._raw.subtasks || [];
-    return subtasks.length > 0 && this.completedSubtaskCount === subtasks.length;
+    const count = this.subtaskCount;
+    return count > 0 && this.completedSubtaskCount === count;
   }
 
   // ===== Time Tracking Properties =====
@@ -877,6 +888,7 @@ export class TodoModel {
 
   /**
    * Check if time tracking is enabled for this todo
+   * Note: Uses _raw for performance - avoids cloning the tracking data
    */
   get hasTimeTracking(): boolean {
     return !!this._raw.timeTracking && this._raw.timeTracking.entries.length > 0;
@@ -884,6 +896,7 @@ export class TodoModel {
 
   /**
    * Check if currently tracking time
+   * Note: Uses _raw for performance - avoids cloning the tracking data
    */
   get isTrackingTime(): boolean {
     if (!this._raw.timeTracking) return false;
@@ -892,6 +905,7 @@ export class TodoModel {
 
   /**
    * Get total tracked time in minutes (includes active tracking)
+   * Note: Uses _raw for performance - avoids cloning the tracking data
    */
   get totalTrackedMinutes(): DurationMin {
     if (!this._raw.timeTracking) return getDurationMin(0);
@@ -936,12 +950,16 @@ export class TodoModel {
   /**
    * Get number of activity entries
    */
+  /**
+   * Note: Uses _raw for performance - avoids cloning the activity array
+   */
   get activityCount(): number {
     return this._raw.activity.length;
   }
 
   /**
    * Check if this todo has activity
+   * Note: Uses _raw for performance - avoids cloning the activity array
    */
   get hasActivity(): boolean {
     return this._raw.activity.length > 0;
@@ -950,7 +968,8 @@ export class TodoModel {
   /**
    * Get the most recent comment
    * Returns null if no comments exist
-   * Returns a new object to prevent external modification
+   * Returns a new object (copy) to prevent external modification
+   * Note: Uses _raw for performance - only creates a minimal copy for return
    */
   get latestComment() {
     if (this._raw.comments.length === 0) return null;
@@ -967,6 +986,7 @@ export class TodoModel {
    * Get the most recent activity
    * Returns null if no activity exists
    * Returns a copy to prevent external modification of internal state
+   * Note: Uses _raw for performance - only clones the single returned entry
    */
   get latestActivity() {
     if (this._raw.activity.length === 0) return null;
@@ -1064,17 +1084,17 @@ export class TodoModel {
 
   /**
    * Get metadata summary for display (e.g., "2 people, 1 project, High priority")
-   * Uses actual fields, not metadata strings
+   * Uses typed getters for display values
    */
   get metadataSummary(): string {
     const parts: string[] = [];
 
-    const assignedCount = this._raw.assignedPeople.length;
+    const assignedCount = this.assignedPeopleIds.length;
     if (assignedCount > 0) {
       parts.push(`${assignedCount} ${assignedCount === 1 ? "person" : "people"}`);
     }
 
-    const projectCount = this._raw.projects.length;
+    const projectCount = this.projectIds.length;
     if (projectCount > 0) {
       parts.push(`${projectCount} ${projectCount === 1 ? "project" : "projects"}`);
     }
@@ -1084,18 +1104,19 @@ export class TodoModel {
       parts.push(`${priorityName} priority`);
     }
 
-    if (this._raw.dueDate) {
+    const dueDateTimestamp = this.dueDate;
+    if (dueDateTimestamp) {
       // Use simple date format for summary (dueDateDisplay may be verbose like "Today morning")
-      const date = new Date(this._raw.dueDate);
+      const date = new Date(dueDateTimestamp);
       const simpleDisplay = date.toLocaleDateString();
       parts.push(`due ${simpleDisplay}`);
     }
 
-    if (this._raw.duration) {
+    if (this.hasDuration) {
       parts.push(`${this.durationDisplay} duration`);
     }
 
-    const tagCount = this._raw.tags.length;
+    const tagCount = this.tagIds.length;
     if (tagCount > 0) {
       parts.push(`${tagCount} ${tagCount === 1 ? "tag" : "tags"}`);
     }
@@ -1115,36 +1136,34 @@ export class TodoModel {
     if (this.plainText.toLowerCase().includes(search)) return true;
 
     // Search tags
-    if ((this._raw.tags || []).some((t) => (t as string).toLowerCase().includes(search))) return true;
+    if (this.tags.some((t) => t.toLowerCase().includes(search))) return true;
 
     // Search priority name
-    if (this._raw.priority) {
-      const priorityName = this._settingsModel.findPriorityById(this._raw.priority)?.name;
-      if (priorityName && priorityName.toLowerCase().includes(search)) return true;
-    }
+    const priorityName = this.priorityName;
+    if (priorityName && priorityName.toLowerCase().includes(search)) return true;
 
     // Search people and projects using registry if available
     if (this._registry) {
       // Search assigned people
-      for (const personId of this._raw.assignedPeople || []) {
+      for (const personId of this.assignedPeopleIds) {
         const person = this._registry.getPerson(personId);
         if (person && person.matchesSearch(search)) return true;
       }
 
       // Search source people
-      for (const personId of this._raw.sourcePeople || []) {
+      for (const personId of this.sourcePeopleIds) {
         const person = this._registry.getPerson(personId);
         if (person && person.matchesSearch(search)) return true;
       }
 
       // Search mentioned people
-      for (const personId of this._raw.mentionedPeople || []) {
+      for (const personId of this.mentionedPeopleIds) {
         const person = this._registry.getPerson(personId);
         if (person && person.matchesSearch(search)) return true;
       }
 
       // Search projects
-      for (const projectId of this._raw.projects || []) {
+      for (const projectId of this.projectIds) {
         const project = this._registry.getProject(projectId);
         if (project && project.matchesSearch(search)) return true;
       }
