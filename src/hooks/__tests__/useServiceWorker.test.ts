@@ -104,7 +104,7 @@ describe("useServiceWorker", () => {
     jest.useRealTimers();
     windowAddEventListenerSpy.mockRestore();
     windowRemoveEventListenerSpy.mockRestore();
-    
+
     // Restore original service worker
     if (originalServiceWorker !== undefined) {
       Object.defineProperty(navigator, "serviceWorker", {
@@ -170,14 +170,14 @@ describe("useServiceWorker", () => {
 
       // Simulate going offline
       act(() => {
-        offlineEventHandlers.forEach(handler => handler());
+        offlineEventHandlers.forEach((handler) => handler());
       });
 
       expect(result.current.isOffline).toBe(true);
 
       // Simulate going online
       act(() => {
-        onlineEventHandlers.forEach(handler => handler());
+        onlineEventHandlers.forEach((handler) => handler());
       });
 
       expect(result.current.isOffline).toBe(false);
@@ -322,10 +322,7 @@ describe("useServiceWorker", () => {
       renderHook(() => useServiceWorker());
 
       await waitFor(() => {
-        expect(mockRegistration.addEventListener).toHaveBeenCalledWith(
-          "updatefound",
-          expect.any(Function)
-        );
+        expect(mockRegistration.addEventListener).toHaveBeenCalledWith("updatefound", expect.any(Function));
       });
     });
 

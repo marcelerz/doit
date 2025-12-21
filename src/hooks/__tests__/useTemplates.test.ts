@@ -110,9 +110,7 @@ describe("useTemplates", () => {
 
   describe("updateTemplate", () => {
     it("should update an existing template", async () => {
-      const existingTemplates = [
-        { id: "template-1", name: "Original", text: "Original text", usageCount: 0 },
-      ];
+      const existingTemplates = [{ id: "template-1", name: "Original", text: "Original text", usageCount: 0 }];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingTemplates);
 
       const { result } = renderHook(() => useTemplates());
@@ -130,9 +128,7 @@ describe("useTemplates", () => {
     });
 
     it("should only update specified fields", async () => {
-      const existingTemplates = [
-        { id: "template-1", name: "Original", text: "Original text", usageCount: 5 },
-      ];
+      const existingTemplates = [{ id: "template-1", name: "Original", text: "Original text", usageCount: 5 }];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingTemplates);
 
       const { result } = renderHook(() => useTemplates());
@@ -151,9 +147,7 @@ describe("useTemplates", () => {
     });
 
     it("should do nothing if template id not found", async () => {
-      const existingTemplates = [
-        { id: "template-1", name: "Original", text: "Original text", usageCount: 0 },
-      ];
+      const existingTemplates = [{ id: "template-1", name: "Original", text: "Original text", usageCount: 0 }];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingTemplates);
 
       const { result } = renderHook(() => useTemplates());
@@ -193,9 +187,7 @@ describe("useTemplates", () => {
     });
 
     it("should do nothing if template id not found", async () => {
-      const existingTemplates = [
-        { id: "template-1", name: "Template 1", text: "Text 1", usageCount: 0 },
-      ];
+      const existingTemplates = [{ id: "template-1", name: "Template 1", text: "Text 1", usageCount: 0 }];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingTemplates);
 
       const { result } = renderHook(() => useTemplates());
@@ -214,9 +206,7 @@ describe("useTemplates", () => {
 
   describe("incrementUsage", () => {
     it("should increment usage count for a template", async () => {
-      const existingTemplates = [
-        { id: "template-1", name: "Template 1", text: "Text 1", usageCount: 5 },
-      ];
+      const existingTemplates = [{ id: "template-1", name: "Template 1", text: "Text 1", usageCount: 5 }];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingTemplates);
 
       const { result } = renderHook(() => useTemplates());
@@ -263,9 +253,7 @@ describe("useTemplates", () => {
     });
 
     it("should do nothing if template id not found", async () => {
-      const existingTemplates = [
-        { id: "template-1", name: "Template 1", text: "Text 1", usageCount: 5 },
-      ];
+      const existingTemplates = [{ id: "template-1", name: "Template 1", text: "Text 1", usageCount: 5 }];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingTemplates);
 
       const { result } = renderHook(() => useTemplates());
@@ -287,7 +275,10 @@ describe("useTemplates", () => {
       // Create a slow loading promise
       let resolveLoad: (value: unknown[]) => void;
       (loadFromStorage as jest.Mock).mockImplementation(
-        () => new Promise((resolve) => { resolveLoad = resolve; })
+        () =>
+          new Promise((resolve) => {
+            resolveLoad = resolve;
+          }),
       );
 
       const { result } = renderHook(() => useTemplates());

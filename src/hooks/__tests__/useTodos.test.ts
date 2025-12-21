@@ -78,8 +78,28 @@ describe("useTodos", () => {
 
     it("should filter out deleted todos on load", async () => {
       const existingTodos = [
-        { id: "todo-1", text: "Active", plainText: "Active", state: "active", createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
-        { id: "todo-2", text: "Deleted", plainText: "Deleted", state: "deleted", createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
+        {
+          id: "todo-1",
+          text: "Active",
+          plainText: "Active",
+          state: "active",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
+        {
+          id: "todo-2",
+          text: "Deleted",
+          plainText: "Deleted",
+          state: "deleted",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
         if (key === "doit-settings") return Promise.resolve(defaultSettings);
@@ -200,7 +220,17 @@ describe("useTodos", () => {
   describe("toggleTodo", () => {
     it("should toggle active todo to completed", async () => {
       const existingTodos = [
-        { id: "todo-1", text: "Test", plainText: "Test", state: "active", createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
+        {
+          id: "todo-1",
+          text: "Test",
+          plainText: "Test",
+          state: "active",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
         if (key === "doit-settings") return Promise.resolve(defaultSettings);
@@ -224,7 +254,18 @@ describe("useTodos", () => {
 
     it("should toggle completed todo back to active", async () => {
       const existingTodos = [
-        { id: "todo-1", text: "Test", plainText: "Test", state: "completed", completedAt: Date.now(), createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
+        {
+          id: "todo-1",
+          text: "Test",
+          plainText: "Test",
+          state: "completed",
+          completedAt: Date.now(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
         if (key === "doit-settings") return Promise.resolve(defaultSettings);
@@ -248,7 +289,17 @@ describe("useTodos", () => {
 
     it("should create undo action when toggling", async () => {
       const existingTodos = [
-        { id: "todo-1", text: "Test", plainText: "Test", state: "active", createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
+        {
+          id: "todo-1",
+          text: "Test",
+          plainText: "Test",
+          state: "active",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
         if (key === "doit-settings") return Promise.resolve(defaultSettings);
@@ -274,7 +325,17 @@ describe("useTodos", () => {
   describe("deleteTodo", () => {
     it("should mark todo as deleted", async () => {
       const existingTodos = [
-        { id: "todo-1", text: "Test", plainText: "Test", state: "active", createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
+        {
+          id: "todo-1",
+          text: "Test",
+          plainText: "Test",
+          state: "active",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
         if (key === "doit-settings") return Promise.resolve(defaultSettings);
@@ -301,7 +362,18 @@ describe("useTodos", () => {
   describe("archiveTodo", () => {
     it("should archive a todo", async () => {
       const existingTodos = [
-        { id: "todo-1", text: "Test", plainText: "Test", state: "completed", completedAt: Date.now(), createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
+        {
+          id: "todo-1",
+          text: "Test",
+          plainText: "Test",
+          state: "completed",
+          completedAt: Date.now(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
         if (key === "doit-settings") return Promise.resolve(defaultSettings);
@@ -327,7 +399,19 @@ describe("useTodos", () => {
   describe("unarchiveTodo", () => {
     it("should unarchive to completed if was completed", async () => {
       const existingTodos = [
-        { id: "todo-1", text: "Test", plainText: "Test", state: "archived", completedAt: Date.now(), archivedAt: Date.now(), createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
+        {
+          id: "todo-1",
+          text: "Test",
+          plainText: "Test",
+          state: "archived",
+          completedAt: Date.now(),
+          archivedAt: Date.now(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
         if (key === "doit-settings") return Promise.resolve(defaultSettings);
@@ -351,7 +435,18 @@ describe("useTodos", () => {
 
     it("should unarchive to active if was not completed", async () => {
       const existingTodos = [
-        { id: "todo-1", text: "Test", plainText: "Test", state: "archived", archivedAt: Date.now(), createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
+        {
+          id: "todo-1",
+          text: "Test",
+          plainText: "Test",
+          state: "archived",
+          archivedAt: Date.now(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
         if (key === "doit-settings") return Promise.resolve(defaultSettings);
@@ -424,7 +519,17 @@ describe("useTodos", () => {
   describe("comment operations", () => {
     it("should add a comment to a todo", async () => {
       const existingTodos = [
-        { id: "todo-1", text: "Test", plainText: "Test", state: "active", createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
+        {
+          id: "todo-1",
+          text: "Test",
+          plainText: "Test",
+          state: "active",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
         if (key === "doit-settings") return Promise.resolve(defaultSettings);
@@ -521,7 +626,17 @@ describe("useTodos", () => {
   describe("subtask operations", () => {
     it("should add a subtask to a todo", async () => {
       const existingTodos = [
-        { id: "todo-1", text: "Test", plainText: "Test", state: "active", createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
+        {
+          id: "todo-1",
+          text: "Test",
+          plainText: "Test",
+          state: "active",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
         if (key === "doit-settings") return Promise.resolve(defaultSettings);
@@ -650,7 +765,17 @@ describe("useTodos", () => {
   describe("undo operations", () => {
     it("should undo a toggle", async () => {
       const existingTodos = [
-        { id: "todo-1", text: "Test", plainText: "Test", state: "active", createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
+        {
+          id: "todo-1",
+          text: "Test",
+          plainText: "Test",
+          state: "active",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
         if (key === "doit-settings") return Promise.resolve(defaultSettings);
@@ -679,7 +804,17 @@ describe("useTodos", () => {
 
     it("should dismiss undo action", async () => {
       const existingTodos = [
-        { id: "todo-1", text: "Test", plainText: "Test", state: "active", createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
+        {
+          id: "todo-1",
+          text: "Test",
+          plainText: "Test",
+          state: "active",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
         if (key === "doit-settings") return Promise.resolve(defaultSettings);
@@ -709,15 +844,35 @@ describe("useTodos", () => {
       });
 
       // After dismiss and timeout, action should be removed
-      expect(result.current.undoActions.find(a => a.id === actionId)).toBeUndefined();
+      expect(result.current.undoActions.find((a) => a.id === actionId)).toBeUndefined();
     });
   });
 
   describe("reorderTodos", () => {
     it("should reorder todos", async () => {
       const existingTodos = [
-        { id: "todo-1", text: "First", plainText: "First", state: "active", createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
-        { id: "todo-2", text: "Second", plainText: "Second", state: "active", createdAt: Date.now() + 1, updatedAt: Date.now() + 1, comments: [], activity: [], subtasks: [] },
+        {
+          id: "todo-1",
+          text: "First",
+          plainText: "First",
+          state: "active",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
+        {
+          id: "todo-2",
+          text: "Second",
+          plainText: "Second",
+          state: "active",
+          createdAt: Date.now() + 1,
+          updatedAt: Date.now() + 1,
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
         if (key === "doit-settings") return Promise.resolve(defaultSettings);
@@ -751,7 +906,17 @@ describe("useTodos", () => {
       });
 
       const todosToImport = [
-        { id: "imported-1", text: "Imported", plainText: "Imported", state: "active" as const, createdAt: Date.now(), updatedAt: Date.now(), comments: [], activity: [], subtasks: [] },
+        {
+          id: "imported-1",
+          text: "Imported",
+          plainText: "Imported",
+          state: "active" as const,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        },
       ];
 
       act(() => {

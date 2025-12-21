@@ -99,7 +99,7 @@ describe("useTaskNotifications", () => {
       expect(mockCheckAndNotifyDueTasks).toHaveBeenCalledWith(
         expect.arrayContaining([expect.objectContaining({ id: "1" }), expect.objectContaining({ id: "3" })]),
         expect.any(Set),
-        expect.any(Object)
+        expect.any(Object),
       );
 
       // Should not include inactive todo
@@ -112,16 +112,12 @@ describe("useTaskNotifications", () => {
 
       renderHook(() => useTaskNotifications(todos, defaultSettings));
 
-      expect(mockCheckAndNotifyDueTasks).toHaveBeenCalledWith(
-        expect.any(Array),
-        expect.any(Set),
-        {
-          notifyOverdue: true,
-          notifyDueToday: true,
-          notifyDueSoon: true,
-          dueSoonHours: 24,
-        }
-      );
+      expect(mockCheckAndNotifyDueTasks).toHaveBeenCalledWith(expect.any(Array), expect.any(Set), {
+        notifyOverdue: true,
+        notifyDueToday: true,
+        notifyDueSoon: true,
+        dueSoonHours: 24,
+      });
     });
   });
 
@@ -176,11 +172,7 @@ describe("useTaskNotifications", () => {
       renderHook(() => useTaskNotifications(todos, defaultSettings));
 
       // First call passes empty set
-      expect(mockCheckAndNotifyDueTasks).toHaveBeenCalledWith(
-        expect.any(Array),
-        new Set(),
-        expect.any(Object)
-      );
+      expect(mockCheckAndNotifyDueTasks).toHaveBeenCalledWith(expect.any(Array), new Set(), expect.any(Object));
 
       // Advance timer for second call
       act(() => {
@@ -188,23 +180,17 @@ describe("useTaskNotifications", () => {
       });
 
       // Second call should pass the updated notified set
-      expect(mockCheckAndNotifyDueTasks).toHaveBeenCalledWith(
-        expect.any(Array),
-        notifiedSet,
-        expect.any(Object)
-      );
+      expect(mockCheckAndNotifyDueTasks).toHaveBeenCalledWith(expect.any(Array), notifiedSet, expect.any(Object));
     });
 
     it("should update notified IDs from checkAndNotifyDueTasks return value", () => {
       const todos = [createMockTodo("1"), createMockTodo("2")];
-      
+
       // First call returns ids that were notified
       const firstNotified = new Set(["1"]);
       const secondNotified = new Set(["1", "2"]);
-      
-      mockCheckAndNotifyDueTasks
-        .mockReturnValueOnce(firstNotified)
-        .mockReturnValueOnce(secondNotified);
+
+      mockCheckAndNotifyDueTasks.mockReturnValueOnce(firstNotified).mockReturnValueOnce(secondNotified);
 
       renderHook(() => useTaskNotifications(todos, defaultSettings));
 
@@ -212,7 +198,7 @@ describe("useTaskNotifications", () => {
       expect(mockCheckAndNotifyDueTasks).toHaveBeenCalledWith(
         expect.any(Array),
         new Set(), // empty initially
-        expect.any(Object)
+        expect.any(Object),
       );
 
       // Advance for second call
@@ -221,21 +207,16 @@ describe("useTaskNotifications", () => {
       });
 
       // Second call should receive the updated set from first call
-      expect(mockCheckAndNotifyDueTasks).toHaveBeenLastCalledWith(
-        expect.any(Array),
-        firstNotified,
-        expect.any(Object)
-      );
+      expect(mockCheckAndNotifyDueTasks).toHaveBeenLastCalledWith(expect.any(Array), firstNotified, expect.any(Object));
     });
   });
 
   describe("reacting to todo changes", () => {
     it("should re-check when todos change", () => {
       const initialTodos = [createMockTodo("1")];
-      const { rerender } = renderHook(
-        ({ todos }) => useTaskNotifications(todos, defaultSettings),
-        { initialProps: { todos: initialTodos } }
-      );
+      const { rerender } = renderHook(({ todos }) => useTaskNotifications(todos, defaultSettings), {
+        initialProps: { todos: initialTodos },
+      });
 
       expect(mockCheckAndNotifyDueTasks).toHaveBeenCalledTimes(1);
 
@@ -248,10 +229,9 @@ describe("useTaskNotifications", () => {
 
     it("should re-check when settings change", () => {
       const todos = [createMockTodo("1")];
-      const { rerender } = renderHook(
-        ({ settings }) => useTaskNotifications(todos, settings),
-        { initialProps: { settings: defaultSettings } }
-      );
+      const { rerender } = renderHook(({ settings }) => useTaskNotifications(todos, settings), {
+        initialProps: { settings: defaultSettings },
+      });
 
       expect(mockCheckAndNotifyDueTasks).toHaveBeenCalledTimes(1);
 
@@ -264,14 +244,13 @@ describe("useTaskNotifications", () => {
 
     it("should clean up notified IDs when todos become inactive", () => {
       const todos = [createMockTodo("1"), createMockTodo("2")];
-      
+
       // Return that both todos were notified
       mockCheckAndNotifyDueTasks.mockReturnValue(new Set(["1", "2"]));
 
-      const { rerender } = renderHook(
-        ({ todos: t }) => useTaskNotifications(t, defaultSettings),
-        { initialProps: { todos } }
-      );
+      const { rerender } = renderHook(({ todos: t }) => useTaskNotifications(t, defaultSettings), {
+        initialProps: { todos },
+      });
 
       // Advance timer to trigger second check
       act(() => {
@@ -280,7 +259,7 @@ describe("useTaskNotifications", () => {
 
       // Now make todo "2" inactive (completed)
       const updatedTodos = [createMockTodo("1"), createMockTodo("2", false)];
-      
+
       rerender({ todos: updatedTodos });
 
       // Advance timer again
@@ -291,7 +270,7 @@ describe("useTaskNotifications", () => {
       // The notified set should only contain "1" now since "2" is no longer active
       const lastCall = mockCheckAndNotifyDueTasks.mock.calls[mockCheckAndNotifyDueTasks.mock.calls.length - 1];
       const passedNotifiedSet = lastCall[1] as Set<string>;
-      
+
       expect(passedNotifiedSet.has("1")).toBe(true);
       expect(passedNotifiedSet.has("2")).toBe(false);
     });
@@ -314,10 +293,9 @@ describe("useTaskNotifications", () => {
 
     it("should stop checking when notifications are disabled after mount", () => {
       const todos = [createMockTodo("1")];
-      const { rerender } = renderHook(
-        ({ settings }) => useTaskNotifications(todos, settings),
-        { initialProps: { settings: defaultSettings } }
-      );
+      const { rerender } = renderHook(({ settings }) => useTaskNotifications(todos, settings), {
+        initialProps: { settings: defaultSettings },
+      });
 
       expect(mockCheckAndNotifyDueTasks).toHaveBeenCalledTimes(1);
 

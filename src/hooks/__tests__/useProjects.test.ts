@@ -61,7 +61,7 @@ describe("useProjects", () => {
           storageKey: "doit-projects",
           entityName: "Project",
         }),
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
@@ -74,7 +74,7 @@ describe("useProjects", () => {
   describe("projects models", () => {
     it("should return projects wrapped in ProjectModel instances", () => {
       const { result } = renderHook(() => useProjects());
-      
+
       // projects array should be created from rawEntities
       expect(result.current.projects).toHaveLength(2);
     });
@@ -83,25 +83,27 @@ describe("useProjects", () => {
   describe("CRUD operations", () => {
     it("should expose addProject that calls addEntity", () => {
       const { result } = renderHook(() => useProjects());
-      
-      result.current.addProject({ name: "New Project", alternatives: [] } as Parameters<typeof result.current.addProject>[0]);
-      
+
+      result.current.addProject({ name: "New Project", alternatives: [] } as Parameters<
+        typeof result.current.addProject
+      >[0]);
+
       expect(mockManager.addEntity).toHaveBeenCalledWith({ name: "New Project", alternatives: [] });
     });
 
     it("should expose updateProject that calls updateEntity", () => {
       const { result } = renderHook(() => useProjects());
-      
+
       result.current.updateProject("1", { name: "Updated Name" });
-      
+
       expect(mockManager.updateEntity).toHaveBeenCalledWith("1", { name: "Updated Name" });
     });
 
     it("should expose deleteProject that calls deleteEntity", () => {
       const { result } = renderHook(() => useProjects());
-      
+
       result.current.deleteProject("1");
-      
+
       expect(mockManager.deleteEntity).toHaveBeenCalledWith("1");
     });
   });
@@ -109,17 +111,17 @@ describe("useProjects", () => {
   describe("archive operations", () => {
     it("should expose archiveProject that calls archiveEntity", () => {
       const { result } = renderHook(() => useProjects());
-      
+
       result.current.archiveProject("1");
-      
+
       expect(mockManager.archiveEntity).toHaveBeenCalledWith("1");
     });
 
     it("should expose unarchiveProject that calls unarchiveEntity", () => {
       const { result } = renderHook(() => useProjects());
-      
+
       result.current.unarchiveProject("1");
-      
+
       expect(mockManager.unarchiveEntity).toHaveBeenCalledWith("1");
     });
   });
@@ -127,25 +129,25 @@ describe("useProjects", () => {
   describe("comment operations", () => {
     it("should expose addProjectComment that calls addComment", () => {
       const { result } = renderHook(() => useProjects());
-      
+
       result.current.addProjectComment("1", "This is a comment");
-      
+
       expect(mockManager.addComment).toHaveBeenCalledWith("1", "This is a comment");
     });
 
     it("should expose editProjectComment that calls editComment", () => {
       const { result } = renderHook(() => useProjects());
-      
+
       result.current.editProjectComment("1", "comment-1", "Updated comment");
-      
+
       expect(mockManager.editComment).toHaveBeenCalledWith("1", "comment-1", "Updated comment");
     });
 
     it("should expose deleteProjectComment that calls deleteComment", () => {
       const { result } = renderHook(() => useProjects());
-      
+
       result.current.deleteProjectComment("1", "comment-1");
-      
+
       expect(mockManager.deleteComment).toHaveBeenCalledWith("1", "comment-1");
     });
   });

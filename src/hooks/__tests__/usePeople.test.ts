@@ -61,7 +61,7 @@ describe("usePeople", () => {
           storageKey: "doit-people",
           entityName: "Person",
         }),
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
@@ -74,7 +74,7 @@ describe("usePeople", () => {
   describe("people models", () => {
     it("should return people wrapped in PersonModel instances", () => {
       const { result } = renderHook(() => usePeople());
-      
+
       // people array should be created from rawEntities
       expect(result.current.people).toHaveLength(2);
     });
@@ -83,25 +83,27 @@ describe("usePeople", () => {
   describe("CRUD operations", () => {
     it("should expose addPerson that calls addEntity", () => {
       const { result } = renderHook(() => usePeople());
-      
-      result.current.addPerson({ name: "New Person", alternatives: [] } as Parameters<typeof result.current.addPerson>[0]);
-      
+
+      result.current.addPerson({ name: "New Person", alternatives: [] } as Parameters<
+        typeof result.current.addPerson
+      >[0]);
+
       expect(mockManager.addEntity).toHaveBeenCalledWith({ name: "New Person", alternatives: [] });
     });
 
     it("should expose updatePerson that calls updateEntity", () => {
       const { result } = renderHook(() => usePeople());
-      
+
       result.current.updatePerson("1", { name: "Updated Name" });
-      
+
       expect(mockManager.updateEntity).toHaveBeenCalledWith("1", { name: "Updated Name" });
     });
 
     it("should expose deletePerson that calls deleteEntity", () => {
       const { result } = renderHook(() => usePeople());
-      
+
       result.current.deletePerson("1");
-      
+
       expect(mockManager.deleteEntity).toHaveBeenCalledWith("1");
     });
   });
@@ -109,17 +111,17 @@ describe("usePeople", () => {
   describe("archive operations", () => {
     it("should expose archivePerson that calls archiveEntity", () => {
       const { result } = renderHook(() => usePeople());
-      
+
       result.current.archivePerson("1");
-      
+
       expect(mockManager.archiveEntity).toHaveBeenCalledWith("1");
     });
 
     it("should expose unarchivePerson that calls unarchiveEntity", () => {
       const { result } = renderHook(() => usePeople());
-      
+
       result.current.unarchivePerson("1");
-      
+
       expect(mockManager.unarchiveEntity).toHaveBeenCalledWith("1");
     });
   });
@@ -127,25 +129,25 @@ describe("usePeople", () => {
   describe("comment operations", () => {
     it("should expose addPersonComment that calls addComment", () => {
       const { result } = renderHook(() => usePeople());
-      
+
       result.current.addPersonComment("1", "This is a comment");
-      
+
       expect(mockManager.addComment).toHaveBeenCalledWith("1", "This is a comment");
     });
 
     it("should expose editPersonComment that calls editComment", () => {
       const { result } = renderHook(() => usePeople());
-      
+
       result.current.editPersonComment("1", "comment-1", "Updated comment");
-      
+
       expect(mockManager.editComment).toHaveBeenCalledWith("1", "comment-1", "Updated comment");
     });
 
     it("should expose deletePersonComment that calls deleteComment", () => {
       const { result } = renderHook(() => usePeople());
-      
+
       result.current.deletePersonComment("1", "comment-1");
-      
+
       expect(mockManager.deleteComment).toHaveBeenCalledWith("1", "comment-1");
     });
   });

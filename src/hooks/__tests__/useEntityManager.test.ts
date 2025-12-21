@@ -56,9 +56,7 @@ describe("useEntityManager", () => {
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingEntities);
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -74,9 +72,7 @@ describe("useEntityManager", () => {
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingEntities);
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -88,18 +84,14 @@ describe("useEntityManager", () => {
     });
 
     it("should start with isLoaded false", () => {
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
       expect(result.current.isLoaded).toBe(false);
     });
   });
 
   describe("addEntity", () => {
     it("should add a new entity with generated id and activity", async () => {
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -118,9 +110,7 @@ describe("useEntityManager", () => {
     });
 
     it("should save to storage after adding", async () => {
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -140,14 +130,10 @@ describe("useEntityManager", () => {
 
   describe("updateEntity", () => {
     it("should update an existing entity", async () => {
-      const existingEntities = [
-        { id: "1", name: "Original", alternatives: [], comments: [], activity: [] },
-      ];
+      const existingEntities = [{ id: "1", name: "Original", alternatives: [], comments: [], activity: [] }];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingEntities);
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -161,14 +147,10 @@ describe("useEntityManager", () => {
     });
 
     it("should add activity entry when updating", async () => {
-      const existingEntities = [
-        { id: "1", name: "Original", alternatives: [], comments: [], activity: [] },
-      ];
+      const existingEntities = [{ id: "1", name: "Original", alternatives: [], comments: [], activity: [] }];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingEntities);
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -184,14 +166,10 @@ describe("useEntityManager", () => {
     });
 
     it("should not add activity if nothing changed", async () => {
-      const existingEntities = [
-        { id: "1", name: "Original", alternatives: [], comments: [], activity: [] },
-      ];
+      const existingEntities = [{ id: "1", name: "Original", alternatives: [], comments: [], activity: [] }];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingEntities);
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -205,14 +183,10 @@ describe("useEntityManager", () => {
     });
 
     it("should do nothing if entity id not found", async () => {
-      const existingEntities = [
-        { id: "1", name: "Original", alternatives: [], comments: [], activity: [] },
-      ];
+      const existingEntities = [{ id: "1", name: "Original", alternatives: [], comments: [], activity: [] }];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingEntities);
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -234,9 +208,7 @@ describe("useEntityManager", () => {
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingEntities);
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -258,9 +230,7 @@ describe("useEntityManager", () => {
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingEntities);
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -283,9 +253,7 @@ describe("useEntityManager", () => {
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingEntities);
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -303,14 +271,10 @@ describe("useEntityManager", () => {
 
   describe("addComment", () => {
     it("should add a new comment with history", async () => {
-      const existingEntities = [
-        { id: "1", name: "Entity 1", alternatives: [], comments: [], activity: [] },
-      ];
+      const existingEntities = [{ id: "1", name: "Entity 1", alternatives: [], comments: [], activity: [] }];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingEntities);
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -344,9 +308,7 @@ describe("useEntityManager", () => {
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingEntities);
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -377,9 +339,7 @@ describe("useEntityManager", () => {
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingEntities);
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -396,14 +356,10 @@ describe("useEntityManager", () => {
 
   describe("createModels", () => {
     it("should provide createModels function", async () => {
-      const existingEntities = [
-        { id: "1", name: "Entity 1", alternatives: [], comments: [], activity: [] },
-      ];
+      const existingEntities = [{ id: "1", name: "Entity 1", alternatives: [], comments: [], activity: [] }];
       (loadFromStorage as jest.Mock).mockResolvedValue(existingEntities);
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -419,12 +375,13 @@ describe("useEntityManager", () => {
     it("should not save before loading completes", async () => {
       let resolveLoad: (value: unknown[]) => void;
       (loadFromStorage as jest.Mock).mockImplementation(
-        () => new Promise((resolve) => { resolveLoad = resolve; })
+        () =>
+          new Promise((resolve) => {
+            resolveLoad = resolve;
+          }),
       );
 
-      const { result } = renderHook(() =>
-        useEntityManager<TestEntity, TestModel>(testConfig, createTestModels)
-      );
+      const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       act(() => {
         result.current.addEntity({ name: "Test", alternatives: [] } as TestEntity);

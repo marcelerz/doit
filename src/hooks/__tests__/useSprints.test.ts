@@ -52,9 +52,7 @@ describe("useSprints", () => {
     });
 
     it("should migrate sprints with missing fields", async () => {
-      const oldSprints = [
-        { id: "sprint-1", name: "Old Sprint", status: "planning", createdAt: Date.now() },
-      ];
+      const oldSprints = [{ id: "sprint-1", name: "Old Sprint", status: "planning", createdAt: Date.now() }];
       (loadFromStorage as jest.Mock).mockResolvedValue(oldSprints);
 
       const { result } = renderHook(() => useSprints());
@@ -77,8 +75,26 @@ describe("useSprints", () => {
   describe("sprint filtering", () => {
     it("should return active sprints (non-archived)", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Active", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
-        { id: "sprint-2", name: "Archived", status: "completed", state: "archived", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Active",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
+        {
+          id: "sprint-2",
+          name: "Archived",
+          status: "completed",
+          state: "archived",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -94,8 +110,26 @@ describe("useSprints", () => {
 
     it("should return archived sprints", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Active", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
-        { id: "sprint-2", name: "Archived", status: "completed", state: "archived", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Active",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
+        {
+          id: "sprint-2",
+          name: "Archived",
+          status: "completed",
+          state: "archived",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -111,8 +145,26 @@ describe("useSprints", () => {
 
     it("should return the running sprint", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Planning", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
-        { id: "sprint-2", name: "Running", status: "active", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Planning",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
+        {
+          id: "sprint-2",
+          name: "Running",
+          status: "active",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -128,7 +180,16 @@ describe("useSprints", () => {
 
     it("should return undefined if no running sprint", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Planning", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Planning",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -144,8 +205,26 @@ describe("useSprints", () => {
     it("should return the next planned sprint", async () => {
       const now = Date.now();
       const sprints = [
-        { id: "sprint-1", name: "Second", status: "planning", state: "active", durationDays: 14, createdAt: now + 1000, comments: [], activity: [] },
-        { id: "sprint-2", name: "First", status: "planning", state: "active", durationDays: 14, createdAt: now, comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Second",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: now + 1000,
+          comments: [],
+          activity: [],
+        },
+        {
+          id: "sprint-2",
+          name: "First",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: now,
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -199,7 +278,16 @@ describe("useSprints", () => {
   describe("updateSprint", () => {
     it("should update an existing sprint", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Original", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Original",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -219,7 +307,16 @@ describe("useSprints", () => {
 
     it("should add update activity", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Original", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Original",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -241,8 +338,26 @@ describe("useSprints", () => {
   describe("deleteSprint", () => {
     it("should remove a sprint by id", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Sprint 1", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
-        { id: "sprint-2", name: "Sprint 2", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Sprint 1",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
+        {
+          id: "sprint-2",
+          name: "Sprint 2",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -264,7 +379,16 @@ describe("useSprints", () => {
   describe("startSprint", () => {
     it("should start a sprint and set status to active", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Sprint 1", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Sprint 1",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -285,7 +409,16 @@ describe("useSprints", () => {
 
     it("should add started activity", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Sprint 1", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Sprint 1",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -307,7 +440,16 @@ describe("useSprints", () => {
   describe("completeSprint", () => {
     it("should complete a sprint", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Sprint 1", status: "active", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Sprint 1",
+          status: "active",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -330,7 +472,16 @@ describe("useSprints", () => {
   describe("cancelSprint", () => {
     it("should cancel a sprint", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Sprint 1", status: "active", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Sprint 1",
+          status: "active",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -352,7 +503,16 @@ describe("useSprints", () => {
   describe("archiveSprint", () => {
     it("should archive a sprint", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Sprint 1", status: "completed", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Sprint 1",
+          status: "completed",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -374,7 +534,17 @@ describe("useSprints", () => {
   describe("unarchiveSprint", () => {
     it("should unarchive a sprint", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Sprint 1", status: "completed", state: "archived", durationDays: 14, createdAt: Date.now(), archivedAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Sprint 1",
+          status: "completed",
+          state: "archived",
+          durationDays: 14,
+          createdAt: Date.now(),
+          archivedAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -396,7 +566,16 @@ describe("useSprints", () => {
   describe("comment operations", () => {
     it("should add a comment to a sprint", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Sprint 1", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Sprint 1",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -479,7 +658,16 @@ describe("useSprints", () => {
   describe("SprintModel computed properties", () => {
     it("should compute isPlanning correctly", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Sprint 1", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Sprint 1",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -519,8 +707,26 @@ describe("useSprints", () => {
 
     it("should compute canStart correctly", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Planning Sprint", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
-        { id: "sprint-2", name: "Active Sprint", status: "active", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Planning Sprint",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
+        {
+          id: "sprint-2",
+          name: "Active Sprint",
+          status: "active",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
@@ -536,7 +742,16 @@ describe("useSprints", () => {
 
     it("should allow starting when no other sprint is active", async () => {
       const sprints = [
-        { id: "sprint-1", name: "Planning Sprint", status: "planning", state: "active", durationDays: 14, createdAt: Date.now(), comments: [], activity: [] },
+        {
+          id: "sprint-1",
+          name: "Planning Sprint",
+          status: "planning",
+          state: "active",
+          durationDays: 14,
+          createdAt: Date.now(),
+          comments: [],
+          activity: [],
+        },
       ];
       (loadFromStorage as jest.Mock).mockResolvedValue(sprints);
 
