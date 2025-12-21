@@ -1,6 +1,13 @@
 /**
  * Usage statistics tracking for todo metadata
- * Tracks frequency of people, projects, priorities, tags, etc. to provide smart suggestions
+ *
+ * This module provides utilities for tracking and sorting by usage frequency.
+ *
+ * DEPRECATED: The calculateUsageStats function is deprecated.
+ * Use useSelectionHistory hook instead for real-time tracking of user selections.
+ *
+ * The new system tracks actual user selections as they happen, rather than
+ * calculating usage from all todos on page load.
  */
 
 import { PersonId } from "@/types/person";
@@ -10,6 +17,9 @@ import { Tag, Todo } from "@/types/todo";
 import { createTodoModel } from "@/models/TodoModel";
 import { SettingsModel } from "@/models/SettingsModel";
 
+/**
+ * Usage stats interface using IDs (for legacy calculateUsageStats)
+ */
 export interface UsageStats {
   assignedPeople: Map<PersonId, number>;
   sourcePeople: Map<PersonId, number>;
@@ -24,6 +34,7 @@ export interface UsageStats {
 
 /**
  * Weight multipliers based on todo state
+ * @deprecated
  */
 const STATE_WEIGHTS = {
   active: 3,
@@ -34,7 +45,12 @@ const STATE_WEIGHTS = {
 
 /**
  * Calculate usage statistics from all todos.
- * Uses SettingsModel singleton for formatting due dates.
+ *
+ * @deprecated This function recalculates on every page load.
+ * Use useSelectionHistory hook instead for real-time tracking.
+ *
+ * @param todos Array of todos to calculate stats from
+ * @returns Usage statistics with ID-based maps
  */
 export function calculateUsageStats(todos: Todo[]): UsageStats {
   const stats: UsageStats = {
@@ -122,6 +138,16 @@ export function calculateUsageStats(todos: Todo[]): UsageStats {
 }
 
 /**
+ * Get top N most used items from a frequency map
+ */
+export function getTopUsed(usageMap: Map<string, number>, limit: number = 10): string[] {
+  return Array.from(usageMap.entries())
+    .sort((a, b) => b[1] - a[1]) // Sort by count descending
+    .slice(0, limit)
+    .map((entry) => entry[0]);
+}
+
+/**
  * Sort items by usage frequency (highest first)
  */
 export function sortByUsage<T extends { name: string }>(items: T[], usageMap: Map<string, number>): T[] {
@@ -149,14 +175,4 @@ export function sortStringsByUsage(items: string[], usageMap: Map<string, number
     // If scores are equal, sort alphabetically
     return a.localeCompare(b);
   });
-}
-
-/**
- * Get top N most used items
- */
-export function getTopUsed(usageMap: Map<string, number>, limit: number = 10): string[] {
-  return Array.from(usageMap.entries())
-    .sort((a, b) => b[1] - a[1]) // Sort by count descending
-    .slice(0, limit)
-    .map((entry) => entry[0]);
 }

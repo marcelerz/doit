@@ -21,7 +21,6 @@ import { Modal } from "@/components/shared/Modal";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { getDurationSuggestions, filterRecurringSuggestions } from "@/utils/suggestions";
 import { normalizeDateValue, convertToDateInputFormat, convertToTimeInputFormat } from "@/utils/dateUtils";
-import { calculateUsageStats, sortStringsByUsage } from "@/utils/usageStats";
 import { findPersonColor, findProjectColor, findPriorityColor, getTextColor } from "@/utils/colors";
 import { DELAY_OPTIONS } from "@/utils/delayOptions";
 import { useDropdownManager } from "@/hooks/useDropdownManager";
@@ -62,6 +61,21 @@ interface TodoDetailsOverlayProps {
   onDeleteTimeEntry?: (todoId: string, entryId: string) => void;
   // Template handler
   onCreateTemplate?: (todoId: string) => void;
+  // Selection history recording
+  onRecordSelections?: (selections: {
+    assignedPeople?: string[];
+    sourcePeople?: string[];
+    mentionedPeople?: string[];
+    projects?: string[];
+    priorities?: string;
+    tags?: string[];
+    dueDates?: string;
+    durations?: string;
+    recurring?: string;
+    sprints?: string;
+  }) => void;
+  // Sorted tags for suggestions (from selection history)
+  availableTags?: string[];
   // Sprints data (for displaying sprint selector)
   sprints?: Sprint[];
   runningSprint?: Sprint;
@@ -97,6 +111,8 @@ export function TodoDetailsOverlay({
   onAddManualTimeEntry,
   onDeleteTimeEntry,
   onCreateTemplate,
+  onRecordSelections,
+  availableTags = [],
   sprints = [],
   runningSprint,
 }: TodoDetailsOverlayProps) {
@@ -110,9 +126,9 @@ export function TodoDetailsOverlay({
   const dropdown = useDropdownManager();
   const [newComment, setNewComment] = useState("");
 
-  // Calculate usage stats for suggestions
-  const usageStats = todos ? calculateUsageStats(todos.map((t) => t.raw)) : null;
-  const sortedTags = usageStats ? sortStringsByUsage(Array.from(usageStats.tags.keys()), usageStats.tags) : [];
+  // Use availableTags prop which is already sorted by selection history
+  // (kept as sortedTags for minimal code changes downstream)
+  const sortedTags = availableTags;
 
   // State for metadata editing
   const [editingMetadata, setEditingMetadata] = useState<TodoMetadata>({
@@ -189,6 +205,21 @@ export function TodoDetailsOverlay({
     };
 
     onEdit(todo.id, editFullText, editPlainText, metadata);
+
+    // Record selections for usage history
+    onRecordSelections?.({
+      assignedPeople: metadata.assignedPeople,
+      sourcePeople: metadata.sourcePeople,
+      mentionedPeople: metadata.mentionedPeople,
+      projects: metadata.projects,
+      priorities: metadata.priority,
+      tags: metadata.tags,
+      dueDates: metadata.dueDate,
+      durations: metadata.duration,
+      recurring: metadata.recurring,
+      sprints: metadata.sprint,
+    });
+
     setIsEditing(false);
   };
 
@@ -210,6 +241,21 @@ export function TodoDetailsOverlay({
 
     const newText = parts.join(" ");
     onEdit(todo.id, newText, todo.plainText, newMetadata);
+
+    // Record selections for usage history
+    onRecordSelections?.({
+      assignedPeople: newMetadata.assignedPeople,
+      sourcePeople: newMetadata.sourcePeople,
+      mentionedPeople: newMetadata.mentionedPeople,
+      projects: newMetadata.projects,
+      priorities: newMetadata.priority,
+      tags: newMetadata.tags,
+      dueDates: newMetadata.dueDate,
+      durations: newMetadata.duration,
+      recurring: newMetadata.recurring,
+      sprints: newMetadata.sprint,
+    });
+
     setEditingMetadata(newMetadata);
   };
 

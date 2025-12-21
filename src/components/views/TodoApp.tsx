@@ -205,7 +205,7 @@ const sprintsViewTutorialSteps: TutorialStep[] = [
 import { PersonItem } from "@/components/items/PersonItem";
 import { ProjectItem } from "@/components/items/ProjectItem";
 import { SprintItem } from "@/components/items/SprintItem";
-import { calculateUsageStats, sortByUsage, UsageStats } from "@/utils/usageStats";
+import { useSelectionHistory, sortByUsage, sortStringsByUsage } from "@/hooks/useSelectionHistory";
 import { normalizeDateValue } from "@/utils/dateUtils";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterSection } from "@/components/shared/FilterSection";
@@ -371,10 +371,8 @@ export function TodoApp() {
   // Derived state: show filters section only in list view
   const showFiltersSection = activeView === "list";
 
-  // Calculate usage statistics from all todos
-  const usageStats = useMemo<UsageStats>(() => {
-    return calculateUsageStats(todos.map((t) => t.raw));
-  }, [todos]);
+  // Use selection history hook for tracking selections and providing usage stats
+  const { usageStats, recordSelections } = useSelectionHistory();
 
   // Combine all person usage stats (assigned + source + mentioned) for unified sorting
   const combinedPeopleUsage = useMemo(() => {
@@ -416,6 +414,15 @@ export function TodoApp() {
   const sortedPriorities = useMemo(() => {
     return sortByUsage(settings.priorities, usageStats.priorities);
   }, [settings.priorities, usageStats.priorities]);
+
+  // Get all unique tags from todos and sort by usage
+  const sortedTags = useMemo(() => {
+    const allTags = new Set<string>();
+    todos.forEach((todo) => {
+      todo.tags.forEach((tag) => allTags.add(tag));
+    });
+    return sortStringsByUsage(Array.from(allTags), usageStats.tags);
+  }, [todos, usageStats.tags]);
 
   // All people and projects (including archived) for display in their tabs
   const allPeople = useMemo(() => {
@@ -1653,6 +1660,20 @@ export function TodoApp() {
     }
 
     addTodo(currentFullText, currentPlainText, metadata);
+
+    // Record selections for usage history
+    recordSelections({
+      assignedPeople: metadata.assignedPeople,
+      sourcePeople: metadata.sourcePeople,
+      mentionedPeople: metadata.mentionedPeople,
+      projects: metadata.projects,
+      priorities: metadata.priority,
+      tags: metadata.tags,
+      dueDates: metadata.dueDate,
+      durations: metadata.duration,
+      recurring: metadata.recurring,
+      sprints: metadata.sprint,
+    });
 
     // Clear the smart input
     smartInputRef.current?.clear();
@@ -4397,6 +4418,8 @@ export function TodoApp() {
                 availablePeople={sortedPeople}
                 availableProjects={sortedProjects}
                 availablePriorities={sortedPriorities}
+                availableTags={sortedTags}
+                onRecordSelections={recordSelections}
                 onAddPerson={handleAddPerson}
                 onAddProject={handleAddProject}
                 onAddPriority={handleAddPriority}

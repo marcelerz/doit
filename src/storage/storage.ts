@@ -201,6 +201,7 @@ export const STORAGE_KEYS = {
   BACKUP_SETTINGS: "doit-backup-settings",
   TEMPLATES: "doit-templates",
   SEARCH_HISTORY: "doit-search-history",
+  SELECTION_HISTORY: "doit-selection-history",
   TUTORIAL_PREFERENCES: "doit-tutorial-preferences",
 } as const;
 

@@ -75,6 +75,7 @@
 - [x] Add three scheduling techniques to Gantt view (Sequential, Pomodoro, Flow) with presets
 - [x] Add WIP (Work-In-Progress) limits to Kanban board columns with visual warnings
 - [x] Make Backlog a system state (cannot be deleted, like Completed and Archived)
+- [x] Replace calculated usage stats with selection history tracking system
 
 ## Coding Standards
 
@@ -295,6 +296,7 @@ Data is now organized into separate top-level storage keys:
 - `doit-calendar-view-options` - Calendar view state (viewMode, sortField, sortDirection, showTasksWithoutDates)
 - `doit-kanban-view-options` - Kanban view state (activeViewId, sortField, sortDirection, sprintId)
 - `doit-backup-settings` - Backup configuration
+- `doit-selection-history` - Selection history for smart suggestions (managed by `useSelectionHistory` hook)
 
 All keys are centralized in `STORAGE_KEYS` constant for easy management.
 
@@ -304,6 +306,7 @@ All keys are centralized in `STORAGE_KEYS` constant for easy management.
 - **`usePeople`** - Manages people state, CRUD operations, comments
 - **`useProjects`** - Manages projects state, CRUD operations, comments
 - **`useSettings`** - Manages application settings (priorities, links, markers, general, dateTime, workHours, autoAssign)
+- **`useSelectionHistory`** - Tracks user selections for smart suggestions and sorting
 
 Each hook:
 
@@ -311,6 +314,36 @@ Each hook:
 - Automatically saves changes back to storage
 - Provides specific methods for data manipulation
 - Is independent and can be used separately
+
+### Selection History System
+
+The app uses a **selection history tracking system** instead of calculating usage statistics from todos:
+
+- **Tracks selections** - Records when users select values (people, projects, tags, etc.)
+- **Provides usage stats** - Returns frequency counts for sorting suggestions
+- **Persists to storage** - Maintains history across sessions
+- **Maximum history** - Keeps the last 100 selections per field type
+
+**Key exports from `useSelectionHistory`:**
+
+- `recordSelection(fieldType, value)` - Record a single selection
+- `recordSelections(selections)` - Record multiple selections at once (when saving todos)
+- `usageStats` - Map of frequency counts per field type
+- `getRecentSelections(fieldType, limit)` - Get most recently selected values
+- `getTopUsed(fieldType, limit)` - Get most frequently used values
+- `sortByUsage(items, usageMap)` - Sort objects by usage frequency
+- `sortStringsByUsage(items, usageMap)` - Sort strings by usage frequency
+
+**Field types tracked:**
+
+- `assignedPeople`, `sourcePeople`, `mentionedPeople`
+- `projects`, `priorities`, `tags`
+- `dueDates`, `durations`, `recurring`, `sprints`
+
+**Integration points:**
+
+- `TodoApp.tsx` - Records selections when todos are added
+- `TodoDetailsOverlay.tsx` - Records selections when metadata is changed
 
 ### Business Logic Layer
 
