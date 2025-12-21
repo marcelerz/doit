@@ -9,7 +9,9 @@
  * via useMemo for automatic wrapping.
  */
 
-import type { Person } from "@/types/person";
+import type { Person, PersonId } from "@/types/person";
+import { getPersonId } from "@/types/person";
+import { generatePrefixedUUID } from "@/utils/idGenerator";
 import { BaseEntityModel } from "./BaseEntityModel";
 
 /**
@@ -21,6 +23,18 @@ import { BaseEntityModel } from "./BaseEntityModel";
 export class PersonModel extends BaseEntityModel<Person> {
   constructor(person: Person) {
     super(person);
+  }
+
+  // ============================================================================
+  // STATIC ID FACTORY
+  // ============================================================================
+
+  /**
+   * Create a new unique ID for a Person.
+   * @returns A PersonId with prefix "person-" followed by a UUID
+   */
+  static createId(): PersonId {
+    return getPersonId(generatePrefixedUUID("person"));
   }
 
   // ============================================================================

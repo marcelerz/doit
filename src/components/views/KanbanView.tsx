@@ -13,6 +13,7 @@ import { Sprint } from "@/types/sprint";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
+import { createViewPresetId } from "@/utils/idGenerator";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { getTextColor, findPersonColor, findProjectColor, findPriorityColor } from "@/utils/colors";
@@ -552,7 +553,7 @@ export function KanbanView({
   const saveAsPreset = useCallback(() => {
     if (newPresetName.trim() === "") return;
     const newPreset: KanbanFilterPreset = {
-      id: Date.now().toString(),
+      id: createViewPresetId(),
       name: newPresetName.trim(),
       filters: {
         searchText: filters.searchText,

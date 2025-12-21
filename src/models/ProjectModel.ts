@@ -9,7 +9,9 @@
  * via useMemo for automatic wrapping.
  */
 
-import type { Project } from "@/types/project";
+import type { Project, ProjectId } from "@/types/project";
+import { getProjectId } from "@/types/project";
+import { generatePrefixedUUID } from "@/utils/idGenerator";
 import { BaseEntityModel } from "./BaseEntityModel";
 
 /**
@@ -21,6 +23,18 @@ import { BaseEntityModel } from "./BaseEntityModel";
 export class ProjectModel extends BaseEntityModel<Project> {
   constructor(project: Project) {
     super(project);
+  }
+
+  // ============================================================================
+  // STATIC ID FACTORY
+  // ============================================================================
+
+  /**
+   * Create a new unique ID for a Project.
+   * @returns A ProjectId with prefix "proj-" followed by a UUID
+   */
+  static createId(): ProjectId {
+    return getProjectId(generatePrefixedUUID("proj"));
   }
 
   // ============================================================================

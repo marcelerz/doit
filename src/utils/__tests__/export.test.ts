@@ -10,6 +10,7 @@ import {
   getFileExtension,
   ExportFormat,
 } from "@/utils/export";
+import { generateUUID } from "@/utils/idGenerator";
 import { TodoModel } from "@/models/TodoModel";
 import { createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { Todo, TodoState, getTodoId, getTag } from "@/types/todo";
@@ -56,7 +57,7 @@ describe("export", () => {
     }> = {},
   ): TodoModel => {
     const rawTodo: Todo = {
-      id: getTodoId(overrides.id || `todo-${Date.now()}`),
+      id: getTodoId(overrides.id || generateUUID()),
       text: overrides.text || "Test todo",
       plainText: overrides.plainText || "Test todo",
       state: overrides.state || "active",

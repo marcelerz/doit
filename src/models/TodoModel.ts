@@ -1,4 +1,4 @@
-import { Todo, TodoId, TodoState, Tag, TodoMetadata } from "@/types/todo";
+import { Todo, TodoId, TodoState, Tag, TodoMetadata, getTodoId } from "@/types/todo";
 import type { PersonId } from "@/types/person";
 import type { ProjectId } from "@/types/project";
 import type { PriorityId } from "@/types/priority";
@@ -9,6 +9,7 @@ import { DurationMin, getDurationMin } from "@/types/time";
 import { parseRecurringPattern } from "@/utils/recurringParser";
 import { parseDate } from "@/utils/dateUtils";
 import { parseDuration } from "@/utils/ganttScheduler";
+import { generatePrefixedUUID } from "@/utils/idGenerator";
 import { SettingsModel } from "./SettingsModel";
 import type { EntityRegistry } from "./EntityRegistry";
 
@@ -26,6 +27,16 @@ export class TodoModel {
     this._raw = todo;
     this._settingsModel = settings;
     this._registry = registry;
+  }
+
+  // ===== Static ID Factory =====
+
+  /**
+   * Create a new unique ID for a Todo.
+   * @returns A TodoId with prefix "todo-" followed by a UUID
+   */
+  static createId(): TodoId {
+    return getTodoId(generatePrefixedUUID("todo"));
   }
 
   // ===== Core Todo Properties =====

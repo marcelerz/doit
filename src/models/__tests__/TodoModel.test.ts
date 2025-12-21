@@ -3,6 +3,7 @@
  */
 
 import { TodoModel, createTodoModel, createTodoModels } from "@/models/TodoModel";
+import { generateUUID } from "@/utils/idGenerator";
 import { SettingsModel, createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { Todo, TodoState, getTodoId, getSubtaskId, getTimeEntryId, getTag, Tag } from "@/types/todo";
 import { Settings } from "@/types/settings";
@@ -167,7 +168,7 @@ const createSettings = (overrides: Partial<Settings> = {}): SettingsModel =>
 // Helper to create a minimal Todo
 const createTodo = (overrides: Partial<Todo> = {}): Todo =>
   ({
-    id: overrides.id || getTodoId(`todo-${Date.now()}`),
+    id: overrides.id || getTodoId(generateUUID()),
     text: overrides.text || "Test todo",
     plainText: overrides.plainText || "Test todo",
     state: overrides.state || "active",

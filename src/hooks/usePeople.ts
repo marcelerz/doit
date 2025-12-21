@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { Person } from "@/types/person";
 import { STORAGE_KEYS } from "@/storage/storage";
 import { createPersonModels, PersonModel } from "@/models/PersonModel";
@@ -23,10 +23,18 @@ export function usePeople() {
   // Wrap raw people in PersonModel instances for consumers
   const people = useMemo(() => createPersonModels(manager.rawEntities), [manager.rawEntities]);
 
+  // Wrap addEntity to automatically generate the person ID
+  const addPerson = useCallback(
+    (person: Omit<Person, "id" | "comments" | "activity">) => {
+      manager.addEntity(person, PersonModel.createId());
+    },
+    [manager],
+  );
+
   return {
     people,
     isLoaded: manager.isLoaded,
-    addPerson: manager.addEntity,
+    addPerson,
     updatePerson: manager.updateEntity,
     deletePerson: manager.deleteEntity,
     archivePerson: manager.archiveEntity,

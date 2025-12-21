@@ -6,6 +6,7 @@
 import { Todo, Subtask, TodoState, getSubtaskId, getTag } from "@/types/todo";
 import { getTimestamp } from "@/types/time";
 import { getActivityId } from "@/types/types";
+import { createSubtaskId, createActivityId } from "@/utils/idGenerator";
 
 // Supported import formats
 export type ImportFormat = "todoist" | "things" | "reminders" | "csv" | "json" | "auto";
@@ -611,7 +612,7 @@ export function convertToTodo(imported: ImportedTodo, existingProjects: string[]
 
   // Build subtasks
   const subtasks: Subtask[] = (imported.subtasks ?? []).map((text) => ({
-    id: getSubtaskId(`subtask-${now}-${Math.random().toString(36).slice(2, 9)}`),
+    id: getSubtaskId(createSubtaskId()),
     text,
     completed: false,
     createdAt: getTimestamp(now),
@@ -640,7 +641,7 @@ export function convertToTodo(imported: ImportedTodo, existingProjects: string[]
     comments: [],
     activity: [
       {
-        id: getActivityId(`activity-${now}`),
+        id: getActivityId(createActivityId()),
         timestamp: getTimestamp(now),
         type: "created",
         description: `Imported from ${imported.source}`,

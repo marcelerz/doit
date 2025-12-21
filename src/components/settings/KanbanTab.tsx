@@ -6,6 +6,7 @@ import { KanbanTransition, defaultKanbanTransitions } from "@/types/kanbanTransi
 import { KanbanView, defaultKanbanViews, getKanbanViewId } from "@/types/kanbanView";
 import { getColor } from "@/types/types";
 import { useState } from "react";
+import { SettingsModel } from "@/models/SettingsModel";
 import { IconButton } from "@/components/shared/IconButton";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
@@ -44,7 +45,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
     if (newStateName.trim() === "") return;
 
     const newState: KanbanState = {
-      id: getKanbanStateId(`state-${Date.now()}`),
+      id: SettingsModel.createKanbanStateId(),
       name: newStateName.trim(),
       color: getColor(newStateColor),
       icon: newStateIcon,
@@ -133,7 +134,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
     if (!newViewName.trim() || newViewStates.length === 0) return;
 
     const newView: KanbanView = {
-      id: getKanbanViewId(`view-${Date.now()}`),
+      id: SettingsModel.createKanbanViewId(),
       name: newViewName.trim(),
       description: newViewDescription.trim() || undefined,
       stateIds: newViewStates.map(getKanbanStateId),

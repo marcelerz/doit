@@ -12,8 +12,16 @@
 
 import type { Settings, DaySchedule, WorkHoursSettings, DateTimeSettings, ThemeMode } from "@/types/settings";
 import type { Priority, PriorityId } from "@/types/priority";
-import type { KanbanState } from "@/types/kanbanState";
-import type { KanbanView } from "@/types/kanbanView";
+import { getPriorityId } from "@/types/priority";
+import type { KanbanState, KanbanStateId } from "@/types/kanbanState";
+import { getKanbanStateId } from "@/types/kanbanState";
+import type { KanbanView, KanbanViewId } from "@/types/kanbanView";
+import { getKanbanViewId } from "@/types/kanbanView";
+import type { LinkPatternId } from "@/types/linkPattern";
+import { getLinkPatternId } from "@/types/linkPattern";
+import type { ProjectCategoryId } from "@/types/project";
+import { getProjectCategoryId } from "@/types/project";
+import { generatePrefixedUUID } from "@/utils/idGenerator";
 
 const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
 type DayName = (typeof DAY_NAMES)[number];
@@ -72,6 +80,50 @@ export class SettingsModel {
    */
   static reset_DONOTUSE(): void {
     SettingsModel._instance = null;
+  }
+
+  // ============================================================================
+  // STATIC ID FACTORIES
+  // ============================================================================
+
+  /**
+   * Create a new unique ID for a Priority.
+   * @returns A PriorityId with prefix "prio-" followed by a UUID
+   */
+  static createPriorityId(): PriorityId {
+    return getPriorityId(generatePrefixedUUID("prio"));
+  }
+
+  /**
+   * Create a new unique ID for a LinkPattern.
+   * @returns A LinkPatternId with prefix "link-" followed by a UUID
+   */
+  static createLinkPatternId(): LinkPatternId {
+    return getLinkPatternId(generatePrefixedUUID("link"));
+  }
+
+  /**
+   * Create a new unique ID for a KanbanState.
+   * @returns A KanbanStateId with prefix "kstate-" followed by a UUID
+   */
+  static createKanbanStateId(): KanbanStateId {
+    return getKanbanStateId(generatePrefixedUUID("kstate"));
+  }
+
+  /**
+   * Create a new unique ID for a KanbanView.
+   * @returns A KanbanViewId with prefix "kview-" followed by a UUID
+   */
+  static createKanbanViewId(): KanbanViewId {
+    return getKanbanViewId(generatePrefixedUUID("kview"));
+  }
+
+  /**
+   * Create a new unique ID for a ProjectCategory.
+   * @returns A ProjectCategoryId with prefix "cat-" followed by a UUID
+   */
+  static createProjectCategoryId(): ProjectCategoryId {
+    return getProjectCategoryId(generatePrefixedUUID("cat"));
   }
 
   get raw_DONOTUSE(): Settings {

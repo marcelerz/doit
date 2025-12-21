@@ -81,14 +81,18 @@ describe("usePeople", () => {
   });
 
   describe("CRUD operations", () => {
-    it("should expose addPerson that calls addEntity", () => {
+    it("should expose addPerson that calls addEntity with generated ID", () => {
       const { result } = renderHook(() => usePeople());
 
       result.current.addPerson({ name: "New Person", alternatives: [] } as Parameters<
         typeof result.current.addPerson
       >[0]);
 
-      expect(mockManager.addEntity).toHaveBeenCalledWith({ name: "New Person", alternatives: [] });
+      // addEntity should be called with the entity and a generated person ID
+      expect(mockManager.addEntity).toHaveBeenCalledWith(
+        { name: "New Person", alternatives: [] },
+        expect.stringMatching(/^person-/),
+      );
     });
 
     it("should expose updatePerson that calls updateEntity", () => {

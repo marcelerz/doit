@@ -7,6 +7,7 @@ import { getShortTime } from "@/types/time";
 import { getColor } from "@/types/types";
 import { useState } from "react";
 import { getTextColor } from "@/utils/colors";
+import { createBreakPeriodId } from "@/utils/idGenerator";
 import { IconButton } from "@/components/shared/IconButton";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 
@@ -69,7 +70,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
       type === "common" ? "commonSchedule" : type === "weekday" ? "weekdaySchedule" : "weekendSchedule";
     const schedule = workHours[scheduleKey];
     const newBreak: BreakPeriod = {
-      id: getBreakPeriodId(`block-${Date.now()}`),
+      id: getBreakPeriodId(createBreakPeriodId()),
       name: "Break",
       startTime: getShortTime("12:00"),
       endTime: getShortTime("13:00"),
@@ -423,7 +424,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
                             onClick={() => {
                               const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
                               const newBreak: BreakPeriod = {
-                                id: getBreakPeriodId(`block-${Date.now()}`),
+                                id: getBreakPeriodId(createBreakPeriodId()),
                                 name: "Break",
                                 startTime: getShortTime("12:00"),
                                 endTime: getShortTime("13:00"),

@@ -5,6 +5,7 @@ import { loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
 import { Comment, ActivityEntry, getCommentId, getActivityId } from "@/types/types";
 import { getTimestamp } from "@/types/time";
+import { createActivityId, createCommentId } from "@/utils/idGenerator";
 
 /**
  * Base entity interface that all managed entities must implement
@@ -83,15 +84,15 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
   }, [rawEntities, isLoaded, config.storageKey, config.entityName]);
 
   const addEntity = useCallback(
-    (entity: Omit<T, "id" | "comments" | "activity">) => {
+    (entity: Omit<T, "id" | "comments" | "activity">, entityId: string) => {
       const now = Date.now();
       const newEntity = {
         ...entity,
-        id: now.toString(),
+        id: entityId,
         comments: [],
         activity: [
           {
-            id: getActivityId(`${now}-created`),
+            id: getActivityId(createActivityId()),
             timestamp: getTimestamp(now),
             type: "created",
             description: `${config.entityName} created`,
@@ -147,7 +148,7 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
               updatedEntity.activity = [
                 ...(entity.activity || []),
                 {
-                  id: getActivityId(`${now}-edited`),
+                  id: getActivityId(createActivityId()),
                   timestamp: getTimestamp(now),
                   type: "edited",
                   description: `Updated ${changes.join("; ")}`,
@@ -174,7 +175,7 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
               activity: [
                 ...(entity.activity || []),
                 {
-                  id: getActivityId(`${now}-archived`),
+                  id: getActivityId(createActivityId()),
                   timestamp: getTimestamp(now),
                   type: "archived",
                   description: `${config.entityName} archived`,
@@ -201,7 +202,7 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
               activity: [
                 ...(entity.activity || []),
                 {
-                  id: getActivityId(`${now}-unarchived`),
+                  id: getActivityId(createActivityId()),
                   timestamp: getTimestamp(now),
                   type: "unarchived",
                   description: `${config.entityName} unarchived`,
@@ -226,7 +227,7 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
       prev.map((entity) => {
         if (entity.id === entityId) {
           const newComment: Comment = {
-            commentId: getCommentId(now.toString()),
+            commentId: getCommentId(createCommentId()),
             history: [{ timestamp: getTimestamp(now), content }],
           };
           return {

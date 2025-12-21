@@ -3,6 +3,7 @@
  */
 
 import { calculateUsageStats, sortByUsage, sortStringsByUsage, getTopUsed } from "@/utils/usageStats";
+import { generateUUID } from "@/utils/idGenerator";
 import { Todo, TodoState, getTodoId, getTag } from "@/types/todo";
 import {
   getDurationSec,
@@ -52,7 +53,7 @@ describe("usageStats", () => {
       recurring: string;
     }> = {},
   ): Todo => ({
-    id: getTodoId(`todo-${Date.now()}-${Math.random()}`),
+    id: getTodoId(generateUUID()),
     text: "Test todo",
     plainText: "Test todo",
     state,

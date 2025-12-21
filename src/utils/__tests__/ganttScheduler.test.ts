@@ -38,6 +38,7 @@ import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
 import { defaultCalendar } from "@/types/calendar";
 import { defaultCategories } from "@/types/project";
 import { TodoModel } from "@/models/TodoModel";
+import { generateUUID } from "@/utils/idGenerator";
 import { createSettingsModel, SettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { Todo, getTodoId, getTimeEntryId } from "@/types/todo";
 import { getTimestamp, getShortTime, getDurationMin, getDurationSec } from "@/types/time";
@@ -96,7 +97,7 @@ const createGanttSettings = (overrides: Partial<Gantt> = {}): Gantt => ({
 
 // Helper to create a minimal Todo
 const createTodo = (overrides: Partial<Todo> = {}): Todo => ({
-  id: overrides.id || getTodoId(`todo-${Date.now()}-${Math.random().toString(36).slice(2)}`),
+  id: overrides.id || getTodoId(generateUUID()),
   text: overrides.text || "Test todo",
   plainText: overrides.plainText || "Test todo",
   state: overrides.state || "active",

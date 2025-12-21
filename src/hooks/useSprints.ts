@@ -6,6 +6,7 @@ import { getTimestamp } from "@/types/time";
 import { getActivityId, getCommentId } from "@/types/types";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
+import { createSprintId, createActivityId, createCommentId } from "@/utils/idGenerator";
 
 export interface SprintModel extends Sprint {
   // Computed properties
@@ -175,14 +176,14 @@ export function useSprints() {
     const now = Date.now();
     const newSprint: Sprint = {
       ...sprint,
-      id: getSprintId(`sprint-${now}`),
+      id: getSprintId(createSprintId()),
       status: "planning",
       state: "active",
       createdAt: now,
       comments: [],
       activity: [
         {
-          id: getActivityId(`${now}-created`),
+          id: getActivityId(createActivityId()),
           timestamp: getTimestamp(now),
           type: "created",
           description: "Sprint created",
@@ -204,7 +205,7 @@ export function useSprints() {
             activity: [
               ...(s.activity || []),
               {
-                id: getActivityId(`${now}-updated`),
+                id: getActivityId(createActivityId()),
                 timestamp: getTimestamp(now),
                 type: "updated",
                 description: "Sprint updated",
@@ -236,7 +237,7 @@ export function useSprints() {
             activity: [
               ...(s.activity || []),
               {
-                id: getActivityId(`${now}-started`),
+                id: getActivityId(createActivityId()),
                 timestamp: getTimestamp(now),
                 type: "started",
                 description: "Sprint started",
@@ -264,7 +265,7 @@ export function useSprints() {
             activity: [
               ...(s.activity || []),
               {
-                id: getActivityId(`${now}-completed`),
+                id: getActivityId(createActivityId()),
                 timestamp: getTimestamp(now),
                 type: "completed",
                 description: "Sprint completed",
@@ -292,7 +293,7 @@ export function useSprints() {
             activity: [
               ...(s.activity || []),
               {
-                id: getActivityId(`${now}-cancelled`),
+                id: getActivityId(createActivityId()),
                 timestamp: getTimestamp(now),
                 type: "cancelled",
                 description: "Sprint cancelled",
@@ -318,7 +319,7 @@ export function useSprints() {
             activity: [
               ...(s.activity || []),
               {
-                id: getActivityId(`${now}-archived`),
+                id: getActivityId(createActivityId()),
                 timestamp: getTimestamp(now),
                 type: "archived",
                 description: "Sprint archived",
@@ -344,7 +345,7 @@ export function useSprints() {
             activity: [
               ...(s.activity || []),
               {
-                id: getActivityId(`${now}-unarchived`),
+                id: getActivityId(createActivityId()),
                 timestamp: getTimestamp(now),
                 type: "unarchived",
                 description: "Sprint unarchived",
@@ -363,7 +364,7 @@ export function useSprints() {
       prev.map((s) => {
         if (s.id === sprintId) {
           const newComment = {
-            commentId: getCommentId(now.toString()),
+            commentId: getCommentId(createCommentId()),
             history: [{ timestamp: getTimestamp(now), content }],
           };
           return {

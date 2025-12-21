@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { Project } from "@/types/project";
 import { STORAGE_KEYS } from "@/storage/storage";
 import { createProjectModels, ProjectModel } from "@/models/ProjectModel";
@@ -23,10 +23,18 @@ export function useProjects() {
   // Wrap raw projects in ProjectModel instances for consumers
   const projects = useMemo(() => createProjectModels(manager.rawEntities), [manager.rawEntities]);
 
+  // Wrap addEntity to automatically generate the project ID
+  const addProject = useCallback(
+    (project: Omit<Project, "id" | "comments" | "activity">) => {
+      manager.addEntity(project, ProjectModel.createId());
+    },
+    [manager],
+  );
+
   return {
     projects,
     isLoaded: manager.isLoaded,
-    addProject: manager.addEntity,
+    addProject,
     updateProject: manager.updateEntity,
     deleteProject: manager.deleteEntity,
     archiveProject: manager.archiveEntity,

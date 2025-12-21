@@ -81,14 +81,18 @@ describe("useProjects", () => {
   });
 
   describe("CRUD operations", () => {
-    it("should expose addProject that calls addEntity", () => {
+    it("should expose addProject that calls addEntity with generated ID", () => {
       const { result } = renderHook(() => useProjects());
 
       result.current.addProject({ name: "New Project", alternatives: [] } as Parameters<
         typeof result.current.addProject
       >[0]);
 
-      expect(mockManager.addEntity).toHaveBeenCalledWith({ name: "New Project", alternatives: [] });
+      // addEntity should be called with the entity and a generated project ID
+      expect(mockManager.addEntity).toHaveBeenCalledWith(
+        { name: "New Project", alternatives: [] },
+        expect.stringMatching(/^proj-/),
+      );
     });
 
     it("should expose updateProject that calls updateEntity", () => {

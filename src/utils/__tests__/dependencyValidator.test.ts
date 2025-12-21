@@ -7,12 +7,13 @@ import {
   getDependencyBlockMessage,
   DependencyValidationResult,
 } from "@/utils/dependencyValidator";
+import { generateUUID } from "@/utils/idGenerator";
 import { Todo, getTodoId } from "@/types/todo";
 import { getTimestamp } from "@/types/time";
 
 // Helper to create a minimal Todo
 const createTodo = (overrides: Partial<Todo> = {}): Todo => ({
-  id: getTodoId((overrides.id as string) || `todo-${Date.now()}-${Math.random()}`),
+  id: getTodoId((overrides.id as string) || generateUUID()),
   text: overrides.text || "Test todo",
   plainText: overrides.plainText || overrides.text || "Test todo",
   state: overrides.state || "active",

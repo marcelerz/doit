@@ -3,16 +3,16 @@
 import { useState, useEffect, useRef } from "react";
 import { Settings, defaultSettings, FeatureSettings } from "@/types/settings";
 import { Priority } from "@/types/priority";
-import { getPriorityId } from "@/types/priority";
-import { LinkPattern, getLinkPatternId } from "@/types/linkPattern";
+import { LinkPattern } from "@/types/linkPattern";
 import { MarkerColors } from "@/types/markerColors";
-import { KanbanState, getKanbanStateId } from "@/types/kanbanState";
-import { KanbanView, getKanbanViewId } from "@/types/kanbanView";
+import { KanbanState } from "@/types/kanbanState";
+import { KanbanView } from "@/types/kanbanView";
 import { KanbanTransition } from "@/types/kanbanTransition";
-import { ProjectCategory, getProjectCategoryId } from "@/types/project";
+import { ProjectCategory } from "@/types/project";
 import { migrateSettings } from "@/storage/migrations";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
+import { SettingsModel } from "@/models/SettingsModel";
 
 export function useSettings() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
@@ -69,10 +69,9 @@ export function useSettings() {
   }, [settings, isLoaded]);
 
   const addPriority = (priority: Omit<Priority, "id">) => {
-    const now = Date.now();
     const newPriority: Priority = {
       ...priority,
-      id: getPriorityId(now.toString()),
+      id: SettingsModel.createPriorityId(),
     };
     setSettings((prev) => ({
       ...prev,
@@ -97,7 +96,7 @@ export function useSettings() {
   const addLinkPattern = (pattern: Omit<LinkPattern, "id">) => {
     const newPattern: LinkPattern = {
       ...pattern,
-      id: getLinkPatternId(Date.now().toString()),
+      id: SettingsModel.createLinkPatternId(),
     };
     setSettings((prev) => ({
       ...prev,
@@ -213,7 +212,7 @@ export function useSettings() {
   const addKanbanState = (state: Omit<KanbanState, "id">) => {
     const newState: KanbanState = {
       ...state,
-      id: getKanbanStateId(`state-${Date.now()}`),
+      id: SettingsModel.createKanbanStateId(),
     };
     setSettings((prev) => ({
       ...prev,
@@ -303,7 +302,7 @@ export function useSettings() {
   const addKanbanView = (view: Omit<KanbanView, "id">) => {
     const newView: KanbanView = {
       ...view,
-      id: getKanbanViewId(`view-${Date.now()}`),
+      id: SettingsModel.createKanbanViewId(),
     };
     setSettings((prev) => ({
       ...prev,
@@ -359,7 +358,7 @@ export function useSettings() {
   const addCategory = (category: Omit<ProjectCategory, "id">) => {
     const newCategory: ProjectCategory = {
       ...category,
-      id: getProjectCategoryId(`cat-${Date.now()}`),
+      id: SettingsModel.createProjectCategoryId(),
     };
     setSettings((prev) => ({
       ...prev,

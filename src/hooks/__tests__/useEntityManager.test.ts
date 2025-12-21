@@ -4,6 +4,7 @@
 
 import { renderHook, act } from "@testing-library/react";
 import { useEntityManager, BaseEntity } from "../useEntityManager";
+import { generateUUID } from "@/utils/idGenerator";
 
 // Mock storage
 jest.mock("@/storage/storage", () => ({
@@ -98,12 +99,12 @@ describe("useEntityManager", () => {
       });
 
       act(() => {
-        result.current.addEntity({ name: "New Entity", alternatives: [] } as TestEntity);
+        result.current.addEntity({ name: "New Entity", alternatives: [] } as TestEntity, `test-${generateUUID()}`);
       });
 
       expect(result.current.rawEntities).toHaveLength(1);
       expect(result.current.rawEntities[0].name).toBe("New Entity");
-      expect(result.current.rawEntities[0].id).toBeDefined();
+      expect(result.current.rawEntities[0].id).toMatch(/^test-/);
       expect(result.current.rawEntities[0].comments).toEqual([]);
       expect(result.current.rawEntities[0].activity).toHaveLength(1);
       expect(result.current.rawEntities[0].activity[0].type).toBe("created");
@@ -117,7 +118,7 @@ describe("useEntityManager", () => {
       });
 
       act(() => {
-        result.current.addEntity({ name: "Test", alternatives: [] } as TestEntity);
+        result.current.addEntity({ name: "Test", alternatives: [] } as TestEntity, `test-${generateUUID()}`);
       });
 
       await act(async () => {
@@ -384,7 +385,7 @@ describe("useEntityManager", () => {
       const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       act(() => {
-        result.current.addEntity({ name: "Test", alternatives: [] } as TestEntity);
+        result.current.addEntity({ name: "Test", alternatives: [] } as TestEntity, `test-${generateUUID()}`);
       });
 
       await act(async () => {

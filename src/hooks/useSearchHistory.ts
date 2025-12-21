@@ -5,6 +5,7 @@ import { SearchHistoryEntry, getSearchHistoryId } from "@/types/types";
 import { getTimestamp } from "@/types/time";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
+import { createSearchHistoryId } from "@/utils/idGenerator";
 
 const MAX_HISTORY_ITEMS = 20;
 
@@ -43,7 +44,7 @@ export function useSearchHistory() {
 
       // Add new entry at the beginning
       const newEntry: SearchHistoryEntry = {
-        id: getSearchHistoryId(`search-${Date.now()}`),
+        id: getSearchHistoryId(createSearchHistoryId()),
         query: trimmedQuery,
         timestamp: getTimestamp(Date.now()),
       };

@@ -23,6 +23,7 @@ import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/storage/
 import { defaultSettings, Settings } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
 import { createActivity, generateMetadataActivities } from "@/utils/activityLogger";
+import { createActivityId, createCommentId, createSubtaskId } from "@/utils/idGenerator";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
 import { TodoModel, createTodoModels } from "@/models/TodoModel";
@@ -263,7 +264,7 @@ export function useTodos() {
     const now = getTimestamp(Date.now());
     const fields = metadataToTodoFields(metadata, settings);
     const newTodo: Todo = {
-      id: getTodoId(now.toString()),
+      id: TodoModel.createId(),
       text,
       plainText,
       state: "active",
@@ -294,7 +295,7 @@ export function useTodos() {
 
     const now = getTimestamp(Date.now());
     const duplicatedTodo: Todo = {
-      id: getTodoId(now.toString()),
+      id: TodoModel.createId(),
       text: todoToDuplicate.text,
       plainText: todoToDuplicate.plainText,
       state: "active",
@@ -386,7 +387,7 @@ export function useTodos() {
         // Create new todo with updated due date
         const newRecurringTodo: Todo = {
           ...todoToToggle,
-          id: getTodoId(`todo-${now}-recurring`),
+          id: TodoModel.createId(),
           state: "active",
           createdAt: now,
           updatedAt: now,
@@ -596,7 +597,7 @@ export function useTodos() {
       prev.map((todo) => {
         if (todo.id === todoId) {
           const newComment = {
-            commentId: getCommentId(now.toString()),
+            commentId: getCommentId(createCommentId()),
             history: [{ timestamp: now, content }],
           };
           return {
@@ -662,7 +663,7 @@ export function useTodos() {
       prev.map((todo) => {
         if (todo.id === todoId) {
           const newSubtask = {
-            id: getSubtaskId(`subtask-${now}`),
+            id: getSubtaskId(createSubtaskId()),
             text,
             completed: false,
             createdAt: now,
@@ -833,10 +834,9 @@ export function useTodos() {
 
   // Import todos from external source
   const importTodos = (todosToImport: Array<Omit<Todo, "id">>) => {
-    const now = getTimestamp(Date.now());
-    const newTodos = todosToImport.map((todo, index) => ({
+    const newTodos = todosToImport.map((todo) => ({
       ...todo,
-      id: getTodoId(`todo-${now}-${index}`),
+      id: TodoModel.createId(),
     }));
     setRawTodos((prev) => [...prev, ...newTodos]);
   };
