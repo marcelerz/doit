@@ -180,7 +180,7 @@ export class TodoModel {
   /**
    * Get due date timestamp (actual field with auto-assign fallback)
    */
-  get dueDateTimestamp(): Timestamp | undefined {
+  get dueDate(): Timestamp | undefined {
     if (this._raw.dueDate) {
       return this._raw.dueDate;
     }
@@ -255,9 +255,10 @@ export class TodoModel {
   /**
    * Get assigned people names (string array for UI display)
    * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
+   * Includes auto-assign fallback via assignedPeopleIds
    */
   get assignedPeople(): string[] {
-    const ids = this._raw.assignedPeople || [];
+    const ids = this.assignedPeopleIds;
     if (!this._registry) {
       return ids.map((id) => id as string);
     }
@@ -270,9 +271,10 @@ export class TodoModel {
   /**
    * Get source people names (string array for UI display)
    * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
+   * Includes auto-assign fallback via sourcePeopleIds
    */
   get sourcePeople(): string[] {
-    const ids = this._raw.sourcePeople || [];
+    const ids = this.sourcePeopleIds;
     if (!this._registry) {
       return ids.map((id) => id as string);
     }
@@ -287,7 +289,7 @@ export class TodoModel {
    * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
    */
   get mentionedPeople(): string[] {
-    const ids = this._raw.mentionedPeople || [];
+    const ids = this.mentionedPeopleIds;
     if (!this._registry) {
       return ids.map((id) => id as string);
     }
@@ -300,9 +302,10 @@ export class TodoModel {
   /**
    * Get project names (string array for UI display)
    * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
+   * Includes auto-assign fallback via projectIds
    */
   get projects(): string[] {
-    const ids = this._raw.projects || [];
+    const ids = this.projectIds;
     if (!this._registry) {
       return ids.map((id) => id as string);
     }
@@ -319,15 +322,6 @@ export class TodoModel {
   get priority(): string | undefined {
     if (!this._raw.priority) return undefined;
     return this._settingsModel.findPriorityById(this._raw.priority)?.name;
-  }
-
-  /**
-   * Get due date as display string (YYYY-MM-DD format for UI display/backward compatibility)
-   */
-  get dueDate(): string | undefined {
-    if (!this._raw.dueDate) return undefined;
-    const date = new Date(this._raw.dueDate);
-    return date.toISOString().split("T")[0];
   }
 
   /**
@@ -348,39 +342,17 @@ export class TodoModel {
   /**
    * Get metadata for UI editing purposes.
    * Converts typed ID fields to string-based TodoMetadata.
-   * Uses registry to resolve person/project IDs to names.
-   * Falls back to ID strings if registry not available.
+   * Uses the string getters which resolve IDs to names via registry
+   * and include auto-assign fallbacks.
    */
   get metadata(): TodoMetadata {
-    // Helper to resolve person IDs to names
-    const resolvePeopleNames = (ids: PersonId[]): string[] => {
-      if (!this._registry) {
-        return ids.map((id) => id as string);
-      }
-      return ids.map((id) => {
-        const person = this._registry!.getPerson(id);
-        return person ? person.name : (id as string);
-      });
-    };
-
-    // Helper to resolve project IDs to names
-    const resolveProjectNames = (ids: ProjectId[]): string[] => {
-      if (!this._registry) {
-        return ids.map((id) => id as string);
-      }
-      return ids.map((id) => {
-        const project = this._registry!.getProject(id);
-        return project ? project.name : (id as string);
-      });
-    };
-
     return {
-      assignedPeople: resolvePeopleNames(this._raw.assignedPeople || []),
-      sourcePeople: resolvePeopleNames(this._raw.sourcePeople || []),
-      mentionedPeople: resolvePeopleNames(this._raw.mentionedPeople || []),
-      projects: resolveProjectNames(this._raw.projects || []),
+      assignedPeople: this.assignedPeople,
+      sourcePeople: this.sourcePeople,
+      mentionedPeople: this.mentionedPeople,
+      projects: this.projects,
       priority: this.priorityName,
-      dueDate: this.dueDate,
+      dueDate: this.dueDateDisplay,
       duration: this.durationDisplay,
       recurring: this._raw.recurring,
       tags: this.tags,
@@ -393,10 +365,10 @@ export class TodoModel {
   // ===== Computed Properties =====
 
   /**
-   * Get due date as a Date object (from actual timestamp field)
+   * Get due date as a Date object (from actual timestamp field with auto-assign)
    */
   get dueDateObject(): Date | undefined {
-    const timestamp = this._raw.dueDate;
+    const timestamp = this.dueDate;
     if (!timestamp) return undefined;
     return new Date(timestamp);
   }
@@ -569,7 +541,7 @@ export class TodoModel {
    * - "in X days", "in X weeks", "in X months", "in X years"
    */
   get dueDateDisplay(): string | undefined {
-    const timestamp = this._raw.dueDate;
+    const timestamp = this.dueDate;
     if (!timestamp) return undefined;
 
     const date = new Date(timestamp);

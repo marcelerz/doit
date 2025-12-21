@@ -1619,11 +1619,11 @@ describe("TodoModel", () => {
       const model = new TodoModel(todo, settings);
 
       // DueDate auto-assign parses the date string
-      expect(model.dueDateTimestamp).toBeDefined();
+      expect(model.dueDate).toBeDefined();
       // Should be tomorrow's date
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const resultDate = new Date(model.dueDateTimestamp!);
+      const resultDate = new Date(model.dueDate!);
       expect(resultDate.getDate()).toBe(tomorrow.getDate());
     });
 
@@ -1640,7 +1640,7 @@ describe("TodoModel", () => {
       });
       const model = new TodoModel(todo, settings);
 
-      expect(model.dueDateTimestamp).toBe(specificTimestamp);
+      expect(model.dueDate).toBe(specificTimestamp);
     });
 
     it("should return default assigned person IDs when using EntityRegistry", () => {

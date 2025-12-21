@@ -209,8 +209,8 @@ export function sortTodosForScheduling(
         }
 
         // Secondary sort: due date (earliest first)
-        const aTimestamp = a.dueDateTimestamp;
-        const bTimestamp = b.dueDateTimestamp;
+        const aTimestamp = a.dueDate;
+        const bTimestamp = b.dueDate;
         if (!aTimestamp && !bTimestamp) return 0;
         if (!aTimestamp) return 1;
         if (!bTimestamp) return -1;
@@ -232,8 +232,8 @@ export function sortTodosForScheduling(
 
       // For active tasks, sort by due date
       if (a.state === "active" && b.state === "active") {
-        const aTimestamp = a.dueDateTimestamp;
-        const bTimestamp = b.dueDateTimestamp;
+        const aTimestamp = a.dueDate;
+        const bTimestamp = b.dueDate;
         if (!aTimestamp && !bTimestamp) return 0;
         if (!aTimestamp) return 1;
         if (!bTimestamp) return -1;
@@ -263,8 +263,8 @@ export function sortTodosForScheduling(
         }
 
         // Secondary sort: due date (earliest first)
-        const aTimestamp = a.dueDateTimestamp;
-        const bTimestamp = b.dueDateTimestamp;
+        const aTimestamp = a.dueDate;
+        const bTimestamp = b.dueDate;
         if (!aTimestamp && !bTimestamp) return 0;
         if (!aTimestamp) return 1;
         if (!bTimestamp) return -1;
