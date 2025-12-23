@@ -83,6 +83,8 @@
 - [x] Extract SavePresetModal component (116 lines) - view preset saving modal
 - [x] Create useDragReorder hook (112 lines) - drag-and-drop reordering state and handlers
 - [x] TodoApp.tsx reduced from 3520 to 2617 lines (903 lines extracted)
+- [x] Move search/showArchived state into PeopleView, ProjectsView, SprintsView (internal state with storage)
+- [x] Extract ListView component (707 lines) - bulk selection, batch edit, quick filters, todo list, undo notifications
 
 ## Coding Standards
 
@@ -302,6 +304,9 @@ Data is now organized into separate top-level storage keys:
 - `doit-gantt-view-options` - Gantt view state (schedulingMode, groupByProject, completedCollapsed, showTasksWithoutDates)
 - `doit-calendar-view-options` - Calendar view state (viewMode, sortField, sortDirection, showTasksWithoutDates)
 - `doit-kanban-view-options` - Kanban view state (activeViewId, sortField, sortDirection, sprintId)
+- `doit-people-view-options` - People view state (search, showArchived)
+- `doit-projects-view-options` - Projects view state (search, showArchived)
+- `doit-sprints-view-options` - Sprints view state (search, showArchived)
 - `doit-backup-settings` - Backup configuration
 - `doit-selection-history` - Selection history for smart suggestions (managed by `useSelectionHistory` hook)
 
@@ -811,11 +816,11 @@ Todos now use a unified state system instead of separate boolean flags:
 
 Components are organized by purpose:
 
-- **views/** - Main application views (TodoApp [main container], CalendarView, GanttView, PeopleView, ProjectsView)
+- **views/** - Main application views (TodoApp [main container], ListView, CalendarView, GanttView, KanbanView, PeopleView, ProjectsView, SprintsView, TodoListView)
 - **items/** - List item components (TodoItem, PersonItem, ProjectItem)
-- **overlays/** - Modal/detail views (TodoDetailsOverlay, PersonDetailsOverlay, ProjectDetailsOverlay)
+- **overlays/** - Modal/detail views (TodoDetailsOverlay, PersonDetailsOverlay, ProjectDetailsOverlay, BatchEditModal)
 - **input/** - Input components (SmartInput, RichTextEditor)
-- **shared/** - Reusable components (Activity, Comments, MarkedText, MarkerReference, Notification, Badge, Modal, SearchableDropdown)
+- **shared/** - Reusable components (Activity, Comments, MarkedText, MarkerReference, Notification, Badge, Modal, SearchableDropdown, ViewTabs, ListViewToolbar, SavePresetModal)
 - **settings/** - Settings tab components
 
 ## Reusable Abstractions

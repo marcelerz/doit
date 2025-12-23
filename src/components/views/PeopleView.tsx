@@ -1,10 +1,17 @@
 "use client";
 
-import React, { useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PersonItem } from "@/components/items/PersonItem";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PersonModel } from "@/models/PersonModel";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
+import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
+
+// People View Options for storage
+interface PeopleViewOptions {
+  search?: string;
+  showArchived?: boolean;
+}
 
 // People View Tutorial Steps
 export const peopleViewTutorialSteps: TutorialStep[] = [
@@ -49,26 +56,19 @@ export const peopleViewTutorialSteps: TutorialStep[] = [
 interface PeopleViewProps {
   people: PersonModel[];
   taskCountsByPerson: Map<string, number>;
-  search: string;
-  onSearchChange: (value: string) => void;
-  showArchived: boolean;
-  onShowArchivedChange: (value: boolean) => void;
   onOpenPerson: (personId: string) => void;
   onDeletePerson: (id: string) => void;
   onArchivePerson: (id: string) => void;
   onUnarchivePerson: (id: string) => void;
   onRequestDeleteConfirm: (id: string, name: string) => void;
   onAddPerson: () => void;
+  /** Ref for focus management from parent (keyboard shortcut "/") */
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export function PeopleView({
   people,
   taskCountsByPerson,
-  search,
-  onSearchChange,
-  showArchived,
-  onShowArchivedChange,
   onOpenPerson,
   onDeletePerson,
   onArchivePerson,
@@ -77,8 +77,40 @@ export function PeopleView({
   onAddPerson,
   searchInputRef,
 }: PeopleViewProps) {
+  // Internal state for search and show archived
+  const [search, setSearch] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  const [optionsLoaded, setOptionsLoaded] = useState(false);
+
   const localInputRef = useRef<HTMLInputElement>(null);
   const inputRef = searchInputRef || localInputRef;
+
+  // Load view options from storage on mount
+  useEffect(() => {
+    loadFromStorage<PeopleViewOptions>(STORAGE_KEYS.PEOPLE_VIEW_OPTIONS, {}).then((saved) => {
+      if (saved.search !== undefined) setSearch(saved.search);
+      if (saved.showArchived !== undefined) setShowArchived(saved.showArchived);
+      setOptionsLoaded(true);
+    });
+  }, []);
+
+  // Persist view options to storage
+  useEffect(() => {
+    if (!optionsLoaded) return;
+    saveToStorage(STORAGE_KEYS.PEOPLE_VIEW_OPTIONS, {
+      search,
+      showArchived,
+    });
+  }, [optionsLoaded, search, showArchived]);
+
+  // Handlers for state changes
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
+  }, []);
+
+  const handleShowArchivedChange = useCallback((value: boolean) => {
+    setShowArchived(value);
+  }, []);
 
   // Filter people based on search and archive filter
   const filteredPeople = useMemo(() => {
@@ -134,13 +166,13 @@ export function PeopleView({
             ref={inputRef}
             type="text"
             value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search people... (press / to focus)"
             className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           {search && (
             <button
-              onClick={() => onSearchChange("")}
+              onClick={() => handleSearchChange("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,7 +185,7 @@ export function PeopleView({
           <input
             type="checkbox"
             checked={showArchived}
-            onChange={(e) => onShowArchivedChange(e.target.checked)}
+            onChange={(e) => handleShowArchivedChange(e.target.checked)}
             className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
           />
           Show archived

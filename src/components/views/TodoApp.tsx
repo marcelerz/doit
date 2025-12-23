@@ -15,7 +15,8 @@ import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/comp
 import { GanttView, ganttViewTutorialSteps } from "./GanttView";
 import { CalendarView, calendarViewTutorialSteps } from "./CalendarView";
 import { KanbanView, kanbanViewTutorialSteps } from "./KanbanView";
-import { TodoListView, listViewTutorialSteps } from "./TodoListView";
+import { listViewTutorialSteps } from "./ListView";
+import { ListView, ListViewHandle } from "./ListView";
 import { StatisticsView } from "./StatisticsView";
 import { FocusView } from "./FocusView";
 import { OpenFocusView } from "./OpenFocusView";
@@ -27,39 +28,22 @@ import { PersonDetailsOverlay } from "@/components/overlays/PersonDetailsOverlay
 import { ProjectDetailsOverlay } from "@/components/overlays/ProjectDetailsOverlay";
 import { SprintDetailsOverlay } from "@/components/overlays/SprintDetailsOverlay";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
-import { BatchEditModal, BatchEditData } from "@/components/overlays/BatchEditModal";
 import { TutorialOverlay, mainTutorialSteps, TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { ViewTabs, ViewTab } from "@/components/shared/ViewTabs";
-import { ListViewToolbar } from "@/components/shared/ListViewToolbar";
-import { SavePresetModal } from "@/components/shared/SavePresetModal";
-import { useDragReorder } from "@/hooks/useDragReorder";
 import { PeopleView, peopleViewTutorialSteps } from "@/components/views/PeopleView";
 import { ProjectsView, projectsViewTutorialSteps } from "@/components/views/ProjectsView";
 import { SprintsView, sprintsViewTutorialSteps } from "@/components/views/SprintsView";
 import { useSelectionHistory, sortByUsage, sortStringsByUsage } from "@/hooks/useSelectionHistory";
 import { normalizeDateValue } from "@/utils/dateUtils";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { FilterSection } from "@/components/shared/FilterSection";
 import { ConfirmDialog } from "@/components/shared/Notification";
 import { TemplatesManager, CreateTemplateModal, TemplateDropdown } from "@/components/shared/Templates";
 import { SearchHistoryDropdown } from "@/components/shared/SearchHistory";
 import { TodoTemplate } from "@/types/todoTemplate";
 import { getColor } from "@/types/types";
 import { parseTokensToMetadata } from "@/utils/tokenParser";
-import { getTextColor } from "@/utils/colors";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
-import { exportTodos, ExportFormat } from "@/utils/export";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
-import {
-  TodoFilters,
-  SortField,
-  SortDirection,
-  GroupBy,
-  QuickFilter,
-  ViewPreset,
-  useListViewState,
-} from "@/hooks/useListViewState";
 
 export function TodoApp() {
   const {
@@ -154,10 +138,10 @@ export function TodoApp() {
   const [currentFullText, setCurrentFullText] = useState("");
   const [currentPlainText, setCurrentPlainText] = useState("");
   const smartInputRef = useRef<SmartEditableInputHandle>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const peopleSearchInputRef = useRef<HTMLInputElement>(null);
   const projectsSearchInputRef = useRef<HTMLInputElement>(null);
   const sprintsSearchInputRef = useRef<HTMLInputElement>(null);
+  const listViewRef = useRef<ListViewHandle>(null);
 
   // Active view state - initialized with default, loaded from UI_OPTIONS in useEffect
   const [activeView, setActiveView] = useState<ViewTab>("list");
@@ -186,9 +170,6 @@ export function TodoApp() {
       setActiveView("list");
     }
   }, [activeView, features]);
-
-  // Derived state: show filters section only in list view
-  const showFiltersSection = activeView === "list";
 
   // Use selection history hook for tracking selections and providing usage stats
   const { usageStats, recordSelections } = useSelectionHistory();
@@ -229,51 +210,6 @@ export function TodoApp() {
       usageStats.projects,
     );
   }, [projects, usageStats.projects]);
-
-  // Use the list view state hook for filter/sort/group management
-  const {
-    filters,
-    setFilters,
-    showFilters,
-    setShowFilters,
-    filterOptions,
-    hasActiveFilters,
-    sortField,
-    setSortField,
-    sortDirection,
-    setSortDirection,
-    groupBy,
-    setGroupBy,
-    activeQuickFilter,
-    setActiveQuickFilter,
-    quickFilterCounts,
-    activeExpanded,
-    setActiveExpanded,
-    completedExpanded,
-    setCompletedExpanded,
-    archivedExpanded,
-    setArchivedExpanded,
-    viewPresets,
-    activePreset,
-    isSavePresetOpen,
-    setIsSavePresetOpen,
-    presetName,
-    setPresetName,
-    handleFilterClick,
-    handleSelectAll,
-    handleClearAll,
-    handleClearAllFilters,
-    applyFilters,
-    sortTodos,
-    groupTodos,
-    loadPreset,
-    savePreset,
-    deletePreset,
-  } = useListViewState({
-    todos,
-    projects,
-    settings,
-  });
 
   const sortedPriorities = useMemo(() => {
     return sortByUsage(settings.priorities, usageStats.priorities);
@@ -422,50 +358,24 @@ export function TodoApp() {
     }
   };
 
-  // Bulk selection state
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedTodoIds, setSelectedTodoIds] = useState<Set<string>>(new Set());
-
-  // Drag and drop reordering - use hook
-  const {
-    isDragMode,
-    draggedTodoId,
-    dragOverTodoId,
-    toggleDragMode,
-    handleDragStart,
-    handleDragEnd,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-  } = useDragReorder({ todos, reorderTodos });
-
   // Focus mode state
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isOpenFocusMode, setIsOpenFocusMode] = useState(false);
   const [focusTasks, setFocusTasks] = useState<ScheduledTask[]>([]);
   const [ganttRefreshKey, setGanttRefreshKey] = useState(0);
 
-  // Search state for People/Projects/Sprints views
-  const [peopleSearch, setPeopleSearch] = useState("");
-  const [projectsSearch, setProjectsSearch] = useState("");
-  const [sprintsSearch, setSprintsSearch] = useState("");
-  const [showArchivedPeople, setShowArchivedPeople] = useState(false);
-  const [showArchivedProjects, setShowArchivedProjects] = useState(false);
-  const [showArchivedSprints, setShowArchivedSprints] = useState(false);
+  // UI state
   const [uiOptionsLoaded, setUiOptionsLoaded] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [tutorialChecked, setTutorialChecked] = useState(false);
   const [viewTutorialOpen, setViewTutorialOpen] = useState<string | null>(null); // Which view tutorial is open
 
-  // Load UI options from storage (includes active tab and show archived states)
+  // Load UI options from storage (only activeTab now - view-specific options are in their own views)
   useEffect(() => {
     waitForStorageInit()
       .then(() => {
         return loadFromStorage<{
           activeTab?: ViewTab;
-          showArchivedPeople?: boolean;
-          showArchivedProjects?: boolean;
-          showArchivedSprints?: boolean;
         }>(STORAGE_KEYS.UI_OPTIONS, {});
       })
       .then((saved) => {
@@ -485,9 +395,6 @@ export function TodoApp() {
             setActiveView(saved.activeTab);
           }
         }
-        if (saved.showArchivedPeople !== undefined) setShowArchivedPeople(saved.showArchivedPeople);
-        if (saved.showArchivedProjects !== undefined) setShowArchivedProjects(saved.showArchivedProjects);
-        if (saved.showArchivedSprints !== undefined) setShowArchivedSprints(saved.showArchivedSprints);
         setUiOptionsLoaded(true);
       });
   }, []);
@@ -497,11 +404,8 @@ export function TodoApp() {
     if (!uiOptionsLoaded) return;
     saveToStorage(STORAGE_KEYS.UI_OPTIONS, {
       activeTab: activeView,
-      showArchivedPeople,
-      showArchivedProjects,
-      showArchivedSprints,
     });
-  }, [uiOptionsLoaded, activeView, showArchivedPeople, showArchivedProjects, showArchivedSprints]);
+  }, [uiOptionsLoaded, activeView]);
 
   // Check tutorial preferences on first load
   useEffect(() => {
@@ -566,160 +470,7 @@ export function TodoApp() {
     setViewTutorialOpen(null);
   }, []);
 
-  // Selection mode handlers
-  const toggleSelectionMode = useCallback(() => {
-    setIsSelectionMode((prev) => !prev);
-    setSelectedTodoIds(new Set()); // Clear selections when toggling mode
-  }, []);
-
-  const handleSelectionChange = useCallback((id: string, selected: boolean) => {
-    setSelectedTodoIds((prev) => {
-      const next = new Set(prev);
-      if (selected) {
-        next.add(id);
-      } else {
-        next.delete(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const selectAllInSection = useCallback((todoIds: string[]) => {
-    setSelectedTodoIds((prev) => {
-      const next = new Set(prev);
-      todoIds.forEach((id) => next.add(id));
-      return next;
-    });
-  }, []);
-
-  const deselectAllInSection = useCallback((todoIds: string[]) => {
-    setSelectedTodoIds((prev) => {
-      const next = new Set(prev);
-      todoIds.forEach((id) => next.delete(id));
-      return next;
-    });
-  }, []);
-
-  const selectAll = useCallback(() => {
-    const allIds = todos.filter((t) => !t.isDeleted).map((t) => t.id);
-    setSelectedTodoIds(new Set(allIds));
-  }, [todos]);
-
-  const deselectAll = useCallback(() => {
-    setSelectedTodoIds(new Set());
-  }, []);
-
-  // Bulk action handlers
-  const bulkComplete = useCallback(() => {
-    const selectedActive = todos.filter((t) => t.isActive && selectedTodoIds.has(t.id));
-    selectedActive.forEach((todo) => toggleTodo(todo.id));
-    setSelectedTodoIds(new Set());
-  }, [todos, selectedTodoIds, toggleTodo]);
-
-  const bulkArchive = useCallback(() => {
-    const selectedCompleted = todos.filter((t) => t.isCompleted && selectedTodoIds.has(t.id));
-    selectedCompleted.forEach((todo) => archiveTodo(todo.id));
-    setSelectedTodoIds(new Set());
-  }, [todos, selectedTodoIds, archiveTodo]);
-
-  const bulkDelete = useCallback(() => {
-    const toDelete = todos.filter((t) => selectedTodoIds.has(t.id));
-    setConfirmDialog({
-      title: "Delete Selected Tasks",
-      message: `Are you sure you want to delete ${toDelete.length} task${
-        toDelete.length === 1 ? "" : "s"
-      }? This cannot be undone.`,
-      onConfirm: () => {
-        toDelete.forEach((todo) => deleteTodo(todo.id));
-        setSelectedTodoIds(new Set());
-        setConfirmDialog(null);
-      },
-    });
-  }, [todos, selectedTodoIds, deleteTodo]);
-
-  const bulkUnarchive = useCallback(() => {
-    const selectedArchived = todos.filter((t) => t.isArchived && selectedTodoIds.has(t.id));
-    selectedArchived.forEach((todo) => unarchiveTodo(todo.id));
-    setSelectedTodoIds(new Set());
-  }, [todos, selectedTodoIds, unarchiveTodo]);
-
-  // Batch edit state
-  const [isBatchEditOpen, setIsBatchEditOpen] = useState(false);
-
-  const openBatchEdit = useCallback(() => {
-    setIsBatchEditOpen(true);
-  }, []);
-
-  const applyBatchEdit = useCallback(
-    (batchEditData: BatchEditData) => {
-      const selectedTodos = todos.filter((t) => selectedTodoIds.has(t.id));
-
-      selectedTodos.forEach((todo) => {
-        const newMetadata = { ...todo.metadata };
-
-        if (batchEditData.setPriority) {
-          newMetadata.priority = batchEditData.priority || undefined;
-        }
-        if (batchEditData.setProject) {
-          if (batchEditData.project) {
-            if (!newMetadata.projects.includes(batchEditData.project)) {
-              newMetadata.projects = [...newMetadata.projects, batchEditData.project];
-            }
-          } else {
-            newMetadata.projects = [];
-          }
-        }
-        if (batchEditData.setAssignee) {
-          if (batchEditData.assignee) {
-            if (!newMetadata.assignedPeople.includes(batchEditData.assignee)) {
-              newMetadata.assignedPeople = [...newMetadata.assignedPeople, batchEditData.assignee];
-            }
-          } else {
-            newMetadata.assignedPeople = [];
-          }
-        }
-        if (batchEditData.setSprint) {
-          newMetadata.sprint = batchEditData.sprint || undefined;
-        }
-        if (batchEditData.setSource) {
-          if (batchEditData.source) {
-            if (!newMetadata.sourcePeople.includes(batchEditData.source)) {
-              newMetadata.sourcePeople = [...newMetadata.sourcePeople, batchEditData.source];
-            }
-          } else {
-            newMetadata.sourcePeople = [];
-          }
-        }
-        if (batchEditData.setDueDate) {
-          newMetadata.dueDate = batchEditData.dueDate || undefined;
-        }
-        if (batchEditData.setTags) {
-          if (batchEditData.tags) {
-            const newTags = batchEditData.tags
-              .split(",")
-              .map((t) => t.trim())
-              .filter(Boolean);
-            newTags.forEach((tag) => {
-              if (!(newMetadata.tags ?? []).includes(tag)) {
-                newMetadata.tags = [...(newMetadata.tags ?? []), tag];
-              }
-            });
-          } else {
-            newMetadata.tags = [];
-          }
-        }
-
-        editTodo(todo.id, todo.text, todo.plainText, newMetadata);
-      });
-
-      setIsBatchEditOpen(false);
-      setSelectedTodoIds(new Set());
-    },
-    [todos, selectedTodoIds, editTodo],
-  );
-
-  // Expanded todo detail state
-  const [expandedTodoId, setExpandedTodoId] = useState<string | null>(null);
+  // Details overlay state
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<(typeof todos)[0] | null>(null);
   const [detailsOverlayPersonId, setDetailsOverlayPersonId] = useState<string | null>(null);
   const [detailsOverlayProjectId, setDetailsOverlayProjectId] = useState<string | null>(null);
@@ -799,19 +550,22 @@ export function TodoApp() {
           setConfirmDialog(null);
           return;
         }
-        if (isSelectionMode) {
-          setIsSelectionMode(false);
-          setSelectedTodoIds(new Set());
+        if (listViewRef.current?.isSelectionMode) {
+          listViewRef.current.toggleSelectionMode();
           return;
         }
         // Blur search input if focused
         if (
-          document.activeElement === searchInputRef.current ||
           document.activeElement === peopleSearchInputRef.current ||
           document.activeElement === projectsSearchInputRef.current ||
           document.activeElement === sprintsSearchInputRef.current
         ) {
           (document.activeElement as HTMLElement).blur();
+          return;
+        }
+        // For list view, we can use the generic blur approach
+        if (activeView === "list" && document.activeElement instanceof HTMLInputElement) {
+          document.activeElement.blur();
           return;
         }
         return;
@@ -837,7 +591,7 @@ export function TodoApp() {
       if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         if (activeView === "list") {
-          searchInputRef.current?.focus();
+          listViewRef.current?.focusSearch();
         } else if (activeView === "people") {
           peopleSearchInputRef.current?.focus();
         } else if (activeView === "projects") {
@@ -852,7 +606,7 @@ export function TodoApp() {
       if (e.key === "f" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         if (activeView === "list") {
-          setShowFilters((prev) => !prev);
+          listViewRef.current?.toggleFilters();
         }
         return;
       }
@@ -861,10 +615,7 @@ export function TodoApp() {
       if (e.key === "s" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         if (activeView === "list") {
-          setIsSelectionMode((prev) => !prev);
-          if (isSelectionMode) {
-            setSelectedTodoIds(new Set());
-          }
+          listViewRef.current?.toggleSelectionMode();
         }
         return;
       }
@@ -911,7 +662,6 @@ export function TodoApp() {
     isAddProjectOverlayOpen,
     isAddSprintOverlayOpen,
     confirmDialog,
-    isSelectionMode,
     features,
   ]);
 
@@ -979,79 +729,6 @@ export function TodoApp() {
     // Clear active template after creating todo
     setActiveTemplateId(null);
   };
-
-  // Helper function to get button color class for filter sections
-  // Uses actual marker colors from settings
-  const getFilterButtonColor = (type: keyof Omit<TodoFilters, "searchText">, value: string, isSelected: boolean) => {
-    if (isSelected) {
-      return "px-2 py-0.5 text-xs rounded transition-colors";
-    }
-    return "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 px-2 py-0.5 text-xs rounded transition-colors";
-  };
-
-  // Helper function to get button inline styles for filter sections
-  const getFilterButtonStyle = (
-    type: keyof Omit<TodoFilters, "searchText">,
-    value: string,
-    isSelected: boolean,
-  ): React.CSSProperties | undefined => {
-    if (!isSelected) return undefined;
-
-    const markerColorMap: Record<string, keyof typeof settings.markerColors> = {
-      assignedPeople: "assigned",
-      projects: "project",
-      categories: "project", // Categories use project color
-      sourcePeople: "source",
-      mentionedPeople: "mentioned",
-      priorities: "priority",
-      dueDates: "dueDate",
-      durations: "duration",
-      tags: "tag",
-      recurring: "recurring",
-      dependencies: "dependency",
-    };
-
-    const markerKey = markerColorMap[type];
-    const bgColor = settings.markerColors[markerKey];
-
-    // Use centralized getTextColor utility
-    const textColor = getTextColor(bgColor);
-
-    return {
-      backgroundColor: bgColor,
-      color: textColor,
-    };
-  };
-
-  // Calculate archive threshold
-  const archiveThresholdMs = settings.general.archiveDays * 24 * 60 * 60 * 1000;
-  const now = Date.now();
-
-  // Categorize todos and apply filters (exclude deleted todos)
-  const allActiveTodos = todos.filter((todo) => todo.isActive);
-  const allCompletedTodos = todos.filter((todo) => {
-    if (!todo.isCompleted) return false;
-    if (!todo.completedAt) return true; // Legacy completed todos without timestamp
-    const timeSinceCompletion = now - todo.completedAt;
-    return timeSinceCompletion < archiveThresholdMs;
-  });
-  const allArchivedTodos = todos.filter((todo) => todo.isArchived);
-
-  const activeTodos = sortTodos(applyFilters(allActiveTodos));
-  const groupedActiveTodos = groupTodos(activeTodos);
-  const completedTodos = sortTodos(applyFilters(allCompletedTodos));
-  const archivedTodos = sortTodos(applyFilters(allArchivedTodos));
-
-  // Export handler - exports filtered todos if filters active, otherwise all
-  const handleExport = useCallback(
-    (format: ExportFormat) => {
-      const todosToExport = hasActiveFilters ? [...activeTodos, ...completedTodos, ...archivedTodos] : todos;
-      const date = new Date().toISOString().split("T")[0];
-      const filename = `todos-${date}`;
-      exportTodos(todosToExport, format, filename);
-    },
-    [hasActiveFilters, activeTodos, completedTodos, archivedTodos, todos],
-  );
 
   // Determine container width based on active view
   // NOTE: This must be before the isLoaded check to satisfy Rules of Hooks
@@ -1140,219 +817,6 @@ export function TodoApp() {
           runningSprint={runningSprint}
           onOpenTutorial={setViewTutorialOpen}
         />
-
-        {/* Filter Section - Only show in List view */}
-        {showFiltersSection && (
-          <div className="mb-6 space-y-3">
-            <ListViewToolbar
-              filters={filters}
-              setFilters={setFilters}
-              showFilters={showFilters}
-              setShowFilters={setShowFilters}
-              hasActiveFilters={hasActiveFilters}
-              sortField={sortField}
-              setSortField={setSortField}
-              sortDirection={sortDirection}
-              setSortDirection={setSortDirection}
-              groupBy={groupBy}
-              setGroupBy={setGroupBy}
-              viewPresets={viewPresets}
-              activePreset={activePreset}
-              onLoadPreset={loadPreset}
-              onOpenSavePreset={() => setIsSavePresetOpen(true)}
-              searchHistory={searchHistory}
-              addToSearchHistory={addToSearchHistory}
-              removeFromSearchHistory={removeFromSearchHistory}
-              clearSearchHistory={clearSearchHistory}
-              features={features}
-              templates={templates}
-              todosCount={todos.length}
-              isSelectionMode={isSelectionMode}
-              toggleSelectionMode={toggleSelectionMode}
-              isDragMode={isDragMode}
-              toggleDragMode={toggleDragMode}
-              onShowTemplatesManager={() => setShowTemplatesManager(true)}
-              onExport={handleExport}
-              searchInputRef={searchInputRef}
-            />
-
-            {showFilters && (
-              <div
-                className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 lg:p-4 space-y-2 lg:space-y-3"
-                data-tutorial="filters"
-              >
-                {/* Grid layout for filters on larger screens */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 lg:gap-x-6 lg:gap-y-4 [&>*]:lg:pl-6 [&>*]:lg:border-l [&>*]:lg:border-zinc-200 [&>*]:dark:lg:border-zinc-700 [&>*:first-child]:lg:pl-0 [&>*:first-child]:lg:border-l-0 [&>*:nth-child(2n+1)]:lg:pl-0 [&>*:nth-child(2n+1)]:lg:border-l-0 [&>*:nth-child(2n+1)]:xl:pl-6 [&>*:nth-child(2n+1)]:xl:border-l [&>*:nth-child(3n+1)]:xl:pl-0 [&>*:nth-child(3n+1)]:xl:border-l-0">
-                  {/* Assigned People Filter */}
-                  <FilterSection
-                    label="Assigned (@)"
-                    activeCount={filters.assignedPeople.size}
-                    options={filterOptions.assignedPeople}
-                    selectedValues={filters.assignedPeople}
-                    onToggle={(value) => handleFilterClick("assignedPeople", value)}
-                    onSelectAll={() => handleSelectAll("assignedPeople")}
-                    onClear={() => handleClearAll("assignedPeople")}
-                    getButtonColor={(value, isSelected) => getFilterButtonColor("assignedPeople", value, isSelected)}
-                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("assignedPeople", value, isSelected)}
-                    formatLabel={(value) => `@${value}`}
-                  />
-
-                  {/* Projects Filter */}
-                  <FilterSection
-                    label="Projects (%)"
-                    activeCount={filters.projects.size}
-                    options={filterOptions.projects}
-                    selectedValues={filters.projects}
-                    onToggle={(value) => handleFilterClick("projects", value)}
-                    onSelectAll={() => handleSelectAll("projects")}
-                    onClear={() => handleClearAll("projects")}
-                    getButtonColor={(value, isSelected) => getFilterButtonColor("projects", value, isSelected)}
-                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("projects", value, isSelected)}
-                    formatLabel={(value) => `%${value}`}
-                  />
-
-                  {/* Categories Filter */}
-                  <FilterSection
-                    label="Categories"
-                    activeCount={filters.categories.size}
-                    options={filterOptions.categories}
-                    selectedValues={filters.categories}
-                    onToggle={(value) => handleFilterClick("categories", value)}
-                    onSelectAll={() => handleSelectAll("categories")}
-                    onClear={() => handleClearAll("categories")}
-                    getButtonColor={(value, isSelected) => getFilterButtonColor("categories", value, isSelected)}
-                    getButtonStyle={(value, isSelected) => {
-                      if (!isSelected) return undefined;
-                      // Use category's own color
-                      const category = settings.categories.find((c) => c.id === value);
-                      const bgColor = category?.color || settings.markerColors.project;
-                      return {
-                        backgroundColor: bgColor,
-                        color: getTextColor(bgColor),
-                      };
-                    }}
-                    formatLabel={(value) => {
-                      const category = settings.categories.find((c) => c.id === value);
-                      return category?.name || value;
-                    }}
-                  />
-
-                  {/* Source People Filter */}
-                  <FilterSection
-                    label="Source ($)"
-                    activeCount={filters.sourcePeople.size}
-                    options={filterOptions.sourcePeople}
-                    selectedValues={filters.sourcePeople}
-                    onToggle={(value) => handleFilterClick("sourcePeople", value)}
-                    onSelectAll={() => handleSelectAll("sourcePeople")}
-                    onClear={() => handleClearAll("sourcePeople")}
-                    getButtonColor={(value, isSelected) => getFilterButtonColor("sourcePeople", value, isSelected)}
-                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("sourcePeople", value, isSelected)}
-                    formatLabel={(value) => `$${value}`}
-                  />
-
-                  {/* Mentioned People Filter */}
-                  <FilterSection
-                    label="Mentioned"
-                    activeCount={filters.mentionedPeople.size}
-                    options={filterOptions.mentionedPeople}
-                    selectedValues={filters.mentionedPeople}
-                    onToggle={(value) => handleFilterClick("mentionedPeople", value)}
-                    onSelectAll={() => handleSelectAll("mentionedPeople")}
-                    onClear={() => handleClearAll("mentionedPeople")}
-                    getButtonColor={(value, isSelected) => getFilterButtonColor("mentionedPeople", value, isSelected)}
-                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("mentionedPeople", value, isSelected)}
-                    formatLabel={(value) => value}
-                  />
-
-                  {/* Priority Filter */}
-                  <FilterSection
-                    label="Priority (!!)"
-                    activeCount={filters.priorities.size}
-                    options={filterOptions.priorities}
-                    selectedValues={filters.priorities}
-                    onToggle={(value) => handleFilterClick("priorities", value)}
-                    onSelectAll={() => handleSelectAll("priorities")}
-                    onClear={() => handleClearAll("priorities")}
-                    getButtonColor={(value, isSelected) => getFilterButtonColor("priorities", value, isSelected)}
-                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("priorities", value, isSelected)}
-                    formatLabel={(value) => `!!${value}`}
-                  />
-
-                  {/* Due Date Filter */}
-                  <FilterSection
-                    label="Due Date (~)"
-                    activeCount={filters.dueDates.size}
-                    options={filterOptions.dueDates}
-                    selectedValues={filters.dueDates}
-                    onToggle={(value) => handleFilterClick("dueDates", value)}
-                    onSelectAll={() => handleSelectAll("dueDates")}
-                    onClear={() => handleClearAll("dueDates")}
-                    getButtonColor={(value, isSelected) => getFilterButtonColor("dueDates", value, isSelected)}
-                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("dueDates", value, isSelected)}
-                    formatLabel={(value) => `~${value}`}
-                  />
-
-                  {/* Duration Filter */}
-                  <FilterSection
-                    label="Duration (*)"
-                    activeCount={filters.durations.size}
-                    options={filterOptions.durations}
-                    selectedValues={filters.durations}
-                    onToggle={(value) => handleFilterClick("durations", value)}
-                    onSelectAll={() => handleSelectAll("durations")}
-                    onClear={() => handleClearAll("durations")}
-                    getButtonColor={(value, isSelected) => getFilterButtonColor("durations", value, isSelected)}
-                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("durations", value, isSelected)}
-                    formatLabel={(value) => `*${value}`}
-                  />
-
-                  {/* Tags Filter */}
-                  <FilterSection
-                    label="Tags (&)"
-                    activeCount={filters.tags.size}
-                    options={filterOptions.tags}
-                    selectedValues={filters.tags}
-                    onToggle={(value) => handleFilterClick("tags", value)}
-                    onSelectAll={() => handleSelectAll("tags")}
-                    onClear={() => handleClearAll("tags")}
-                    getButtonColor={(value, isSelected) => getFilterButtonColor("tags", value, isSelected)}
-                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("tags", value, isSelected)}
-                    formatLabel={(value) => `&${value}`}
-                  />
-
-                  {/* Recurring Filter */}
-                  <FilterSection
-                    label="Recurring (%)"
-                    activeCount={filters.recurring.size}
-                    options={filterOptions.recurring}
-                    selectedValues={filters.recurring}
-                    onToggle={(value) => handleFilterClick("recurring", value)}
-                    onSelectAll={() => handleSelectAll("recurring")}
-                    onClear={() => handleClearAll("recurring")}
-                    getButtonColor={(value, isSelected) => getFilterButtonColor("recurring", value, isSelected)}
-                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("recurring", value, isSelected)}
-                    formatLabel={(value) => `%${value}`}
-                  />
-
-                  {/* Dependencies Filter */}
-                  <FilterSection
-                    label="Dependencies (>)"
-                    activeCount={filters.dependencies.size}
-                    options={filterOptions.dependencies}
-                    selectedValues={filters.dependencies}
-                    onToggle={(value) => handleFilterClick("dependencies", value)}
-                    onSelectAll={() => handleSelectAll("dependencies")}
-                    onClear={() => handleClearAll("dependencies")}
-                    getButtonColor={(value, isSelected) => getFilterButtonColor("dependencies", value, isSelected)}
-                    getButtonStyle={(value, isSelected) => getFilterButtonStyle("dependencies", value, isSelected)}
-                    formatLabel={(value) => `>${value}`}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* View Content */}
         {activeView === "gantt" && (
@@ -1472,10 +936,6 @@ export function TodoApp() {
           <PeopleView
             people={allPeople}
             taskCountsByPerson={taskCountsByPerson}
-            search={peopleSearch}
-            onSearchChange={setPeopleSearch}
-            showArchived={showArchivedPeople}
-            onShowArchivedChange={setShowArchivedPeople}
             onOpenPerson={(personId) => setDetailsOverlayPersonId(personId)}
             onAddPerson={() => setIsAddPersonOverlayOpen(true)}
             onArchivePerson={archivePerson}
@@ -1500,10 +960,6 @@ export function TodoApp() {
           <ProjectsView
             projects={allProjects}
             taskCountsByProject={taskCountsByProject}
-            search={projectsSearch}
-            onSearchChange={setProjectsSearch}
-            showArchived={showArchivedProjects}
-            onShowArchivedChange={setShowArchivedProjects}
             onOpenProject={(projectId) => setDetailsOverlayProjectId(projectId)}
             onAddProject={() => setIsAddProjectOverlayOpen(true)}
             onArchiveProject={archiveProject}
@@ -1538,10 +994,6 @@ export function TodoApp() {
           <SprintsView
             sprints={sprints}
             todos={todos}
-            search={sprintsSearch}
-            onSearchChange={setSprintsSearch}
-            showArchived={showArchivedSprints}
-            onShowArchivedChange={setShowArchivedSprints}
             onOpenSprint={(sprintId) => setDetailsOverlaySprintId(sprintId)}
             onAddSprint={() => setIsAddSprintOverlayOpen(true)}
             searchInputRef={sprintsSearchInputRef}
@@ -1549,341 +1001,42 @@ export function TodoApp() {
         )}
 
         {activeView === "list" && (
-          <>
-            {/* Bulk Action Toolbar */}
-            {isSelectionMode && (
-              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    {selectedTodoIds.size} selected
-                  </span>
-                  <button onClick={selectAll} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
-                    Select all
-                  </button>
-                  <button onClick={deselectAll} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
-                    Clear
-                  </button>
-                </div>
-                <div className="flex-1" />
-                <div className="flex flex-wrap gap-2">
-                  {/* Edit - always available when items selected */}
-                  {selectedTodoIds.size > 0 && (
-                    <button
-                      onClick={openBatchEdit}
-                      className="px-3 py-1.5 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center gap-1.5"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
-                      </svg>
-                      Edit
-                    </button>
-                  )}
-                  {/* Complete - only for active todos */}
-                  {todos.some((t) => t.isActive && selectedTodoIds.has(t.id)) && (
-                    <button
-                      onClick={bulkComplete}
-                      className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors flex items-center gap-1.5"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Complete
-                    </button>
-                  )}
-                  {/* Archive - only for completed todos */}
-                  {todos.some((t) => t.isCompleted && selectedTodoIds.has(t.id)) && (
-                    <button
-                      onClick={bulkArchive}
-                      className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-700 text-white rounded-md transition-colors flex items-center gap-1.5"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                        />
-                      </svg>
-                      Archive
-                    </button>
-                  )}
-                  {/* Unarchive - only for archived todos */}
-                  {todos.some((t) => t.isArchived && selectedTodoIds.has(t.id)) && (
-                    <button
-                      onClick={bulkUnarchive}
-                      className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center gap-1.5"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      Restore
-                    </button>
-                  )}
-                  {/* Delete - always available when items selected */}
-                  {selectedTodoIds.size > 0 && (
-                    <button
-                      onClick={bulkDelete}
-                      className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors flex items-center gap-1.5"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                      Delete
-                    </button>
-                  )}
-                </div>
-                <button
-                  onClick={toggleSelectionMode}
-                  className="ml-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                  title="Exit selection mode"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            )}
-
-            {/* Quick Filters Bar */}
-            {todos.length > 0 && !isSelectionMode && (
-              <div className="mb-4 flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => setActiveQuickFilter("all")}
-                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                    activeQuickFilter === "all"
-                      ? "bg-blue-600 text-white"
-                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  All ({quickFilterCounts.all})
-                </button>
-                <button
-                  onClick={() => setActiveQuickFilter("today")}
-                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1.5 ${
-                    activeQuickFilter === "today"
-                      ? "bg-blue-600 text-white"
-                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  Today ({quickFilterCounts.today})
-                </button>
-                {quickFilterCounts.overdue > 0 && (
-                  <button
-                    onClick={() => setActiveQuickFilter("overdue")}
-                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1.5 ${
-                      activeQuickFilter === "overdue"
-                        ? "bg-red-600 text-white"
-                        : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50"
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    Overdue ({quickFilterCounts.overdue})
-                  </button>
-                )}
-                <button
-                  onClick={() => setActiveQuickFilter("thisWeek")}
-                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1.5 ${
-                    activeQuickFilter === "thisWeek"
-                      ? "bg-blue-600 text-white"
-                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    />
-                  </svg>
-                  This Week ({quickFilterCounts.thisWeek})
-                </button>
-                <button
-                  onClick={() => setActiveQuickFilter("noDueDate")}
-                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1.5 ${
-                    activeQuickFilter === "noDueDate"
-                      ? "bg-blue-600 text-white"
-                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                    />
-                  </svg>
-                  No Due Date ({quickFilterCounts.noDueDate})
-                </button>
-
-                {/* Clear All button - shown when any filter is active */}
-                {hasActiveFilters && (
-                  <>
-                    <div className="flex-1" />
-                    <button
-                      onClick={handleClearAllFilters}
-                      className="px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-800 dark:hover:text-zinc-200"
-                      title="Clear all filters"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      Clear All
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-
-            <TodoListView
-              todos={todos}
-              activeTodos={activeTodos}
-              completedTodos={completedTodos}
-              archivedTodos={archivedTodos}
-              groupedActiveTodos={groupedActiveTodos}
-              settings={settings}
-              sortedPeople={sortedPeople}
-              sortedProjects={sortedProjects}
-              sortedPriorities={sortedPriorities}
-              sprints={sprints.map((s) => s.raw)}
-              nextPlannedSprint={nextPlannedSprint?.raw}
-              isSelectionMode={isSelectionMode}
-              selectedTodoIds={selectedTodoIds}
-              isDragMode={isDragMode}
-              dragOverTodoId={dragOverTodoId}
-              activeExpanded={activeExpanded}
-              completedExpanded={completedExpanded}
-              archivedExpanded={archivedExpanded}
-              onToggle={toggleTodo}
-              onDelete={deleteTodo}
-              onArchive={archiveTodo}
-              onUnarchive={unarchiveTodo}
-              onEdit={editTodo}
-              onAddPerson={handleAddPerson}
-              onAddProject={handleAddProject}
-              onAddPriority={handleAddPriority}
-              onAddComment={addTodoComment}
-              onEditComment={editTodoComment}
-              onDeleteComment={deleteTodoComment}
-              onOpenTodoDetails={setDetailsOverlayTodo}
-              onSelectionChange={handleSelectionChange}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onActiveExpandedChange={setActiveExpanded}
-              onCompletedExpandedChange={setCompletedExpanded}
-              onArchivedExpandedChange={setArchivedExpanded}
-            />
-
-            {/* Save Preset Modal */}
-            <SavePresetModal
-              isOpen={isSavePresetOpen}
-              onClose={() => setIsSavePresetOpen(false)}
-              presetName={presetName}
-              onPresetNameChange={setPresetName}
-              onSave={savePreset}
-              onDelete={deletePreset}
-              viewPresets={viewPresets}
-            />
-
-            {/* Dependency Block Notification */}
-            {dependencyBlockNotification && (
-              <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
-                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 text-orange-900 dark:text-orange-100 rounded-lg shadow-lg px-4 py-3 flex items-start gap-3 max-w-md animate-slide-down">
-                  <svg
-                    className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <p className="text-sm flex-1">{dependencyBlockNotification}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Undo Notifications */}
-            {undoActions.length > 0 && (
-              <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col-reverse gap-2">
-                {undoActions.map((action) => (
-                  <div
-                    key={action.id}
-                    className={`transition-opacity duration-3000 ${
-                      fadingOutIds.has(action.id) ? "opacity-0" : "opacity-100 animate-slide-up"
-                    }`}
-                  >
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-100 rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 min-w-[280px]">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">
-                          {action.type === "delete" && "Todo deleted"}
-                          {action.type === "complete" && "Todo completed"}
-                          {action.type === "uncomplete" && "Todo marked as active"}
-                          {action.type === "archive" && "Todo archived"}
-                        </p>
-                        <p className="text-xs text-red-700 dark:text-red-300 mt-0.5 truncate max-w-[180px]">
-                          {action.todo.plainText}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => undo(action.id)}
-                        className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded-md font-medium transition-colors flex-shrink-0"
-                      >
-                        Undo
-                      </button>
-                      <button
-                        onClick={() => dismissUndo(action.id)}
-                        className="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors flex-shrink-0"
-                        aria-label="Dismiss"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
+          <ListView
+            ref={listViewRef}
+            todos={todos}
+            settings={settings}
+            sortedPeople={sortedPeople}
+            sortedProjects={sortedProjects}
+            sortedPriorities={sortedPriorities}
+            sprints={sprints}
+            nextPlannedSprint={nextPlannedSprint}
+            features={features}
+            templates={templates}
+            onShowTemplatesManager={() => setShowTemplatesManager(true)}
+            searchHistory={searchHistory}
+            addToSearchHistory={addToSearchHistory}
+            removeFromSearchHistory={removeFromSearchHistory}
+            clearSearchHistory={clearSearchHistory}
+            toggleTodo={toggleTodo}
+            deleteTodo={deleteTodo}
+            archiveTodo={archiveTodo}
+            unarchiveTodo={unarchiveTodo}
+            editTodo={editTodo}
+            reorderTodos={reorderTodos}
+            onAddPerson={handleAddPerson}
+            onAddProject={handleAddProject}
+            onAddPriority={handleAddPriority}
+            addTodoComment={addTodoComment}
+            editTodoComment={editTodoComment}
+            deleteTodoComment={deleteTodoComment}
+            onOpenTodoDetails={setDetailsOverlayTodo}
+            setConfirmDialog={setConfirmDialog}
+            undoActions={undoActions}
+            fadingOutIds={fadingOutIds}
+            undo={undo}
+            dismissUndo={dismissUndo}
+            dependencyBlockNotification={dependencyBlockNotification}
+          />
         )}
 
         {/* Todo Details Overlay - outside activeView check so it works from FocusView too */}
@@ -2491,18 +1644,6 @@ export function TodoApp() {
           </div>
         )}
       </div>
-
-      {/* Batch Edit Modal */}
-      <BatchEditModal
-        isOpen={isBatchEditOpen}
-        onClose={() => setIsBatchEditOpen(false)}
-        onApply={applyBatchEdit}
-        selectedCount={selectedTodoIds.size}
-        priorities={sortedPriorities}
-        projects={sortedProjects}
-        people={sortedPeople}
-        sprints={sprints.map((s) => s.raw)}
-      />
 
       {/* Confirm Dialog */}
       {confirmDialog && (
