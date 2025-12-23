@@ -1,196 +1,145 @@
 "use client";
 
-import { useState } from "react";
-import { Person } from "@/types/person";
-import { getColor } from "@/types/types";
-import { IconButton } from "@/components/shared/IconButton";
+import React, { useMemo, useRef } from "react";
+import { PersonItem } from "@/components/items/PersonItem";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { PersonModel } from "@/models/PersonModel";
 
-interface PeopleTabProps {
-  people: Person[];
-  onAdd: (person: Omit<Person, "id" | "comments" | "activity">) => void;
-  onUpdate: (id: string, updates: Partial<Person>) => void;
-  onDelete: (id: string) => void;
+interface PeopleViewProps {
+  people: PersonModel[];
+  taskCountsByPerson: Map<string, number>;
+  search: string;
+  onSearchChange: (value: string) => void;
+  showArchived: boolean;
+  onShowArchivedChange: (value: boolean) => void;
+  onOpenPerson: (personId: string) => void;
+  onDeletePerson: (id: string) => void;
+  onArchivePerson: (id: string) => void;
+  onUnarchivePerson: (id: string) => void;
+  onRequestDeleteConfirm: (id: string, name: string) => void;
+  onAddPerson: () => void;
+  searchInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
-export function PeopleTab({ people, onAdd, onUpdate, onDelete }: PeopleTabProps) {
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    alternatives: "",
-    color: "",
-  });
+export function PeopleView({
+  people,
+  taskCountsByPerson,
+  search,
+  onSearchChange,
+  showArchived,
+  onShowArchivedChange,
+  onOpenPerson,
+  onDeletePerson,
+  onArchivePerson,
+  onUnarchivePerson,
+  onRequestDeleteConfirm,
+  onAddPerson,
+  searchInputRef,
+}: PeopleViewProps) {
+  const localInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = searchInputRef || localInputRef;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.name.trim() === "") return;
-
-    const personData = {
-      name: formData.name.trim(),
-      alternatives: formData.alternatives
-        .split(",")
-        .map((a) => a.trim())
-        .filter((a) => a),
-      color: formData.color ? getColor(formData.color) : undefined, // Only set if provided
-    };
-
-    if (editingId) {
-      onUpdate(editingId, personData);
-      setEditingId(null);
-    } else {
-      onAdd(personData);
-    }
-
-    setFormData({ name: "", alternatives: "", color: "" });
-    setIsAdding(false);
-  };
-
-  const handleEdit = (person: Person) => {
-    setEditingId(person.id);
-    setFormData({
-      name: person.name,
-      alternatives: person.alternatives.join(", "),
-      color: person.color || "",
+  // Filter people based on search and archive filter
+  const filteredPeople = useMemo(() => {
+    return people.filter((person) => {
+      // Filter by archived status
+      if (!showArchived && person.isArchived) return false;
+      // Filter by search term
+      if (search.trim()) {
+        return person.matchesSearch(search);
+      }
+      return true;
     });
-    setIsAdding(true);
-  };
-
-  const handleCancel = () => {
-    setIsAdding(false);
-    setEditingId(null);
-    setFormData({ name: "", alternatives: "", color: "" });
-  };
+  }, [people, search, showArchived]);
 
   return (
-    <div className="space-y-4" data-testid="people-view">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">People</h2>
-        {!isAdding && (
-          <button
-            onClick={() => setIsAdding(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-          >
-            Add Person
-          </button>
-        )}
-      </div>
-
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Markers: <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">@</span> = assigned,{" "}
-        <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">$</span> = source,{" "}
-        <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">mentioned</span>
-      </p>
-
-      {isAdding && (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-3"
-        >
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Name *</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="John Doe"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              Alternative Names (comma-separated)
-            </label>
-            <input
-              type="text"
-              value={formData.alternatives}
-              onChange={(e) => setFormData({ ...formData, alternatives: e.target.value })}
-              className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="John, JD"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              Color (optional - defaults to marker color)
-            </label>
-            <div className="flex gap-2 items-center">
-              <input
-                type="color"
-                value={formData.color || "#cce5ff"}
-                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                className="h-10 w-20 rounded cursor-pointer"
-              />
-              <input
-                type="text"
-                value={formData.color}
-                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                placeholder="#cce5ff (default)"
-                pattern="^#[0-9A-Fa-f]{6}$|^$"
-              />
-              {formData.color && (
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, color: "" })}
-                  className="px-3 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
-                >
-                  Use Default
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors"
-            >
-              {editingId ? "Update" : "Add"} Person
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="flex-1 px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-md font-medium transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
-
-      <div className="space-y-2">
-        {people.length === 0 ? (
-          <p className="text-center py-8 text-zinc-500 dark:text-zinc-400">
-            No people added yet. Click "Add Person" to get started.
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div>
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">People</h2>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+            {filteredPeople.length} of {people.length} {people.length === 1 ? "person" : "people"}
           </p>
-        ) : (
-          people.map((person) => (
-            <div
-              key={person.id}
-              className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 flex items-center gap-4"
-            >
-              <div
-                className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg"
-                style={{ backgroundColor: person.color || "#cce5ff", color: "#333" }}
-              >
-                {person.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{person.name}</h3>
-                {person.alternatives.length > 0 && (
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">Also: {person.alternatives.join(", ")}</p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <IconButton icon="edit" onClick={() => handleEdit(person)} />
-                <IconButton icon="delete" onClick={() => onDelete(person.id)} />
-              </div>
-            </div>
-          ))
-        )}
+        </div>
+        <button
+          onClick={onAddPerson}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          data-tutorial="add-person-button"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Person
+        </button>
       </div>
+
+      {/* Search and filter bar */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            ref={inputRef}
+            type="text"
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search people... (press / to focus)"
+            className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {search && (
+            <button
+              onClick={() => onSearchChange("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer whitespace-nowrap">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => onShowArchivedChange(e.target.checked)}
+            className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+          />
+          Show archived
+        </label>
+      </div>
+
+      {people.length === 0 ? (
+        <EmptyState emoji="👥" title="No People" message="No people yet. Add one to get started!" />
+      ) : filteredPeople.length === 0 ? (
+        <EmptyState emoji="🔍" title="No Results" message="No people match your search." />
+      ) : (
+        <ul className="space-y-2">
+          {filteredPeople.map((person) => (
+            <li key={person.id}>
+              <PersonItem
+                person={person}
+                onClick={() => onOpenPerson(person.id)}
+                onDelete={onDeletePerson}
+                onArchive={onArchivePerson}
+                onUnarchive={onUnarchivePerson}
+                onRequestDeleteConfirm={onRequestDeleteConfirm}
+                taskCount={taskCountsByPerson.get(person.id) || 0}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

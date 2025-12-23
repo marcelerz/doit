@@ -1,194 +1,145 @@
 "use client";
 
-import { useState } from "react";
-import { Project } from "@/types/project";
-import { getColor } from "@/types/types";
-import { IconButton } from "@/components/shared/IconButton";
+import React, { useMemo, useRef } from "react";
+import { ProjectItem } from "@/components/items/ProjectItem";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ProjectModel } from "@/models/ProjectModel";
 
-interface ProjectsTabProps {
-  projects: Project[];
-  onAdd: (project: Omit<Project, "id" | "comments" | "activity">) => void;
-  onUpdate: (id: string, updates: Partial<Project>) => void;
-  onDelete: (id: string) => void;
+interface ProjectsViewProps {
+  projects: ProjectModel[];
+  taskCountsByProject: Map<string, number>;
+  search: string;
+  onSearchChange: (value: string) => void;
+  showArchived: boolean;
+  onShowArchivedChange: (value: boolean) => void;
+  onOpenProject: (projectId: string) => void;
+  onDeleteProject: (id: string) => void;
+  onArchiveProject: (id: string) => void;
+  onUnarchiveProject: (id: string) => void;
+  onRequestDeleteConfirm: (id: string, name: string) => void;
+  onAddProject: () => void;
+  searchInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
-export function ProjectsTab({ projects, onAdd, onUpdate, onDelete }: ProjectsTabProps) {
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    alternatives: "",
-    color: "",
-  });
+export function ProjectsView({
+  projects,
+  taskCountsByProject,
+  search,
+  onSearchChange,
+  showArchived,
+  onShowArchivedChange,
+  onOpenProject,
+  onDeleteProject,
+  onArchiveProject,
+  onUnarchiveProject,
+  onRequestDeleteConfirm,
+  onAddProject,
+  searchInputRef,
+}: ProjectsViewProps) {
+  const localInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = searchInputRef || localInputRef;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.name.trim() === "") return;
-
-    const projectData = {
-      name: formData.name.trim(),
-      alternatives: formData.alternatives
-        .split(",")
-        .map((a) => a.trim())
-        .filter((a) => a),
-      color: formData.color ? getColor(formData.color) : undefined,
-    };
-
-    if (editingId) {
-      onUpdate(editingId, projectData);
-      setEditingId(null);
-    } else {
-      onAdd(projectData);
-    }
-
-    setFormData({ name: "", alternatives: "", color: "" });
-    setIsAdding(false);
-  };
-
-  const handleEdit = (project: Project) => {
-    setEditingId(project.id);
-    setFormData({
-      name: project.name,
-      alternatives: project.alternatives.join(", "),
-      color: project.color || "",
+  // Filter projects based on search and archive filter
+  const filteredProjects = useMemo(() => {
+    return projects.filter((project) => {
+      // Filter by archived status
+      if (!showArchived && project.isArchived) return false;
+      // Filter by search term
+      if (search.trim()) {
+        return project.matchesSearch(search);
+      }
+      return true;
     });
-    setIsAdding(true);
-  };
-
-  const handleCancel = () => {
-    setIsAdding(false);
-    setEditingId(null);
-    setFormData({ name: "", alternatives: "", color: "" });
-  };
+  }, [projects, search, showArchived]);
 
   return (
-    <div className="space-y-4" data-testid="projects-view">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Projects</h2>
-        {!isAdding && (
-          <button
-            onClick={() => setIsAdding(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-          >
-            Add Project
-          </button>
-        )}
-      </div>
-
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Marker: <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">%</span> = project assignment
-      </p>
-
-      {isAdding && (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-3"
-        >
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Name *</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Website Redesign"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              Alternative Names (comma-separated)
-            </label>
-            <input
-              type="text"
-              value={formData.alternatives}
-              onChange={(e) => setFormData({ ...formData, alternatives: e.target.value })}
-              className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="WebRedesign, Site"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              Color (optional - defaults to marker color)
-            </label>
-            <div className="flex gap-2 items-center">
-              <input
-                type="color"
-                value={formData.color || "#e2ccff"}
-                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                className="h-10 w-20 rounded cursor-pointer"
-              />
-              <input
-                type="text"
-                value={formData.color}
-                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                className="flex-1 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                placeholder="#e2ccff (default)"
-                pattern="^#[0-9A-Fa-f]{6}$|^$"
-              />
-              {formData.color && (
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, color: "" })}
-                  className="px-3 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
-                >
-                  Use Default
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors"
-            >
-              {editingId ? "Update" : "Add"} Project
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="flex-1 px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-md font-medium transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
-
-      <div className="space-y-2">
-        {projects.length === 0 ? (
-          <p className="text-center py-8 text-zinc-500 dark:text-zinc-400">
-            No projects added yet. Click "Add Project" to get started.
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div>
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Projects</h2>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+            {filteredProjects.length} of {projects.length} {projects.length === 1 ? "project" : "projects"}
           </p>
-        ) : (
-          projects.map((project) => (
-            <div
-              key={project.id}
-              className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 flex items-center gap-4"
-            >
-              <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg"
-                style={{ backgroundColor: project.color || "#e2ccff", color: "#333" }}
-              >
-                {project.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{project.name}</h3>
-                {project.alternatives.length > 0 && (
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">Also: {project.alternatives.join(", ")}</p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <IconButton icon="edit" onClick={() => handleEdit(project)} />
-                <IconButton icon="delete" onClick={() => onDelete(project.id)} />
-              </div>
-            </div>
-          ))
-        )}
+        </div>
+        <button
+          onClick={onAddProject}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          data-tutorial="add-project-button"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Project
+        </button>
       </div>
+
+      {/* Search and filter bar */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            ref={inputRef}
+            type="text"
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search projects... (press / to focus)"
+            className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {search && (
+            <button
+              onClick={() => onSearchChange("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer whitespace-nowrap">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => onShowArchivedChange(e.target.checked)}
+            className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
+          />
+          Show archived
+        </label>
+      </div>
+
+      {projects.length === 0 ? (
+        <EmptyState emoji="📁" title="No Projects" message="No projects yet. Add one to get started!" />
+      ) : filteredProjects.length === 0 ? (
+        <EmptyState emoji="🔍" title="No Results" message="No projects match your search." />
+      ) : (
+        <ul className="space-y-2">
+          {filteredProjects.map((project) => (
+            <li key={project.id}>
+              <ProjectItem
+                project={project}
+                onClick={() => onOpenProject(project.id)}
+                onDelete={onDeleteProject}
+                onArchive={onArchiveProject}
+                onUnarchive={onUnarchiveProject}
+                onRequestDeleteConfirm={onRequestDeleteConfirm}
+                taskCount={taskCountsByProject.get(project.id) || 0}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

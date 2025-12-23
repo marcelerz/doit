@@ -148,9 +148,9 @@ const sprintsViewTutorialSteps: TutorialStep[] = [
     position: "center",
   },
 ];
-import { PersonItem } from "@/components/items/PersonItem";
-import { ProjectItem } from "@/components/items/ProjectItem";
-import { SprintItem } from "@/components/items/SprintItem";
+import { PeopleView } from "@/components/views/PeopleView";
+import { ProjectsView } from "@/components/views/ProjectsView";
+import { SprintsView } from "@/components/views/SprintsView";
 import { useSelectionHistory, sortByUsage, sortStringsByUsage } from "@/hooks/useSelectionHistory";
 import { normalizeDateValue } from "@/utils/dateUtils";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -669,64 +669,6 @@ export function TodoApp() {
   const handleViewTutorialComplete = useCallback(() => {
     setViewTutorialOpen(null);
   }, []);
-
-  // Filtered people and projects based on search and archive filter
-  const filteredPeople = useMemo(() => {
-    return allPeople.filter((person) => {
-      // Filter by archived status
-      if (!showArchivedPeople && person.isArchived) return false;
-      // Filter by search term
-      if (peopleSearch.trim()) {
-        return person.matchesSearch(peopleSearch);
-      }
-      return true;
-    });
-  }, [allPeople, peopleSearch, showArchivedPeople]);
-
-  const filteredProjects = useMemo(() => {
-    return allProjects.filter((project) => {
-      // Filter by archived status
-      if (!showArchivedProjects && project.isArchived) return false;
-      // Filter by search term
-      if (projectsSearch.trim()) {
-        return project.matchesSearch(projectsSearch);
-      }
-      return true;
-    });
-  }, [allProjects, projectsSearch, showArchivedProjects]);
-
-  // Filtered sprints based on search and archive filter
-  const filteredSprints = useMemo(() => {
-    return sprints.filter((sprint) => {
-      // Filter by archived status
-      if (!showArchivedSprints && sprint.isArchived) return false;
-      // Filter by search term
-      if (sprintsSearch.trim()) {
-        const search = sprintsSearch.toLowerCase();
-        return (
-          sprint.name.toLowerCase().includes(search) || (sprint.goal && sprint.goal.toLowerCase().includes(search))
-        );
-      }
-      return true;
-    });
-  }, [sprints, sprintsSearch, showArchivedSprints]);
-
-  // Count todos per sprint - use TodoModel.sprint
-  const todoCountBySprint = useMemo(() => {
-    const counts: Record<string, { total: number; completed: number }> = {};
-    todos.forEach((todo) => {
-      if (todo.sprint) {
-        if (!counts[todo.sprint]) {
-          counts[todo.sprint] = { total: 0, completed: 0 };
-        }
-        counts[todo.sprint].total++;
-        if (todo.state === "completed") {
-          counts[todo.sprint].completed++;
-        }
-      }
-    });
-    return counts;
-  }, [todos]);
 
   // Quick filter state - initialized with default, loaded from storage in useEffect
   type QuickFilter = "all" | "today" | "overdue" | "thisWeek" | "noDueDate";
@@ -3383,204 +3325,58 @@ export function TodoApp() {
 
         {/* People View */}
         {activeView === "people" && (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-              <div>
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">People</h2>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                  {filteredPeople.length} of {allPeople.length} {allPeople.length === 1 ? "person" : "people"}
-                </p>
-              </div>
-              <button
-                onClick={() => setIsAddPersonOverlayOpen(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                data-tutorial="add-person-button"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Person
-              </button>
-            </div>
-
-            {/* Search and filter bar */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                <input
-                  ref={peopleSearchInputRef}
-                  type="text"
-                  value={peopleSearch}
-                  onChange={(e) => setPeopleSearch(e.target.value)}
-                  placeholder="Search people... (press / to focus)"
-                  className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {peopleSearch && (
-                  <button
-                    onClick={() => setPeopleSearch("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-              <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  checked={showArchivedPeople}
-                  onChange={(e) => setShowArchivedPeople(e.target.checked)}
-                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                Show archived
-              </label>
-            </div>
-
-            {allPeople.length === 0 ? (
-              <EmptyState emoji="👥" title="No People" message="No people yet. Add one to get started!" />
-            ) : filteredPeople.length === 0 ? (
-              <EmptyState emoji="🔍" title="No Results" message="No people match your search." />
-            ) : (
-              <ul className="space-y-2">
-                {filteredPeople.map((person) => (
-                  <li key={person.id}>
-                    <PersonItem
-                      person={person}
-                      onClick={() => setDetailsOverlayPersonId(person.id)}
-                      onDelete={deletePerson}
-                      onArchive={archivePerson}
-                      onUnarchive={unarchivePerson}
-                      onRequestDeleteConfirm={(id, name) => {
-                        setConfirmDialog({
-                          title: "Delete Person",
-                          message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
-                          onConfirm: () => {
-                            deletePerson(id);
-                            setConfirmDialog(null);
-                          },
-                        });
-                      }}
-                      taskCount={taskCountsByPerson.get(person.id) || 0}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <PeopleView
+            people={allPeople}
+            taskCountsByPerson={taskCountsByPerson}
+            search={peopleSearch}
+            onSearchChange={setPeopleSearch}
+            showArchived={showArchivedPeople}
+            onShowArchivedChange={setShowArchivedPeople}
+            onOpenPerson={(personId) => setDetailsOverlayPersonId(personId)}
+            onAddPerson={() => setIsAddPersonOverlayOpen(true)}
+            onArchivePerson={archivePerson}
+            onUnarchivePerson={unarchivePerson}
+            onDeletePerson={deletePerson}
+            onRequestDeleteConfirm={(id, name) => {
+              setConfirmDialog({
+                title: "Delete Person",
+                message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+                onConfirm: () => {
+                  deletePerson(id);
+                  setConfirmDialog(null);
+                },
+              });
+            }}
+            searchInputRef={peopleSearchInputRef}
+          />
         )}
 
         {/* Projects View */}
         {activeView === "projects" && (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-              <div>
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Projects</h2>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                  {filteredProjects.length} of {allProjects.length} {allProjects.length === 1 ? "project" : "projects"}
-                </p>
-              </div>
-              <button
-                onClick={() => setIsAddProjectOverlayOpen(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                data-tutorial="add-project-button"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Project
-              </button>
-            </div>
-
-            {/* Search and filter bar */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                <input
-                  ref={projectsSearchInputRef}
-                  type="text"
-                  value={projectsSearch}
-                  onChange={(e) => setProjectsSearch(e.target.value)}
-                  placeholder="Search projects... (press / to focus)"
-                  className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {projectsSearch && (
-                  <button
-                    onClick={() => setProjectsSearch("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-              <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  checked={showArchivedProjects}
-                  onChange={(e) => setShowArchivedProjects(e.target.checked)}
-                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                Show archived
-              </label>
-            </div>
-
-            {allProjects.length === 0 ? (
-              <EmptyState emoji="📁" title="No Projects" message="No projects yet. Add one to get started!" />
-            ) : filteredProjects.length === 0 ? (
-              <EmptyState emoji="🔍" title="No Results" message="No projects match your search." />
-            ) : (
-              <ul className="space-y-2">
-                {filteredProjects.map((project) => (
-                  <li key={project.id}>
-                    <ProjectItem
-                      project={project}
-                      onClick={() => setDetailsOverlayProjectId(project.id)}
-                      onDelete={deleteProject}
-                      onArchive={archiveProject}
-                      onUnarchive={unarchiveProject}
-                      onRequestDeleteConfirm={(id, name) => {
-                        setConfirmDialog({
-                          title: "Delete Project",
-                          message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
-                          onConfirm: () => {
-                            deleteProject(id);
-                            setConfirmDialog(null);
-                          },
-                        });
-                      }}
-                      taskCount={taskCountsByProject.get(project.id) || 0}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <ProjectsView
+            projects={allProjects}
+            taskCountsByProject={taskCountsByProject}
+            search={projectsSearch}
+            onSearchChange={setProjectsSearch}
+            showArchived={showArchivedProjects}
+            onShowArchivedChange={setShowArchivedProjects}
+            onOpenProject={(projectId) => setDetailsOverlayProjectId(projectId)}
+            onAddProject={() => setIsAddProjectOverlayOpen(true)}
+            onArchiveProject={archiveProject}
+            onUnarchiveProject={unarchiveProject}
+            onDeleteProject={deleteProject}
+            onRequestDeleteConfirm={(id, name) => {
+              setConfirmDialog({
+                title: "Delete Project",
+                message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+                onConfirm: () => {
+                  deleteProject(id);
+                  setConfirmDialog(null);
+                },
+              });
+            }}
+            searchInputRef={projectsSearchInputRef}
+          />
         )}
 
         {/* Statistics View */}
@@ -3595,92 +3391,17 @@ export function TodoApp() {
 
         {/* Sprints View */}
         {activeView === "sprints" && (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-              <div>
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Sprints</h2>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                  {filteredSprints.length} of {sprints.length} {sprints.length === 1 ? "sprint" : "sprints"}
-                </p>
-              </div>
-              <button
-                onClick={() => setIsAddSprintOverlayOpen(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                data-tutorial="add-sprint-button"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Sprint
-              </button>
-            </div>
-
-            {/* Search and filter bar */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                <input
-                  ref={sprintsSearchInputRef}
-                  type="text"
-                  value={sprintsSearch}
-                  onChange={(e) => setSprintsSearch(e.target.value)}
-                  placeholder="Search sprints... (press / to focus)"
-                  className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {sprintsSearch && (
-                  <button
-                    onClick={() => setSprintsSearch("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-              <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  checked={showArchivedSprints}
-                  onChange={(e) => setShowArchivedSprints(e.target.checked)}
-                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                Show archived
-              </label>
-            </div>
-
-            {sprints.length === 0 ? (
-              <EmptyState emoji="🏃" title="No Sprints" message="No sprints yet. Add one to get started!" />
-            ) : filteredSprints.length === 0 ? (
-              <EmptyState emoji="🔍" title="No Results" message="No sprints match your search." />
-            ) : (
-              <ul className="space-y-2">
-                {filteredSprints.map((sprint) => (
-                  <li key={sprint.id}>
-                    <SprintItem
-                      sprint={sprint}
-                      onClick={() => setDetailsOverlaySprintId(sprint.id)}
-                      isRunning={sprint.status === "active"}
-                      todoCount={todoCountBySprint[sprint.id]?.total || 0}
-                      completedTodoCount={todoCountBySprint[sprint.id]?.completed || 0}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <SprintsView
+            sprints={sprints}
+            todos={todos}
+            search={sprintsSearch}
+            onSearchChange={setSprintsSearch}
+            showArchived={showArchivedSprints}
+            onShowArchivedChange={setShowArchivedSprints}
+            onOpenSprint={(sprintId) => setDetailsOverlaySprintId(sprintId)}
+            onAddSprint={() => setIsAddSprintOverlayOpen(true)}
+            searchInputRef={sprintsSearchInputRef}
+          />
         )}
 
         {activeView === "list" && (
