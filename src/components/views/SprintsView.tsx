@@ -5,6 +5,47 @@ import { SprintModel } from "@/hooks/useSprints";
 import { SprintItem } from "@/components/items/SprintItem";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TodoModel } from "@/models/TodoModel";
+import { TutorialStep } from "@/components/overlays/TutorialOverlay";
+
+// Sprints View Tutorial Steps
+export const sprintsViewTutorialSteps: TutorialStep[] = [
+  {
+    id: "sprints-intro",
+    title: "Sprint Planning 🏃",
+    description: "The Sprints View helps you plan work in time-boxed iterations. Perfect for agile workflows!",
+    position: "center",
+  },
+  {
+    id: "sprints-create",
+    title: "Create Sprints ➕",
+    description:
+      'Click "Add Sprint" to create a new sprint with:\n\n• Name and goal\n• Start and end dates\n• Status (Planning, Active, Completed)',
+    targetSelector: '[data-tutorial="add-sprint-button"]',
+    position: "bottom",
+    spotlightPadding: 8,
+    fallbackHint: "The + Add Sprint button is at the top of the Sprints view",
+  },
+  {
+    id: "sprints-assign",
+    title: "Assign to Sprints 📋",
+    description:
+      "Open any task's detail view to assign it to a sprint. Tasks without a sprint go to the Backlog.\n\nYou can also batch-assign tasks using Selection Mode (S).",
+    position: "center",
+  },
+  {
+    id: "sprints-kanban",
+    title: "Sprint in Kanban 📊",
+    description:
+      "Filter the Kanban board by sprint to focus on current iteration work. See only what's planned for this sprint!",
+    position: "center",
+  },
+  {
+    id: "sprints-complete",
+    title: "Sprint Ready! 🎉",
+    description: "You're ready for agile planning! Mark a sprint as Active to start working on it.",
+    position: "center",
+  },
+];
 
 interface SprintsViewProps {
   sprints: SprintModel[];

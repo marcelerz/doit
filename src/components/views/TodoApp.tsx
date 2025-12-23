@@ -27,130 +27,15 @@ import { PersonDetailsOverlay } from "@/components/overlays/PersonDetailsOverlay
 import { ProjectDetailsOverlay } from "@/components/overlays/ProjectDetailsOverlay";
 import { SprintDetailsOverlay } from "@/components/overlays/SprintDetailsOverlay";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
+import { BatchEditModal, BatchEditData } from "@/components/overlays/BatchEditModal";
 import { TutorialOverlay, mainTutorialSteps, TutorialStep } from "@/components/overlays/TutorialOverlay";
-
-// People View Tutorial Steps
-const peopleViewTutorialSteps: TutorialStep[] = [
-  {
-    id: "people-intro",
-    title: "People Management 👥",
-    description: "The People View lets you manage team members and contacts. Assign tasks to people using @mentions.",
-    position: "center",
-  },
-  {
-    id: "people-add",
-    title: "Add People ➕",
-    description:
-      'Click "Add Person" to create a new person. You can add:\n\n• Name and alternatives (nicknames)\n• Custom color for badges\n• Notes and context',
-    targetSelector: '[data-tutorial="add-person-button"]',
-    position: "bottom",
-    spotlightPadding: 8,
-    fallbackHint: "The + Add Person button is at the top of the People view",
-  },
-  {
-    id: "people-assign",
-    title: "Assign Tasks 📋",
-    description:
-      "Use @name in your tasks to assign them:\n\n• @John - Assign to John\n• Multiple @mentions work too!\n\nAlternative names are recognized automatically.",
-    position: "center",
-  },
-  {
-    id: "people-source",
-    title: "Track Sources $",
-    description:
-      'Use $name to mark who requested a task:\n\n• "Fix bug $Sarah" - Request from Sarah\n• Great for tracking where tasks came from!',
-    position: "center",
-  },
-  {
-    id: "people-complete",
-    title: "Team Ready! 🎉",
-    description: "You're set to manage people! Click on any person to see their assigned tasks and add comments.",
-    position: "center",
-  },
-];
-
-// Projects View Tutorial Steps
-const projectsViewTutorialSteps: TutorialStep[] = [
-  {
-    id: "projects-intro",
-    title: "Project Management 📁",
-    description: "The Projects View lets you organize tasks into projects. Use %mentions to link tasks to projects.",
-    position: "center",
-  },
-  {
-    id: "projects-add",
-    title: "Create Projects ➕",
-    description:
-      'Click "Add Project" to create a new project. You can add:\n\n• Name and alternatives\n• Custom color\n• Description and notes',
-    targetSelector: '[data-tutorial="add-project-button"]',
-    position: "bottom",
-    spotlightPadding: 8,
-    fallbackHint: "The + Add Project button is at the top of the Projects view",
-  },
-  {
-    id: "projects-link",
-    title: "Link Tasks 🔗",
-    description:
-      'Use %project in your tasks to link them:\n\n• "Design homepage %Website"\n• Tasks can belong to multiple projects\n• Project names with spaces: %"My Project"',
-    position: "center",
-  },
-  {
-    id: "projects-filter",
-    title: "Filter by Project 🔍",
-    description:
-      "In the List View, use filters to see only tasks for a specific project. Great for focusing on one project at a time!",
-    position: "center",
-  },
-  {
-    id: "projects-complete",
-    title: "Projects Ready! 🎉",
-    description: "You're set to organize with projects! Click on any project to see its tasks and progress.",
-    position: "center",
-  },
-];
-
-// Sprints View Tutorial Steps
-const sprintsViewTutorialSteps: TutorialStep[] = [
-  {
-    id: "sprints-intro",
-    title: "Sprint Planning 🏃",
-    description: "The Sprints View helps you plan work in time-boxed iterations. Perfect for agile workflows!",
-    position: "center",
-  },
-  {
-    id: "sprints-create",
-    title: "Create Sprints ➕",
-    description:
-      'Click "Add Sprint" to create a new sprint with:\n\n• Name and goal\n• Start and end dates\n• Status (Planning, Active, Completed)',
-    targetSelector: '[data-tutorial="add-sprint-button"]',
-    position: "bottom",
-    spotlightPadding: 8,
-    fallbackHint: "The + Add Sprint button is at the top of the Sprints view",
-  },
-  {
-    id: "sprints-assign",
-    title: "Assign to Sprints 📋",
-    description:
-      "Open any task's detail view to assign it to a sprint. Tasks without a sprint go to the Backlog.\n\nYou can also batch-assign tasks using Selection Mode (S).",
-    position: "center",
-  },
-  {
-    id: "sprints-kanban",
-    title: "Sprint in Kanban 📊",
-    description:
-      "Filter the Kanban board by sprint to focus on current iteration work. See only what's planned for this sprint!",
-    position: "center",
-  },
-  {
-    id: "sprints-complete",
-    title: "Sprint Ready! 🎉",
-    description: "You're ready for agile planning! Mark a sprint as Active to start working on it.",
-    position: "center",
-  },
-];
-import { PeopleView } from "@/components/views/PeopleView";
-import { ProjectsView } from "@/components/views/ProjectsView";
-import { SprintsView } from "@/components/views/SprintsView";
+import { ViewTabs, ViewTab } from "@/components/shared/ViewTabs";
+import { ListViewToolbar } from "@/components/shared/ListViewToolbar";
+import { SavePresetModal } from "@/components/shared/SavePresetModal";
+import { useDragReorder } from "@/hooks/useDragReorder";
+import { PeopleView, peopleViewTutorialSteps } from "@/components/views/PeopleView";
+import { ProjectsView, projectsViewTutorialSteps } from "@/components/views/ProjectsView";
+import { SprintsView, sprintsViewTutorialSteps } from "@/components/views/SprintsView";
 import { useSelectionHistory, sortByUsage, sortStringsByUsage } from "@/hooks/useSelectionHistory";
 import { normalizeDateValue } from "@/utils/dateUtils";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -161,29 +46,20 @@ import { SearchHistoryDropdown } from "@/components/shared/SearchHistory";
 import { TodoTemplate } from "@/types/todoTemplate";
 import { getColor } from "@/types/types";
 import { parseTokensToMetadata } from "@/utils/tokenParser";
-import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
 import { getTextColor } from "@/utils/colors";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
 import { exportTodos, ExportFormat } from "@/utils/export";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
-
-interface TodoFilters {
-  searchText: string;
-  assignedPeople: Set<string>;
-  sourcePeople: Set<string>;
-  mentionedPeople: Set<string>;
-  projects: Set<string>;
-  categories: Set<string>;
-  priorities: Set<string>;
-  dueDates: Set<string>;
-  durations: Set<string>;
-  tags: Set<string>;
-  recurring: Set<string>;
-  dependencies: Set<string>;
-}
-
-type ViewTab = "list" | "kanban" | "gantt" | "calendar" | "people" | "projects" | "sprints" | "stats" | "timereports";
+import {
+  TodoFilters,
+  SortField,
+  SortDirection,
+  GroupBy,
+  QuickFilter,
+  ViewPreset,
+  useListViewState,
+} from "@/hooks/useListViewState";
 
 export function TodoApp() {
   const {
@@ -296,9 +172,6 @@ export function TodoApp() {
   // Get the active template object
   const activeTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) : null;
 
-  // Search history state
-  const [showSearchHistory, setShowSearchHistory] = useState(false);
-
   // Redirect to list view if current view is disabled
   useEffect(() => {
     const viewFeatureMap: Record<string, boolean | undefined> = {
@@ -356,6 +229,51 @@ export function TodoApp() {
       usageStats.projects,
     );
   }, [projects, usageStats.projects]);
+
+  // Use the list view state hook for filter/sort/group management
+  const {
+    filters,
+    setFilters,
+    showFilters,
+    setShowFilters,
+    filterOptions,
+    hasActiveFilters,
+    sortField,
+    setSortField,
+    sortDirection,
+    setSortDirection,
+    groupBy,
+    setGroupBy,
+    activeQuickFilter,
+    setActiveQuickFilter,
+    quickFilterCounts,
+    activeExpanded,
+    setActiveExpanded,
+    completedExpanded,
+    setCompletedExpanded,
+    archivedExpanded,
+    setArchivedExpanded,
+    viewPresets,
+    activePreset,
+    isSavePresetOpen,
+    setIsSavePresetOpen,
+    presetName,
+    setPresetName,
+    handleFilterClick,
+    handleSelectAll,
+    handleClearAll,
+    handleClearAllFilters,
+    applyFilters,
+    sortTodos,
+    groupTodos,
+    loadPreset,
+    savePreset,
+    deletePreset,
+  } = useListViewState({
+    todos,
+    projects,
+    settings,
+  });
 
   const sortedPriorities = useMemo(() => {
     return sortByUsage(settings.priorities, usageStats.priorities);
@@ -504,50 +422,28 @@ export function TodoApp() {
     }
   };
 
-  // Collapsible section states - initialized with defaults, loaded from storage in useEffect
-  const [activeExpanded, setActiveExpanded] = useState(true);
-  const [completedExpanded, setCompletedExpanded] = useState(true);
-  const [archivedExpanded, setArchivedExpanded] = useState(false);
-
   // Bulk selection state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedTodoIds, setSelectedTodoIds] = useState<Set<string>>(new Set());
 
-  // Drag and drop reordering state
-  const [isDragMode, setIsDragMode] = useState(false);
-  const [draggedTodoId, setDraggedTodoId] = useState<string | null>(null);
-  const [dragOverTodoId, setDragOverTodoId] = useState<string | null>(null);
-
-  // Export dropdown state
-  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
-  const exportMenuRef = useRef<HTMLDivElement>(null);
-
-  // More options menu state
-  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-  const moreMenuRef = useRef<HTMLDivElement>(null);
+  // Drag and drop reordering - use hook
+  const {
+    isDragMode,
+    draggedTodoId,
+    dragOverTodoId,
+    toggleDragMode,
+    handleDragStart,
+    handleDragEnd,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+  } = useDragReorder({ todos, reorderTodos });
 
   // Focus mode state
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isOpenFocusMode, setIsOpenFocusMode] = useState(false);
   const [focusTasks, setFocusTasks] = useState<ScheduledTask[]>([]);
   const [ganttRefreshKey, setGanttRefreshKey] = useState(0);
-
-  // Close export menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
-        setIsExportMenuOpen(false);
-      }
-      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
-        setIsMoreMenuOpen(false);
-      }
-    };
-
-    if (isExportMenuOpen || isMoreMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isExportMenuOpen, isMoreMenuOpen]);
 
   // Search state for People/Projects/Sprints views
   const [peopleSearch, setPeopleSearch] = useState("");
@@ -670,22 +566,6 @@ export function TodoApp() {
     setViewTutorialOpen(null);
   }, []);
 
-  // Quick filter state - initialized with default, loaded from storage in useEffect
-  type QuickFilter = "all" | "today" | "overdue" | "thisWeek" | "noDueDate";
-  const [activeQuickFilter, setActiveQuickFilter] = useState<QuickFilter>("all");
-
-  // Quick filter counts - use TodoModel properties instead of parsing metadata
-  const quickFilterCounts = useMemo(() => {
-    const activeTodosAll = todos.filter((t) => t.isActive);
-    return {
-      all: activeTodosAll.length,
-      today: activeTodosAll.filter((t) => t.isDueToday).length,
-      overdue: activeTodosAll.filter((t) => t.isOverdue).length,
-      thisWeek: activeTodosAll.filter((t) => t.isDueThisWeek).length,
-      noDueDate: activeTodosAll.filter((t) => !t.hasDueDate).length,
-    };
-  }, [todos]);
-
   // Selection mode handlers
   const toggleSelectionMode = useCallback(() => {
     setIsSelectionMode((prev) => !prev);
@@ -765,201 +645,77 @@ export function TodoApp() {
 
   // Batch edit state
   const [isBatchEditOpen, setIsBatchEditOpen] = useState(false);
-  const [batchEditData, setBatchEditData] = useState<{
-    setPriority: boolean;
-    priority: string;
-    setProject: boolean;
-    project: string;
-    setAssignee: boolean;
-    assignee: string;
-    setSprint: boolean;
-    sprint: string;
-    setSource: boolean;
-    source: string;
-    setDueDate: boolean;
-    dueDate: string;
-    setTags: boolean;
-    tags: string;
-  }>({
-    setPriority: false,
-    priority: "",
-    setProject: false,
-    project: "",
-    setAssignee: false,
-    assignee: "",
-    setSprint: false,
-    sprint: "",
-    setSource: false,
-    source: "",
-    setDueDate: false,
-    dueDate: "",
-    setTags: false,
-    tags: "",
-  });
 
   const openBatchEdit = useCallback(() => {
-    setBatchEditData({
-      setPriority: false,
-      priority: "",
-      setProject: false,
-      project: "",
-      setAssignee: false,
-      assignee: "",
-      setSprint: false,
-      sprint: "",
-      setSource: false,
-      source: "",
-      setDueDate: false,
-      dueDate: "",
-      setTags: false,
-      tags: "",
-    });
     setIsBatchEditOpen(true);
   }, []);
 
-  const applyBatchEdit = useCallback(() => {
-    const selectedTodos = todos.filter((t) => selectedTodoIds.has(t.id));
+  const applyBatchEdit = useCallback(
+    (batchEditData: BatchEditData) => {
+      const selectedTodos = todos.filter((t) => selectedTodoIds.has(t.id));
 
-    selectedTodos.forEach((todo) => {
-      const newMetadata = { ...todo.metadata };
+      selectedTodos.forEach((todo) => {
+        const newMetadata = { ...todo.metadata };
 
-      if (batchEditData.setPriority) {
-        newMetadata.priority = batchEditData.priority || undefined;
-      }
-      if (batchEditData.setProject) {
-        if (batchEditData.project) {
-          // Add project if not already present
-          if (!newMetadata.projects.includes(batchEditData.project)) {
-            newMetadata.projects = [...newMetadata.projects, batchEditData.project];
-          }
-        } else {
-          // Clear projects if empty
-          newMetadata.projects = [];
+        if (batchEditData.setPriority) {
+          newMetadata.priority = batchEditData.priority || undefined;
         }
-      }
-      if (batchEditData.setAssignee) {
-        if (batchEditData.assignee) {
-          // Add assignee if not already present
-          if (!newMetadata.assignedPeople.includes(batchEditData.assignee)) {
-            newMetadata.assignedPeople = [...newMetadata.assignedPeople, batchEditData.assignee];
-          }
-        } else {
-          // Clear assignees if empty
-          newMetadata.assignedPeople = [];
-        }
-      }
-      if (batchEditData.setSprint) {
-        // Set or clear sprint
-        newMetadata.sprint = batchEditData.sprint || undefined;
-      }
-      if (batchEditData.setSource) {
-        if (batchEditData.source) {
-          // Add source if not already present
-          if (!newMetadata.sourcePeople.includes(batchEditData.source)) {
-            newMetadata.sourcePeople = [...newMetadata.sourcePeople, batchEditData.source];
-          }
-        } else {
-          // Clear source people if empty
-          newMetadata.sourcePeople = [];
-        }
-      }
-      if (batchEditData.setDueDate) {
-        newMetadata.dueDate = batchEditData.dueDate || undefined;
-      }
-      if (batchEditData.setTags) {
-        if (batchEditData.tags) {
-          // Add tags (split by comma)
-          const newTags = batchEditData.tags
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean);
-          newTags.forEach((tag) => {
-            if (!(newMetadata.tags ?? []).includes(tag)) {
-              newMetadata.tags = [...(newMetadata.tags ?? []), tag];
+        if (batchEditData.setProject) {
+          if (batchEditData.project) {
+            if (!newMetadata.projects.includes(batchEditData.project)) {
+              newMetadata.projects = [...newMetadata.projects, batchEditData.project];
             }
-          });
-        } else {
-          // Clear tags if empty
-          newMetadata.tags = [];
+          } else {
+            newMetadata.projects = [];
+          }
         }
-      }
+        if (batchEditData.setAssignee) {
+          if (batchEditData.assignee) {
+            if (!newMetadata.assignedPeople.includes(batchEditData.assignee)) {
+              newMetadata.assignedPeople = [...newMetadata.assignedPeople, batchEditData.assignee];
+            }
+          } else {
+            newMetadata.assignedPeople = [];
+          }
+        }
+        if (batchEditData.setSprint) {
+          newMetadata.sprint = batchEditData.sprint || undefined;
+        }
+        if (batchEditData.setSource) {
+          if (batchEditData.source) {
+            if (!newMetadata.sourcePeople.includes(batchEditData.source)) {
+              newMetadata.sourcePeople = [...newMetadata.sourcePeople, batchEditData.source];
+            }
+          } else {
+            newMetadata.sourcePeople = [];
+          }
+        }
+        if (batchEditData.setDueDate) {
+          newMetadata.dueDate = batchEditData.dueDate || undefined;
+        }
+        if (batchEditData.setTags) {
+          if (batchEditData.tags) {
+            const newTags = batchEditData.tags
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean);
+            newTags.forEach((tag) => {
+              if (!(newMetadata.tags ?? []).includes(tag)) {
+                newMetadata.tags = [...(newMetadata.tags ?? []), tag];
+              }
+            });
+          } else {
+            newMetadata.tags = [];
+          }
+        }
 
-      editTodo(todo.id, todo.text, todo.plainText, newMetadata);
-    });
+        editTodo(todo.id, todo.text, todo.plainText, newMetadata);
+      });
 
-    setIsBatchEditOpen(false);
-    setSelectedTodoIds(new Set());
-  }, [todos, selectedTodoIds, batchEditData, editTodo]);
-
-  // Drag and drop handlers
-  const toggleDragMode = useCallback(() => {
-    setIsDragMode((prev) => !prev);
-    setDraggedTodoId(null);
-    setDragOverTodoId(null);
-  }, []);
-
-  const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
-    setDraggedTodoId(id);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", id);
-  }, []);
-
-  const handleDragEnd = useCallback(() => {
-    setDraggedTodoId(null);
-    setDragOverTodoId(null);
-  }, []);
-
-  const handleDragOver = useCallback(
-    (e: React.DragEvent, id: string) => {
-      e.preventDefault();
-      if (draggedTodoId && draggedTodoId !== id) {
-        setDragOverTodoId(id);
-      }
+      setIsBatchEditOpen(false);
+      setSelectedTodoIds(new Set());
     },
-    [draggedTodoId],
-  );
-
-  const handleDragLeave = useCallback(() => {
-    setDragOverTodoId(null);
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent, targetId: string) => {
-      e.preventDefault();
-      const sourceId = draggedTodoId;
-
-      if (!sourceId || sourceId === targetId) {
-        setDraggedTodoId(null);
-        setDragOverTodoId(null);
-        return;
-      }
-
-      // Get current active todos in order (filtered by active state)
-      const activeTodosList = todos.filter((t) => t.isActive);
-      const activeTodoIds = activeTodosList.map((t) => t.id);
-
-      // Find positions
-      const sourceIndex = activeTodoIds.indexOf(sourceId);
-      const targetIndex = activeTodoIds.indexOf(targetId);
-
-      if (sourceIndex === -1 || targetIndex === -1) {
-        setDraggedTodoId(null);
-        setDragOverTodoId(null);
-        return;
-      }
-
-      // Create new order by moving source to target position
-      const newOrder = [...activeTodoIds];
-      newOrder.splice(sourceIndex, 1);
-      newOrder.splice(targetIndex, 0, sourceId);
-
-      // Apply new order
-      reorderTodos(newOrder);
-
-      setDraggedTodoId(null);
-      setDragOverTodoId(null);
-    },
-    [draggedTodoId, todos, reorderTodos],
+    [todos, selectedTodoIds, editTodo],
   );
 
   // Expanded todo detail state
@@ -982,321 +738,6 @@ export function TodoApp() {
     message: string;
     onConfirm: () => void;
   } | null>(null);
-
-  // View presets state
-  const [isSavePresetOpen, setIsSavePresetOpen] = useState(false);
-  const [presetName, setPresetName] = useState("");
-  const [activePreset, setActivePreset] = useState<string>("custom");
-
-  // Sorting and grouping types
-  type SortField =
-    | "manual"
-    | "dueDate"
-    | "duration"
-    | "assigned"
-    | "source"
-    | "mentioned"
-    | "project"
-    | "priority"
-    | "timeSpent"
-    | "created"
-    | "title";
-  type SortDirection = "asc" | "desc";
-  type GroupBy = "none" | "dueDate" | "priority" | "project" | "category" | "assigned" | "sprint";
-
-  interface ViewPreset {
-    name: string;
-    filters: {
-      searchText: string;
-      assignedPeople: string[];
-      sourcePeople: string[];
-      mentionedPeople: string[];
-      projects: string[];
-      categories: string[];
-      priorities: string[];
-      dueDates: string[];
-      durations: string[];
-      tags: string[];
-      recurring: string[];
-      dependencies: string[];
-    };
-    sortField: SortField;
-    sortDirection: SortDirection;
-    groupBy: GroupBy;
-    quickFilter?: "all" | "today" | "overdue" | "thisWeek" | "noDueDate";
-    sections?: {
-      activeExpanded: boolean;
-      completedExpanded: boolean;
-      archivedExpanded: boolean;
-    };
-  }
-
-  // Load saved view presets
-  const [viewPresets, setViewPresets] = useState<ViewPreset[]>([]);
-  const [viewPresetsLoaded, setViewPresetsLoaded] = useState(false);
-
-  // Load view presets from storage on mount
-  useEffect(() => {
-    waitForStorageInit()
-      .then(() => {
-        return loadFromStorage<ViewPreset[]>(STORAGE_KEYS.VIEW_PRESETS, []);
-      })
-      .then((saved) => {
-        setViewPresets(saved);
-        setViewPresetsLoaded(true);
-      });
-  }, []);
-
-  // Save view presets to storage when they change (only after initial load)
-  useEffect(() => {
-    if (viewPresetsLoaded) {
-      saveToStorage(STORAGE_KEYS.VIEW_PRESETS, viewPresets);
-    }
-  }, [viewPresets, viewPresetsLoaded]);
-
-  // Load all view options from storage - initialized with defaults, loaded from storage in useEffect
-  const [filters, setFilters] = useState<TodoFilters>({
-    searchText: "",
-    assignedPeople: new Set(),
-    sourcePeople: new Set(),
-    mentionedPeople: new Set(),
-    projects: new Set(),
-    categories: new Set(),
-    priorities: new Set(),
-    dueDates: new Set(),
-    durations: new Set(),
-    tags: new Set(),
-    recurring: new Set(),
-    dependencies: new Set(),
-  });
-
-  const [showFilters, setShowFilters] = useState(false);
-
-  const [sortField, setSortField] = useState<SortField>("priority");
-
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-
-  const [groupBy, setGroupBy] = useState<GroupBy>("dueDate");
-
-  // Track if view options have been loaded from storage
-  const [viewOptionsLoaded, setViewOptionsLoaded] = useState(false);
-
-  // Load view options from storage on mount
-  useEffect(() => {
-    loadFromStorage<{
-      filters?: {
-        searchText?: string;
-        assignedPeople?: string[];
-        sourcePeople?: string[];
-        mentionedPeople?: string[];
-        projects?: string[];
-        categories?: string[];
-        priorities?: string[];
-        dueDates?: string[];
-        durations?: string[];
-        tags?: string[];
-        recurring?: string[];
-        dependencies?: string[];
-      };
-      sortField?: SortField;
-      sortDirection?: SortDirection;
-      groupBy?: GroupBy;
-      quickFilter?: QuickFilter;
-      sections?: {
-        activeExpanded?: boolean;
-        completedExpanded?: boolean;
-        archivedExpanded?: boolean;
-      };
-    }>(STORAGE_KEYS.VIEW_OPTIONS, {}).then((saved) => {
-      if (saved.filters) {
-        setFilters({
-          searchText: saved.filters.searchText || "",
-          assignedPeople: new Set(saved.filters.assignedPeople || []),
-          sourcePeople: new Set(saved.filters.sourcePeople || []),
-          mentionedPeople: new Set(saved.filters.mentionedPeople || []),
-          projects: new Set(saved.filters.projects || []),
-          categories: new Set(saved.filters.categories || []),
-          priorities: new Set(saved.filters.priorities || []),
-          dueDates: new Set(saved.filters.dueDates || []),
-          durations: new Set(saved.filters.durations || []),
-          tags: new Set(saved.filters.tags || []),
-          recurring: new Set(saved.filters.recurring || []),
-          dependencies: new Set(saved.filters.dependencies || []),
-        });
-      }
-      if (saved.sortField) setSortField(saved.sortField);
-      if (saved.sortDirection) setSortDirection(saved.sortDirection);
-      if (saved.groupBy) setGroupBy(saved.groupBy);
-      if (saved.quickFilter) setActiveQuickFilter(saved.quickFilter);
-      if (saved.sections) {
-        if (saved.sections.activeExpanded !== undefined) setActiveExpanded(saved.sections.activeExpanded);
-        if (saved.sections.completedExpanded !== undefined) setCompletedExpanded(saved.sections.completedExpanded);
-        if (saved.sections.archivedExpanded !== undefined) setArchivedExpanded(saved.sections.archivedExpanded);
-      }
-      setViewOptionsLoaded(true);
-    });
-  }, []);
-
-  // Save all view options to storage whenever any of them change (only after initial load)
-  useEffect(() => {
-    if (!viewOptionsLoaded) return;
-
-    const viewOptions = {
-      filters: {
-        searchText: filters.searchText,
-        assignedPeople: Array.from(filters.assignedPeople),
-        sourcePeople: Array.from(filters.sourcePeople),
-        mentionedPeople: Array.from(filters.mentionedPeople),
-        projects: Array.from(filters.projects),
-        categories: Array.from(filters.categories),
-        priorities: Array.from(filters.priorities),
-        dueDates: Array.from(filters.dueDates),
-        durations: Array.from(filters.durations),
-        tags: Array.from(filters.tags),
-        recurring: Array.from(filters.recurring),
-        dependencies: Array.from(filters.dependencies),
-      },
-      sortField,
-      sortDirection,
-      groupBy,
-      quickFilter: activeQuickFilter,
-      sections: {
-        activeExpanded,
-        completedExpanded,
-        archivedExpanded,
-      },
-    };
-    saveToStorage(STORAGE_KEYS.VIEW_OPTIONS, viewOptions);
-
-    // Check if current view matches any preset
-    const matchingPreset = viewPresets.find((preset) => {
-      return (
-        preset.filters.searchText === filters.searchText &&
-        arraysEqual(preset.filters.assignedPeople, Array.from(filters.assignedPeople)) &&
-        arraysEqual(preset.filters.sourcePeople, Array.from(filters.sourcePeople)) &&
-        arraysEqual(preset.filters.mentionedPeople, Array.from(filters.mentionedPeople)) &&
-        arraysEqual(preset.filters.projects, Array.from(filters.projects)) &&
-        arraysEqual(preset.filters.categories || [], Array.from(filters.categories)) &&
-        arraysEqual(preset.filters.priorities, Array.from(filters.priorities)) &&
-        arraysEqual(preset.filters.dueDates, Array.from(filters.dueDates)) &&
-        arraysEqual(preset.filters.durations, Array.from(filters.durations)) &&
-        arraysEqual(preset.filters.tags || [], Array.from(filters.tags)) &&
-        arraysEqual(preset.filters.recurring || [], Array.from(filters.recurring)) &&
-        arraysEqual(preset.filters.dependencies || [], Array.from(filters.dependencies)) &&
-        preset.sortField === sortField &&
-        preset.sortDirection === sortDirection &&
-        preset.groupBy === groupBy &&
-        (preset.quickFilter || "all") === activeQuickFilter &&
-        (preset.sections?.activeExpanded ?? true) === activeExpanded &&
-        (preset.sections?.completedExpanded ?? false) === completedExpanded &&
-        (preset.sections?.archivedExpanded ?? false) === archivedExpanded
-      );
-    });
-
-    setActivePreset(matchingPreset ? matchingPreset.name : "custom");
-  }, [
-    viewOptionsLoaded,
-    filters,
-    sortField,
-    sortDirection,
-    groupBy,
-    activeQuickFilter,
-    activeExpanded,
-    completedExpanded,
-    archivedExpanded,
-    viewPresets,
-  ]);
-
-  // Helper function to compare arrays
-  const arraysEqual = (a: string[], b: string[]) => {
-    if (a.length !== b.length) return false;
-    const sortedA = [...a].sort();
-    const sortedB = [...b].sort();
-    return sortedA.every((val, idx) => val === sortedB[idx]);
-  };
-
-  // Load a preset
-  const loadPreset = (preset: ViewPreset) => {
-    setFilters({
-      searchText: preset.filters.searchText,
-      assignedPeople: new Set(preset.filters.assignedPeople),
-      sourcePeople: new Set(preset.filters.sourcePeople),
-      mentionedPeople: new Set(preset.filters.mentionedPeople),
-      projects: new Set(preset.filters.projects),
-      categories: new Set(preset.filters.categories || []),
-      priorities: new Set(preset.filters.priorities),
-      dueDates: new Set(preset.filters.dueDates),
-      durations: new Set(preset.filters.durations),
-      tags: new Set(preset.filters.tags || []),
-      recurring: new Set(preset.filters.recurring || []),
-      dependencies: new Set(preset.filters.dependencies || []),
-    });
-    setSortField(preset.sortField);
-    setSortDirection(preset.sortDirection);
-    setGroupBy(preset.groupBy);
-    // Load quick filter (default to "all" for backward compatibility)
-    setActiveQuickFilter(preset.quickFilter || "all");
-    // Load section states (default to true for backward compatibility)
-    if (preset.sections) {
-      setActiveExpanded(preset.sections.activeExpanded);
-      setCompletedExpanded(preset.sections.completedExpanded);
-      setArchivedExpanded(preset.sections.archivedExpanded);
-    }
-    setActivePreset(preset.name);
-  };
-
-  // Save current view as a preset
-  const savePreset = (name: string) => {
-    const newPreset: ViewPreset = {
-      name,
-      filters: {
-        searchText: filters.searchText,
-        assignedPeople: Array.from(filters.assignedPeople),
-        sourcePeople: Array.from(filters.sourcePeople),
-        mentionedPeople: Array.from(filters.mentionedPeople),
-        projects: Array.from(filters.projects),
-        categories: Array.from(filters.categories),
-        priorities: Array.from(filters.priorities),
-        dueDates: Array.from(filters.dueDates),
-        durations: Array.from(filters.durations),
-        tags: Array.from(filters.tags),
-        recurring: Array.from(filters.recurring),
-        dependencies: Array.from(filters.dependencies),
-      },
-      sortField,
-      sortDirection,
-      groupBy,
-      quickFilter: activeQuickFilter,
-      sections: {
-        activeExpanded,
-        completedExpanded,
-        archivedExpanded,
-      },
-    };
-
-    // Replace if exists, otherwise add
-    setViewPresets((prev) => {
-      const existing = prev.findIndex((p) => p.name === name);
-      if (existing >= 0) {
-        const updated = [...prev];
-        updated[existing] = newPreset;
-        return updated;
-      }
-      return [...prev, newPreset];
-    });
-
-    setActivePreset(name);
-    setIsSavePresetOpen(false);
-    setPresetName("");
-  };
-
-  // Delete a preset
-  const deletePreset = (name: string) => {
-    setViewPresets((prev) => prev.filter((p) => p.name !== name));
-    if (activePreset === name) {
-      setActivePreset("custom");
-    }
-  };
 
   // Auto-focus the input when the overlay opens
   useEffect(() => {
@@ -1539,113 +980,6 @@ export function TodoApp() {
     setActiveTemplateId(null);
   };
 
-  const markers = {
-    assigned: "@",
-    source: "$",
-    mentioned: "", // Auto-detected, no marker
-    project: "#",
-    priority: "!!",
-    dueDate: "~",
-    duration: "*",
-    recurring: "%",
-    dependency: ">",
-  };
-
-  // Extract unique values from all todos for filter options
-  // Use TodoModel getters for display values
-  const filterOptions = useMemo(() => {
-    const assignedPeople = new Set<string>();
-    const sourcePeople = new Set<string>();
-    const mentionedPeople = new Set<string>();
-    const projectNames = new Set<string>();
-    const priorities = new Set<string>();
-    const dueDates = new Set<string>();
-    const durations = new Set<string>();
-    const tags = new Set<string>();
-    const recurring = new Set<string>();
-    const dependencies = new Set<string>();
-
-    const usedCategoryIds = new Set<string>();
-
-    todos.forEach((todo) => {
-      todo.assignedPeople.forEach((p) => assignedPeople.add(p));
-      todo.sourcePeople.forEach((p) => sourcePeople.add(p));
-      todo.mentionedPeople.forEach((p) => mentionedPeople.add(p));
-      todo.projects.forEach((projectName) => {
-        projectNames.add(projectName);
-        // Find the project and add its category if it has one
-        const project = projects.find((p) => p.matchesAnyName([projectName]));
-        if (project?.category) {
-          usedCategoryIds.add(project.category);
-        }
-      });
-      if (todo.priority) priorities.add(todo.priority);
-      if (todo.dueDateDisplay) dueDates.add(todo.dueDateDisplay);
-      if (todo.durationDisplay) durations.add(todo.durationDisplay);
-      todo.tags.forEach((t) => tags.add(t));
-      if (todo.recurring) recurring.add(todo.recurring);
-      todo.dependencies.forEach((d) => dependencies.add(d));
-    });
-
-    // Categories: only show categories that are actually used by projects in todos
-    const categoriesInUse = Array.from(usedCategoryIds);
-
-    return {
-      assignedPeople: setToSortedArray(assignedPeople),
-      sourcePeople: setToSortedArray(sourcePeople),
-      mentionedPeople: setToSortedArray(mentionedPeople),
-      projects: setToSortedArray(projectNames),
-      categories: categoriesInUse,
-      priorities: setToSortedArray(priorities),
-      dueDates: setToSortedArray(dueDates),
-      durations: setToSortedArray(durations),
-      tags: setToSortedArray(tags),
-      recurring: setToSortedArray(recurring),
-      dependencies: setToSortedArray(dependencies),
-    };
-  }, [todos, projects, settings.categories]);
-
-  // Filter handler functions
-  const handleFilterClick = (type: keyof Omit<TodoFilters, "searchText">, value: string) => {
-    setFilters((prev) => {
-      const newSet = new Set(prev[type]);
-      if (newSet.has(value)) {
-        newSet.delete(value);
-      } else {
-        newSet.add(value);
-      }
-      return { ...prev, [type]: newSet };
-    });
-    if (!showFilters) setShowFilters(true);
-  };
-
-  const handleSelectAll = (type: keyof Omit<TodoFilters, "searchText">) => {
-    const allValues = filterOptions[type];
-    setFilters((prev) => ({ ...prev, [type]: new Set(allValues) }));
-  };
-
-  const handleClearAll = (type: keyof Omit<TodoFilters, "searchText">) => {
-    setFilters((prev) => ({ ...prev, [type]: new Set() }));
-  };
-
-  const handleClearAllFilters = () => {
-    setFilters({
-      searchText: "",
-      assignedPeople: new Set(),
-      sourcePeople: new Set(),
-      mentionedPeople: new Set(),
-      projects: new Set(),
-      categories: new Set(),
-      priorities: new Set(),
-      dueDates: new Set(),
-      durations: new Set(),
-      tags: new Set(),
-      recurring: new Set(),
-      dependencies: new Set(),
-    });
-    setActiveQuickFilter("all");
-  };
-
   // Helper function to get button color class for filter sections
   // Uses actual marker colors from settings
   const getFilterButtonColor = (type: keyof Omit<TodoFilters, "searchText">, value: string, isSelected: boolean) => {
@@ -1689,466 +1023,6 @@ export function TodoApp() {
     };
   };
 
-  const hasActiveFilters =
-    filters.searchText ||
-    filters.assignedPeople.size > 0 ||
-    filters.sourcePeople.size > 0 ||
-    filters.mentionedPeople.size > 0 ||
-    filters.projects.size > 0 ||
-    filters.categories.size > 0 ||
-    filters.priorities.size > 0 ||
-    filters.dueDates.size > 0 ||
-    filters.durations.size > 0 ||
-    filters.tags.size > 0 ||
-    filters.recurring.size > 0 ||
-    filters.dependencies.size > 0 ||
-    activeQuickFilter !== "all";
-
-  // Apply filters to todos
-  const applyFilters = (todoList: typeof todos) => {
-    return todoList.filter((todo) => {
-      // Quick filter (only for active todos) - use TodoModel properties
-      if (activeQuickFilter !== "all" && todo.isActive) {
-        switch (activeQuickFilter) {
-          case "today":
-            if (!todo.isDueToday) return false;
-            break;
-          case "overdue":
-            if (!todo.isOverdue) return false;
-            break;
-          case "thisWeek":
-            if (!todo.isDueThisWeek) return false;
-            break;
-          case "noDueDate":
-            if (todo.hasDueDate) return false;
-            break;
-        }
-      }
-
-      // Text search using TodoModel method
-      if (filters.searchText && !todo.matchesSearch(filters.searchText)) {
-        return false;
-      }
-
-      // Metadata filters (OR logic within each category)
-      // Use TodoModel getters which already provide the display values
-      if (filters.assignedPeople.size > 0) {
-        if (!arrayHasAnyFromSet(todo.assignedPeople, filters.assignedPeople)) {
-          return false;
-        }
-      }
-
-      if (filters.sourcePeople.size > 0) {
-        if (!arrayHasAnyFromSet(todo.sourcePeople, filters.sourcePeople)) {
-          return false;
-        }
-      }
-
-      if (filters.mentionedPeople.size > 0) {
-        if (!arrayHasAnyFromSet(todo.mentionedPeople, filters.mentionedPeople)) {
-          return false;
-        }
-      }
-
-      if (filters.projects.size > 0) {
-        if (!arrayHasAnyFromSet(todo.projects, filters.projects)) {
-          return false;
-        }
-      }
-
-      // Category filter - check if any of the todo's projects belong to selected categories
-      if (filters.categories.size > 0) {
-        const todoCategories = todo.projects
-          .map((projectName) => {
-            const project = projects.find((p) => p.matchesAnyName([projectName]));
-            return project?.category;
-          })
-          .filter((c): c is NonNullable<typeof c> => !!c);
-
-        if (!arrayHasAnyFromSet(todoCategories, filters.categories)) {
-          return false;
-        }
-      }
-
-      if (filters.priorities.size > 0) {
-        if (!setHasValue(filters.priorities, todo.priority)) {
-          return false;
-        }
-      }
-
-      if (filters.dueDates.size > 0) {
-        if (!setHasValue(filters.dueDates, todo.dueDateDisplay)) {
-          return false;
-        }
-      }
-
-      if (filters.durations.size > 0) {
-        if (!setHasValue(filters.durations, todo.durationDisplay)) {
-          return false;
-        }
-      }
-
-      if (filters.tags.size > 0) {
-        if (!arrayHasAnyFromSet(todo.tags, filters.tags)) {
-          return false;
-        }
-      }
-
-      if (filters.recurring.size > 0) {
-        if (!setHasValue(filters.recurring, todo.recurring)) {
-          return false;
-        }
-      }
-
-      if (filters.dependencies.size > 0) {
-        if (!arrayHasAnyFromSet(todo.dependencies, filters.dependencies)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  };
-
-  // Sort todos by the selected field and direction
-  const sortTodos = (todoList: typeof todos) => {
-    return [...todoList].sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortField) {
-        case "manual":
-          // Sort by manual sortOrder (lower = higher priority)
-          const aManualOrder = a.sortOrder ?? Number.MAX_SAFE_INTEGER;
-          const bManualOrder = b.sortOrder ?? Number.MAX_SAFE_INTEGER;
-          comparison = aManualOrder - bManualOrder;
-          break;
-
-        case "dueDate":
-          // Use actual timestamps for proper date sorting
-          const aTimestamp = a.dueDate ?? 0;
-          const bTimestamp = b.dueDate ?? 0;
-          comparison = aTimestamp - bTimestamp;
-          // Put empty dates at the end
-          if (aTimestamp === 0 && bTimestamp !== 0) return 1;
-          if (aTimestamp !== 0 && bTimestamp === 0) return -1;
-          break;
-
-        case "duration":
-          // Use numeric minutes for proper duration sorting
-          const aDuration = a.durationMinutes ?? 0;
-          const bDuration = b.durationMinutes ?? 0;
-          comparison = aDuration - bDuration;
-          if (aDuration === 0 && bDuration !== 0) return 1;
-          if (aDuration !== 0 && bDuration === 0) return -1;
-          break;
-
-        case "assigned":
-          const aAssigned = a.assignedPeople[0] || "";
-          const bAssigned = b.assignedPeople[0] || "";
-          comparison = aAssigned.localeCompare(bAssigned);
-          break;
-
-        case "source":
-          const aSource = a.sourcePeople[0] || "";
-          const bSource = b.sourcePeople[0] || "";
-          comparison = aSource.localeCompare(bSource);
-          break;
-
-        case "mentioned":
-          const aMentioned = a.mentionedPeople[0] || "";
-          const bMentioned = b.mentionedPeople[0] || "";
-          comparison = aMentioned.localeCompare(bMentioned);
-          break;
-
-        case "project":
-          const aProject = a.projects[0] || "";
-          const bProject = b.projects[0] || "";
-          comparison = aProject.localeCompare(bProject);
-          break;
-
-        case "priority":
-          // Use TodoModel.priorityOrder for sorting (lower = higher priority)
-          const aOrder = a.priorityOrder ?? 999;
-          const bOrder = b.priorityOrder ?? 999;
-          comparison = aOrder - bOrder;
-          break;
-
-        case "timeSpent":
-          const aTimeSpent = a.totalTrackedMinutes;
-          const bTimeSpent = b.totalTrackedMinutes;
-          comparison = aTimeSpent - bTimeSpent;
-          // Put items with no time at the end
-          if (aTimeSpent === 0 && bTimeSpent > 0) return 1;
-          if (aTimeSpent > 0 && bTimeSpent === 0) return -1;
-          break;
-
-        case "title":
-          const aTitle = a.plainText.toLowerCase();
-          const bTitle = b.plainText.toLowerCase();
-          comparison = aTitle.localeCompare(bTitle);
-          break;
-
-        case "created":
-        default:
-          comparison = b.createdAt - a.createdAt; // Newest first by default
-          break;
-      }
-
-      return sortDirection === "asc" ? comparison : -comparison;
-    });
-  };
-
-  // Group todos by the selected grouping
-  const groupTodos = (todoList: typeof todos): Record<string, typeof todos> => {
-    if (groupBy === "none") {
-      return { "": todoList };
-    }
-
-    if (groupBy === "dueDate") {
-      const grouped: Record<string, typeof todos> = {};
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayMs = today.getTime();
-      const oneDayMs = 24 * 60 * 60 * 1000;
-
-      todoList.forEach((todo) => {
-        let groupKey = "No Due Date";
-
-        // Use TodoModel.dueDateObject instead of parsing metadata string
-        const dueDate = todo.dueDateObject;
-        if (dueDate) {
-          const dueDateNormalized = new Date(dueDate);
-          dueDateNormalized.setHours(0, 0, 0, 0);
-          const dueDateMs = dueDateNormalized.getTime();
-
-          if (dueDateMs < todayMs) {
-            groupKey = "Overdue";
-          } else if (dueDateMs === todayMs) {
-            groupKey = "Today";
-          } else if (dueDateMs === todayMs + oneDayMs) {
-            groupKey = "Tomorrow";
-          } else if (dueDateMs <= todayMs + 7 * oneDayMs) {
-            groupKey = "This Week";
-          } else if (dueDateMs <= todayMs + 30 * oneDayMs) {
-            groupKey = "This Month";
-          } else {
-            groupKey = "Later";
-          }
-        }
-
-        if (!grouped[groupKey]) {
-          grouped[groupKey] = [];
-        }
-        grouped[groupKey].push(todo);
-      });
-
-      // Sort groups by priority
-      const groupOrder = [
-        "Overdue",
-        "Today",
-        "Tomorrow",
-        "This Week",
-        "This Month",
-        "Later",
-        "No Due Date",
-        "Invalid Date",
-      ];
-      const sortedGroups: Record<string, typeof todos> = {};
-      groupOrder.forEach((key) => {
-        if (grouped[key]) {
-          sortedGroups[key] = grouped[key];
-        }
-      });
-
-      return sortedGroups;
-    }
-
-    if (groupBy === "priority") {
-      const grouped: Record<string, typeof todos> = {};
-
-      todoList.forEach((todo) => {
-        const groupKey = todo.priority || "No Priority";
-        if (!grouped[groupKey]) {
-          grouped[groupKey] = [];
-        }
-        grouped[groupKey].push(todo);
-      });
-
-      // Sort groups by priority order
-      const priorityOrder: Record<string, number> = {};
-      settings.priorities.forEach((p) => {
-        priorityOrder[p.name.toLowerCase()] = p.order;
-        p.alternatives.forEach((alt) => {
-          priorityOrder[alt.toLowerCase()] = p.order;
-        });
-      });
-
-      const sortedKeys = Object.keys(grouped).sort((a, b) => {
-        if (a === "No Priority") return 1;
-        if (b === "No Priority") return -1;
-        const aOrder = priorityOrder[a.toLowerCase()] ?? 999;
-        const bOrder = priorityOrder[b.toLowerCase()] ?? 999;
-        return aOrder - bOrder;
-      });
-
-      const sortedGroups: Record<string, typeof todos> = {};
-      sortedKeys.forEach((key) => {
-        sortedGroups[key] = grouped[key];
-      });
-
-      return sortedGroups;
-    }
-
-    if (groupBy === "project") {
-      const grouped: Record<string, typeof todos> = {};
-
-      todoList.forEach((todo) => {
-        const projectName = todo.projects[0] || "No Project";
-        if (!grouped[projectName]) {
-          grouped[projectName] = [];
-        }
-        grouped[projectName].push(todo);
-      });
-
-      // Sort groups alphabetically, with "No Project" at the end
-      const sortedKeys = Object.keys(grouped).sort((a, b) => {
-        if (a === "No Project") return 1;
-        if (b === "No Project") return -1;
-        return a.localeCompare(b);
-      });
-
-      const sortedGroups: Record<string, typeof todos> = {};
-      sortedKeys.forEach((key) => {
-        sortedGroups[key] = grouped[key];
-      });
-
-      return sortedGroups;
-    }
-
-    if (groupBy === "category") {
-      const grouped: Record<string, typeof todos> = {};
-
-      todoList.forEach((todo) => {
-        // Find category from first project
-        let categoryName = "No Category";
-        if (todo.projects.length > 0) {
-          const projectName = todo.projects[0];
-          const project = projects.find((p) => p.matchesAnyName([projectName]));
-          if (project?.category) {
-            const category = settings.categories.find((c) => c.id === project.category);
-            categoryName = category?.name || "No Category";
-          }
-        }
-
-        if (!grouped[categoryName]) {
-          grouped[categoryName] = [];
-        }
-        grouped[categoryName].push(todo);
-      });
-
-      // Sort groups alphabetically, with "No Category" at the end
-      const sortedKeys = Object.keys(grouped).sort((a, b) => {
-        if (a === "No Category") return 1;
-        if (b === "No Category") return -1;
-        return a.localeCompare(b);
-      });
-
-      const sortedGroups: Record<string, typeof todos> = {};
-      sortedKeys.forEach((key) => {
-        sortedGroups[key] = grouped[key];
-      });
-
-      return sortedGroups;
-    }
-
-    if (groupBy === "assigned") {
-      const grouped: Record<string, typeof todos> = {};
-
-      todoList.forEach((todo) => {
-        const assignedName = todo.assignedPeople[0] || "Unassigned";
-        if (!grouped[assignedName]) {
-          grouped[assignedName] = [];
-        }
-        grouped[assignedName].push(todo);
-      });
-
-      // Sort groups alphabetically, with "Unassigned" at the end
-      const sortedKeys = Object.keys(grouped).sort((a, b) => {
-        if (a === "Unassigned") return 1;
-        if (b === "Unassigned") return -1;
-        return a.localeCompare(b);
-      });
-
-      const sortedGroups: Record<string, typeof todos> = {};
-      sortedKeys.forEach((key) => {
-        sortedGroups[key] = grouped[key];
-      });
-
-      return sortedGroups;
-    }
-
-    if (groupBy === "sprint") {
-      const grouped: Record<string, typeof todos> = {};
-
-      todoList.forEach((todo) => {
-        let groupKey = "Backlog";
-        if (todo.sprint) {
-          const sprint = sprints.find((s) => s.id === todo.sprint);
-          groupKey = sprint?.name || "Unknown Sprint";
-        }
-        if (!grouped[groupKey]) {
-          grouped[groupKey] = [];
-        }
-        grouped[groupKey].push(todo);
-      });
-
-      // Sort groups: Active sprint first, then by start date, then "Backlog" at end
-      const sortedKeys = Object.keys(grouped).sort((a, b) => {
-        if (a === "Backlog") return 1;
-        if (b === "Backlog") return -1;
-        if (a === "Unknown Sprint") return 1;
-        if (b === "Unknown Sprint") return -1;
-
-        const sprintA = sprints.find((s) => s.name === a);
-        const sprintB = sprints.find((s) => s.name === b);
-
-        // Active sprint first
-        if (sprintA?.status === "active" && sprintB?.status !== "active") return -1;
-        if (sprintB?.status === "active" && sprintA?.status !== "active") return 1;
-
-        // Then by planned start date (most recent first)
-        const dateA = sprintA?.plannedStartDate ? new Date(sprintA.plannedStartDate).getTime() : 0;
-        const dateB = sprintB?.plannedStartDate ? new Date(sprintB.plannedStartDate).getTime() : 0;
-        return dateB - dateA;
-      });
-
-      const sortedGroups: Record<string, typeof todos> = {};
-      sortedKeys.forEach((key) => {
-        sortedGroups[key] = grouped[key];
-      });
-
-      return sortedGroups;
-    }
-
-    return { "": todoList };
-  };
-
-  // Sort todos by priority (legacy - now part of sortTodos)
-  // Uses TodoModel.priorityOrder for proper sorting
-  const sortByPriority = (todoList: typeof todos) => {
-    return [...todoList].sort((a, b) => {
-      const aOrder = a.priorityOrder ?? 999;
-      const bOrder = b.priorityOrder ?? 999;
-
-      if (aOrder !== bOrder) {
-        return aOrder - bOrder;
-      }
-
-      // If same priority or no priority, sort by creation date (newest first)
-      return b.createdAt - a.createdAt;
-    });
-  };
-
   // Calculate archive threshold
   const archiveThresholdMs = settings.general.archiveDays * 24 * 60 * 60 * 1000;
   const now = Date.now();
@@ -2175,7 +1049,6 @@ export function TodoApp() {
       const date = new Date().toISOString().split("T")[0];
       const filename = `todos-${date}`;
       exportTodos(todosToExport, format, filename);
-      setIsExportMenuOpen(false);
     },
     [hasActiveFilters, activeTodos, completedTodos, archivedTodos, todos],
   );
@@ -2186,37 +1059,6 @@ export function TodoApp() {
   // Individual views handle their own internal overflow/scrolling needs
   // Use full width with consistent padding - let individual views manage their content width
   const containerClass = "w-full px-2 sm:px-4 lg:px-6 xl:px-8";
-
-  // Tutorial button component for views - uses graduation cap icon to differentiate from info tooltips
-  // Uses span with role="button" to avoid nested button HTML error when placed inside tab buttons
-  const ViewTutorialButton = ({ view, className = "" }: { view: string; className?: string }) => (
-    <span
-      role="button"
-      tabIndex={0}
-      onClick={(e) => {
-        e.stopPropagation();
-        setViewTutorialOpen(view);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          e.stopPropagation();
-          setViewTutorialOpen(view);
-        }
-      }}
-      className={`p-0.5 rounded text-blue-400 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors cursor-pointer ${className}`}
-      title={`Learn about this view`}
-    >
-      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
-        />
-      </svg>
-    </span>
-  );
 
   if (!isLoaded) {
     return (
@@ -2291,746 +1133,48 @@ export function TodoApp() {
         </header>
 
         {/* View Tabs */}
-        <div className="mb-6 overflow-x-auto -mx-2 sm:-mx-0 px-2 sm:px-0" data-tutorial="view-tabs">
-          <div className="flex gap-1 sm:gap-2 border-b border-zinc-200 dark:border-zinc-800 min-w-max">
-            <button
-              data-testid="view-tab-list"
-              onClick={() => setActiveView("list")}
-              className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
-                activeView === "list"
-                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-              }`}
-              title="List view"
-            >
-              <div className="flex items-center gap-1 lg:gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-                <span className="hidden lg:inline">List</span>
-                {activeView === "list" && <ViewTutorialButton view="list" />}
-              </div>
-            </button>
-            {features?.kanbanView && (
-              <button
-                data-testid="view-tab-kanban"
-                onClick={() => setActiveView("kanban")}
-                className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
-                  activeView === "kanban"
-                    ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-                }`}
-                title="Kanban view"
-              >
-                <div className="flex items-center gap-1 lg:gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
-                    />
-                  </svg>
-                  <span className="hidden lg:inline">Kanban</span>
-                  {activeView === "kanban" && <ViewTutorialButton view="kanban" />}
-                </div>
-              </button>
-            )}
-            {features?.ganttView && (
-              <button
-                data-testid="view-tab-gantt"
-                onClick={() => setActiveView("gantt")}
-                className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
-                  activeView === "gantt"
-                    ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-                }`}
-                title="Gantt view"
-              >
-                <div className="flex items-center gap-1 lg:gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {/* Horizontal bars representing a Gantt chart timeline */}
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h10M4 12h16M4 18h12" />
-                  </svg>
-                  <span className="hidden lg:inline">Gantt</span>
-                  {activeView === "gantt" && <ViewTutorialButton view="gantt" />}
-                </div>
-              </button>
-            )}
-            {features?.calendarView && (
-              <button
-                data-testid="view-tab-calendar"
-                onClick={() => setActiveView("calendar")}
-                className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
-                  activeView === "calendar"
-                    ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-                }`}
-                title="Calendar view"
-              >
-                <div className="flex items-center gap-1 lg:gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <span className="hidden lg:inline">Calendar</span>
-                  {activeView === "calendar" && <ViewTutorialButton view="calendar" />}
-                </div>
-              </button>
-            )}
-            <button
-              data-testid="view-tab-people"
-              onClick={() => setActiveView("people")}
-              className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
-                activeView === "people"
-                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-              }`}
-              title="People view"
-            >
-              <div className="flex items-center gap-1 lg:gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-                <span className="hidden lg:inline">People</span>
-                {activeView === "people" && <ViewTutorialButton view="people" />}
-              </div>
-            </button>
-            <button
-              data-testid="view-tab-projects"
-              onClick={() => setActiveView("projects")}
-              className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
-                activeView === "projects"
-                  ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                  : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-              }`}
-              title="Projects view"
-            >
-              <div className="flex items-center gap-1 lg:gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                  />
-                </svg>
-                <span className="hidden lg:inline">Projects</span>
-                {activeView === "projects" && <ViewTutorialButton view="projects" />}
-              </div>
-            </button>
-            {features?.sprintsView && (
-              <button
-                onClick={() => setActiveView("sprints")}
-                className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
-                  activeView === "sprints"
-                    ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-                }`}
-                title="Sprints view"
-              >
-                <div className="flex items-center gap-1 lg:gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <span className="hidden lg:inline">Sprints</span>
-                  {activeView === "sprints" && <ViewTutorialButton view="sprints" />}
-                  {runningSprint && (
-                    <span className="hidden lg:inline w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  )}
-                </div>
-              </button>
-            )}
-            {features?.statsView && (
-              <button
-                onClick={() => setActiveView("stats")}
-                className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
-                  activeView === "stats"
-                    ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-                }`}
-                title="Stats view"
-              >
-                <div className="flex items-center gap-1 lg:gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                    />
-                  </svg>
-                  <span className="hidden lg:inline">Stats</span>
-                </div>
-              </button>
-            )}
-            {features?.timeTracking && (
-              <button
-                onClick={() => setActiveView("timereports")}
-                className={`px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
-                  activeView === "timereports"
-                    ? "text-blue-600 dark:text-blue-400 border-blue-600"
-                    : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
-                }`}
-                title="Time Reports view"
-              >
-                <div className="flex items-center gap-1 lg:gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span className="hidden lg:inline">Time</span>
-                </div>
-              </button>
-            )}
-          </div>
-        </div>
+        <ViewTabs
+          activeView={activeView}
+          onViewChange={setActiveView}
+          features={features}
+          runningSprint={runningSprint}
+          onOpenTutorial={setViewTutorialOpen}
+        />
 
         {/* Filter Section - Only show in List view */}
         {showFiltersSection && (
           <div className="mb-6 space-y-3">
-            {/* View Presets Row */}
-            {viewPresets.length > 0 && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Views:</span>
-                {viewPresets.map((preset) => (
-                  <button
-                    key={preset.name}
-                    onClick={() => loadPreset(preset)}
-                    className={`px-3 py-1.5 rounded-lg font-medium transition-colors text-sm ${
-                      activePreset === preset.name
-                        ? "bg-blue-600 text-white"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                    }`}
-                  >
-                    {preset.name}
-                  </button>
-                ))}
-                {activePreset === "custom" && hasActiveFilters && (
-                  <span className="px-3 py-1.5 rounded-lg font-medium text-sm bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
-                    Custom
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Top Row: Search + Show Filters Toggle + Group By + Sort By + Save */}
-            <div className="flex items-center gap-2 lg:gap-3">
-              {/* Search Input with History */}
-              <div
-                className="relative w-[140px] sm:w-[180px] lg:w-[250px] xl:w-[300px] flex-shrink-0"
-                data-tutorial="search-bar"
-              >
-                <input
-                  ref={searchInputRef}
-                  data-testid="search-input"
-                  type="text"
-                  placeholder="Search... (/)"
-                  value={filters.searchText}
-                  onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
-                  onFocus={() => {
-                    if (!filters.searchText && searchHistory.length > 0) {
-                      setShowSearchHistory(true);
-                    }
-                  }}
-                  onBlur={() => {
-                    // Delay hiding to allow click on history items
-                    setTimeout(() => setShowSearchHistory(false), 200);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && filters.searchText.trim()) {
-                      addToSearchHistory(filters.searchText.trim());
-                      setShowSearchHistory(false);
-                    } else if (e.key === "Escape") {
-                      setShowSearchHistory(false);
-                    }
-                  }}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-                {/* Search History Dropdown */}
-                <SearchHistoryDropdown
-                  history={searchHistory}
-                  onSelect={(query) => {
-                    setFilters((prev) => ({ ...prev, searchText: query }));
-                    addToSearchHistory(query);
-                    setShowSearchHistory(false);
-                  }}
-                  onRemove={removeFromSearchHistory}
-                  onClear={clearSearchHistory}
-                  isVisible={showSearchHistory && !filters.searchText}
-                />
-              </div>
-
-              {/* Show Filters Toggle */}
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`p-2 rounded-lg font-medium transition-colors flex items-center gap-1 whitespace-nowrap flex-shrink-0 ${
-                  showFilters || hasActiveFilters
-                    ? "bg-blue-600 text-white hover:bg-blue-700"
-                    : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
-                }`}
-                title={showFilters ? "Hide filters" : "Show filters"}
-                data-tutorial="filter-button"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                  />
-                </svg>
-                {hasActiveFilters && (
-                  <span className="px-1.5 py-0.5 text-xs bg-white/20 rounded-full">
-                    {Object.values(filters).filter((v) => v && (typeof v === "string" ? v : v.size > 0)).length}
-                  </span>
-                )}
-              </button>
-
-              {/* Group By - hidden on small screens, shown in More menu */}
-              <div className="hidden sm:flex items-center gap-2 flex-shrink-0" data-tutorial="group-sort">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap hidden lg:inline">
-                  Group:
-                </label>
-                <select
-                  value={groupBy}
-                  onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-                  className="px-2 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                  title="Group by"
-                >
-                  <option value="none">No Group</option>
-                  <option value="dueDate">Due Date</option>
-                  <option value="priority">Priority</option>
-                  <option value="project">Project</option>
-                  <option value="category">Category</option>
-                  <option value="assigned">Assigned</option>
-                  <option value="sprint">Sprint</option>
-                </select>
-              </div>
-
-              {/* Sort By - hidden on small screens, shown in More menu */}
-              <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap hidden lg:inline">
-                  Sort:
-                </label>
-                <select
-                  value={sortField}
-                  onChange={(e) => setSortField(e.target.value as SortField)}
-                  className="px-2 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                  title="Sort by"
-                >
-                  <option value="manual">Manual</option>
-                  <option value="created">Created</option>
-                  <option value="dueDate">Due Date</option>
-                  <option value="duration">Duration</option>
-                  <option value="priority">Priority</option>
-                  <option value="assigned">Assigned</option>
-                  <option value="source">Source</option>
-                  <option value="mentioned">Mentioned</option>
-                  <option value="project">Project</option>
-                  <option value="timeSpent">Time Spent</option>
-                  <option value="title">Title</option>
-                </select>
-                <button
-                  onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
-                  className={`px-2 py-2 rounded-lg font-mono text-sm transition-all ${
-                    sortDirection === "desc"
-                      ? "bg-amber-200 dark:bg-amber-700 text-amber-900 dark:text-amber-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
-                      : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-700"
-                  }`}
-                  title={sortDirection === "asc" ? "Ascending" : "Descending"}
-                >
-                  {sortDirection === "asc" ? "abc" : "cba"}
-                </button>
-              </div>
-
-              {/* Save View Button */}
-              <button
-                onClick={() => setIsSavePresetOpen(true)}
-                className="p-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors flex-shrink-0"
-                title="Save current view"
-                data-tutorial="save-preset"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-                  />
-                </svg>
-              </button>
-
-              {/* Vertical Separator - hidden on medium screens */}
-              <div className="hidden lg:block w-px h-6 bg-zinc-300 dark:bg-zinc-600 flex-shrink-0" />
-
-              {/* Templates Button - hidden on medium screens */}
-              {features?.templates && templates.length > 0 && (
-                <button
-                  onClick={() => setShowTemplatesManager(true)}
-                  className="hidden lg:flex p-2 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors flex-shrink-0"
-                  title="Templates"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
-                    />
-                  </svg>
-                </button>
-              )}
-
-              {/* Selection Mode Button - hidden on medium screens */}
-              {features?.batchProcessing && (
-                <button
-                  onClick={toggleSelectionMode}
-                  data-testid="selection-mode-button"
-                  className={`hidden lg:flex p-2 rounded-lg transition-colors flex-shrink-0 ${
-                    isSelectionMode
-                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                      : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                  }`}
-                  title={isSelectionMode ? "Exit Selection Mode" : "Selection Mode"}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                    />
-                  </svg>
-                </button>
-              )}
-
-              {/* Reorder Mode Button - hidden on medium screens */}
-              {features?.reordering && (
-                <button
-                  onClick={toggleDragMode}
-                  className={`hidden lg:flex p-2 rounded-lg transition-colors flex-shrink-0 ${
-                    isDragMode
-                      ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
-                      : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                  }`}
-                  title={isDragMode ? "Exit Reorder Mode" : "Reorder Mode"}
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm6-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
-                  </svg>
-                </button>
-              )}
-
-              {/* Export Dropdown - hidden on medium screens */}
-              {features?.exports && (
-                <div ref={exportMenuRef} className="hidden lg:block relative flex-shrink-0">
-                  <button
-                    onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                    className={`p-2 rounded-lg transition-colors ${
-                      isExportMenuOpen
-                        ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
-                        : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                    }`}
-                    title="Export"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                  </button>
-                  {isExportMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
-                      <button
-                        onClick={() => {
-                          handleExport("markdown");
-                          setIsExportMenuOpen(false);
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        Markdown (.md)
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleExport("csv");
-                          setIsExportMenuOpen(false);
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                          />
-                        </svg>
-                        CSV (.csv)
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleExport("json");
-                          setIsExportMenuOpen(false);
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-                          />
-                        </svg>
-                        JSON (.json)
-                      </button>
-                      <div className="px-4 py-1 text-xs text-zinc-400 dark:text-zinc-500 border-t border-zinc-200 dark:border-zinc-700 mt-1">
-                        {hasActiveFilters ? "Exports filtered todos" : "Exports all todos"}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* More Options Menu - shown when extra toolbar options are hidden */}
-              {todos.length > 0 && (
-                <div ref={moreMenuRef} className="lg:hidden relative flex-shrink-0">
-                  <button
-                    onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
-                    className={`p-2 rounded-lg transition-colors ${
-                      isMoreMenuOpen || isSelectionMode || isDragMode
-                        ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
-                        : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                    }`}
-                    title="More options"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                      />
-                    </svg>
-                  </button>
-
-                  {/* More Options Dropdown */}
-                  {isMoreMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
-                      {/* Group By - shown on small screens only */}
-                      <div className="sm:hidden px-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
-                        <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                          Group by
-                        </label>
-                        <select
-                          value={groupBy}
-                          onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-                          className="w-full px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="none">No Group</option>
-                          <option value="dueDate">Due Date</option>
-                          <option value="priority">Priority</option>
-                          <option value="project">Project</option>
-                          <option value="category">Category</option>
-                          <option value="assigned">Assigned</option>
-                          <option value="sprint">Sprint</option>
-                        </select>
-                      </div>
-
-                      {/* Sort By - shown on small screens only */}
-                      <div className="sm:hidden px-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
-                        <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                          Sort by
-                        </label>
-                        <div className="flex gap-1">
-                          <select
-                            value={sortField}
-                            onChange={(e) => setSortField(e.target.value as SortField)}
-                            className="flex-1 px-2 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="manual">Manual</option>
-                            <option value="created">Created</option>
-                            <option value="dueDate">Due Date</option>
-                            <option value="duration">Duration</option>
-                            <option value="priority">Priority</option>
-                            <option value="assigned">Assigned</option>
-                            <option value="source">Source</option>
-                            <option value="mentioned">Mentioned</option>
-                            <option value="project">Project</option>
-                            <option value="timeSpent">Time Spent</option>
-                            <option value="title">Title</option>
-                          </select>
-                          <button
-                            onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
-                            className={`px-2 py-1.5 rounded font-mono text-sm transition-all ${
-                              sortDirection === "desc"
-                                ? "bg-amber-200 dark:bg-amber-600 text-amber-900 dark:text-amber-100"
-                                : "bg-zinc-100 dark:bg-zinc-600 text-zinc-700 dark:text-zinc-300"
-                            }`}
-                            title={sortDirection === "asc" ? "Ascending" : "Descending"}
-                          >
-                            {sortDirection === "asc" ? "abc" : "cba"}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Templates - shown when toolbar button is hidden */}
-                      {features?.templates && templates.length > 0 && (
-                        <button
-                          onClick={() => {
-                            setShowTemplatesManager(true);
-                            setIsMoreMenuOpen(false);
-                          }}
-                          className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
-                            />
-                          </svg>
-                          Templates
-                        </button>
-                      )}
-
-                      {/* Selection Mode - shown when toolbar button is hidden */}
-                      {features?.batchProcessing && (
-                        <button
-                          onClick={() => {
-                            toggleSelectionMode();
-                            setIsMoreMenuOpen(false);
-                          }}
-                          className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 ${
-                            isSelectionMode
-                              ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                              : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                            />
-                          </svg>
-                          {isSelectionMode ? "Exit Selection Mode" : "Selection Mode"}
-                        </button>
-                      )}
-
-                      {/* Drag Reorder - shown when toolbar button is hidden */}
-                      {features?.reordering && (
-                        <button
-                          onClick={() => {
-                            toggleDragMode();
-                            setIsMoreMenuOpen(false);
-                          }}
-                          className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 ${
-                            isDragMode
-                              ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
-                              : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm6-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
-                          </svg>
-                          {isDragMode ? "Exit Reorder Mode" : "Reorder Mode"}
-                        </button>
-                      )}
-
-                      {/* Divider before export options */}
-                      {features?.exports && (
-                        <>
-                          <div className="border-t border-zinc-200 dark:border-zinc-700 my-1" />
-                          <div className="px-4 py-1 text-xs text-zinc-500 dark:text-zinc-400 font-medium">Export</div>
-                          <button
-                            onClick={() => {
-                              handleExport("markdown");
-                              setIsMoreMenuOpen(false);
-                            }}
-                            className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              />
-                            </svg>
-                            Markdown (.md)
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleExport("csv");
-                              setIsMoreMenuOpen(false);
-                            }}
-                            className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                              />
-                            </svg>
-                            CSV (.csv)
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleExport("json");
-                              setIsMoreMenuOpen(false);
-                            }}
-                            className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-                              />
-                            </svg>
-                            JSON (.json)
-                          </button>
-                          <div className="px-4 py-1 text-xs text-zinc-400 dark:text-zinc-500">
-                            {hasActiveFilters ? "Exports filtered todos" : "Exports all todos"}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <ListViewToolbar
+              filters={filters}
+              setFilters={setFilters}
+              showFilters={showFilters}
+              setShowFilters={setShowFilters}
+              hasActiveFilters={hasActiveFilters}
+              sortField={sortField}
+              setSortField={setSortField}
+              sortDirection={sortDirection}
+              setSortDirection={setSortDirection}
+              groupBy={groupBy}
+              setGroupBy={setGroupBy}
+              viewPresets={viewPresets}
+              activePreset={activePreset}
+              onLoadPreset={loadPreset}
+              onOpenSavePreset={() => setIsSavePresetOpen(true)}
+              searchHistory={searchHistory}
+              addToSearchHistory={addToSearchHistory}
+              removeFromSearchHistory={removeFromSearchHistory}
+              clearSearchHistory={clearSearchHistory}
+              features={features}
+              templates={templates}
+              todosCount={todos.length}
+              isSelectionMode={isSelectionMode}
+              toggleSelectionMode={toggleSelectionMode}
+              isDragMode={isDragMode}
+              toggleDragMode={toggleDragMode}
+              onShowTemplatesManager={() => setShowTemplatesManager(true)}
+              onExport={handleExport}
+              searchInputRef={searchInputRef}
+            />
 
             {showFilters && (
               <div
@@ -3665,99 +1809,15 @@ export function TodoApp() {
             />
 
             {/* Save Preset Modal */}
-            {isSavePresetOpen && (
-              <div
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-                onClick={() => setIsSavePresetOpen(false)}
-              >
-                <div
-                  className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                        <span>Save View Preset</span>
-                        <InfoTooltip content={tooltipContent.viewPresets} />
-                      </h2>
-                      <button
-                        onClick={() => setIsSavePresetOpen(false)}
-                        className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    {/* Input for new preset name */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        Preset Name
-                      </label>
-                      <input
-                        type="text"
-                        value={presetName}
-                        onChange={(e) => setPresetName(e.target.value)}
-                        placeholder="Enter preset name..."
-                        className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && presetName.trim()) {
-                            savePreset(presetName.trim());
-                          }
-                        }}
-                      />
-                    </div>
-
-                    <button
-                      onClick={() => presetName.trim() && savePreset(presetName.trim())}
-                      disabled={!presetName.trim()}
-                      className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors mb-4"
-                    >
-                      Save as New Preset
-                    </button>
-
-                    {/* Existing presets */}
-                    {viewPresets.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
-                          Or overwrite existing:
-                        </h3>
-                        <div className="space-y-3 max-h-60 overflow-y-auto">
-                          {viewPresets.map((preset) => (
-                            <div
-                              key={preset.name}
-                              className="group flex items-center justify-between p-4 bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 hover:shadow-md transition-all"
-                            >
-                              <button
-                                onClick={() => savePreset(preset.name)}
-                                className="flex-1 text-left font-medium text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                              >
-                                {preset.name}
-                              </button>
-                              <button
-                                onClick={() => deletePreset(preset.name)}
-                                className="ml-2 p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                                title="Delete preset"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
+            <SavePresetModal
+              isOpen={isSavePresetOpen}
+              onClose={() => setIsSavePresetOpen(false)}
+              presetName={presetName}
+              onPresetNameChange={setPresetName}
+              onSave={savePreset}
+              onDelete={deletePreset}
+              viewPresets={viewPresets}
+            />
 
             {/* Dependency Block Notification */}
             {dependencyBlockNotification && (
@@ -4433,238 +2493,16 @@ export function TodoApp() {
       </div>
 
       {/* Batch Edit Modal */}
-      {isBatchEditOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsBatchEditOpen(false)} />
-          <div className="relative bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md p-6 space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <span>
-                  Edit {selectedTodoIds.size} Task{selectedTodoIds.size === 1 ? "" : "s"}
-                </span>
-                <InfoTooltip content={tooltipContent.batchProcessing} />
-              </h2>
-              <button
-                onClick={() => setIsBatchEditOpen(false)}
-                className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Check the fields you want to update. Empty values will clear the field.
-            </p>
-
-            {/* Priority Field */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={batchEditData.setPriority}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setPriority: e.target.checked }))}
-                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Set Priority</span>
-              </label>
-              {batchEditData.setPriority && (
-                <select
-                  value={batchEditData.priority}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, priority: e.target.value }))}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">No Priority (Clear)</option>
-                  {sortedPriorities.map((p) => (
-                    <option key={p.name} value={p.name}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* Project Field */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={batchEditData.setProject}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setProject: e.target.checked }))}
-                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Add Project</span>
-              </label>
-              {batchEditData.setProject && (
-                <select
-                  value={batchEditData.project}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, project: e.target.value }))}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Clear All Projects</option>
-                  {sortedProjects.map((p) => (
-                    <option key={p.id} value={p.name}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* Assignee Field */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={batchEditData.setAssignee}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setAssignee: e.target.checked }))}
-                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Add Assignee</span>
-              </label>
-              {batchEditData.setAssignee && (
-                <select
-                  value={batchEditData.assignee}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, assignee: e.target.value }))}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Clear All Assignees</option>
-                  {sortedPeople.map((p) => (
-                    <option key={p.id} value={p.name}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* Sprint Field */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={batchEditData.setSprint}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setSprint: e.target.checked }))}
-                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Set Sprint</span>
-              </label>
-              {batchEditData.setSprint && (
-                <select
-                  value={batchEditData.sprint}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, sprint: e.target.value }))}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">No Sprint (Backlog)</option>
-                  {sprints
-                    .filter((s) => s.isActive && (s.status === "planning" || s.status === "active"))
-                    .map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} {s.status === "active" ? "🏃" : ""}
-                      </option>
-                    ))}
-                </select>
-              )}
-            </div>
-
-            {/* Source Field */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={batchEditData.setSource}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setSource: e.target.checked }))}
-                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Add Source</span>
-              </label>
-              {batchEditData.setSource && (
-                <select
-                  value={batchEditData.source}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, source: e.target.value }))}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Clear All Sources</option>
-                  {sortedPeople.map((p) => (
-                    <option key={p.id} value={p.name}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* Due Date Field */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={batchEditData.setDueDate}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setDueDate: e.target.checked }))}
-                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Set Due Date</span>
-              </label>
-              {batchEditData.setDueDate && (
-                <input
-                  type="date"
-                  value={batchEditData.dueDate}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, dueDate: e.target.value }))}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              )}
-            </div>
-
-            {/* Tags Field */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={batchEditData.setTags}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, setTags: e.target.checked }))}
-                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Add Tags</span>
-              </label>
-              {batchEditData.setTags && (
-                <input
-                  type="text"
-                  value={batchEditData.tags}
-                  onChange={(e) => setBatchEditData((prev) => ({ ...prev, tags: e.target.value }))}
-                  placeholder="tag1, tag2, tag3 (comma-separated)"
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-              <button
-                onClick={() => setIsBatchEditOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={applyBatchEdit}
-                disabled={
-                  !batchEditData.setPriority &&
-                  !batchEditData.setProject &&
-                  !batchEditData.setAssignee &&
-                  !batchEditData.setSprint &&
-                  !batchEditData.setSource &&
-                  !batchEditData.setDueDate &&
-                  !batchEditData.setTags
-                }
-                className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-              >
-                Apply Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <BatchEditModal
+        isOpen={isBatchEditOpen}
+        onClose={() => setIsBatchEditOpen(false)}
+        onApply={applyBatchEdit}
+        selectedCount={selectedTodoIds.size}
+        priorities={sortedPriorities}
+        projects={sortedProjects}
+        people={sortedPeople}
+        sprints={sprints.map((s) => s.raw)}
+      />
 
       {/* Confirm Dialog */}
       {confirmDialog && (

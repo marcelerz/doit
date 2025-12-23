@@ -76,6 +76,13 @@
 - [x] Add WIP (Work-In-Progress) limits to Kanban board columns with visual warnings
 - [x] Make Backlog a system state (cannot be deleted, like Completed and Archived)
 - [x] Replace calculated usage stats with selection history tracking system
+- [x] Extract BatchEditModal component from TodoApp (312 lines)
+- [x] Create useListViewState hook for filter/sort/group state management (891 lines)
+- [x] Extract ViewTabs component (224 lines) - view navigation with icons and tutorial buttons
+- [x] Extract ListViewToolbar component (635 lines) - search, filters, sort, group, export, more menu
+- [x] Extract SavePresetModal component (116 lines) - view preset saving modal
+- [x] Create useDragReorder hook (112 lines) - drag-and-drop reordering state and handlers
+- [x] TodoApp.tsx reduced from 3520 to 2617 lines (903 lines extracted)
 
 ## Coding Standards
 
@@ -825,6 +832,9 @@ Components are organized by purpose:
 - **EmptyState** - Standardized empty state with emoji, message, and optional action
 - **MetadataSection** - Reusable metadata section with badges and add dropdown
 - **FilterSection** - Standardized filter section with select/clear all buttons
+- **ViewTabs** - View navigation tabs with icons and tutorial buttons
+- **ListViewToolbar** - Search, filters, sort, group, export, more menu toolbar
+- **SavePresetModal** - View preset saving/overwriting modal
 
 ### Hooks
 
@@ -835,6 +845,8 @@ Components are organized by purpose:
 - **useSettings** - Application settings management
 - **useDropdownManager** - Centralized dropdown state management
 - **useFilters** - Filter state management with localStorage persistence
+- **useListViewState** - Filter/sort/group state with view presets
+- **useDragReorder** - Drag-and-drop reordering state and handlers
 
 ### Utilities
 

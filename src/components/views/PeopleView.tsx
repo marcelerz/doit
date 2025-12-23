@@ -4,6 +4,47 @@ import React, { useMemo, useRef } from "react";
 import { PersonItem } from "@/components/items/PersonItem";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PersonModel } from "@/models/PersonModel";
+import { TutorialStep } from "@/components/overlays/TutorialOverlay";
+
+// People View Tutorial Steps
+export const peopleViewTutorialSteps: TutorialStep[] = [
+  {
+    id: "people-intro",
+    title: "People Management 👥",
+    description: "The People View lets you manage team members and contacts. Assign tasks to people using @mentions.",
+    position: "center",
+  },
+  {
+    id: "people-add",
+    title: "Add People ➕",
+    description:
+      'Click "Add Person" to create a new person. You can add:\n\n• Name and alternatives (nicknames)\n• Custom color for badges\n• Notes and context',
+    targetSelector: '[data-tutorial="add-person-button"]',
+    position: "bottom",
+    spotlightPadding: 8,
+    fallbackHint: "The + Add Person button is at the top of the People view",
+  },
+  {
+    id: "people-assign",
+    title: "Assign Tasks 📋",
+    description:
+      "Use @name in your tasks to assign them:\n\n• @John - Assign to John\n• Multiple @mentions work too!\n\nAlternative names are recognized automatically.",
+    position: "center",
+  },
+  {
+    id: "people-source",
+    title: "Track Sources $",
+    description:
+      'Use $name to mark who requested a task:\n\n• "Fix bug $Sarah" - Request from Sarah\n• Great for tracking where tasks came from!',
+    position: "center",
+  },
+  {
+    id: "people-complete",
+    title: "Team Ready! 🎉",
+    description: "You're set to manage people! Click on any person to see their assigned tasks and add comments.",
+    position: "center",
+  },
+];
 
 interface PeopleViewProps {
   people: PersonModel[];
