@@ -10,7 +10,6 @@ import { useTemplates } from "@/hooks/useTemplates";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { useSprints } from "@/hooks/useSprints";
 import { useTaskNotifications } from "@/hooks/useTaskNotifications";
-import { TodoItem } from "@/components/items/TodoItem";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { GanttView, ganttViewTutorialSteps } from "./GanttView";
 import { CalendarView, calendarViewTutorialSteps } from "./CalendarView";
@@ -37,7 +36,6 @@ import { useSelectionHistory, sortByUsage, sortStringsByUsage } from "@/hooks/us
 import { normalizeDateValue } from "@/utils/dateUtils";
 import { ConfirmDialog } from "@/components/shared/Notification";
 import { TemplatesManager, CreateTemplateModal, TemplateDropdown } from "@/components/shared/Templates";
-import { SearchHistoryDropdown } from "@/components/shared/SearchHistory";
 import { TodoTemplate } from "@/types/todoTemplate";
 import { getColor } from "@/types/types";
 import { parseTokensToMetadata } from "@/utils/tokenParser";

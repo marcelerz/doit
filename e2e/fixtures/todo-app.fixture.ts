@@ -61,6 +61,8 @@ export const test = base.extend<{ todoApp: TodoAppFixture }>({
           if (typeof indexedDB !== "undefined") {
             indexedDB.deleteDatabase("doit-storage");
           }
+          // Set tutorial as completed to prevent it from showing
+          localStorage.setItem("doit-tutorial-preferences", JSON.stringify({ completed: true, showOnStartup: false }));
         });
       },
 

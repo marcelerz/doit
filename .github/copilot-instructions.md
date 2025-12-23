@@ -85,6 +85,9 @@
 - [x] TodoApp.tsx reduced from 3520 to 2617 lines (903 lines extracted)
 - [x] Move search/showArchived state into PeopleView, ProjectsView, SprintsView (internal state with storage)
 - [x] Extract ListView component (707 lines) - bulk selection, batch edit, quick filters, todo list, undo notifications
+- [x] Move getFilterButtonColor/Style, handleExport, useListViewState, toolbar, filters to ListView
+- [x] Merge TodoListView into ListView (372 lines) - now single self-contained component
+- [x] Update e2e fixtures to skip tutorial overlay for tests
 
 ## Coding Standards
 
@@ -816,7 +819,7 @@ Todos now use a unified state system instead of separate boolean flags:
 
 Components are organized by purpose:
 
-- **views/** - Main application views (TodoApp [main container], ListView, CalendarView, GanttView, KanbanView, PeopleView, ProjectsView, SprintsView, TodoListView)
+- **views/** - Main application views (TodoApp [main container], ListView, CalendarView, GanttView, KanbanView, PeopleView, ProjectsView, SprintsView)
 - **items/** - List item components (TodoItem, PersonItem, ProjectItem)
 - **overlays/** - Modal/detail views (TodoDetailsOverlay, PersonDetailsOverlay, ProjectDetailsOverlay, BatchEditModal)
 - **input/** - Input components (SmartInput, RichTextEditor)
