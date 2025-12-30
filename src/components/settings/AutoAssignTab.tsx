@@ -2,20 +2,19 @@
 
 import { useState } from "react";
 import { AutoAssignSettings, defaultAutoAssignSettings } from "@/types/settings";
-import { Priority } from "@/types/priority";
-import { PersonModel } from "@/models/PersonModel";
-import { ProjectModel } from "@/models/ProjectModel";
+import { usePeople } from "@/hooks/usePeople";
+import { useProjects } from "@/hooks/useProjects";
+import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { SettingsLoading } from "./SettingsLoading";
 
-interface AutoAssignTabProps {
-  autoAssign: AutoAssignSettings;
-  people: PersonModel[];
-  projects: ProjectModel[];
-  priorities: Priority[];
-  onUpdate: (settings: Partial<AutoAssignSettings>) => void;
-}
+export function AutoAssignTab() {
+  const { people, isLoaded: peopleLoaded } = usePeople();
+  const { projects, isLoaded: projectsLoaded } = useProjects();
+  const { settings, isLoaded: settingsLoaded, updateAutoAssignSettings } = useSettings();
+  const priorities = settings.priorities;
+  const autoAssign = settings.autoAssign;
 
-export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpdate }: AutoAssignTabProps) {
   // Dropdown state for each field
   const [showAssignedDropdown, setShowAssignedDropdown] = useState(false);
   const [assignedSearch, setAssignedSearch] = useState("");
@@ -31,6 +30,12 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
   const [durationSearch, setDurationSearch] = useState("");
   const [showRecurringDropdown, setShowRecurringDropdown] = useState(false);
   const [recurringSearch, setRecurringSearch] = useState("");
+
+  const isLoaded = peopleLoaded && projectsLoaded && settingsLoaded;
+
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
 
   const getDurationSuggestions = (input: string): string[] => {
     const allSuggestions = [
@@ -125,7 +130,7 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
   const handleAutoAssignFieldChange = (field: keyof AutoAssignSettings, value: string) => {
     if (field === "enabled") return; // Skip boolean field
 
-    onUpdate({
+    updateAutoAssignSettings({
       ...autoAssign,
       [field]: value || undefined, // Set to undefined if empty
     });
@@ -139,7 +144,7 @@ export function AutoAssignTab({ autoAssign, people, projects, priorities, onUpda
           <InfoTooltip content={tooltipContent.autoAssign} />
         </h2>
         <button
-          onClick={() => onUpdate(defaultAutoAssignSettings)}
+          onClick={() => updateAutoAssignSettings(defaultAutoAssignSettings)}
           className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
         >
           Reset to Defaults

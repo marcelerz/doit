@@ -3,16 +3,12 @@
 import { useState } from "react";
 import { ProjectCategory } from "@/types/project";
 import { getColor } from "@/types/types";
+import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { SettingsLoading } from "./SettingsLoading";
 
-interface CategoriesTabProps {
-  categories: ProjectCategory[];
-  onAdd: (category: Omit<ProjectCategory, "id">) => string;
-  onUpdate: (id: string, updates: Partial<ProjectCategory>) => void;
-  onDelete: (id: string) => void;
-}
-
-export function CategoriesTab({ categories, onAdd, onUpdate, onDelete }: CategoriesTabProps) {
+export function CategoriesTab() {
+  const { settings, isLoaded, addCategory, updateCategory, deleteCategory } = useSettings();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<ProjectCategory>>({});
   const [isAdding, setIsAdding] = useState(false);
@@ -22,6 +18,12 @@ export function CategoriesTab({ categories, onAdd, onUpdate, onDelete }: Categor
     description: "",
   });
 
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
+
+  const categories = settings.categories;
+
   const handleStartEdit = (category: ProjectCategory) => {
     setEditingId(category.id);
     setEditForm({ ...category });
@@ -29,7 +31,7 @@ export function CategoriesTab({ categories, onAdd, onUpdate, onDelete }: Categor
 
   const handleSaveEdit = () => {
     if (editingId && editForm.name?.trim()) {
-      onUpdate(editingId, editForm);
+      updateCategory(editingId, editForm);
       setEditingId(null);
       setEditForm({});
     }
@@ -42,7 +44,7 @@ export function CategoriesTab({ categories, onAdd, onUpdate, onDelete }: Categor
 
   const handleAdd = () => {
     if (newCategory.name.trim()) {
-      onAdd(newCategory);
+      addCategory(newCategory);
       setNewCategory({
         name: "",
         color: getColor("#3b82f6"),
@@ -230,7 +232,7 @@ export function CategoriesTab({ categories, onAdd, onUpdate, onDelete }: Categor
                       Edit
                     </button>
                     <button
-                      onClick={() => onDelete(category.id)}
+                      onClick={() => deleteCategory(category.id)}
                       className="px-3 py-1.5 text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
                     >
                       Delete

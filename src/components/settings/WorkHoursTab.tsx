@@ -8,13 +8,10 @@ import { getColor } from "@/types/types";
 import { useState } from "react";
 import { getTextColor } from "@/utils/colors";
 import { createBreakPeriodId } from "@/utils/idGenerator";
+import { useSettings } from "@/hooks/useSettings";
 import { IconButton } from "@/components/shared/IconButton";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
-
-interface WorkHoursTabProps {
-  workHours: WorkHoursSettings;
-  onUpdate: (workHours: WorkHoursSettings) => void;
-}
+import { SettingsLoading } from "./SettingsLoading";
 
 const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 const WEEKDAY_LABELS: Record<(typeof WEEKDAYS)[number], string> = {
@@ -42,13 +39,20 @@ function getBlockIcon(blockType?: TimeBlockType | string): string {
   return config?.icon || "📅";
 }
 
-export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
+export function WorkHoursTab() {
+  const { settings, isLoaded, updateWorkHoursSettings } = useSettings();
   const [useCustomSchedules, setUseCustomSchedules] = useState(false);
+
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
+
+  const workHours = settings.workHours;
 
   const updateSchedule = (type: "common" | "weekday" | "weekend", schedule: Partial<DaySchedule>) => {
     const scheduleKey =
       type === "common" ? "commonSchedule" : type === "weekday" ? "weekdaySchedule" : "weekendSchedule";
-    onUpdate({
+    updateWorkHoursSettings({
       ...workHours,
       [scheduleKey]: { ...workHours[scheduleKey], ...schedule },
     });
@@ -56,7 +60,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
 
   const updateCustomSchedule = (day: (typeof WEEKDAYS)[number], schedule: Partial<DaySchedule>) => {
     const existing = workHours.customSchedules[day] || workHours.weekdaySchedule;
-    onUpdate({
+    updateWorkHoursSettings({
       ...workHours,
       customSchedules: {
         ...workHours.customSchedules,
@@ -76,7 +80,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
       endTime: getShortTime("13:00"),
       blockType: getTimeBlockId("break"),
     };
-    onUpdate({
+    updateWorkHoursSettings({
       ...workHours,
       [scheduleKey]: {
         ...schedule,
@@ -89,7 +93,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
     const scheduleKey =
       type === "common" ? "commonSchedule" : type === "weekday" ? "weekdaySchedule" : "weekendSchedule";
     const schedule = workHours[scheduleKey];
-    onUpdate({
+    updateWorkHoursSettings({
       ...workHours,
       [scheduleKey]: {
         ...schedule,
@@ -102,7 +106,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
     const scheduleKey =
       type === "common" ? "commonSchedule" : type === "weekday" ? "weekdaySchedule" : "weekendSchedule";
     const schedule = workHours[scheduleKey];
-    onUpdate({
+    updateWorkHoursSettings({
       ...workHours,
       [scheduleKey]: {
         ...schedule,
@@ -308,7 +312,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
           </p>
         </div>
         <button
-          onClick={() => onUpdate(defaultWorkHoursSettings)}
+          onClick={() => updateWorkHoursSettings(defaultWorkHoursSettings)}
           className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
         >
           Reset to Defaults
@@ -321,7 +325,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
           <input
             type="radio"
             checked={workHours.useCommonSchedule}
-            onChange={() => onUpdate({ ...workHours, useCommonSchedule: true })}
+            onChange={() => updateWorkHoursSettings({ ...workHours, useCommonSchedule: true })}
             className="w-4 h-4 text-blue-600 focus:ring-blue-500"
           />
           <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Use same schedule for all days</span>
@@ -333,7 +337,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
             checked={!workHours.useCommonSchedule && !useCustomSchedules}
             onChange={() => {
               setUseCustomSchedules(false);
-              onUpdate({ ...workHours, useCommonSchedule: false });
+              updateWorkHoursSettings({ ...workHours, useCommonSchedule: false });
             }}
             className="w-4 h-4 text-blue-600 focus:ring-blue-500"
           />
@@ -348,7 +352,7 @@ export function WorkHoursTab({ workHours, onUpdate }: WorkHoursTabProps) {
             checked={!workHours.useCommonSchedule && useCustomSchedules}
             onChange={() => {
               setUseCustomSchedules(true);
-              onUpdate({ ...workHours, useCommonSchedule: false });
+              updateWorkHoursSettings({ ...workHours, useCommonSchedule: false });
             }}
             className="w-4 h-4 text-blue-600 focus:ring-blue-500"
           />

@@ -1,23 +1,28 @@
 "use client";
 
 import { DateTimeSettings, defaultDateTimeSettings } from "@/types/settings";
+import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { SettingsLoading } from "./SettingsLoading";
 
-interface DateTimeTabProps {
-  dateTime: DateTimeSettings;
-  onUpdate: (dateTime: DateTimeSettings) => void;
-}
+export function DateTimeTab() {
+  const { settings, isLoaded, updateDateTimeSettings } = useSettings();
 
-export function DateTimeTab({ dateTime, onUpdate }: DateTimeTabProps) {
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
+
+  const dateTime = settings.dateTime;
+
   const handleDateTimeChange = (field: keyof DateTimeSettings, value: string | number) => {
-    onUpdate({
+    updateDateTimeSettings({
       ...dateTime,
       [field]: value,
     });
   };
 
   const handleResetToDefaults = () => {
-    onUpdate(defaultDateTimeSettings);
+    updateDateTimeSettings(defaultDateTimeSettings);
   };
 
   return (

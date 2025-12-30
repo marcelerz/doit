@@ -3,22 +3,24 @@
 import { useState } from "react";
 import { Priority } from "@/types/priority";
 import { getColor } from "@/types/types";
+import { useSettings } from "@/hooks/useSettings";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { IconButton } from "@/components/shared/IconButton";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { SettingsLoading } from "./SettingsLoading";
 
-interface PrioritiesTabProps {
-  priorities: Priority[];
-  onAdd: (priority: Omit<Priority, "id" | "comments" | "activity">) => void;
-  onUpdate: (id: string, updates: Partial<Priority>) => void;
-  onDelete: (id: string) => void;
-}
-
-export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: PrioritiesTabProps) {
+export function PrioritiesTab() {
+  const { settings, isLoaded, addPriority, updatePriority, deletePriority } = useSettings();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Priority>>({});
   const [isAdding, setIsAdding] = useState(false);
+
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
+
+  const priorities = settings.priorities;
   const [newPriority, setNewPriority] = useState<Omit<Priority, "id" | "comments" | "activity">>({
     name: "",
     alternatives: [],
@@ -33,7 +35,7 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
 
   const handleSaveEdit = () => {
     if (editingId && editForm.name?.trim()) {
-      onUpdate(editingId, editForm);
+      updatePriority(editingId, editForm);
       setEditingId(null);
       setEditForm({});
     }
@@ -46,7 +48,7 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
 
   const handleAdd = () => {
     if (newPriority.name.trim()) {
-      onAdd({
+      addPriority({
         ...newPriority,
         color: newPriority.color || undefined,
       });
@@ -163,7 +165,7 @@ export function PrioritiesTab({ priorities, onAdd, onUpdate, onDelete }: Priorit
                 </div>
                 <div className="flex gap-2">
                   <IconButton icon="edit" onClick={() => handleStartEdit(priority)} />
-                  <IconButton icon="delete" onClick={() => onDelete(priority.id)} />
+                  <IconButton icon="delete" onClick={() => deletePriority(priority.id)} />
                 </div>
               </div>
             )}

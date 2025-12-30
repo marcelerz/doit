@@ -4,15 +4,13 @@ import { useState, useEffect } from "react";
 import { FocusSettings, defaultFocusSettings } from "@/types/settings";
 import { getDurationMin, getDurationSec } from "@/types/time";
 import { playNotificationSound, AMBIENT_SOUNDS, playAmbientSound, stopAmbientSound } from "@/utils/notifications";
+import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { CloseIcon } from "@/components/shared/Icons";
+import { SettingsLoading } from "./SettingsLoading";
 
-interface FocusTabProps {
-  focus: FocusSettings;
-  onUpdate: (focus: FocusSettings) => void;
-}
-
-export function FocusTab({ focus, onUpdate }: FocusTabProps) {
+export function FocusTab() {
+  const { settings, isLoaded, updateFocusSettings } = useSettings();
   // Track which ambient sound is being previewed
   const [previewingSound, setPreviewingSound] = useState<string | null>(null);
 
@@ -22,6 +20,12 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
       stopAmbientSound();
     };
   }, []);
+
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
+
+  const focus = settings.focus;
 
   const handlePreviewAmbientSound = (soundId: string) => {
     if (previewingSound === soundId) {
@@ -39,7 +43,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
   };
 
   const handleResetToDefaults = () => {
-    onUpdate(defaultFocusSettings);
+    updateFocusSettings(defaultFocusSettings);
   };
 
   const handleUpdateExtendOptions = (index: number, value: number) => {
@@ -47,18 +51,18 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
     newOptions[index] = getDurationMin(value);
     // Sort and dedupe
     const sorted = [...new Set(newOptions.filter((v) => v > 0))].sort((a, b) => a - b);
-    onUpdate({ ...focus, extendOptions: sorted });
+    updateFocusSettings({ ...focus, extendOptions: sorted });
   };
 
   const handleAddExtendOption = () => {
     const newValue = getDurationMin(Math.max(...focus.extendOptions) + 5);
-    onUpdate({ ...focus, extendOptions: [...focus.extendOptions, newValue].sort((a, b) => a - b) });
+    updateFocusSettings({ ...focus, extendOptions: [...focus.extendOptions, newValue].sort((a, b) => a - b) });
   };
 
   const handleRemoveExtendOption = (index: number) => {
     if (focus.extendOptions.length <= 1) return;
     const newOptions = focus.extendOptions.filter((_, i) => i !== index);
-    onUpdate({ ...focus, extendOptions: newOptions });
+    updateFocusSettings({ ...focus, extendOptions: newOptions });
   };
 
   return (
@@ -94,7 +98,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
             <input
               type="checkbox"
               checked={focus.requireConfirmation}
-              onChange={(e) => onUpdate({ ...focus, requireConfirmation: e.target.checked })}
+              onChange={(e) => updateFocusSettings({ ...focus, requireConfirmation: e.target.checked })}
               className="sr-only peer"
             />
             <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
@@ -115,7 +119,10 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
                   step="5"
                   value={focus.confirmationRepeatInterval}
                   onChange={(e) =>
-                    onUpdate({ ...focus, confirmationRepeatInterval: getDurationSec(parseInt(e.target.value) || 30) })
+                    updateFocusSettings({
+                      ...focus,
+                      confirmationRepeatInterval: getDurationSec(parseInt(e.target.value) || 30),
+                    })
                   }
                   className="w-24 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
                 />
@@ -135,7 +142,9 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
                   max="20"
                   step="1"
                   value={focus.confirmationMaxRepeats}
-                  onChange={(e) => onUpdate({ ...focus, confirmationMaxRepeats: parseInt(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    updateFocusSettings({ ...focus, confirmationMaxRepeats: parseInt(e.target.value) || 0 })
+                  }
                   className="w-24 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
                 />
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">times</span>
@@ -162,7 +171,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
             <input
               type="checkbox"
               checked={focus.autoTimeTracking}
-              onChange={(e) => onUpdate({ ...focus, autoTimeTracking: e.target.checked })}
+              onChange={(e) => updateFocusSettings({ ...focus, autoTimeTracking: e.target.checked })}
               className="sr-only peer"
             />
             <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
@@ -182,7 +191,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
             <input
               type="checkbox"
               checked={focus.trackActualVsEstimated}
-              onChange={(e) => onUpdate({ ...focus, trackActualVsEstimated: e.target.checked })}
+              onChange={(e) => updateFocusSettings({ ...focus, trackActualVsEstimated: e.target.checked })}
               className="sr-only peer"
             />
             <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
@@ -210,7 +219,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
                 step="1"
                 value={focus.defaultExtendMinutes}
                 onChange={(e) =>
-                  onUpdate({ ...focus, defaultExtendMinutes: getDurationMin(parseInt(e.target.value) || 5) })
+                  updateFocusSettings({ ...focus, defaultExtendMinutes: getDurationMin(parseInt(e.target.value) || 5) })
                 }
                 className="w-24 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
               />
@@ -232,7 +241,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
               <input
                 type="checkbox"
                 checked={focus.showEarlyCompletePrompt}
-                onChange={(e) => onUpdate({ ...focus, showEarlyCompletePrompt: e.target.checked })}
+                onChange={(e) => updateFocusSettings({ ...focus, showEarlyCompletePrompt: e.target.checked })}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
@@ -252,7 +261,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
               <input
                 type="checkbox"
                 checked={focus.useTrackedTimeForDuration !== false}
-                onChange={(e) => onUpdate({ ...focus, useTrackedTimeForDuration: e.target.checked })}
+                onChange={(e) => updateFocusSettings({ ...focus, useTrackedTimeForDuration: e.target.checked })}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
@@ -272,7 +281,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
               <input
                 type="checkbox"
                 checked={focus.autoExtendOnOvertime !== false}
-                onChange={(e) => onUpdate({ ...focus, autoExtendOnOvertime: e.target.checked })}
+                onChange={(e) => updateFocusSettings({ ...focus, autoExtendOnOvertime: e.target.checked })}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
@@ -343,7 +352,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
             <input
               type="checkbox"
               checked={focus.notificationsEnabled}
-              onChange={(e) => onUpdate({ ...focus, notificationsEnabled: e.target.checked })}
+              onChange={(e) => updateFocusSettings({ ...focus, notificationsEnabled: e.target.checked })}
               className="sr-only peer"
             />
             <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
@@ -362,7 +371,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
             <input
               type="checkbox"
               checked={focus.soundEnabled}
-              onChange={(e) => onUpdate({ ...focus, soundEnabled: e.target.checked })}
+              onChange={(e) => updateFocusSettings({ ...focus, soundEnabled: e.target.checked })}
               className="sr-only peer"
             />
             <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
@@ -381,7 +390,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
                   max="1"
                   step="0.1"
                   value={focus.soundVolume}
-                  onChange={(e) => onUpdate({ ...focus, soundVolume: parseFloat(e.target.value) })}
+                  onChange={(e) => updateFocusSettings({ ...focus, soundVolume: parseFloat(e.target.value) })}
                   className="flex-1 h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
                 />
                 <span className="text-sm text-zinc-600 dark:text-zinc-400 w-12 text-right">
@@ -456,7 +465,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
             <input
               type="checkbox"
               checked={focus.ambientSoundEnabled}
-              onChange={(e) => onUpdate({ ...focus, ambientSoundEnabled: e.target.checked })}
+              onChange={(e) => updateFocusSettings({ ...focus, ambientSoundEnabled: e.target.checked })}
               className="sr-only peer"
             />
             <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
@@ -475,7 +484,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
                   max="1"
                   step="0.1"
                   value={focus.ambientVolume}
-                  onChange={(e) => onUpdate({ ...focus, ambientVolume: parseFloat(e.target.value) })}
+                  onChange={(e) => updateFocusSettings({ ...focus, ambientVolume: parseFloat(e.target.value) })}
                   className="flex-1 h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
                 />
                 <span className="text-sm text-zinc-600 dark:text-zinc-400 w-12 text-right">
@@ -492,7 +501,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
               <div className="flex items-center gap-2">
                 <select
                   value={focus.ambientWorkSound}
-                  onChange={(e) => onUpdate({ ...focus, ambientWorkSound: e.target.value })}
+                  onChange={(e) => updateFocusSettings({ ...focus, ambientWorkSound: e.target.value })}
                   className="flex-1 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-sm"
                 >
                   <option value="">None</option>
@@ -527,7 +536,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
               <div className="flex items-center gap-2">
                 <select
                   value={focus.ambientBreakSound}
-                  onChange={(e) => onUpdate({ ...focus, ambientBreakSound: e.target.value })}
+                  onChange={(e) => updateFocusSettings({ ...focus, ambientBreakSound: e.target.value })}
                   className="flex-1 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-sm"
                 >
                   <option value="">None</option>
@@ -573,7 +582,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
               <input
                 type="checkbox"
                 checked={focus.showNextTask}
-                onChange={(e) => onUpdate({ ...focus, showNextTask: e.target.checked })}
+                onChange={(e) => updateFocusSettings({ ...focus, showNextTask: e.target.checked })}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
@@ -591,7 +600,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
               <input
                 type="checkbox"
                 checked={focus.showSessionStats}
-                onChange={(e) => onUpdate({ ...focus, showSessionStats: e.target.checked })}
+                onChange={(e) => updateFocusSettings({ ...focus, showSessionStats: e.target.checked })}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
@@ -607,7 +616,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
               <input
                 type="checkbox"
                 checked={focus.showKeyboardHints}
-                onChange={(e) => onUpdate({ ...focus, showKeyboardHints: e.target.checked })}
+                onChange={(e) => updateFocusSettings({ ...focus, showKeyboardHints: e.target.checked })}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>

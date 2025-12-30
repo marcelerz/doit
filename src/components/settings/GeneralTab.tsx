@@ -8,30 +8,29 @@ import {
   defaultGeneralSettings,
 } from "@/types/settings";
 import { getDurationDay } from "@/types/time";
+import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsIcon, SunIcon, MoonIcon, DesktopIcon, GridIcon } from "@/components/shared/Icons";
+import { SettingsLoading } from "./SettingsLoading";
 
-interface GeneralTabProps {
-  general: GeneralSettings;
-  features?: FeatureSettings;
-  onUpdate: (settings: Partial<GeneralSettings>) => void;
-  onUpdateFeatures?: (settings: Partial<FeatureSettings>) => void;
-}
+export function GeneralTab() {
+  const { settings, isLoaded, updateGeneralSettings, updateFeatureSettings } = useSettings();
 
-export function GeneralTab({
-  general,
-  features = defaultFeatureSettings,
-  onUpdate,
-  onUpdateFeatures,
-}: GeneralTabProps) {
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
+
+  const general = settings.general;
+  const features = settings.features ?? defaultFeatureSettings;
+
   const handleArchiveDaysChange = (value: number) => {
     // Ensure value is at least 0
     const days = Math.max(0, value);
-    onUpdate({ archiveDays: getDurationDay(days) });
+    updateGeneralSettings({ archiveDays: getDurationDay(days) });
   };
 
   const handleAutoDeleteToggle = (enabled: boolean) => {
-    onUpdate({
+    updateGeneralSettings({
       autoDelete: {
         ...general.autoDelete,
         enabled,
@@ -42,7 +41,7 @@ export function GeneralTab({
   const handleAutoDeleteDaysChange = (value: number) => {
     // Ensure value is at least 1
     const days = Math.max(1, value);
-    onUpdate({
+    updateGeneralSettings({
       autoDelete: {
         ...general.autoDelete,
         deleteDays: getDurationDay(days),
@@ -51,7 +50,7 @@ export function GeneralTab({
   };
 
   const handleThemeChange = (theme: ThemeMode) => {
-    onUpdate({ theme });
+    updateGeneralSettings({ theme });
   };
 
   return (
@@ -59,7 +58,7 @@ export function GeneralTab({
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">General Settings</h2>
         <button
-          onClick={() => onUpdate(defaultGeneralSettings)}
+          onClick={() => updateGeneralSettings(defaultGeneralSettings)}
           className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
         >
           Reset to Defaults
@@ -204,179 +203,177 @@ export function GeneralTab({
         </div>
 
         {/* Feature Toggles */}
-        {onUpdateFeatures && (
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
-            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
-              <span>Features</span>
-              <InfoTooltip content={tooltipContent.features} />
-            </h3>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-              Enable or disable features to simplify the interface. Disabled features will hide their views and related
-              settings.
-            </p>
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
+            <span>Features</span>
+            <InfoTooltip content={tooltipContent.features} />
+          </h3>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+            Enable or disable features to simplify the interface. Disabled features will hide their views and related
+            settings.
+          </p>
 
-            {/* Views Section */}
-            <div className="mb-6">
-              <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3 flex items-center gap-2">
-                <GridIcon className="w-4 h-4" />
-                Views
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={features.kanbanView}
-                    onChange={(e) => onUpdateFeatures({ kanbanView: e.target.checked })}
-                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Kanban Board</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Visual task board with workflow states</p>
-                  </div>
-                </label>
+          {/* Views Section */}
+          <div className="mb-6">
+            <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3 flex items-center gap-2">
+              <GridIcon className="w-4 h-4" />
+              Views
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={features.kanbanView}
+                  onChange={(e) => updateFeatureSettings({ kanbanView: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Kanban Board</span>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Visual task board with workflow states</p>
+                </div>
+              </label>
 
-                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={features.ganttView}
-                    onChange={(e) => onUpdateFeatures({ ganttView: e.target.checked })}
-                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Gantt Chart</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Timeline visualization for planning</p>
-                  </div>
-                </label>
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={features.ganttView}
+                  onChange={(e) => updateFeatureSettings({ ganttView: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Gantt Chart</span>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Timeline visualization for planning</p>
+                </div>
+              </label>
 
-                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={features.calendarView}
-                    onChange={(e) => onUpdateFeatures({ calendarView: e.target.checked })}
-                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Calendar View</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Monthly calendar with task dots</p>
-                  </div>
-                </label>
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={features.calendarView}
+                  onChange={(e) => updateFeatureSettings({ calendarView: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Calendar View</span>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Monthly calendar with task dots</p>
+                </div>
+              </label>
 
-                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={features.sprintsView}
-                    onChange={(e) => onUpdateFeatures({ sprintsView: e.target.checked })}
-                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Sprints</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Scrum-style sprint planning</p>
-                  </div>
-                </label>
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={features.sprintsView}
+                  onChange={(e) => updateFeatureSettings({ sprintsView: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Sprints</span>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Scrum-style sprint planning</p>
+                </div>
+              </label>
 
-                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={features.statsView}
-                    onChange={(e) => onUpdateFeatures({ statsView: e.target.checked })}
-                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Statistics</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Charts and task analytics</p>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            {/* Tools Section */}
-            <div>
-              <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3 flex items-center gap-2">
-                <SettingsIcon className="w-4 h-4" />
-                Tools
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={features.templates}
-                    onChange={(e) => onUpdateFeatures({ templates: e.target.checked })}
-                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Templates</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Create and use task templates</p>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={features.batchProcessing}
-                    onChange={(e) => onUpdateFeatures({ batchProcessing: e.target.checked })}
-                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Batch Processing</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Select and edit multiple tasks</p>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={features.reordering}
-                    onChange={(e) => onUpdateFeatures({ reordering: e.target.checked })}
-                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Drag & Drop Reordering</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Manual task ordering mode</p>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={features.exports}
-                    onChange={(e) => onUpdateFeatures({ exports: e.target.checked })}
-                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Export</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Export to Markdown, CSV, JSON</p>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={features.focusMode}
-                    onChange={(e) => onUpdateFeatures({ focusMode: e.target.checked })}
-                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Focus Mode</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Distraction-free task view</p>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={features.timeTracking}
-                    onChange={(e) => onUpdateFeatures({ timeTracking: e.target.checked })}
-                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Time Tracking</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Track time spent on tasks</p>
-                  </div>
-                </label>
-              </div>
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={features.statsView}
+                  onChange={(e) => updateFeatureSettings({ statsView: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Statistics</span>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Charts and task analytics</p>
+                </div>
+              </label>
             </div>
           </div>
-        )}
+
+          {/* Tools Section */}
+          <div>
+            <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3 flex items-center gap-2">
+              <SettingsIcon className="w-4 h-4" />
+              Tools
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={features.templates}
+                  onChange={(e) => updateFeatureSettings({ templates: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Templates</span>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Create and use task templates</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={features.batchProcessing}
+                  onChange={(e) => updateFeatureSettings({ batchProcessing: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Batch Processing</span>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Select and edit multiple tasks</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={features.reordering}
+                  onChange={(e) => updateFeatureSettings({ reordering: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Drag & Drop Reordering</span>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Manual task ordering mode</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={features.exports}
+                  onChange={(e) => updateFeatureSettings({ exports: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Export</span>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Export to Markdown, CSV, JSON</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={features.focusMode}
+                  onChange={(e) => updateFeatureSettings({ focusMode: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Focus Mode</span>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Distraction-free task view</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={features.timeTracking}
+                  onChange={(e) => updateFeatureSettings({ timeTracking: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Time Tracking</span>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Track time spent on tasks</p>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

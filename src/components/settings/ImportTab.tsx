@@ -4,28 +4,32 @@ import { useState, useRef, useCallback } from "react";
 import { importTodos, ImportResult, ImportedTodo, ImportFormat, convertAllToTodos } from "@/utils/import";
 import { Todo } from "@/types/todo";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
-
-interface ImportTabProps {
-  onImport: (todos: Array<Omit<Todo, "id">>) => void;
-  existingProjects?: string[];
-  existingPeople?: string[];
-  existingPriorities?: string[];
-}
+import { usePeople } from "@/hooks/usePeople";
+import { useProjects } from "@/hooks/useProjects";
+import { useSettings } from "@/hooks/useSettings";
+import { useTodos } from "@/hooks/useTodos";
+import { SettingsLoading } from "./SettingsLoading";
 
 type ImportStep = "upload" | "preview" | "complete";
 
-export function ImportTab({
-  onImport,
-  existingProjects = [],
-  existingPeople = [],
-  existingPriorities = [],
-}: ImportTabProps) {
+export function ImportTab() {
+  const { people, isLoaded: peopleLoaded } = usePeople();
+  const { projects, isLoaded: projectsLoaded } = useProjects();
+  const { settings, isLoaded: settingsLoaded } = useSettings();
+  const { importTodos: importTodosToStore, isLoaded: todosLoaded } = useTodos();
+
   const [step, setStep] = useState<ImportStep>("upload");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [selectedTodos, setSelectedTodos] = useState<Set<number>>(new Set());
   const [importedCount, setImportedCount] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isLoaded = peopleLoaded && projectsLoaded && settingsLoaded && todosLoaded;
+
+  const existingProjects = projects.map((p) => p.name);
+  const existingPeople = people.map((p) => p.name);
+  const existingPriorities = settings.priorities.map((p) => p.name);
 
   const handleFileSelect = useCallback((file: File) => {
     const reader = new FileReader();
@@ -104,7 +108,7 @@ export function ImportTab({
       priorities: existingPriorities,
     });
 
-    onImport(converted);
+    importTodosToStore(converted);
     setImportedCount(converted.length);
     setStep("complete");
   };
@@ -135,6 +139,10 @@ export function ImportTab({
         return format;
     }
   };
+
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
 
   return (
     <div className="space-y-6">

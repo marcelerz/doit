@@ -10,15 +10,13 @@ import {
   sendNotification,
   NotificationPermission,
 } from "@/utils/notifications";
+import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { WarningIcon, ClockIcon, CalendarIcon } from "@/components/shared/Icons";
+import { SettingsLoading } from "./SettingsLoading";
 
-interface NotificationsTabProps {
-  notifications: NotificationSettings;
-  onUpdate: (notifications: NotificationSettings) => void;
-}
-
-export function NotificationsTab({ notifications, onUpdate }: NotificationsTabProps) {
+export function NotificationsTab() {
+  const { settings, isLoaded, updateNotificationSettings } = useSettings();
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isSupported, setIsSupported] = useState(true);
 
@@ -27,11 +25,17 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
     setPermission(getNotificationPermission());
   }, []);
 
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
+
+  const notifications = settings.notifications;
+
   const handleRequestPermission = async () => {
     const result = await requestNotificationPermission();
     setPermission(result);
     if (result === "granted") {
-      onUpdate({ ...notifications, enabled: true });
+      updateNotificationSettings({ ...notifications, enabled: true });
     }
   };
 
@@ -64,7 +68,7 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Notification Settings</h2>
         <button
-          onClick={() => onUpdate(defaultNotificationSettings)}
+          onClick={() => updateNotificationSettings(defaultNotificationSettings)}
           className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
         >
           Reset to Defaults
@@ -127,7 +131,7 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
               <input
                 type="checkbox"
                 checked={notifications.enabled}
-                onChange={(e) => onUpdate({ ...notifications, enabled: e.target.checked })}
+                onChange={(e) => updateNotificationSettings({ ...notifications, enabled: e.target.checked })}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 dark:peer-focus:ring-blue-600 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
@@ -167,7 +171,7 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
                 <input
                   type="checkbox"
                   checked={notifications.notifyOverdue}
-                  onChange={(e) => onUpdate({ ...notifications, notifyOverdue: e.target.checked })}
+                  onChange={(e) => updateNotificationSettings({ ...notifications, notifyOverdue: e.target.checked })}
                   className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
                 />
               </label>
@@ -186,7 +190,7 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
                 <input
                   type="checkbox"
                   checked={notifications.notifyDueToday}
-                  onChange={(e) => onUpdate({ ...notifications, notifyDueToday: e.target.checked })}
+                  onChange={(e) => updateNotificationSettings({ ...notifications, notifyDueToday: e.target.checked })}
                   className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
                 />
               </label>
@@ -205,7 +209,7 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
                 <input
                   type="checkbox"
                   checked={notifications.notifyDueSoon}
-                  onChange={(e) => onUpdate({ ...notifications, notifyDueSoon: e.target.checked })}
+                  onChange={(e) => updateNotificationSettings({ ...notifications, notifyDueSoon: e.target.checked })}
                   className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
                 />
               </label>
@@ -219,7 +223,10 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
                   <select
                     value={notifications.dueSoonHours}
                     onChange={(e) =>
-                      onUpdate({ ...notifications, dueSoonHours: getDurationHour(parseInt(e.target.value)) })
+                      updateNotificationSettings({
+                        ...notifications,
+                        dueSoonHours: getDurationHour(parseInt(e.target.value)),
+                      })
                     }
                     className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
@@ -240,7 +247,10 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
                 <select
                   value={notifications.checkInterval}
                   onChange={(e) =>
-                    onUpdate({ ...notifications, checkInterval: getDurationMin(parseInt(e.target.value)) })
+                    updateNotificationSettings({
+                      ...notifications,
+                      checkInterval: getDurationMin(parseInt(e.target.value)),
+                    })
                   }
                   className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >

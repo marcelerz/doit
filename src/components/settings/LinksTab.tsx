@@ -3,17 +3,13 @@
 import { useState } from "react";
 import { LinkPattern } from "@/types/linkPattern";
 import { getColor } from "@/types/types";
+import { useSettings } from "@/hooks/useSettings";
 import { IconButton } from "@/components/shared/IconButton";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { SettingsLoading } from "./SettingsLoading";
 
-interface LinksTabProps {
-  linkPatterns: LinkPattern[];
-  onAdd: (pattern: Omit<LinkPattern, "id">) => void;
-  onUpdate: (id: string, updates: Partial<LinkPattern>) => void;
-  onDelete: (id: string) => void;
-}
-
-export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabProps) {
+export function LinksTab() {
+  const { settings, isLoaded, addLinkPattern, updateLinkPattern, deleteLinkPattern } = useSettings();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -22,6 +18,12 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
     description: "",
     color: "#3b82f6",
   });
+
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
+
+  const linkPatterns = settings.linkPatterns;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,10 +37,10 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
     };
 
     if (editingId) {
-      onUpdate(editingId, patternData);
+      updateLinkPattern(editingId, patternData);
       setEditingId(null);
     } else {
-      onAdd(patternData);
+      addLinkPattern(patternData);
     }
 
     setFormData({ prefix: "", urlTemplate: "", description: "", color: "#3b82f6" });
@@ -188,7 +190,7 @@ export function LinksTab({ linkPatterns, onAdd, onUpdate, onDelete }: LinksTabPr
               </div>
               <div className="flex gap-2">
                 <IconButton icon="edit" onClick={() => handleEdit(pattern)} />
-                <IconButton icon="delete" onClick={() => onDelete(pattern.id)} />
+                <IconButton icon="delete" onClick={() => deleteLinkPattern(pattern.id)} />
               </div>
             </div>
           ))

@@ -3,9 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSettings } from "@/hooks/useSettings";
-import { usePeople } from "@/hooks/usePeople";
-import { useProjects } from "@/hooks/useProjects";
-import { useTodos } from "@/hooks/useTodos";
 import { PrioritiesTab } from "@/components/settings/PrioritiesTab";
 import { LinksTab } from "@/components/settings/LinksTab";
 import { MarkersTab } from "@/components/settings/MarkersTab";
@@ -101,39 +98,9 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  const {
-    settings,
-    isLoaded: settingsLoaded,
-    addPriority,
-    updatePriority,
-    deletePriority,
-    addLinkPattern,
-    updateLinkPattern,
-    deleteLinkPattern,
-    updateMarkerColors,
-    updateGeneralSettings,
-    updateDateTimeSettings,
-    updateWorkHoursSettings,
-    updateGantt,
-    updateKanbanSettings,
-    updateSprintSettings,
-    updateFocusSettings,
-    updateCalendar,
-    updateNotificationSettings,
-    updateAutoAssignSettings,
-    addCategory,
-    updateCategory,
-    deleteCategory,
-    updateFeatureSettings,
-  } = useSettings();
+  const { settings, isLoaded: settingsLoaded } = useSettings();
 
-  const { people, isLoaded: peopleLoaded } = usePeople();
-  const { projects, isLoaded: projectsLoaded } = useProjects();
-  const { importTodos: importTodosToStore, isLoaded: todosLoaded } = useTodos();
-
-  const isLoaded = settingsLoaded && peopleLoaded && projectsLoaded && todosLoaded;
-
-  if (!isLoaded) {
+  if (!settingsLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800">
         <div className="text-zinc-600 dark:text-zinc-400">Loading...</div>
@@ -258,82 +225,37 @@ export default function SettingsPage() {
             {(() => {
               switch (activeTab) {
                 case "general":
-                  return (
-                    <GeneralTab
-                      general={settings.general}
-                      features={settings.features}
-                      onUpdate={updateGeneralSettings}
-                      onUpdateFeatures={updateFeatureSettings}
-                    />
-                  );
+                  return <GeneralTab />;
                 case "datetime":
-                  return <DateTimeTab dateTime={settings.dateTime} onUpdate={updateDateTimeSettings} />;
+                  return <DateTimeTab />;
                 case "workhours":
-                  return <WorkHoursTab workHours={settings.workHours} onUpdate={updateWorkHoursSettings} />;
+                  return <WorkHoursTab />;
                 case "gantt":
-                  return <GanttTab gantt={settings.gantt} onUpdate={updateGantt} />;
+                  return <GanttTab />;
                 case "kanban":
-                  return <KanbanTab kanban={settings.kanban} onUpdate={updateKanbanSettings} />;
+                  return <KanbanTab />;
                 case "sprints":
-                  return <SprintsTab sprints={settings.sprints} onUpdate={updateSprintSettings} />;
+                  return <SprintsTab />;
                 case "focus":
-                  return <FocusTab focus={settings.focus} onUpdate={updateFocusSettings} />;
+                  return <FocusTab />;
                 case "calendar":
-                  return <CalendarTab calendar={settings.calendar} onUpdate={updateCalendar} />;
+                  return <CalendarTab />;
                 case "categories":
-                  return (
-                    <CategoriesTab
-                      categories={settings.categories}
-                      onAdd={addCategory}
-                      onUpdate={updateCategory}
-                      onDelete={deleteCategory}
-                    />
-                  );
+                  return <CategoriesTab />;
                 case "autoassign":
-                  return (
-                    <AutoAssignTab
-                      autoAssign={settings.autoAssign}
-                      people={people}
-                      projects={projects}
-                      priorities={settings.priorities}
-                      onUpdate={updateAutoAssignSettings}
-                    />
-                  );
+                  return <AutoAssignTab />;
                 case "notifications":
-                  return (
-                    <NotificationsTab notifications={settings.notifications} onUpdate={updateNotificationSettings} />
-                  );
+                  return <NotificationsTab />;
                 case "priorities":
-                  return (
-                    <PrioritiesTab
-                      priorities={settings.priorities}
-                      onAdd={addPriority}
-                      onUpdate={updatePriority}
-                      onDelete={deletePriority}
-                    />
-                  );
+                  return <PrioritiesTab />;
                 case "links":
-                  return (
-                    <LinksTab
-                      linkPatterns={settings.linkPatterns}
-                      onAdd={addLinkPattern}
-                      onUpdate={updateLinkPattern}
-                      onDelete={deleteLinkPattern}
-                    />
-                  );
+                  return <LinksTab />;
                 case "markers":
-                  return <MarkersTab markerColors={settings.markerColors} onUpdate={updateMarkerColors} />;
+                  return <MarkersTab />;
                 case "backup":
                   return <BackupTab />;
                 case "import":
-                  return (
-                    <ImportTab
-                      onImport={importTodosToStore}
-                      existingProjects={projects.map((p) => p.name)}
-                      existingPeople={people.map((p) => p.name)}
-                      existingPriorities={settings.priorities.map((p) => p.name)}
-                    />
-                  );
+                  return <ImportTab />;
                 case "storage":
                   return <StorageTab />;
                 default: {

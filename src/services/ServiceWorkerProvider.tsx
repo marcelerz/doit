@@ -56,7 +56,7 @@ export default function ServiceWorkerProvider() {
           aria-live="polite"
         >
           <div className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg shadow-lg">
-            <WifiOffIcon className="w-5 h-5" aria-hidden="true" />
+            <WifiOffIcon className="w-5 h-5" aria-hidden={true} />
             <span className="font-medium">You&apos;re offline</span>
           </div>
         </div>
@@ -66,7 +66,7 @@ export default function ServiceWorkerProvider() {
       {showUpdateToast && (
         <div className="fixed bottom-4 right-4 z-[9999] animate-slide-up" role="alert" aria-live="polite">
           <div className="flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg shadow-lg">
-            <RefreshIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+            <RefreshIcon className="w-5 h-5 flex-shrink-0" aria-hidden={true} />
             <div className="flex-1">
               <p className="font-medium">Update available</p>
               <p className="text-blue-100 text-sm">A new version of DoIt is ready</p>

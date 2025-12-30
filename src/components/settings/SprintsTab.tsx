@@ -2,14 +2,19 @@
 
 import { SprintSettings, defaultSprintSettings } from "@/types/settings";
 import { getDurationDay } from "@/types/time";
+import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { SettingsLoading } from "./SettingsLoading";
 
-interface SprintsTabProps {
-  sprints: SprintSettings;
-  onUpdate: (sprints: SprintSettings) => void;
-}
+export function SprintsTab() {
+  const { settings, isLoaded, updateSprintSettings } = useSettings();
 
-export function SprintsTab({ sprints, onUpdate }: SprintsTabProps) {
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
+
+  const sprints = settings.sprints;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -23,7 +28,7 @@ export function SprintsTab({ sprints, onUpdate }: SprintsTabProps) {
           </p>
         </div>
         <button
-          onClick={() => onUpdate(defaultSprintSettings)}
+          onClick={() => updateSprintSettings(defaultSprintSettings)}
           className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
         >
           Reset to Defaults
@@ -42,7 +47,10 @@ export function SprintsTab({ sprints, onUpdate }: SprintsTabProps) {
             max="90"
             value={sprints.defaultSprintDuration}
             onChange={(e) =>
-              onUpdate({ ...sprints, defaultSprintDuration: getDurationDay(parseInt(e.target.value) || 14) })
+              updateSprintSettings({
+                ...sprints,
+                defaultSprintDuration: getDurationDay(parseInt(e.target.value) || 14),
+              })
             }
             className="w-full max-w-xs px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -56,7 +64,7 @@ export function SprintsTab({ sprints, onUpdate }: SprintsTabProps) {
             type="checkbox"
             id="showBacklogInSprint"
             checked={sprints.showBacklogInSprint}
-            onChange={(e) => onUpdate({ ...sprints, showBacklogInSprint: e.target.checked })}
+            onChange={(e) => updateSprintSettings({ ...sprints, showBacklogInSprint: e.target.checked })}
             className="h-4 w-4 mt-0.5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
           />
           <div>

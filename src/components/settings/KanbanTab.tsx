@@ -7,17 +7,15 @@ import { KanbanView, defaultKanbanViews, getKanbanViewId } from "@/types/kanbanV
 import { getColor } from "@/types/types";
 import { useState } from "react";
 import { SettingsModel } from "@/models/SettingsModel";
+import { useSettings } from "@/hooks/useSettings";
 import { IconButton } from "@/components/shared/IconButton";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
-
-interface KanbanTabProps {
-  kanban: KanbanSettings;
-  onUpdate: (kanban: KanbanSettings) => void;
-}
+import { SettingsLoading } from "./SettingsLoading";
 
 const AVAILABLE_ICONS = ["📋", "📝", "🔄", "👀", "✅", "📦", "🚀", "⏳", "🎯", "💡", "🔥", "⭐", "🏷️", "📌"];
 
-export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
+export function KanbanTab() {
+  const { settings, isLoaded, updateKanbanSettings } = useSettings();
   const [activeSection, setActiveSection] = useState<"states" | "transitions" | "views">("states");
   const [editingState, setEditingState] = useState<KanbanState | null>(null);
   const [editingView, setEditingView] = useState<KanbanView | null>(null);
@@ -30,8 +28,14 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
   const [newViewDescription, setNewViewDescription] = useState("");
   const [newViewStates, setNewViewStates] = useState<string[]>([]);
 
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
+
+  const kanban = settings.kanban;
+
   const handleResetToDefaults = () => {
-    onUpdate({
+    updateKanbanSettings({
       ...kanban,
       states: defaultKanbanStates,
       allowedTransitions: defaultKanbanTransitions,
@@ -52,7 +56,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
       order: kanban.states.length,
     };
 
-    onUpdate({
+    updateKanbanSettings({
       ...kanban,
       states: [...kanban.states, newState],
     });
@@ -64,7 +68,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
   };
 
   const handleUpdateState = (state: KanbanState) => {
-    onUpdate({
+    updateKanbanSettings({
       ...kanban,
       states: kanban.states.map((s) => (s.id === state.id ? state : s)),
     });
@@ -76,7 +80,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
     if (state?.isSystem) return; // Can't delete system states
 
     // Remove state and any transitions involving it
-    onUpdate({
+    updateKanbanSettings({
       ...kanban,
       states: kanban.states.filter((s) => s.id !== stateId),
       allowedTransitions: kanban.allowedTransitions.filter((t) => t.fromStateId !== stateId && t.toStateId !== stateId),
@@ -101,7 +105,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
     // Update order values
     const updatedStates = states.map((s, i) => ({ ...s, order: i }));
 
-    onUpdate({
+    updateKanbanSettings({
       ...kanban,
       states: updatedStates,
     });
@@ -112,14 +116,14 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
     const exists = kanban.allowedTransitions.some((t) => t.fromStateId === fromStateId && t.toStateId === toStateId);
 
     if (exists) {
-      onUpdate({
+      updateKanbanSettings({
         ...kanban,
         allowedTransitions: kanban.allowedTransitions.filter(
           (t) => !(t.fromStateId === fromStateId && t.toStateId === toStateId),
         ),
       });
     } else {
-      onUpdate({
+      updateKanbanSettings({
         ...kanban,
         allowedTransitions: [
           ...kanban.allowedTransitions,
@@ -140,7 +144,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
       stateIds: newViewStates.map(getKanbanStateId),
     };
 
-    onUpdate({
+    updateKanbanSettings({
       ...kanban,
       views: [...kanban.views, newView],
     });
@@ -152,7 +156,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
   };
 
   const handleUpdateView = (view: KanbanView) => {
-    onUpdate({
+    updateKanbanSettings({
       ...kanban,
       views: kanban.views.map((v) => (v.id === view.id ? view : v)),
     });
@@ -163,7 +167,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
     // Don't allow deleting the last view
     if (kanban.views.length <= 1) return;
 
-    onUpdate({
+    updateKanbanSettings({
       ...kanban,
       views: kanban.views.filter((v) => v.id !== viewId),
       activeViewId: kanban.activeViewId === viewId ? kanban.views[0].id : kanban.activeViewId,
@@ -171,7 +175,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
   };
 
   const handleSetDefaultView = (viewId: string) => {
-    onUpdate({
+    updateKanbanSettings({
       ...kanban,
       views: kanban.views.map((v) => ({
         ...v,
@@ -182,7 +186,7 @@ export function KanbanTab({ kanban, onUpdate }: KanbanTabProps) {
 
   // Options management
   const handleToggleOption = (option: "showEmptyColumns" | "showTaskCount") => {
-    onUpdate({
+    updateKanbanSettings({
       ...kanban,
       [option]: !kanban[option],
     });

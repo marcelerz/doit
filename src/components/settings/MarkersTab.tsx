@@ -2,12 +2,9 @@
 
 import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
 import { getColor } from "@/types/types";
+import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
-
-interface MarkersTabProps {
-  markerColors: MarkerColors;
-  onUpdate: (colors: Partial<MarkerColors>) => void;
-}
+import { SettingsLoading } from "./SettingsLoading";
 
 const markerInfo = [
   {
@@ -66,13 +63,21 @@ const markerInfo = [
   },
 ];
 
-export function MarkersTab({ markerColors, onUpdate }: MarkersTabProps) {
+export function MarkersTab() {
+  const { settings, isLoaded, updateMarkerColors } = useSettings();
+
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
+
+  const markerColors = settings.markerColors;
+
   const handleColorChange = (key: keyof MarkerColors, color: string) => {
-    onUpdate({ [key]: getColor(color) } as Partial<MarkerColors>);
+    updateMarkerColors({ [key]: getColor(color) } as Partial<MarkerColors>);
   };
 
   const handleResetToDefaults = () => {
-    onUpdate(defaultMarkerColors);
+    updateMarkerColors(defaultMarkerColors);
   };
 
   return (
