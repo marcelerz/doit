@@ -25,6 +25,27 @@ import { CategoriesTab } from "@/components/settings/CategoriesTab";
 import { ImportTab } from "@/components/settings/ImportTab";
 import { MenuIcon, ArrowLeftIcon } from "@/components/shared/Icons";
 
+type Tab =
+  | "general"
+  | "datetime"
+  | "workhours"
+  | "gantt"
+  | "kanban"
+  | "sprints"
+  | "focus"
+  | "calendar"
+  | "categories"
+  | "autoassign"
+  | "notifications"
+  | "priorities"
+  | "links"
+  | "markers"
+  | "backup"
+  | "import"
+  | "storage";
+
+type Feature = "ganttView" | "kanbanView" | "calendarView" | "sprintsView" | "focusMode";
+
 // Organized tab groups for sidebar navigation
 const tabGroups = [
   {
@@ -74,26 +95,7 @@ const tabGroups = [
       { key: "storage", label: "Storage" },
     ],
   },
-] as const;
-
-type Tab =
-  | "general"
-  | "datetime"
-  | "workhours"
-  | "gantt"
-  | "kanban"
-  | "sprints"
-  | "focus"
-  | "calendar"
-  | "categories"
-  | "autoassign"
-  | "notifications"
-  | "priorities"
-  | "links"
-  | "markers"
-  | "backup"
-  | "import"
-  | "storage";
+] as Array<{ name: string; tabs: Array<{ key: Tab; label: string; feature?: Feature }> }>;
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
@@ -126,9 +128,7 @@ export default function SettingsPage() {
   } = useSettings();
 
   const { people, isLoaded: peopleLoaded } = usePeople();
-
   const { projects, isLoaded: projectsLoaded } = useProjects();
-
   const { importTodos: importTodosToStore, isLoaded: todosLoaded } = useTodos();
 
   const isLoaded = settingsLoaded && peopleLoaded && projectsLoaded && todosLoaded;
@@ -142,9 +142,9 @@ export default function SettingsPage() {
   }
 
   // Check if a tab should be visible based on feature settings
-  const isTabVisible = (tab: { key: string; feature?: string }) => {
+  const isTabVisible = (tab: { key: Tab; feature?: Feature }) => {
     if (tab.feature && settings.features) {
-      return settings.features[tab.feature as keyof typeof settings.features];
+      return settings.features[tab.feature];
     }
     return true;
   };
@@ -326,7 +326,14 @@ export default function SettingsPage() {
                 case "backup":
                   return <BackupTab />;
                 case "import":
-                  return <ImportTab onImport={importTodosToStore} existingProjects={projects.map((p) => p.name)} />;
+                  return (
+                    <ImportTab
+                      onImport={importTodosToStore}
+                      existingProjects={projects.map((p) => p.name)}
+                      existingPeople={people.map((p) => p.name)}
+                      existingPriorities={settings.priorities.map((p) => p.name)}
+                    />
+                  );
                 case "storage":
                   return <StorageTab />;
                 default: {

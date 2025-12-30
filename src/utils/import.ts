@@ -34,6 +34,7 @@ export interface ImportedTodo {
   project?: string;
   tags: string[];
   subtasks: string[];
+  assignedPeople: string[]; // People assigned to the task
 
   // Source-specific
   source: ImportFormat;
@@ -146,6 +147,7 @@ export function parseTodoist(content: string): ImportResult {
           project: item.project_name || item.project || undefined,
           tags: item.labels || [],
           subtasks: [],
+          assignedPeople: item.responsible_uid ? [item.responsible_uid.toString()] : [],
           source: "todoist",
           rawData: item,
         };
@@ -223,6 +225,7 @@ export function parseThings(content: string): ImportResult {
           project: item.project || item.area || undefined,
           tags: Array.isArray(item.tags) ? item.tags.map((t: any) => t.title || t) : [],
           subtasks: [],
+          assignedPeople: [],
           source: "things",
           rawData: item,
         };
@@ -271,6 +274,7 @@ export function parseReminders(content: string): ImportResult {
           project: item.list || item.listName || undefined,
           tags: item.tags || [],
           subtasks: [],
+          assignedPeople: [],
           source: "reminders",
           rawData: item,
         };
@@ -363,6 +367,7 @@ export function parseCSV(content: string, mapping?: FieldMapping): ImportResult 
     const priorityIndex = findColumnIndex(headers, [fieldMap.priority || "", "priority", "importance", "urgency"]);
     const projectIndex = findColumnIndex(headers, [fieldMap.project || "", "project", "list", "category", "folder"]);
     const tagsIndex = findColumnIndex(headers, [fieldMap.tags || "", "tags", "labels", "categories"]);
+    const assignedIndex = findColumnIndex(headers, ["assigned", "assignee", "owner", "responsible", "assigned_to"]);
 
     for (let i = 1; i < lines.length; i++) {
       const row = lines[i];
@@ -386,6 +391,14 @@ export function parseCSV(content: string, mapping?: FieldMapping): ImportResult 
               .filter(Boolean)
           : [];
 
+        const assignedValue = assignedIndex >= 0 ? row[assignedIndex] : "";
+        const assignedPeople = assignedValue
+          ? assignedValue
+              .split(/[,;|]/)
+              .map((p) => p.trim())
+              .filter(Boolean)
+          : [];
+
         const todo: ImportedTodo = {
           title: title.trim(),
           notes: notesIndex >= 0 ? row[notesIndex] : undefined,
@@ -395,6 +408,7 @@ export function parseCSV(content: string, mapping?: FieldMapping): ImportResult 
           project: projectIndex >= 0 ? row[projectIndex] : undefined,
           tags,
           subtasks: [],
+          assignedPeople,
           source: "csv",
         };
 
@@ -533,6 +547,7 @@ export function parseJSON(content: string): ImportResult {
             project: item.metadata?.projects?.[0],
             tags: item.metadata?.tags || [],
             subtasks: item.subtasks?.map((s: Subtask) => s.text) || [],
+            assignedPeople: item.metadata?.assignedPeople || [],
             source: "json",
             rawData: item,
           };
@@ -558,6 +573,13 @@ export function parseJSON(content: string): ImportResult {
           tags: Array.isArray(item.tags) ? item.tags : item.labels || [],
           subtasks: Array.isArray(item.subtasks)
             ? item.subtasks.map((s: any) => (typeof s === "string" ? s : s.title || s.text || "")).filter(Boolean)
+            : [],
+          assignedPeople: Array.isArray(item.assigned)
+            ? item.assigned
+            : item.assignee
+            ? [item.assignee]
+            : item.assigned_to
+            ? [item.assigned_to]
             : [],
           source: "json",
           rawData: item,
@@ -597,15 +619,47 @@ export function importTodos(content: string, format: ImportFormat = "auto", file
 }
 
 /**
- * Convert ImportedTodo to our Todo format
+ * Find a matching name in a list (case-insensitive)
  */
-export function convertToTodo(imported: ImportedTodo, existingProjects: string[] = []): Omit<Todo, "id"> {
+function findMatchingName(name: string, existingNames: string[]): string | undefined {
+  const lowerName = name.toLowerCase();
+  return existingNames.find((n) => n.toLowerCase() === lowerName);
+}
+
+/**
+ * Convert ImportedTodo to our Todo format
+ *
+ * Note: This returns a Todo with string-based metadata that will be resolved
+ * to IDs by the useTodos hook when the todo is added. The matching here
+ * ensures that names match existing entities (case-insensitive).
+ */
+export function convertToTodo(imported: ImportedTodo, options: ConvertOptions = {}): Omit<Todo, "id"> {
+  const { projects = [], people = [], priorities = [] } = options;
   const now = Date.now();
 
-  // Build text with markers
+  // Match project name to existing project (case-insensitive)
+  const matchedProject = imported.project ? findMatchingName(imported.project, projects) : undefined;
+
+  // Match priority name to existing priority (case-insensitive)
+  const matchedPriority = imported.priority ? findMatchingName(imported.priority, priorities) : undefined;
+
+  // Match assigned people to existing people (case-insensitive)
+  const matchedPeople = (imported.assignedPeople ?? []).map((name) => findMatchingName(name, people) || name);
+
+  // Build text with markers - use matched names or original if no match
   let text = imported.title;
-  if (imported.project) text += ` %${imported.project}`;
-  if (imported.priority) text += ` !!${imported.priority}`;
+
+  // Add assigned people markers
+  matchedPeople.forEach((person) => {
+    text += ` @${person}`;
+  });
+
+  if (imported.project) {
+    text += ` %${matchedProject || imported.project}`;
+  }
+  if (imported.priority) {
+    text += ` !!${matchedPriority || imported.priority}`;
+  }
   imported.tags.forEach((tag) => {
     text += ` #${tag}`;
   });
@@ -633,8 +687,8 @@ export function convertToTodo(imported: ImportedTodo, existingProjects: string[]
     assignedPeople: [],
     sourcePeople: [],
     mentionedPeople: [],
-    projects: [], // Note: Projects are strings in imported data but need to be ProjectIds after resolution
-    priority: undefined, // Note: Needs to be resolved to PriorityId
+    projects: [], // Will be resolved by useTodos from text markers
+    priority: undefined, // Will be resolved by useTodos from text markers
     dueDate: imported.dueDate ? getTimestamp(new Date(imported.dueDate).getTime()) : undefined,
     duration: undefined,
     recurring: undefined,
@@ -652,8 +706,17 @@ export function convertToTodo(imported: ImportedTodo, existingProjects: string[]
 }
 
 /**
+ * Options for converting imported todos
+ */
+export interface ConvertOptions {
+  projects?: string[];
+  people?: string[];
+  priorities?: string[];
+}
+
+/**
  * Batch convert imported todos
  */
-export function convertAllToTodos(imported: ImportedTodo[], existingProjects: string[] = []): Array<Omit<Todo, "id">> {
-  return imported.map((item) => convertToTodo(item, existingProjects));
+export function convertAllToTodos(imported: ImportedTodo[], options: ConvertOptions = {}): Array<Omit<Todo, "id">> {
+  return imported.map((item) => convertToTodo(item, options));
 }

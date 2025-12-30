@@ -8,11 +8,18 @@ import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 interface ImportTabProps {
   onImport: (todos: Array<Omit<Todo, "id">>) => void;
   existingProjects?: string[];
+  existingPeople?: string[];
+  existingPriorities?: string[];
 }
 
 type ImportStep = "upload" | "preview" | "complete";
 
-export function ImportTab({ onImport, existingProjects = [] }: ImportTabProps) {
+export function ImportTab({
+  onImport,
+  existingProjects = [],
+  existingPeople = [],
+  existingPriorities = [],
+}: ImportTabProps) {
   const [step, setStep] = useState<ImportStep>("upload");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [selectedTodos, setSelectedTodos] = useState<Set<number>>(new Set());
@@ -91,7 +98,11 @@ export function ImportTab({ onImport, existingProjects = [] }: ImportTabProps) {
     if (!result) return;
 
     const todosToImport = result.todos.filter((_, i) => selectedTodos.has(i));
-    const converted = convertAllToTodos(todosToImport, existingProjects);
+    const converted = convertAllToTodos(todosToImport, {
+      projects: existingProjects,
+      people: existingPeople,
+      priorities: existingPriorities,
+    });
 
     onImport(converted);
     setImportedCount(converted.length);
@@ -442,6 +453,14 @@ function TodoPreviewItem({ todo, selected, onToggle }: TodoPreviewItemProps) {
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
+          {todo.assignedPeople.map((person, i) => (
+            <span
+              key={i}
+              className="px-1.5 py-0.5 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 rounded"
+            >
+              👤 {person}
+            </span>
+          ))}
           {todo.dueDate && (
             <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
               📅 {todo.dueDate}
