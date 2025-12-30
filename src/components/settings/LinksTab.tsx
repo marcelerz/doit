@@ -20,22 +20,26 @@ const tooltip = (
   </div>
 );
 
+const getFormDefaults = () => ({
+  prefix: "",
+  urlTemplate: "",
+  description: "",
+  color: "#3b82f6",
+});
+
 export function LinksTab() {
   const { settings, isLoaded, addLinkPattern, updateLinkPattern, deleteLinkPattern } = useSettings();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    prefix: "",
-    urlTemplate: "",
-    description: "",
-    color: "#3b82f6",
-  });
+  const [formData, setFormData] = useState(getFormDefaults());
 
   if (!isLoaded) {
     return <SettingsLoading />;
   }
 
   const linkPatterns = settings.linkPatterns;
+
+  const canAdd = () => formData.prefix.trim() !== "" && formData.urlTemplate.trim() !== "";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +59,7 @@ export function LinksTab() {
       addLinkPattern(patternData);
     }
 
-    setFormData({ prefix: "", urlTemplate: "", description: "", color: "#3b82f6" });
+    setFormData(getFormDefaults());
     setIsAdding(false);
   };
 
@@ -73,7 +77,7 @@ export function LinksTab() {
   const handleCancel = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ prefix: "", urlTemplate: "", description: "", color: "#3b82f6" });
+    setFormData(getFormDefaults());
   };
 
   return (
@@ -98,12 +102,10 @@ export function LinksTab() {
       {isAdding && (
         <form
           onSubmit={handleSubmit}
-          className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-3"
+          className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-3"
         >
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              Prefix (Capital Letter) *
-            </label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Prefix</label>
             <input
               type="text"
               value={formData.prefix}
@@ -120,7 +122,7 @@ export function LinksTab() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">URL Template *</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">URL Template</label>
             <input
               type="text"
               value={formData.urlTemplate}
@@ -135,7 +137,9 @@ export function LinksTab() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Description</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              Description (optional)
+            </label>
             <input
               type="text"
               value={formData.description}
@@ -146,19 +150,30 @@ export function LinksTab() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Link Color</label>
-            <input
-              type="color"
-              value={formData.color}
-              onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-              className="w-full h-10 rounded-md border border-zinc-300 dark:border-zinc-600 cursor-pointer"
-            />
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              Link Color (optional)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                value={formData.color}
+                onChange={(e) => setFormData({ ...formData, color: getColor(e.target.value) })}
+                className="w-10 h-10 rounded cursor-pointer border border-zinc-300 dark:border-zinc-600"
+              />
+              <input
+                type="text"
+                value={formData.color}
+                onChange={(e) => setFormData({ ...formData, color: getColor(e.target.value) })}
+                className="flex-1 px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded-md text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              />
+            </div>
           </div>
 
           <div className="flex gap-2">
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors"
+              disabled={!canAdd()}
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
             >
               {editingId ? "Update" : "Add"} Pattern
             </button>
@@ -182,7 +197,7 @@ export function LinksTab() {
           linkPatterns.map((pattern) => (
             <div
               key={pattern.id}
-              className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 flex items-center gap-4"
+              className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 flex items-center gap-4"
             >
               <div
                 className="w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg text-white"
