@@ -4,8 +4,11 @@ import { useState } from "react";
 import { ProjectCategory } from "@/types/project";
 import { getColor } from "@/types/types";
 import { useSettings } from "@/hooks/useSettings";
+import { useProjects } from "@/hooks/useProjects";
 import { SettingsLoading } from "./SettingsLoading";
 import { SettingsHeader } from "./SettingsHeader";
+import { NoticeBox } from "../shared/NoticeBox";
+import { IconButton } from "@/components/shared/IconButton";
 
 const tooltip = (
   <div className="space-y-2">
@@ -18,16 +21,19 @@ const tooltip = (
   </div>
 );
 
+const getCategoryDefaults = (): Omit<ProjectCategory, "id"> => ({
+  name: "",
+  color: getColor("#3b82f6"),
+  description: "",
+});
+
 export function CategoriesTab() {
   const { settings, isLoaded, addCategory, updateCategory, deleteCategory } = useSettings();
+  const { projects, updateProject } = useProjects();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<ProjectCategory>>({});
   const [isAdding, setIsAdding] = useState(false);
-  const [newCategory, setNewCategory] = useState<Omit<ProjectCategory, "id">>({
-    name: "",
-    color: getColor("#3b82f6"),
-    description: "",
-  });
+  const [newCategory, setNewCategory] = useState<Omit<ProjectCategory, "id">>(getCategoryDefaults());
 
   if (!isLoaded) {
     return <SettingsLoading />;
@@ -35,14 +41,17 @@ export function CategoriesTab() {
 
   const categories = settings.categories;
 
+  const canAdd = () => newCategory.name.trim() !== "";
+  const canEdit = () => editingId !== null && editForm.name?.trim() !== "";
+
   const handleStartEdit = (category: ProjectCategory) => {
     setEditingId(category.id);
     setEditForm({ ...category });
   };
 
   const handleSaveEdit = () => {
-    if (editingId && editForm.name?.trim()) {
-      updateCategory(editingId, editForm);
+    if (canEdit()) {
+      updateCategory(editingId!, editForm);
       setEditingId(null);
       setEditForm({});
     }
@@ -54,15 +63,27 @@ export function CategoriesTab() {
   };
 
   const handleAdd = () => {
-    if (newCategory.name.trim()) {
+    if (canAdd()) {
       addCategory(newCategory);
-      setNewCategory({
-        name: "",
-        color: getColor("#3b82f6"),
-        description: "",
-      });
+      setNewCategory(getCategoryDefaults());
       setIsAdding(false);
     }
+  };
+
+  const handleCancelAdd = () => {
+    setIsAdding(false);
+    setNewCategory(getCategoryDefaults());
+  };
+
+  const handleDelete = (categoryId: string) => {
+    // Clear category from all projects that use it
+    projects.forEach((project) => {
+      if (project.category === categoryId) {
+        updateProject(project.id, { category: undefined });
+      }
+    });
+    // Delete the category
+    deleteCategory(categoryId);
   };
 
   return (
@@ -70,9 +91,9 @@ export function CategoriesTab() {
       <SettingsHeader
         title="Project Categories"
         tooltip={tooltip}
-        description="Organize your projects into categories like 'Work', 'Personal', or client names. Categories can be assigned to projects and used to schedule specific types of work during designated time blocks."
+        description="Organize your projects into categories like 'Work', 'Personal', or client names. Categories can be assigned to projects."
         action={{
-          label: "Add Category",
+          label: "Add",
           onClick: () => setIsAdding(true),
           variant: "primary",
           hidden: isAdding,
@@ -127,16 +148,13 @@ export function CategoriesTab() {
             <div className="flex gap-2">
               <button
                 onClick={handleAdd}
-                disabled={!newCategory.name.trim()}
+                disabled={!canAdd()}
                 className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
               >
                 Add Category
               </button>
               <button
-                onClick={() => {
-                  setIsAdding(false);
-                  setNewCategory({ name: "", color: getColor("#3b82f6"), description: "" });
-                }}
+                onClick={handleCancelAdd}
                 className="flex-1 px-4 py-2 bg-zinc-300 hover:bg-zinc-400 dark:bg-zinc-600 dark:hover:bg-zinc-500 text-zinc-900 dark:text-zinc-100 rounded-md font-medium transition-colors"
               >
                 Cancel
@@ -201,7 +219,8 @@ export function CategoriesTab() {
                   <div className="flex gap-2">
                     <button
                       onClick={handleSaveEdit}
-                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors"
+                      disabled={!canEdit()}
+                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
                     >
                       Save
                     </button>
@@ -227,19 +246,9 @@ export function CategoriesTab() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => handleStartEdit(category)}
-                      className="px-3 py-1.5 text-sm bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-md transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => deleteCategory(category.id)}
-                      className="px-3 py-1.5 text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors"
-                    >
-                      Delete
-                    </button>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <IconButton icon="edit" onClick={() => handleStartEdit(category)} />
+                    <IconButton icon="delete" onClick={() => handleDelete(category.id)} />
                   </div>
                 </div>
               )}
@@ -248,16 +257,13 @@ export function CategoriesTab() {
         )}
       </div>
 
-      {/* Usage info */}
-      <div className="mt-6 p-4 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg">
-        <h3 className="font-medium text-zinc-900 dark:text-zinc-100 mb-2">How to use categories</h3>
-        <ul className="text-sm text-zinc-600 dark:text-zinc-400 space-y-1 list-disc list-inside">
-          <li>Assign categories to projects in the Projects tab or when editing a project</li>
-          <li>In Work Hours settings, assign categories to time blocks to schedule specific work types</li>
-          <li>View time tracked by category in the Statistics view</li>
-          <li>Filter todos by category through their associated projects</li>
-        </ul>
-      </div>
+      <NoticeBox
+        items={[
+          "Assign categories to projects in the Projects tab",
+          "View time tracked by category in the Statistics view",
+          "Filter todos by category through their associated projects",
+        ]}
+      />
     </div>
   );
 }
