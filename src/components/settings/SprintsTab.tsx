@@ -84,7 +84,7 @@ export function SprintsTab() {
       </div>
 
       {/* Info card pointing to main sprints view */}
-      <NoticeBox title="Managing Sprints" icon="💡">
+      <NoticeBox title="Managing Sprints">
         <p>
           To create, start, complete, or archive sprints, go to the <strong>Sprints</strong> tab on the main view. The
           Sprints tab provides full sprint lifecycle management, including burndown charts and velocity tracking.

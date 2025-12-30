@@ -206,7 +206,7 @@ export function LinksTab() {
         )}
       </div>
 
-      <NoticeBox title="How it works">
+      <NoticeBox>
         <p className="mb-2">
           Link patterns convert text like{" "}
           <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">T12345</code> into clickable links.

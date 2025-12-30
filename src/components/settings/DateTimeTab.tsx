@@ -164,7 +164,7 @@ export function DateTimeTab() {
         </div>
 
         <NoticeBox
-          title="ℹ️ Shorthand Date Examples"
+          title="Shorthand Date Examples"
           items={[
             "bod, eod - Beginning/End of day (derived from Work Hours tab)",
             "morning, noon, afternoon, evening - Time-of-day shortcuts",
