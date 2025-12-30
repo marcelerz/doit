@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  GeneralSettings,
-  ThemeMode,
-  FeatureSettings,
-  defaultFeatureSettings,
-  defaultGeneralSettings,
-} from "@/types/settings";
+import { ThemeMode, defaultFeatureSettings, defaultGeneralSettings } from "@/types/settings";
 import { getDurationDay } from "@/types/time";
 import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip } from "@/components/shared/InfoTooltip";
