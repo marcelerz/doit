@@ -24,23 +24,27 @@ const tooltip = (
   </div>
 );
 
+const getPriorityDefaults = (): Omit<Priority, "id" | "comments" | "activity"> => ({
+  name: "",
+  alternatives: [],
+  color: getColor(""),
+  order: 1,
+});
+
 export function PrioritiesTab() {
   const { settings, isLoaded, addPriority, updatePriority, deletePriority } = useSettings();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Priority>>({});
   const [isAdding, setIsAdding] = useState(false);
+  const [newPriority, setNewPriority] = useState(getPriorityDefaults());
 
   if (!isLoaded) {
     return <SettingsLoading />;
   }
 
   const priorities = settings.priorities;
-  const [newPriority, setNewPriority] = useState<Omit<Priority, "id" | "comments" | "activity">>({
-    name: "",
-    alternatives: [],
-    color: getColor(""),
-    order: priorities.length + 1,
-  });
+
+  const canAdd = () => newPriority.name.trim() !== "";
 
   const handleStartEdit = (priority: Priority) => {
     setEditingId(priority.id);
@@ -61,19 +65,20 @@ export function PrioritiesTab() {
   };
 
   const handleAdd = () => {
-    if (newPriority.name.trim()) {
+    if (canAdd()) {
       addPriority({
         ...newPriority,
+        order: priorities.length + 1,
         color: newPriority.color || undefined,
       });
-      setNewPriority({
-        name: "",
-        alternatives: [],
-        color: getColor(""),
-        order: priorities.length + 2,
-      });
+      setNewPriority(getPriorityDefaults());
       setIsAdding(false);
     }
+  };
+
+  const handleCancelAdd = () => {
+    setIsAdding(false);
+    setNewPriority(getPriorityDefaults());
   };
 
   const sortedPriorities = [...priorities].sort((a, b) => a.order - b.order);
@@ -224,20 +229,13 @@ export function PrioritiesTab() {
           <div className="flex gap-2">
             <button
               onClick={handleAdd}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors"
+              disabled={!canAdd()}
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
             >
               Add Priority
             </button>
             <button
-              onClick={() => {
-                setIsAdding(false);
-                setNewPriority({
-                  name: "",
-                  alternatives: [],
-                  color: getColor(""),
-                  order: priorities.length + 1,
-                });
-              }}
+              onClick={handleCancelAdd}
               className="flex-1 px-4 py-2 bg-zinc-300 hover:bg-zinc-400 dark:bg-zinc-600 dark:hover:bg-zinc-500 text-zinc-900 dark:text-zinc-100 rounded-md font-medium transition-colors"
             >
               Cancel
