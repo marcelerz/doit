@@ -158,11 +158,7 @@ export function ImportTab() {
 
   return (
     <div className="space-y-6">
-      <SettingsHeader
-        title="Import Tasks"
-        tooltip={tooltip}
-        description="Import tasks from other apps. Supported formats: Todoist, Things 3, Apple Reminders, CSV, and JSON."
-      />
+      <SettingsHeader title="Import Tasks" tooltip={tooltip} description="Import tasks from other apps." />
 
       {/* Step 1: Upload */}
       {step === "upload" && (
