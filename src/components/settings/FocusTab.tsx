@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FocusSettings, defaultFocusSettings } from "@/types/settings";
+import { defaultFocusSettings } from "@/types/settings";
 import { getDurationMin, getDurationSec } from "@/types/time";
 import { playNotificationSound, AMBIENT_SOUNDS, playAmbientSound, stopAmbientSound } from "@/utils/notifications";
 import { useSettings } from "@/hooks/useSettings";
