@@ -562,10 +562,11 @@ export function CalendarView({
         {calendarSettings.showOverdueBadge && day.overdueTasks.length > 0 && (
           <div className="absolute top-0.5 left-0.5">
             <span
-              className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-red-600 dark:text-red-400"
+              className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-600 dark:text-red-400"
               title={`${day.overdueTasks.length} overdue`}
             >
               <WarningIcon className="w-3 h-3" />
+              {day.overdueTasks.length}
             </span>
           </div>
         )}
@@ -573,16 +574,20 @@ export function CalendarView({
         {/* Recurring indicator */}
         {calendarSettings.showRecurringIndicator && day.recurringTasks.length > 0 && !day.overdueTasks.length && (
           <div className="absolute top-0.5 left-0.5">
-            <span className="text-green-600 dark:text-green-400" title={`${day.recurringTasks.length} recurring`}>
+            <span
+              className="inline-flex items-center gap-0.5 text-[10px] font-medium text-green-600 dark:text-green-400"
+              title={`${day.recurringTasks.length} recurring`}
+            >
               <RefreshIcon className="w-3 h-3" />
+              {day.recurringTasks.length}
             </span>
           </div>
         )}
 
         {/* Todo dots at bottom center */}
         {day.todos.length > 0 && (
-          <div className="absolute bottom-0.5 left-0 right-0 flex justify-center gap-0.5">
-            {day.todos.slice(0, calendarSettings.taskDotLimit).map((todo, j) => {
+          <div className="absolute bottom-0.5 left-0 right-0 flex justify-center items-center gap-0.5">
+            {day.todos.slice(0, calendarSettings.taskDotLimit).map((todo) => {
               const projectColor = getProjectColor(todo);
               return (
                 <div
@@ -594,10 +599,12 @@ export function CalendarView({
               );
             })}
             {day.todos.length > calendarSettings.taskDotLimit && (
-              <div
-                className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600"
+              <span
+                className="text-[8px] text-zinc-500 dark:text-zinc-400 ml-0.5"
                 title={`+${day.todos.length - calendarSettings.taskDotLimit} more`}
-              />
+              >
+                +{day.todos.length - calendarSettings.taskDotLimit}
+              </span>
             )}
           </div>
         )}

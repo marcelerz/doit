@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, CalendarView, CalendarDotColorBy, defaultCalendar } from "@/types/calendar";
+import { CalendarView, CalendarDotColorBy, defaultCalendar } from "@/types/calendar";
 import { getWeekday } from "@/types/time";
 import { useSettings } from "@/hooks/useSettings";
 import { RefreshIcon, WarningSolidIcon } from "@/components/shared/Icons";
@@ -231,32 +231,23 @@ export function CalendarTab() {
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-sm text-zinc-600 dark:text-zinc-400">Dots:</span>
-              <div className="flex gap-0.5">
-                {Array.from({ length: Math.min(calendar.taskDotLimit, 5) }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-2 h-2 rounded-full ${
-                      calendar.dotColorBy === "state"
-                        ? i < 2
-                          ? "bg-blue-500"
-                          : i < 4
-                          ? "bg-green-500"
-                          : "bg-zinc-400"
-                        : calendar.dotColorBy === "priority"
-                        ? i === 0
-                          ? "bg-red-500"
-                          : i === 1
-                          ? "bg-orange-500"
-                          : i === 2
-                          ? "bg-yellow-500"
-                          : "bg-green-500"
-                        : "bg-purple-500"
-                    }`}
-                  />
-                ))}
-                {calendar.taskDotLimit > 5 && (
-                  <span className="text-xs text-zinc-500">+{calendar.taskDotLimit - 5}</span>
-                )}
+              <div className="flex gap-0.5 items-center">
+                {Array.from({ length: calendar.taskDotLimit }).map((_, i) => {
+                  const getDotColor = () => {
+                    if (calendar.dotColorBy === "project") {
+                      return "bg-purple-500";
+                    }
+                    if (calendar.dotColorBy === "priority") {
+                      const priorityColors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-green-500"];
+                      return priorityColors[Math.min(i, priorityColors.length - 1)];
+                    }
+                    // state
+                    const stateColors = ["bg-blue-500", "bg-blue-500", "bg-green-500", "bg-green-500", "bg-zinc-400"];
+                    return stateColors[Math.min(i, stateColors.length - 1)];
+                  };
+                  return <div key={i} className={`w-2 h-2 rounded-full ${getDotColor()}`} />;
+                })}
+                <span className="text-xs text-zinc-500 ml-0.5">+2</span>
               </div>
             </div>
 
@@ -264,7 +255,7 @@ export function CalendarTab() {
               <div className="flex items-center gap-2">
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">Count badge:</span>
                 <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-blue-600 rounded-full">
-                  3
+                  {calendar.taskDotLimit + 2}
                 </span>
               </div>
             )}
@@ -281,8 +272,9 @@ export function CalendarTab() {
             {calendar.showRecurringIndicator && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">Recurring:</span>
-                <span className="text-green-600 dark:text-green-400">
+                <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400">
                   <RefreshIcon className="w-4 h-4" />
+                  <span className="text-xs font-medium">2</span>
                 </span>
               </div>
             )}
