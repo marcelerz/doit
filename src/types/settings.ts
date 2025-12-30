@@ -96,7 +96,10 @@ export interface DateTimeSettings {
   noon: ShortTime; // e.g., "12:00"
   afternoon: ShortTime; // e.g., "15:00"
   evening: ShortTime; // e.g., "19:00"
+  bod: ShortTime; // Beginning of day - e.g., "09:00"
+  eod: ShortTime; // End of day - e.g., "17:00"
   workWeekStart: Weekday; // 0-6, where 0 = Sunday, 1 = Monday
+  workWeekEnd: Weekday; // 0-6, where 0 = Sunday, 6 = Saturday
   fiscalYearStart: Month; // Month (1-12) when fiscal year starts
 }
 
@@ -105,7 +108,10 @@ export const defaultDateTimeSettings: DateTimeSettings = {
   noon: getShortTime("12:00"),
   afternoon: getShortTime("15:00"),
   evening: getShortTime("19:00"),
+  bod: getShortTime("09:00"),
+  eod: getShortTime("17:00"),
   workWeekStart: getWeekday(1), // Monday
+  workWeekEnd: getWeekday(5), // Friday
   fiscalYearStart: getMonth(1), // January
 };
 

@@ -161,28 +161,28 @@ export class SettingsModel {
   }
 
   /**
-   * Get BOD (Beginning of Day) and EOD (End of Day) times for a specific date
+   * Get BOD (Beginning of Day) and EOD (End of Day) times
+   * Now uses directly configured values from DateTimeSettings
    */
-  getBodEod(date: Date): { bod: string; eod: string } {
-    const schedule = this.getScheduleForDate(date);
+  getBodEod(_date?: Date): { bod: string; eod: string } {
     return {
-      bod: schedule?.startTime || "09:00",
-      eod: schedule?.endTime || "17:00",
+      bod: this._raw.dateTime.bod || "09:00",
+      eod: this._raw.dateTime.eod || "17:00",
     };
   }
 
   /**
-   * Get BOD time for a specific date
+   * Get BOD time
    */
-  getBod(date: Date): string {
-    return this.getBodEod(date).bod;
+  getBod(_date?: Date): string {
+    return this._raw.dateTime.bod || "09:00";
   }
 
   /**
-   * Get EOD time for a specific date
+   * Get EOD time
    */
-  getEod(date: Date): string {
-    return this.getBodEod(date).eod;
+  getEod(_date?: Date): string {
+    return this._raw.dateTime.eod || "17:00";
   }
 
   /**
@@ -244,6 +244,13 @@ export class SettingsModel {
    */
   get workWeekStart(): number {
     return this._raw.dateTime.workWeekStart;
+  }
+
+  /**
+   * Get the work week end day (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+   */
+  get workWeekEnd(): number {
+    return this._raw.dateTime.workWeekEnd;
   }
 
   /**

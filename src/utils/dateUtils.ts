@@ -122,29 +122,6 @@ const contains24HourTime = (input: string): boolean => {
   return /\b([1][3-9]|[2][0-3]):[0-5][0-9]/.test(input);
 };
 
-// Get BOD/EOD times from work hours settings based on the date
-const getBodEod = (date: Date, workHours: WorkHoursSettings): { bod: string; eod: string } => {
-  const dayOfWeek = date.getDay();
-  const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
-  const dayName = dayNames[dayOfWeek];
-
-  let schedule;
-  if (workHours.useCommonSchedule) {
-    schedule = workHours.commonSchedule;
-  } else if (workHours.customSchedules[dayName]) {
-    schedule = workHours.customSchedules[dayName];
-  } else {
-    // Use weekday or weekend schedule
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    schedule = isWeekend ? workHours.weekendSchedule : workHours.weekdaySchedule;
-  }
-
-  return {
-    bod: schedule?.startTime || "09:00",
-    eod: schedule?.endTime || "17:00",
-  };
-};
-
 // Parse shorthand dates
 export const parseShorthand = (
   shorthand: string,
@@ -182,16 +159,14 @@ export const parseShorthand = (
     case "bod": // Beginning of day
     case "startofday": {
       const bod = new Date(now);
-      const times = getBodEod(bod, workHours);
-      setTime(bod, times.bod);
+      setTime(bod, dateTimeSettings.bod);
       return bod;
     }
 
     case "eod": // End of day
     case "endofday": {
       const eod = new Date(now);
-      const times = getBodEod(eod, workHours);
-      setTime(eod, times.eod);
+      setTime(eod, dateTimeSettings.eod);
       return eod;
     }
 
@@ -225,8 +200,7 @@ export const parseShorthand = (
       const day = bow.getDay();
       const diff = (day < dateTimeSettings.workWeekStart ? 7 : 0) + day - dateTimeSettings.workWeekStart;
       bow.setDate(bow.getDate() - diff);
-      const times = getBodEod(bow, workHours);
-      setTime(bow, times.bod);
+      setTime(bow, dateTimeSettings.bod);
       return bow;
     }
 
@@ -234,10 +208,10 @@ export const parseShorthand = (
     case "endofweek": {
       const eow = new Date(now);
       const day = eow.getDay();
-      const diff = (dateTimeSettings.workWeekStart + 6 - day) % 7;
+      const workWeekEnd = dateTimeSettings.workWeekEnd ?? (dateTimeSettings.workWeekStart + 4) % 7; // Default to 4 days after start
+      const diff = (workWeekEnd - day + 7) % 7;
       eow.setDate(eow.getDate() + diff);
-      const times = getBodEod(eow, workHours);
-      setTime(eow, times.eod);
+      setTime(eow, dateTimeSettings.eod);
       return eow;
     }
 
@@ -246,8 +220,7 @@ export const parseShorthand = (
       const day = nextWeek.getDay();
       const daysToAdd = ((dateTimeSettings.workWeekStart + 7 - day) % 7) + 7;
       nextWeek.setDate(nextWeek.getDate() + daysToAdd);
-      const times = getBodEod(nextWeek, workHours);
-      setTime(nextWeek, times.bod);
+      setTime(nextWeek, dateTimeSettings.bod);
       return nextWeek;
     }
 
@@ -263,23 +236,20 @@ export const parseShorthand = (
     case "bom": // Beginning of month
     case "startofmonth": {
       const bom = new Date(now.getFullYear(), now.getMonth(), 1);
-      const times = getBodEod(bom, workHours);
-      setTime(bom, times.bod);
+      setTime(bom, dateTimeSettings.bod);
       return bom;
     }
 
     case "eom": // End of month
     case "endofmonth": {
       const eom = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      const times = getBodEod(eom, workHours);
-      setTime(eom, times.eod);
+      setTime(eom, dateTimeSettings.eod);
       return eom;
     }
 
     case "nextmonth": {
       const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      const times = getBodEod(nextMonth, workHours);
-      setTime(nextMonth, times.bod);
+      setTime(nextMonth, dateTimeSettings.bod);
       return nextMonth;
     }
 
@@ -287,8 +257,7 @@ export const parseShorthand = (
     case "startofquarter": {
       const quarter = Math.floor(now.getMonth() / 3);
       const boq = new Date(now.getFullYear(), quarter * 3, 1);
-      const times = getBodEod(boq, workHours);
-      setTime(boq, times.bod);
+      setTime(boq, dateTimeSettings.bod);
       return boq;
     }
 
@@ -296,8 +265,7 @@ export const parseShorthand = (
     case "endofquarter": {
       const quarter = Math.floor(now.getMonth() / 3);
       const eoq = new Date(now.getFullYear(), quarter * 3 + 3, 0);
-      const times = getBodEod(eoq, workHours);
-      setTime(eoq, times.eod);
+      setTime(eoq, dateTimeSettings.eod);
       return eoq;
     }
 
@@ -305,8 +273,7 @@ export const parseShorthand = (
       const quarter = Math.floor(now.getMonth() / 3);
       const nextQ = new Date(now.getFullYear(), (quarter + 1) * 3, 1);
       if (nextQ < now) nextQ.setFullYear(nextQ.getFullYear() + 1);
-      const times = getBodEod(nextQ, workHours);
-      setTime(nextQ, times.bod);
+      setTime(nextQ, dateTimeSettings.bod);
       return nextQ;
     }
 
@@ -314,8 +281,7 @@ export const parseShorthand = (
     case "startofhalf": {
       const half = now.getMonth() < 6 ? 0 : 6;
       const boh = new Date(now.getFullYear(), half, 1);
-      const times = getBodEod(boh, workHours);
-      setTime(boh, times.bod);
+      setTime(boh, dateTimeSettings.bod);
       return boh;
     }
 
@@ -323,8 +289,7 @@ export const parseShorthand = (
     case "endofhalf": {
       const half = now.getMonth() < 6 ? 5 : 11;
       const eoh = new Date(now.getFullYear(), half + 1, 0);
-      const times = getBodEod(eoh, workHours);
-      setTime(eoh, times.eod);
+      setTime(eoh, dateTimeSettings.eod);
       return eoh;
     }
 
@@ -332,31 +297,27 @@ export const parseShorthand = (
       const half = now.getMonth() < 6 ? 6 : 0;
       const nextH = new Date(now.getFullYear(), half, 1);
       if (nextH < now) nextH.setFullYear(nextH.getFullYear() + 1);
-      const times = getBodEod(nextH, workHours);
-      setTime(nextH, times.bod);
+      setTime(nextH, dateTimeSettings.bod);
       return nextH;
     }
 
     case "boy": // Beginning of year
     case "startofyear": {
       const boy = new Date(now.getFullYear(), 0, 1);
-      const times = getBodEod(boy, workHours);
-      setTime(boy, times.bod);
+      setTime(boy, dateTimeSettings.bod);
       return boy;
     }
 
     case "eoy": // End of year
     case "endofyear": {
       const eoy = new Date(now.getFullYear(), 11, 31);
-      const times = getBodEod(eoy, workHours);
-      setTime(eoy, times.eod);
+      setTime(eoy, dateTimeSettings.eod);
       return eoy;
     }
 
     case "nextyear": {
       const nextY = new Date(now.getFullYear() + 1, 0, 1);
-      const times = getBodEod(nextY, workHours);
-      setTime(nextY, times.bod);
+      setTime(nextY, dateTimeSettings.bod);
       return nextY;
     }
 
@@ -505,8 +466,7 @@ export const normalizeDateValue = (
 
     const targetDate = new Date(now);
     targetDate.setDate(now.getDate() + daysToAdd);
-    const times = getBodEod(targetDate, workHours);
-    const [hours, minutes] = times.eod.split(":").map(Number);
+    const [hours, minutes] = dateTimeSettings.eod.split(":").map(Number);
     targetDate.setHours(hours, minutes, 0, 0);
 
     return toLocalISOString(targetDate);
