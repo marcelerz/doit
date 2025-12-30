@@ -1,9 +1,8 @@
 "use client";
 
-import { KanbanSettings } from "@/types/settings";
 import { KanbanState, defaultKanbanStates, getKanbanStateId } from "@/types/kanbanState";
-import { KanbanTransition, defaultKanbanTransitions } from "@/types/kanbanTransition";
-import { KanbanView, defaultKanbanViews, getKanbanViewId } from "@/types/kanbanView";
+import { defaultKanbanTransitions } from "@/types/kanbanTransition";
+import { KanbanView, defaultKanbanViews } from "@/types/kanbanView";
 import { getColor } from "@/types/types";
 import { useState } from "react";
 import { SettingsModel } from "@/models/SettingsModel";
@@ -590,12 +589,14 @@ export function KanbanTab() {
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Create views to show specific combinations of workflow states.
             </p>
-            <button
-              onClick={() => setShowNewViewForm(!showNewViewForm)}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              {showNewViewForm ? "Cancel" : "Add View"}
-            </button>
+            {!showNewViewForm && (
+              <button
+                onClick={() => setShowNewViewForm(true)}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+              >
+                Add View
+              </button>
+            )}
           </div>
 
           {/* New View Form */}
@@ -651,13 +652,21 @@ export function KanbanTab() {
                   ))}
                 </div>
               </div>
-              <button
-                onClick={handleAddView}
-                disabled={!newViewName.trim() || newViewStates.length === 0}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Add View
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddView}
+                  disabled={!newViewName.trim() || newViewStates.length === 0}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
+                >
+                  Add View
+                </button>
+                <button
+                  onClick={() => setShowNewViewForm(false)}
+                  className="flex-1 px-4 py-2 bg-zinc-300 hover:bg-zinc-400 dark:bg-zinc-600 dark:hover:bg-zinc-500 text-zinc-900 dark:text-zinc-100 rounded-md font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
 
