@@ -7,6 +7,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
 import { AutoAssignField } from "./AutoAssignField";
+import { InfoBox } from "./InfoBox";
 import { getTextColor } from "@/utils/colors";
 
 export function AutoAssignTab() {
@@ -173,18 +174,13 @@ export function AutoAssignTab() {
         </div>
       </div>
 
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-        <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-2">ℹ️ How it works</h4>
-        <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
-          {[
-            "Auto-assignment default values are applied only if markers are not provided",
-            "Explicitly provided markers always override auto-assignment defaults",
-            "Leave fields empty if you don't want automatic assignment for that metadata type",
-          ].map((note, index) => (
-            <li key={index}>{note}</li>
-          ))}
-        </ul>
-      </div>
+      <InfoBox
+        items={[
+          "Auto-assignment default values are applied only if markers are not provided",
+          "Explicitly provided markers always override auto-assignment defaults",
+          "Leave fields empty if you don't want automatic assignment for that metadata type",
+        ]}
+      />
     </div>
   );
 }

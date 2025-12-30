@@ -12,6 +12,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsIcon, SunIcon, MoonIcon, DesktopIcon, GridIcon } from "@/components/shared/Icons";
 import { SettingsLoading } from "./SettingsLoading";
+import { InfoBox } from "./InfoBox";
 
 export function GeneralTab() {
   const { settings, isLoaded, updateGeneralSettings, updateFeatureSettings } = useSettings();
@@ -186,21 +187,16 @@ export function GeneralTab() {
           </div>
         </div>
 
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-          <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-2">ℹ️ How it works</h4>
-          <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
-            {[
-              "Active tasks appear in the main 'Active' section",
-              "When marked complete, tasks move to the 'Completed' section",
-              "After the specified archive days, completed tasks move to the 'Archived' section",
-              "Archived tasks are collapsed by default but remain visible",
-              "If auto-delete is enabled, both completed and archived tasks are permanently deleted after the specified delete days",
-              "Auto-delete countdown starts from completion date for completed tasks, and from archive date for archived tasks",
-            ].map((note, index) => (
-              <li key={index}>{note}</li>
-            ))}
-          </ul>
-        </div>
+        <InfoBox
+          items={[
+            "Active tasks appear in the main 'Active' section",
+            "When marked complete, tasks move to the 'Completed' section",
+            "After the specified archive days, completed tasks move to the 'Archived' section",
+            "Archived tasks are collapsed by default but remain visible",
+            "If auto-delete is enabled, both completed and archived tasks are permanently deleted after the specified delete days",
+            "Auto-delete countdown starts from completion date for completed tasks, and from archive date for archived tasks",
+          ]}
+        />
 
         {/* Feature Toggles */}
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
