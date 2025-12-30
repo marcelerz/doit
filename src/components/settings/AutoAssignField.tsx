@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, ReactNode, CSSProperties } from "react";
+import { useState, CSSProperties } from "react";
 
 interface DropdownItem {
   id: string;
@@ -28,6 +28,8 @@ interface AutoAssignFieldProps {
   emptyMessage?: string;
   /** Whether to allow selecting custom values via Enter key */
   allowCustomValue?: boolean;
+  /** Limit the number of displayed items (default: 30) */
+  limit?: number;
 }
 
 /**
@@ -44,13 +46,14 @@ export function AutoAssignField({
   onClear,
   emptyMessage = "No items found",
   allowCustomValue = false,
+  limit = 30,
 }: AutoAssignFieldProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [search, setSearch] = useState("");
 
   const filteredItems = items
     .filter((item) => search === "" || item.label.toLowerCase().includes(search.toLowerCase()))
-    .slice(0, 10);
+    .slice(0, limit);
 
   const handleSelect = (itemLabel: string) => {
     onSelect(itemLabel);

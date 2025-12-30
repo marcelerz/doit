@@ -31,7 +31,7 @@ export function HelpTab() {
         description="Learn how to use Doit effectively with this comprehensive guide."
       />
 
-      {/* Section Navigation */
+      {/* Section Navigation */}
       <div className="flex flex-wrap gap-2 mb-6">
         {sections.map((section) => (
           <button

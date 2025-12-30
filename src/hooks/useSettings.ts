@@ -408,6 +408,17 @@ export function useSettings() {
     }));
   };
 
+  // Backup settings methods
+  const updateBackupSettings = (backup: Partial<Settings["backup"]>) => {
+    setSettings((prev) => ({
+      ...prev,
+      backup: {
+        ...prev.backup,
+        ...backup,
+      },
+    }));
+  };
+
   return {
     settings,
     isLoaded,
@@ -447,5 +458,7 @@ export function useSettings() {
     updateFocusSettings,
     // Feature methods
     updateFeatureSettings,
+    // Backup methods
+    updateBackupSettings,
   };
 }

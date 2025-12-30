@@ -2,6 +2,7 @@ import { BreakPeriod, getBreakPeriodId } from "./breakPeriod";
 import { defaultLinkPatterns, LinkPattern } from "./linkPattern";
 import { defaultPriorities, Priority } from "./priority";
 import { defaultCategories, ProjectCategory } from "./project";
+import { BackupSettings, defaultBackupSettings } from "./backup";
 import {
   DurationDay,
   DurationHour,
@@ -329,6 +330,8 @@ export interface Settings {
   focus: FocusSettings;
   // Feature Toggles - Enable/disable features to simplify interface
   features: FeatureSettings;
+  // Backup Tab - Backup settings
+  backup: BackupSettings;
 }
 
 export const defaultSettings: Settings = {
@@ -347,4 +350,5 @@ export const defaultSettings: Settings = {
   categories: defaultCategories,
   focus: defaultFocusSettings,
   features: defaultFeatureSettings,
+  backup: defaultBackupSettings,
 };

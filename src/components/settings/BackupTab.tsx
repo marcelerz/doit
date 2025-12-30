@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import {
-  loadBackupSettings,
-  saveBackupSettings,
   getAllBackups,
   createBackup,
   restoreBackup,
@@ -12,12 +10,13 @@ import {
   exportCurrentDataAsFile,
   importBackupFromFile,
   getBackupStats,
-  type BackupSettings,
   type BackupData,
 } from "@/storage/backup";
+import { useSettings } from "@/hooks/useSettings";
 import { Notification, ConfirmDialog, type NotificationType } from "@/components/shared/Notification";
 import { IconButton } from "@/components/shared/IconButton";
 import { SettingsHeader } from "./SettingsHeader";
+import { SettingsLoading } from "./SettingsLoading";
 
 const tooltip = (
   <div className="space-y-2">
@@ -35,11 +34,9 @@ interface BackupTabProps {
 }
 
 export function BackupTab({ onRestore }: BackupTabProps) {
-  const [settings, setSettings] = useState<BackupSettings>({
-    autoBackupEnabled: true,
-    retentionDays: 30,
-    lastBackupDate: null,
-  });
+  const { settings, isLoaded, updateBackupSettings } = useSettings();
+  const backupSettings = settings.backup;
+
   const [backups, setBackups] = useState<BackupData[]>([]);
   const [stats, setStats] = useState<{
     count: number;
@@ -61,15 +58,12 @@ export function BackupTab({ onRestore }: BackupTabProps) {
   } | null>(null);
 
   useEffect(() => {
-    const init = async () => {
-      const loadedSettings = await loadBackupSettings();
-      setSettings(loadedSettings);
-      await loadBackups(loadedSettings);
-    };
-    init();
-  }, []);
+    if (isLoaded) {
+      loadBackups();
+    }
+  }, [isLoaded]);
 
-  const loadBackups = async (currentSettings?: BackupSettings) => {
+  const loadBackups = async () => {
     const allBackups = await getAllBackups();
     setBackups(allBackups);
     const backupStats = await getBackupStats();
@@ -82,19 +76,19 @@ export function BackupTab({ onRestore }: BackupTabProps) {
       const lastAutoDate = new Date(lastAutoBackup.timestamp).toISOString().split("T")[0];
 
       // Update settings if it doesn't match
-      const settingsToCheck = currentSettings || settings;
-      if (settingsToCheck.lastBackupDate !== lastAutoDate) {
-        const newSettings = { ...settingsToCheck, lastBackupDate: lastAutoDate };
-        setSettings(newSettings);
-        await saveBackupSettings(newSettings);
+      if (backupSettings.lastBackupDate !== lastAutoDate) {
+        updateBackupSettings({ lastBackupDate: lastAutoDate });
       }
     }
   };
-  const handleSettingsChange = async (updates: Partial<BackupSettings>) => {
-    const newSettings = { ...settings, ...updates };
-    setSettings(newSettings);
-    await saveBackupSettings(newSettings);
+
+  const handleSettingsChange = (updates: Partial<typeof backupSettings>) => {
+    updateBackupSettings(updates);
   };
+
+  if (!isLoaded) {
+    return <SettingsLoading />;
+  }
 
   const handleCreateBackup = async () => {
     setIsCreating(true);
@@ -229,7 +223,7 @@ export function BackupTab({ onRestore }: BackupTabProps) {
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
-              checked={settings.autoBackupEnabled}
+              checked={backupSettings.autoBackupEnabled}
               onChange={(e) => handleSettingsChange({ autoBackupEnabled: e.target.checked })}
               className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-600"
             />
@@ -242,7 +236,7 @@ export function BackupTab({ onRestore }: BackupTabProps) {
           </label>
 
           {/* Retention Days */}
-          {settings.autoBackupEnabled && (
+          {backupSettings.autoBackupEnabled && (
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                 Keep Backups For
@@ -252,7 +246,7 @@ export function BackupTab({ onRestore }: BackupTabProps) {
                   type="number"
                   min="1"
                   max="365"
-                  value={settings.retentionDays}
+                  value={backupSettings.retentionDays}
                   onChange={(e) => handleSettingsChange({ retentionDays: parseInt(e.target.value) || 1 })}
                   className="w-24 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -268,7 +262,7 @@ export function BackupTab({ onRestore }: BackupTabProps) {
           <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               <span className="font-medium">Last Auto-Backup:</span>{" "}
-              {settings.lastBackupDate ? new Date(settings.lastBackupDate).toLocaleDateString() : "Never"}
+              {backupSettings.lastBackupDate ? new Date(backupSettings.lastBackupDate).toLocaleDateString() : "Never"}
             </p>
           </div>
         </div>

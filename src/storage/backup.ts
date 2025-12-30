@@ -9,14 +9,13 @@ import {
   loadFromStorage,
   saveToStorage,
 } from "@/storage/storage";
+import { BackupSettings, defaultBackupSettings } from "@/types/backup";
 
 const BACKUP_KEY_PREFIX = "doit-backup-";
 
-export interface BackupSettings {
-  autoBackupEnabled: boolean;
-  retentionDays: number;
-  lastBackupDate: string | null; // ISO date string (YYYY-MM-DD)
-}
+// Re-export for backward compatibility
+export type { BackupSettings };
+export { defaultBackupSettings };
 
 export interface BackupData {
   timestamp: number;
@@ -27,14 +26,9 @@ export interface BackupData {
   source?: "auto" | "manual" | "imported"; // How this backup was created
 }
 
-export const defaultBackupSettings: BackupSettings = {
-  autoBackupEnabled: true,
-  retentionDays: 30,
-  lastBackupDate: null,
-};
-
 /**
  * Get backup settings from storage (async)
+ * @deprecated Use useSettings hook instead for component access
  */
 export async function loadBackupSettings(): Promise<BackupSettings> {
   return await loadFromStorage<BackupSettings>(STORAGE_KEYS.BACKUP_SETTINGS, defaultBackupSettings);
@@ -42,6 +36,7 @@ export async function loadBackupSettings(): Promise<BackupSettings> {
 
 /**
  * Save backup settings to storage (async)
+ * @deprecated Use useSettings hook instead for component access
  */
 export async function saveBackupSettings(settings: BackupSettings): Promise<void> {
   await saveToStorage(STORAGE_KEYS.BACKUP_SETTINGS, settings);
