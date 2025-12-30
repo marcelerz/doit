@@ -19,8 +19,7 @@ export type { ParsingContext, ParsingComponents };
 
 /**
  * Custom shorthand patterns and their mappings
- * Note: workHours parameter is kept for backward compatibility but no longer used
- * All BOD/EOD settings now come from DateTimeSettings
+ * BOD/EOD are now derived from WorkHoursSettings based on the specific date
  */
 const SHORTHAND_PATTERNS: Record<
   string,
@@ -34,32 +33,32 @@ const SHORTHAND_PATTERNS: Record<
   midnight: (ref) => setTime(ref, "00:00"),
   midday: (ref, dt) => setTime(ref, dt?.noon || "12:00"),
 
-  // Day boundaries - multiple phrasings
-  bod: (ref, dt) => setTime(ref, dt?.bod || "09:00"),
-  eod: (ref, dt) => setTime(ref, dt?.eod || "17:00"),
-  startofday: (ref, dt) => setTime(ref, dt?.bod || "09:00"),
-  endofday: (ref, dt) => setTime(ref, dt?.eod || "17:00"),
-  beginningofday: (ref, dt) => setTime(ref, dt?.bod || "09:00"),
-  beginningoftheday: (ref, dt) => setTime(ref, dt?.bod || "09:00"),
-  endoftheday: (ref, dt) => setTime(ref, dt?.eod || "17:00"),
-  startoftheday: (ref, dt) => setTime(ref, dt?.bod || "09:00"),
+  // Day boundaries - multiple phrasings (now use work hours)
+  bod: (ref, _dt, wh) => setTime(ref, getBodFromWorkHours(ref, wh)),
+  eod: (ref, _dt, wh) => setTime(ref, getEodFromWorkHours(ref, wh)),
+  startofday: (ref, _dt, wh) => setTime(ref, getBodFromWorkHours(ref, wh)),
+  endofday: (ref, _dt, wh) => setTime(ref, getEodFromWorkHours(ref, wh)),
+  beginningofday: (ref, _dt, wh) => setTime(ref, getBodFromWorkHours(ref, wh)),
+  beginningoftheday: (ref, _dt, wh) => setTime(ref, getBodFromWorkHours(ref, wh)),
+  endoftheday: (ref, _dt, wh) => setTime(ref, getEodFromWorkHours(ref, wh)),
+  startoftheday: (ref, _dt, wh) => setTime(ref, getBodFromWorkHours(ref, wh)),
 
   // Week boundaries - multiple phrasings
-  bow: (ref, dt) => getStartOfWeek(ref, dt?.workWeekStart || 1, dt),
-  eow: (ref, dt) => getEndOfWeek(ref, dt?.workWeekEnd ?? ((dt?.workWeekStart || 1) + 4) % 7, dt),
-  startofweek: (ref, dt) => getStartOfWeek(ref, dt?.workWeekStart || 1, dt),
-  endofweek: (ref, dt) => getEndOfWeek(ref, dt?.workWeekEnd ?? ((dt?.workWeekStart || 1) + 4) % 7, dt),
-  beginningofweek: (ref, dt) => getStartOfWeek(ref, dt?.workWeekStart || 1, dt),
-  beginningoftheweek: (ref, dt) => getStartOfWeek(ref, dt?.workWeekStart || 1, dt),
-  endoftheweek: (ref, dt) => getEndOfWeek(ref, dt?.workWeekEnd ?? ((dt?.workWeekStart || 1) + 4) % 7, dt),
-  startoftheweek: (ref, dt) => getStartOfWeek(ref, dt?.workWeekStart || 1, dt),
-  nextweek: (ref, dt) => {
+  bow: (ref, dt, wh) => getStartOfWeek(ref, dt?.workWeekStart || 1, dt, wh),
+  eow: (ref, dt, wh) => getEndOfWeek(ref, dt?.workWeekEnd ?? ((dt?.workWeekStart || 1) + 4) % 7, dt, wh),
+  startofweek: (ref, dt, wh) => getStartOfWeek(ref, dt?.workWeekStart || 1, dt, wh),
+  endofweek: (ref, dt, wh) => getEndOfWeek(ref, dt?.workWeekEnd ?? ((dt?.workWeekStart || 1) + 4) % 7, dt, wh),
+  beginningofweek: (ref, dt, wh) => getStartOfWeek(ref, dt?.workWeekStart || 1, dt, wh),
+  beginningoftheweek: (ref, dt, wh) => getStartOfWeek(ref, dt?.workWeekStart || 1, dt, wh),
+  endoftheweek: (ref, dt, wh) => getEndOfWeek(ref, dt?.workWeekEnd ?? ((dt?.workWeekStart || 1) + 4) % 7, dt, wh),
+  startoftheweek: (ref, dt, wh) => getStartOfWeek(ref, dt?.workWeekStart || 1, dt, wh),
+  nextweek: (ref, dt, wh) => {
     const next = new Date(ref);
     const day = next.getDay();
     const workWeekStart = dt?.workWeekStart || 1;
     const daysToAdd = ((workWeekStart + 7 - day) % 7) + 7;
     next.setDate(next.getDate() + daysToAdd);
-    return setTime(next, dt?.bod || "09:00");
+    return setTime(next, getBodFromWorkHours(next, wh));
   },
   weekend: (ref) => {
     const next = new Date(ref);
@@ -70,165 +69,165 @@ const SHORTHAND_PATTERNS: Record<
   },
 
   // Month boundaries - multiple phrasings
-  bom: (ref, dt) => {
+  bom: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), ref.getMonth(), 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  eom: (ref, dt) => {
+  eom: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
-    return setTime(d, dt?.eod || "17:00");
+    return setTime(d, getEodFromWorkHours(d, wh));
   },
-  startofmonth: (ref, dt) => {
+  startofmonth: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), ref.getMonth(), 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  endofmonth: (ref, dt) => {
+  endofmonth: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
-    return setTime(d, dt?.eod || "17:00");
+    return setTime(d, getEodFromWorkHours(d, wh));
   },
-  beginningofmonth: (ref, dt) => {
+  beginningofmonth: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), ref.getMonth(), 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  beginningofthemonth: (ref, dt) => {
+  beginningofthemonth: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), ref.getMonth(), 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  endofthemonth: (ref, dt) => {
+  endofthemonth: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
-    return setTime(d, dt?.eod || "17:00");
+    return setTime(d, getEodFromWorkHours(d, wh));
   },
-  startofthemonth: (ref, dt) => {
+  startofthemonth: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), ref.getMonth(), 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  nextmonth: (ref, dt) => {
+  nextmonth: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), ref.getMonth() + 1, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
 
   // Quarter boundaries - multiple phrasings
-  boq: (ref, dt) => {
+  boq: (ref, _dt, wh) => {
     const quarter = Math.floor(ref.getMonth() / 3);
     const d = new Date(ref.getFullYear(), quarter * 3, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  eoq: (ref, dt) => {
+  eoq: (ref, _dt, wh) => {
     const quarter = Math.floor(ref.getMonth() / 3);
     const d = new Date(ref.getFullYear(), quarter * 3 + 3, 0);
-    return setTime(d, dt?.eod || "17:00");
+    return setTime(d, getEodFromWorkHours(d, wh));
   },
-  startofquarter: (ref, dt) => {
+  startofquarter: (ref, _dt, wh) => {
     const quarter = Math.floor(ref.getMonth() / 3);
     const d = new Date(ref.getFullYear(), quarter * 3, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  endofquarter: (ref, dt) => {
+  endofquarter: (ref, _dt, wh) => {
     const quarter = Math.floor(ref.getMonth() / 3);
     const d = new Date(ref.getFullYear(), quarter * 3 + 3, 0);
-    return setTime(d, dt?.eod || "17:00");
+    return setTime(d, getEodFromWorkHours(d, wh));
   },
-  beginningofquarter: (ref, dt) => {
+  beginningofquarter: (ref, _dt, wh) => {
     const quarter = Math.floor(ref.getMonth() / 3);
     const d = new Date(ref.getFullYear(), quarter * 3, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  beginningofthequarter: (ref, dt) => {
+  beginningofthequarter: (ref, _dt, wh) => {
     const quarter = Math.floor(ref.getMonth() / 3);
     const d = new Date(ref.getFullYear(), quarter * 3, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  endofthequarter: (ref, dt) => {
+  endofthequarter: (ref, _dt, wh) => {
     const quarter = Math.floor(ref.getMonth() / 3);
     const d = new Date(ref.getFullYear(), quarter * 3 + 3, 0);
-    return setTime(d, dt?.eod || "17:00");
+    return setTime(d, getEodFromWorkHours(d, wh));
   },
-  startofthequarter: (ref, dt) => {
+  startofthequarter: (ref, _dt, wh) => {
     const quarter = Math.floor(ref.getMonth() / 3);
     const d = new Date(ref.getFullYear(), quarter * 3, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  nextquarter: (ref, dt) => {
+  nextquarter: (ref, _dt, wh) => {
     const quarter = Math.floor(ref.getMonth() / 3);
     const d = new Date(ref.getFullYear(), (quarter + 1) * 3, 1);
     if (d <= ref) d.setFullYear(d.getFullYear() + 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
 
   // Half-year boundaries - multiple phrasings
-  boh: (ref, dt) => {
+  boh: (ref, _dt, wh) => {
     const half = ref.getMonth() < 6 ? 0 : 6;
     const d = new Date(ref.getFullYear(), half, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  eoh: (ref, dt) => {
+  eoh: (ref, _dt, wh) => {
     const half = ref.getMonth() < 6 ? 5 : 11;
     const d = new Date(ref.getFullYear(), half + 1, 0);
-    return setTime(d, dt?.eod || "17:00");
+    return setTime(d, getEodFromWorkHours(d, wh));
   },
-  startofhalf: (ref, dt) => {
+  startofhalf: (ref, _dt, wh) => {
     const half = ref.getMonth() < 6 ? 0 : 6;
     const d = new Date(ref.getFullYear(), half, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  endofhalf: (ref, dt) => {
+  endofhalf: (ref, _dt, wh) => {
     const half = ref.getMonth() < 6 ? 5 : 11;
     const d = new Date(ref.getFullYear(), half + 1, 0);
-    return setTime(d, dt?.eod || "17:00");
+    return setTime(d, getEodFromWorkHours(d, wh));
   },
-  nexthalf: (ref, dt) => {
+  nexthalf: (ref, _dt, wh) => {
     const half = ref.getMonth() < 6 ? 6 : 0;
     const d = new Date(ref.getFullYear(), half, 1);
     if (d <= ref) d.setFullYear(d.getFullYear() + 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
 
   // Year boundaries - multiple phrasings
-  boy: (ref, dt) => {
+  boy: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), 0, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  eoy: (ref, dt) => {
+  eoy: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), 11, 31);
-    return setTime(d, dt?.eod || "17:00");
+    return setTime(d, getEodFromWorkHours(d, wh));
   },
-  startofyear: (ref, dt) => {
+  startofyear: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), 0, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  endofyear: (ref, dt) => {
+  endofyear: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), 11, 31);
-    return setTime(d, dt?.eod || "17:00");
+    return setTime(d, getEodFromWorkHours(d, wh));
   },
-  beginningofyear: (ref, dt) => {
+  beginningofyear: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), 0, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  beginningoftheyear: (ref, dt) => {
+  beginningoftheyear: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), 0, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  endoftheyear: (ref, dt) => {
+  endoftheyear: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), 11, 31);
-    return setTime(d, dt?.eod || "17:00");
+    return setTime(d, getEodFromWorkHours(d, wh));
   },
-  startoftheyear: (ref, dt) => {
+  startoftheyear: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear(), 0, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
-  nextyear: (ref, dt) => {
+  nextyear: (ref, _dt, wh) => {
     const d = new Date(ref.getFullYear() + 1, 0, 1);
-    return setTime(d, dt?.bod || "09:00");
+    return setTime(d, getBodFromWorkHours(d, wh));
   },
 
   // Tonight/tonite - evening of today
   tonight: (ref, dt) => setTime(ref, dt?.evening || "18:00"),
   tonite: (ref, dt) => setTime(ref, dt?.evening || "18:00"),
 
-  // Urgency shorthands - map to today EOD
-  asap: (ref, dt) => setTime(ref, dt?.eod || "17:00"),
-  urgent: (ref, dt) => setTime(ref, dt?.eod || "17:00"),
-  immediately: (ref, dt) => setTime(ref, dt?.eod || "17:00"),
+  // Urgency shorthands - map to today EOD (use work hours)
+  asap: (ref, _dt, wh) => setTime(ref, getEodFromWorkHours(ref, wh)),
+  urgent: (ref, _dt, wh) => setTime(ref, getEodFromWorkHours(ref, wh)),
+  immediately: (ref, _dt, wh) => setTime(ref, getEodFromWorkHours(ref, wh)),
   now: (ref) => ref, // Current time
 
   // Someday/later - maps to 3 months from now (far future but not too far)
@@ -297,6 +296,63 @@ const SHORTHAND_PATTERNS: Record<
   juneteenth: (ref) => getNextHoliday(ref, 6, 19),
 };
 
+// Day name mapping for work hours lookup
+const DAY_NAMES: Record<number, keyof NonNullable<WorkHoursSettings["customSchedules"]>> = {
+  0: "sunday",
+  1: "monday",
+  2: "tuesday",
+  3: "wednesday",
+  4: "thursday",
+  5: "friday",
+  6: "saturday",
+};
+
+/**
+ * Get BOD (Beginning of Day) time from work hours settings for a specific date
+ */
+function getBodFromWorkHours(date: Date, workHours?: WorkHoursSettings): string {
+  if (!workHours) return "09:00";
+
+  if (workHours.useCommonSchedule) {
+    return workHours.commonSchedule.startTime || "09:00";
+  }
+
+  const dayOfWeek = date.getDay();
+  const dayName = DAY_NAMES[dayOfWeek];
+  const customSchedule = workHours.customSchedules[dayName];
+
+  if (customSchedule) {
+    return customSchedule.startTime || "09:00";
+  }
+
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  const schedule = isWeekend ? workHours.weekendSchedule : workHours.weekdaySchedule;
+  return schedule.startTime || "09:00";
+}
+
+/**
+ * Get EOD (End of Day) time from work hours settings for a specific date
+ */
+function getEodFromWorkHours(date: Date, workHours?: WorkHoursSettings): string {
+  if (!workHours) return "17:00";
+
+  if (workHours.useCommonSchedule) {
+    return workHours.commonSchedule.endTime || "17:00";
+  }
+
+  const dayOfWeek = date.getDay();
+  const dayName = DAY_NAMES[dayOfWeek];
+  const customSchedule = workHours.customSchedules[dayName];
+
+  if (customSchedule) {
+    return customSchedule.endTime || "17:00";
+  }
+
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  const schedule = isWeekend ? workHours.weekendSchedule : workHours.weekdaySchedule;
+  return schedule.endTime || "17:00";
+}
+
 // Helper functions
 function setTime(date: Date, timeStr: string): Date {
   const result = new Date(date);
@@ -305,20 +361,20 @@ function setTime(date: Date, timeStr: string): Date {
   return result;
 }
 
-function getStartOfWeek(ref: Date, workWeekStart: number, dt?: DateTimeSettings): Date {
+function getStartOfWeek(ref: Date, workWeekStart: number, _dt?: DateTimeSettings, workHours?: WorkHoursSettings): Date {
   const result = new Date(ref);
   const day = result.getDay();
   const diff = (day < workWeekStart ? 7 : 0) + day - workWeekStart;
   result.setDate(result.getDate() - diff);
-  return setTime(result, dt?.bod || "09:00");
+  return setTime(result, getBodFromWorkHours(result, workHours));
 }
 
-function getEndOfWeek(ref: Date, workWeekEnd: number, dt?: DateTimeSettings): Date {
+function getEndOfWeek(ref: Date, workWeekEnd: number, _dt?: DateTimeSettings, workHours?: WorkHoursSettings): Date {
   const result = new Date(ref);
   const day = result.getDay();
   const diff = (workWeekEnd + 7 - day) % 7;
   result.setDate(result.getDate() + diff);
-  return setTime(result, dt?.eod || "17:00");
+  return setTime(result, getEodFromWorkHours(result, workHours));
 }
 
 /**
@@ -510,7 +566,7 @@ function calculateElectionDay(year: number): Date {
  * Q3: Jul-Sep (ends September 30)
  * Q4: Oct-Dec (ends December 31)
  */
-function getEndOfFiscalQuarter(ref: Date, quarter: number, dt?: DateTimeSettings): Date {
+function getEndOfFiscalQuarter(ref: Date, quarter: number, _dt?: DateTimeSettings, wh?: WorkHoursSettings): Date {
   let year = ref.getFullYear();
 
   // Quarter end months: Q1=March(2), Q2=June(5), Q3=September(8), Q4=December(11)
@@ -524,7 +580,7 @@ function getEndOfFiscalQuarter(ref: Date, quarter: number, dt?: DateTimeSettings
     result.setFullYear(year + 1);
   }
 
-  return setTime(result, dt?.eod || "17:00");
+  return setTime(result, getEodFromWorkHours(result, wh));
 }
 
 /**
@@ -532,7 +588,7 @@ function getEndOfFiscalQuarter(ref: Date, quarter: number, dt?: DateTimeSettings
  * H1: Jan-Jun (ends June 30)
  * H2: Jul-Dec (ends December 31)
  */
-function getEndOfFiscalHalf(ref: Date, half: number, dt?: DateTimeSettings): Date {
+function getEndOfFiscalHalf(ref: Date, half: number, _dt?: DateTimeSettings, wh?: WorkHoursSettings): Date {
   let year = ref.getFullYear();
 
   // Half end months: H1=June(5), H2=December(11)
@@ -546,17 +602,17 @@ function getEndOfFiscalHalf(ref: Date, half: number, dt?: DateTimeSettings): Dat
     result.setFullYear(year + 1);
   }
 
-  return setTime(result, dt?.eod || "17:00");
+  return setTime(result, getEodFromWorkHours(result, wh));
 }
 
 /**
  * Get the end of a fiscal year
  * Default: December 31
  */
-function getEndOfFiscalYear(ref: Date, year: number, dt?: DateTimeSettings): Date {
+function getEndOfFiscalYear(ref: Date, year: number, _dt?: DateTimeSettings, wh?: WorkHoursSettings): Date {
   // Get December 31 of the specified year
   const result = new Date(year, 11, 31);
-  return setTime(result, dt?.eod || "17:00");
+  return setTime(result, getEodFromWorkHours(result, wh));
 }
 
 /**
@@ -721,7 +777,7 @@ function createTodayEodRefiner(dateTimeSettings?: DateTimeSettings): Refiner {
  * Create a fiscal period parser (Q1, Q2, Q3, Q4, H1, H2, FY2025, FY25)
  * These default to the END of the period as that's typically when things are due
  */
-function createFiscalPeriodParser(dateTimeSettings?: DateTimeSettings): Parser {
+function createFiscalPeriodParser(dateTimeSettings?: DateTimeSettings, workHoursSettings?: WorkHoursSettings): Parser {
   return {
     // Match Q1-Q4, H1-H2, FY2025/FY25 patterns
     pattern: () => /\b(Q[1-4]|H[1-2]|FY\d{2,4})(\s+\d{4})?\b/i,
@@ -734,14 +790,14 @@ function createFiscalPeriodParser(dateTimeSettings?: DateTimeSettings): Parser {
       if (period.startsWith("Q")) {
         // Quarter: Q1, Q2, Q3, Q4
         const quarter = parseInt(period[1], 10);
-        resultDate = getEndOfFiscalQuarter(refDate, quarter, dateTimeSettings);
+        resultDate = getEndOfFiscalQuarter(refDate, quarter, dateTimeSettings, workHoursSettings);
         if (explicitYear) {
           resultDate.setFullYear(explicitYear);
         }
       } else if (period.startsWith("H")) {
         // Half: H1, H2
         const half = parseInt(period[1], 10);
-        resultDate = getEndOfFiscalHalf(refDate, half, dateTimeSettings);
+        resultDate = getEndOfFiscalHalf(refDate, half, dateTimeSettings, workHoursSettings);
         if (explicitYear) {
           resultDate.setFullYear(explicitYear);
         }
@@ -752,7 +808,7 @@ function createFiscalPeriodParser(dateTimeSettings?: DateTimeSettings): Parser {
         if (year < 100) {
           year = year > 50 ? 1900 + year : 2000 + year;
         }
-        resultDate = getEndOfFiscalYear(refDate, year, dateTimeSettings);
+        resultDate = getEndOfFiscalYear(refDate, year, dateTimeSettings, workHoursSettings);
       } else {
         return null;
       }
@@ -947,7 +1003,7 @@ export function createCustomChrono(
   custom.parsers.unshift(createShorthandParser(dateTimeSettings, workHoursSettings));
   custom.parsers.unshift(createRelativeDateParser());
   custom.parsers.unshift(createBusinessDaysParser());
-  custom.parsers.unshift(createFiscalPeriodParser(dateTimeSettings));
+  custom.parsers.unshift(createFiscalPeriodParser(dateTimeSettings, workHoursSettings));
   custom.parsers.unshift(createRelativeWeekdayParser());
   custom.parsers.unshift(createOrdinalDayParser());
   custom.parsers.unshift(createSprintParser());

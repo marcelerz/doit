@@ -152,8 +152,8 @@ describe("chronoCustom", () => {
     it("should parse eow (end of week)", () => {
       const result = parseDateWithCustomChrono("eow", referenceDate, defaultDateTimeSettings, defaultWorkHoursSettings);
       expect(result).toBeInstanceOf(Date);
-      // Should be Sunday (6 days after Monday)
-      expect(result?.getDay()).toBe(0);
+      // Should be Friday (workWeekEnd = 5)
+      expect(result?.getDay()).toBe(5);
     });
 
     it("should parse nextweek", () => {

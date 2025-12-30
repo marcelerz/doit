@@ -162,27 +162,32 @@ export class SettingsModel {
 
   /**
    * Get BOD (Beginning of Day) and EOD (End of Day) times
-   * Now uses directly configured values from DateTimeSettings
+   * Derived from Work Hours settings based on the date's schedule
    */
-  getBodEod(_date?: Date): { bod: string; eod: string } {
+  getBodEod(date?: Date): { bod: string; eod: string } {
+    const schedule = this.getScheduleForDate(date ?? new Date());
     return {
-      bod: this._raw.dateTime.bod || "09:00",
-      eod: this._raw.dateTime.eod || "17:00",
+      bod: schedule.startTime || "09:00",
+      eod: schedule.endTime || "17:00",
     };
   }
 
   /**
    * Get BOD time
+   * Derived from Work Hours settings based on the date's schedule
    */
-  getBod(_date?: Date): string {
-    return this._raw.dateTime.bod || "09:00";
+  getBod(date?: Date): string {
+    const schedule = this.getScheduleForDate(date ?? new Date());
+    return schedule.startTime || "09:00";
   }
 
   /**
    * Get EOD time
+   * Derived from Work Hours settings based on the date's schedule
    */
-  getEod(_date?: Date): string {
-    return this._raw.dateTime.eod || "17:00";
+  getEod(date?: Date): string {
+    const schedule = this.getScheduleForDate(date ?? new Date());
+    return schedule.endTime || "17:00";
   }
 
   /**

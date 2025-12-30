@@ -11,9 +11,9 @@ const tooltip = (
     <p>Customize time shortcuts and calendar settings.</p>
     <ul className="space-y-1">
       <li>• Define what &quot;morning&quot;, &quot;noon&quot;, etc. mean</li>
-      <li>• Configure BOD/EOD times</li>
       <li>• Set your work week start/end days</li>
       <li>• Configure fiscal year start</li>
+      <li>• BOD/EOD are derived from Work Hours settings</li>
     </ul>
   </div>
 );
@@ -110,38 +110,6 @@ export function DateTimeTab() {
               </p>
             </div>
 
-            {/* BOD - Beginning of Day */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Beginning of Day (BOD)
-              </label>
-              <input
-                type="time"
-                value={dateTime.bod}
-                onChange={(e) => handleDateTimeChange("bod", e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                Used when interpreting "bod" (beginning of day) in due dates
-              </p>
-            </div>
-
-            {/* EOD - End of Day */}
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                End of Day (EOD)
-              </label>
-              <input
-                type="time"
-                value={dateTime.eod}
-                onChange={(e) => handleDateTimeChange("eod", e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                Used when interpreting "eod" (end of day) in due dates
-              </p>
-            </div>
-
             {/* Work Week Start */}
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
@@ -219,12 +187,12 @@ export function DateTimeTab() {
         <NoticeBox
           title="Shorthand Date Examples"
           items={[
-            "bod, eod - Beginning/End of day",
             "morning, noon, afternoon, evening - Time-of-day shortcuts",
-            "bow, eow - Beginning/End of week (uses workWeekStart/workWeekEnd)",
+            "bod, eod - Beginning/End of day (from Work Hours)",
+            "bow, eow - Beginning/End of week",
             "bom, eom - Beginning/End of month",
             "boy, eoy - Beginning/End of year",
-            "bofy, eofy - Beginning/End of fiscal year (uses fiscalYearStart)",
+            "bofy, eofy - Beginning/End of fiscal year",
             "today, tomorrow, yesterday - Day-relative dates",
             "mon, tue, wed, thu, fri, sat, sun - Next occurrence of weekday",
           ]}
