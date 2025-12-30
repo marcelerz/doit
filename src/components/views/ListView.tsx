@@ -20,6 +20,20 @@ import { useDragReorder } from "@/hooks/useDragReorder";
 import { useListViewState, TodoFilters } from "@/hooks/useListViewState";
 import { getTextColor } from "@/utils/colors";
 import { exportTodos, ExportFormat } from "@/utils/export";
+import {
+  EditIcon,
+  CheckIcon,
+  ArchiveIcon,
+  RefreshIcon,
+  TrashIcon,
+  CloseIcon,
+  CalendarIcon,
+  ClockIcon,
+  ChevronDownIcon,
+  ClipboardIcon,
+  SlashIcon,
+  WarningIcon,
+} from "@/components/shared/Icons";
 
 // List View Tutorial Steps
 export const listViewTutorialSteps: TutorialStep[] = [
@@ -742,14 +756,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onClick={openBatchEdit}
                 className="px-3 py-1.5 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center gap-1.5"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
+                <EditIcon className="w-4 h-4" />
                 Edit
               </button>
             )}
@@ -759,9 +766,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onClick={bulkComplete}
                 className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors flex items-center gap-1.5"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+                <CheckIcon className="w-4 h-4" />
                 Complete
               </button>
             )}
@@ -771,14 +776,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onClick={bulkArchive}
                 className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-700 text-white rounded-md transition-colors flex items-center gap-1.5"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                  />
-                </svg>
+                <ArchiveIcon className="w-4 h-4" />
                 Archive
               </button>
             )}
@@ -788,14 +786,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onClick={bulkUnarchive}
                 className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center gap-1.5"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
+                <RefreshIcon className="w-4 h-4" />
                 Restore
               </button>
             )}
@@ -805,14 +796,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onClick={bulkDelete}
                 className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors flex items-center gap-1.5"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
+                <TrashIcon className="w-4 h-4" />
                 Delete
               </button>
             )}
@@ -822,9 +806,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
             className="ml-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
             title="Exit selection mode"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <CloseIcon className="w-5 h-5" />
           </button>
         </div>
       )}
@@ -850,14 +832,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
             }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
+            <CalendarIcon className="w-4 h-4" />
             Today ({quickFilterCounts.today})
           </button>
           {quickFilterCounts.overdue > 0 && (
@@ -869,14 +844,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                   : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50"
               }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <ClockIcon className="w-4 h-4" />
               Overdue ({quickFilterCounts.overdue})
             </button>
           )}
@@ -888,14 +856,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
             }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
+            <ClipboardIcon className="w-4 h-4" />
             This Week ({quickFilterCounts.thisWeek})
           </button>
           <button
@@ -906,14 +867,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
             }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-              />
-            </svg>
+            <SlashIcon className="w-4 h-4" />
             No Due Date ({quickFilterCounts.noDueDate})
           </button>
 
@@ -926,9 +880,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 className="px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-800 dark:hover:text-zinc-200"
                 title="Clear all filters"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <CloseIcon className="w-4 h-4" />
                 Clear All
               </button>
             </>
@@ -953,16 +905,11 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
                   Active ({activeTodos.length})
                 </h2>
-                <svg
+                <ChevronDownIcon
                   className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
                     activeExpanded ? "rotate-180" : ""
                   }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                />
               </button>
               {activeExpanded && (
                 <div className="space-y-4">
@@ -1029,16 +976,11 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
                   Completed ({completedTodos.length})
                 </h2>
-                <svg
+                <ChevronDownIcon
                   className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
                     completedExpanded ? "rotate-180" : ""
                   }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                />
               </button>
               {completedExpanded && (
                 <ul className="space-y-2">
@@ -1088,16 +1030,11 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
                   Archived ({archivedTodos.length})
                 </h2>
-                <svg
+                <ChevronDownIcon
                   className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
                     archivedExpanded ? "rotate-180" : ""
                   }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                />
               </button>
               {archivedExpanded && (
                 <ul className="space-y-2">
@@ -1155,19 +1092,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
       {dependencyBlockNotification && (
         <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
           <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 text-orange-900 dark:text-orange-100 rounded-lg shadow-lg px-4 py-3 flex items-start gap-3 max-w-md animate-slide-down">
-            <svg
-              className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
+            <WarningIcon className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm flex-1">{dependencyBlockNotification}</p>
           </div>
         </div>
@@ -1206,9 +1131,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                   className="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors flex-shrink-0"
                   aria-label="Dismiss"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
             </div>

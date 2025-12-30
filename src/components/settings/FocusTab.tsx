@@ -5,6 +5,7 @@ import { FocusSettings, defaultFocusSettings } from "@/types/settings";
 import { getDurationMin, getDurationSec } from "@/types/time";
 import { playNotificationSound, AMBIENT_SOUNDS, playAmbientSound, stopAmbientSound } from "@/utils/notifications";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { CloseIcon } from "@/components/shared/Icons";
 
 interface FocusTabProps {
   focus: FocusSettings;
@@ -303,9 +304,7 @@ export function FocusTab({ focus, onUpdate }: FocusTabProps) {
                     onClick={() => handleRemoveExtendOption(index)}
                     className="ml-1 text-zinc-400 hover:text-red-500 transition-colors"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <CloseIcon className="w-4 h-4" />
                   </button>
                 )}
               </div>

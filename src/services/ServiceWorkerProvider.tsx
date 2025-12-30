@@ -2,6 +2,7 @@
 
 import { useServiceWorker } from "@/hooks/useServiceWorker";
 import { useEffect, useState } from "react";
+import { OfflineIcon, RefreshIcon, WifiOffIcon } from "@/components/shared/Icons";
 
 /**
  * ServiceWorkerProvider - Registers the service worker and provides
@@ -55,15 +56,7 @@ export default function ServiceWorkerProvider() {
           aria-live="polite"
         >
           <div className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg shadow-lg">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M18.364 5.636a9 9 0 010 12.728m-3.536-3.536a4 4 0 010-5.656m-7.072 7.072a9 9 0 010-12.728m3.536 3.536a4 4 0 010 5.656"
-              />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
-            </svg>
+            <WifiOffIcon className="w-5 h-5" aria-hidden="true" />
             <span className="font-medium">You&apos;re offline</span>
           </div>
         </div>
@@ -73,20 +66,7 @@ export default function ServiceWorkerProvider() {
       {showUpdateToast && (
         <div className="fixed bottom-4 right-4 z-[9999] animate-slide-up" role="alert" aria-live="polite">
           <div className="flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg shadow-lg">
-            <svg
-              className="w-5 h-5 flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
+            <RefreshIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
             <div className="flex-1">
               <p className="font-medium">Update available</p>
               <p className="text-blue-100 text-sm">A new version of DoIt is ready</p>

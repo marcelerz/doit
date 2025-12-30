@@ -13,6 +13,7 @@ import {
   stopAmbientSound,
   getAmbientSoundFile,
 } from "@/utils/notifications";
+import { CloseIcon, VolumeOnIcon, VolumeOffIcon, BellIcon, PlayIcon, PauseIcon } from "@/components/shared/Icons";
 
 interface OpenFocusViewProps {
   settings: Settings;
@@ -646,14 +647,7 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
               className="p-2 hover:bg-white/50 dark:hover:bg-zinc-700/50 rounded-lg transition-colors"
               title="Exit (Esc)"
             >
-              <svg
-                className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <CloseIcon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
             </button>
             <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {techniqueIcon} Open Focus ({techniqueName})
@@ -669,31 +663,7 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
               }`}
               title={soundEnabled ? "Mute sounds (M)" : "Enable sounds (M)"}
             >
-              {soundEnabled ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                  />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-                  />
-                </svg>
-              )}
+              {soundEnabled ? <VolumeOnIcon className="w-5 h-5" /> : <VolumeOffIcon className="w-5 h-5" />}
             </button>
           </div>
         </header>
@@ -788,14 +758,7 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
               className="p-2 hover:bg-white/50 dark:hover:bg-zinc-700/50 rounded-lg transition-colors"
               title="Exit (Esc)"
             >
-              <svg
-                className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <CloseIcon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
             </button>
             <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {techniqueIcon} Open Focus ({techniqueName})
@@ -811,31 +774,7 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
               }`}
               title={soundEnabled ? "Mute sounds (M)" : "Enable sounds (M)"}
             >
-              {soundEnabled ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                  />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-                  />
-                </svg>
-              )}
+              {soundEnabled ? <VolumeOnIcon className="w-5 h-5" /> : <VolumeOffIcon className="w-5 h-5" />}
             </button>
             <span className="text-sm text-zinc-600 dark:text-zinc-400">Session {state.sessionCount}</span>
           </div>
@@ -875,32 +814,12 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
               >
                 {state.isRunning ? (
                   <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+                    <PauseIcon className="w-5 h-5" />
                     Pause
                   </>
                 ) : (
                   <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+                    <PlayIcon className="w-5 h-5" />
                     Resume
                   </>
                 )}
@@ -960,14 +879,7 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
             className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
             title="Exit (Esc)"
           >
-            <svg
-              className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <CloseIcon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
           </button>
           <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
             {techniqueIcon} Open Focus ({techniqueName})
@@ -983,31 +895,7 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
             }`}
             title={soundEnabled ? "Mute sounds (M)" : "Enable sounds (M)"}
           >
-            {soundEnabled ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-                />
-              </svg>
-            )}
+            {soundEnabled ? <VolumeOnIcon className="w-5 h-5" /> : <VolumeOffIcon className="w-5 h-5" />}
           </button>
           {!notificationsEnabled && (
             <button
@@ -1015,14 +903,7 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
               className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg transition-colors"
               title="Enable notifications"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
+              <BellIcon className="w-5 h-5" />
             </button>
           )}
           <span className="text-sm text-zinc-600 dark:text-zinc-400">Session {state.sessionCount + 1}</span>
@@ -1056,32 +937,12 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
           >
             {state.isRunning ? (
               <>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                <PauseIcon className="w-6 h-6" />
                 Pause
               </>
             ) : (
               <>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                <PlayIcon className="w-6 h-6" />
                 Start
               </>
             )}

@@ -23,6 +23,7 @@ import { StorageTab } from "@/components/settings/StorageTab";
 import { NotificationsTab } from "@/components/settings/NotificationsTab";
 import { CategoriesTab } from "@/components/settings/CategoriesTab";
 import { ImportTab } from "@/components/settings/ImportTab";
+import { MenuIcon, ArrowLeftIcon } from "@/components/shared/Icons";
 
 // Organized tab groups for sidebar navigation
 const tabGroups = [
@@ -206,9 +207,7 @@ export default function SettingsPage() {
             onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
             className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <MenuIcon className="w-6 h-6" />
             <span className="font-medium">{getCurrentTabLabel()}</span>
           </button>
           <Link
@@ -242,9 +241,7 @@ export default function SettingsPage() {
                 href="/"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg text-sm font-medium transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
+                <ArrowLeftIcon className="w-4 h-4" />
                 Back to Todos
               </Link>
             </div>

@@ -9,6 +9,7 @@ import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
 import { ActionButtons } from "@/components/shared/ActionButtons";
 import { Modal } from "@/components/shared/Modal";
+import { CloseIcon, CheckIcon } from "@/components/shared/Icons";
 import { TodoModel } from "@/models/TodoModel";
 
 interface SprintDetailsOverlayProps {
@@ -238,9 +239,7 @@ export function SprintDetailsOverlay({
               className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
               aria-label="Close"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <CloseIcon className="w-6 h-6" />
             </button>
           </div>
 
@@ -558,11 +557,7 @@ export function SprintDetailsOverlay({
                             : "border-zinc-300 dark:border-zinc-600"
                         }`}
                       >
-                        {todo.state === "completed" && (
-                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
+                        {todo.state === "completed" && <CheckIcon className="w-3 h-3 text-white" strokeWidth={3} />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div
@@ -589,14 +584,7 @@ export function SprintDetailsOverlay({
                           className="p-1 text-zinc-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
                           title="Remove from sprint"
                         >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
+                          <CloseIcon className="w-4 h-4" />
                         </button>
                       )}
                     </div>

@@ -21,6 +21,17 @@ import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { getTextColor } from "@/utils/colors";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import {
+  EyeIcon,
+  ClockIcon,
+  PrintIcon,
+  CursorClickIcon,
+  WarningSolidIcon,
+  CommentSolidIcon,
+  ClockSolidIcon,
+  RecurringSolidIcon,
+  LinkSolidIcon,
+} from "@/components/shared/Icons";
+import {
   ScheduledTask,
   TaskSegment,
   BreakBlock as SchedulerBreakBlock,
@@ -877,13 +888,7 @@ export function GanttView({
                 className="text-red-600 dark:text-red-400 flex items-center gap-1 text-xs"
                 title={`${timeStats.conflictCount} overlapping tasks`}
               >
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <WarningSolidIcon className="w-3.5 h-3.5" />
                 {timeStats.conflictCount}
               </span>
             )}
@@ -896,20 +901,7 @@ export function GanttView({
                 title="Start focus mode with scheduled tasks for this date"
                 data-tutorial="gantt-focus"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
+                <EyeIcon className="w-4 h-4" />
                 <span className="hidden sm:inline">Focus</span>
               </button>
             )}
@@ -921,14 +913,7 @@ export function GanttView({
                 className="px-2 sm:px-3 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors text-xs sm:text-sm flex items-center gap-1.5"
                 title="Start open focus mode (task-free timer using selected technique)"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                <ClockIcon className="w-4 h-4" />
                 <span className="hidden sm:inline">Timer</span>
               </button>
             )}
@@ -940,14 +925,7 @@ export function GanttView({
               title="Print schedule (Ctrl+P)"
               aria-label="Print schedule"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-                />
-              </svg>
+              <PrintIcon className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -1265,14 +1243,7 @@ export function GanttView({
                   {/* Click hint for first-time users */}
                   {showClickHint && activeTasks.length > 0 && (
                     <span className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
-                        />
-                      </svg>
+                      <CursorClickIcon className="w-3 h-3" />
                       Click tasks to edit
                     </span>
                   )}
@@ -1432,13 +1403,7 @@ export function GanttView({
                                 className="absolute -left-6 top-1/2 -translate-y-1/2 z-20"
                                 title="Scheduling conflict - overlaps with another task"
                               >
-                                <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
+                                <WarningSolidIcon className="w-4 h-4 text-red-500" />
                               </div>
                             )}
                             {/* Task row */}
@@ -1597,13 +1562,7 @@ export function GanttView({
                                                       task.todo.commentCount !== 1 ? "s" : ""
                                                     }`}
                                                   >
-                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                      <path
-                                                        fillRule="evenodd"
-                                                        d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
-                                                        clipRule="evenodd"
-                                                      />
-                                                    </svg>
+                                                    <CommentSolidIcon className="w-3 h-3" />
                                                     {task.todo.commentCount > 1 && (
                                                       <span>{task.todo.commentCount}</span>
                                                     )}
@@ -1614,13 +1573,7 @@ export function GanttView({
                                                     className="flex items-center text-[10px]"
                                                     title={`${task.todo.activityCount} activity entries`}
                                                   >
-                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                      <path
-                                                        fillRule="evenodd"
-                                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                                                        clipRule="evenodd"
-                                                      />
-                                                    </svg>
+                                                    <ClockSolidIcon className="w-3 h-3" />
                                                   </span>
                                                 )}
                                               </div>
@@ -1640,13 +1593,7 @@ export function GanttView({
                                                 className="text-[10px] opacity-70"
                                                 title={`Recurring: ${task.todo.recurring}`}
                                               >
-                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                  <path
-                                                    fillRule="evenodd"
-                                                    d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-                                                    clipRule="evenodd"
-                                                  />
-                                                </svg>
+                                                <RecurringSolidIcon className="w-3 h-3" />
                                               </span>
                                             )}
                                             {/* Dependencies indicator */}
@@ -1655,13 +1602,7 @@ export function GanttView({
                                                 className="text-[10px] opacity-70"
                                                 title={`Has ${task.todo.dependencies.length} dependency(ies)`}
                                               >
-                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                  <path
-                                                    fillRule="evenodd"
-                                                    d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
-                                                    clipRule="evenodd"
-                                                  />
-                                                </svg>
+                                                <LinkSolidIcon className="w-3 h-3" />
                                               </span>
                                             )}
                                             <span className="text-xs opacity-80 whitespace-nowrap">
@@ -1906,13 +1847,7 @@ export function GanttView({
                                                 task.todo.commentCount !== 1 ? "s" : ""
                                               }`}
                                             >
-                                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                <path
-                                                  fillRule="evenodd"
-                                                  d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
-                                                  clipRule="evenodd"
-                                                />
-                                              </svg>
+                                              <CommentSolidIcon className="w-3 h-3" />
                                               {task.todo.commentCount > 1 && <span>{task.todo.commentCount}</span>}
                                             </span>
                                           )}

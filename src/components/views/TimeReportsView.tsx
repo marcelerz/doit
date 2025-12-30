@@ -9,6 +9,7 @@ import { ProjectCategory } from "@/types/project";
 import { Sprint } from "@/types/sprint";
 import { SprintModel } from "@/hooks/useSprints";
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
+import { PrintIcon } from "@/components/shared/Icons";
 
 type TimePeriod = "today" | "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "all" | "custom";
 type GroupBy = "assigned" | "source" | "project" | "category" | "sprint" | "day";
@@ -443,14 +444,7 @@ export default function TimeReportsView({ todos, people, projects, settings, spr
             onClick={handlePrint}
             className="ml-auto px-3 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-600 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-1.5"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-              />
-            </svg>
+            <PrintIcon className="w-4 h-4" />
             Print
           </button>
         </div>

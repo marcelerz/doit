@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ClockIcon, CloseIcon, SearchIcon } from "@/components/shared/Icons";
 
 interface SearchHistoryDropdownProps {
   history: Array<{ id: string; query: string; timestamp: number }>;
@@ -35,19 +36,7 @@ export function SearchHistoryDropdown({ history, onSelect, onRemove, onClear, is
             onClick={() => onSelect(item.query)}
           >
             <div className="flex items-center gap-2 min-w-0">
-              <svg
-                className="w-4 h-4 text-zinc-400 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <ClockIcon className="w-4 h-4 text-zinc-400 flex-shrink-0" />
               <span className="text-sm text-zinc-700 dark:text-zinc-300 truncate">{item.query}</span>
             </div>
             <button
@@ -58,9 +47,7 @@ export function SearchHistoryDropdown({ history, onSelect, onRemove, onClear, is
               className="p-1 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
               title="Remove from history"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <CloseIcon className="w-3.5 h-3.5" />
             </button>
           </li>
         ))}
@@ -111,19 +98,7 @@ export function SearchInputWithHistory({
   return (
     <div className={`relative ${className}`}>
       <div className="relative">
-        <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
+        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
         <input
           type="text"
           value={value}
@@ -151,9 +126,7 @@ export function SearchInputWithHistory({
             }}
             className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <CloseIcon className="w-4 h-4" />
           </button>
         )}
         {!value && history.length > 0 && isFocused && (
@@ -162,14 +135,7 @@ export function SearchInputWithHistory({
             className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
             title="Show search history"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <ClockIcon className="w-4 h-4" />
           </button>
         )}
       </div>

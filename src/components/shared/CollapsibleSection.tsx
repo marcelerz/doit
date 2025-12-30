@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import { ChevronDownIcon } from "@/components/shared/Icons";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -17,14 +18,9 @@ export function CollapsibleSection({ title, count, isExpanded, onToggle, childre
         <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
           {title} ({count})
         </h2>
-        <svg
+        <ChevronDownIcon
           className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        />
       </button>
       {isExpanded && children}
     </section>

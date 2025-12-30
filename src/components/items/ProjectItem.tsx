@@ -1,6 +1,7 @@
 "use client";
 
 import { ProjectModel } from "@/models/ProjectModel";
+import { ArchiveIcon, TrashIcon, UndoIcon, ClipboardIcon } from "@/components/shared/Icons";
 
 interface ProjectItemProps {
   project: ProjectModel;
@@ -63,14 +64,7 @@ export function ProjectItem({
             <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 mt-2">
               {taskCount !== undefined && taskCount > 0 && (
                 <span className="flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    />
-                  </svg>
+                  <ClipboardIcon className="w-3.5 h-3.5" />
                   {taskCount} task{taskCount !== 1 ? "s" : ""}
                 </span>
               )}
@@ -92,14 +86,7 @@ export function ProjectItem({
               aria-label="Archive project"
               title="Archive"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                />
-              </svg>
+              <ArchiveIcon className="w-4 h-4" />
             </button>
           )}
 
@@ -114,14 +101,7 @@ export function ProjectItem({
               aria-label="Unarchive project"
               title="Unarchive"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-                />
-              </svg>
+              <UndoIcon className="w-4 h-4" />
             </button>
           )}
 
@@ -132,14 +112,7 @@ export function ProjectItem({
             aria-label="Delete project"
             title="Delete"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              />
-            </svg>
+            <TrashIcon className="w-4 h-4" />
           </button>
         </div>
       </div>

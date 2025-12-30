@@ -2,6 +2,7 @@
 
 import { ViewPreset } from "@/hooks/useListViewState";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { CloseIcon, TrashIcon } from "@/components/shared/Icons";
 
 export interface SavePresetModalProps {
   isOpen: boolean;
@@ -43,9 +44,7 @@ export function SavePresetModal({
               onClick={onClose}
               className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <CloseIcon className="w-6 h-6" />
             </button>
           </div>
 
@@ -95,14 +94,7 @@ export function SavePresetModal({
                       className="ml-2 p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-md transition-colors opacity-0 group-hover:opacity-100"
                       title="Delete preset"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
+                      <TrashIcon className="w-4 h-4" />
                     </button>
                   </div>
                 ))}

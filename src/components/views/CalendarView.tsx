@@ -14,6 +14,16 @@ import { Priority } from "@/types/priority";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storageInit";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
+import {
+  RefreshIcon,
+  WarningIcon,
+  InfoIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+  PrintIcon,
+} from "@/components/shared/Icons";
 
 // Calendar View Tutorial Steps
 export const calendarViewTutorialSteps: TutorialStep[] = [
@@ -555,13 +565,7 @@ export function CalendarView({
               className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-red-600 dark:text-red-400"
               title={`${day.overdueTasks.length} overdue`}
             >
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <WarningIcon className="w-3 h-3" />
             </span>
           </div>
         )}
@@ -570,14 +574,7 @@ export function CalendarView({
         {calendarSettings.showRecurringIndicator && day.recurringTasks.length > 0 && !day.overdueTasks.length && (
           <div className="absolute top-0.5 left-0.5">
             <span className="text-green-600 dark:text-green-400" title={`${day.recurringTasks.length} recurring`}>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
+              <RefreshIcon className="w-3 h-3" />
             </span>
           </div>
         )}
@@ -627,19 +624,7 @@ export function CalendarView({
       {todosWithoutDatesCount > 0 && (
         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg border border-blue-200 dark:border-blue-800 print:hidden">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <svg
-              className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <InfoIcon className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-xs sm:text-sm font-medium text-blue-900 dark:text-blue-100">
                 {todosWithoutDatesCount} {todosWithoutDatesCount === 1 ? "task" : "tasks"} without dates
@@ -683,14 +668,7 @@ export function CalendarView({
               className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors print:hidden"
               aria-label="Previous month"
             >
-              <svg
-                className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <ChevronLeftIcon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
             </button>
             <h3 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100 min-w-[140px] sm:min-w-[180px] text-center">
               {formatMonthYear(currentMonth)}
@@ -700,14 +678,7 @@ export function CalendarView({
               className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors print:hidden"
               aria-label="Next month"
             >
-              <svg
-                className="w-5 h-5 text-zinc-600 dark:text-zinc-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <ChevronRightIcon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
             </button>
           </div>
 
@@ -751,14 +722,7 @@ export function CalendarView({
               title="Print calendar"
               aria-label="Print calendar"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-                />
-              </svg>
+              <PrintIcon className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -979,18 +943,11 @@ export function CalendarView({
                     className="p-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                     title={sortDirection === "asc" ? "Ascending" : "Descending"}
                   >
-                    <svg
-                      className="w-4 h-4 text-zinc-700 dark:text-zinc-300"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      {sortDirection === "asc" ? (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                      ) : (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      )}
-                    </svg>
+                    {sortDirection === "asc" ? (
+                      <ChevronUpIcon className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
+                    ) : (
+                      <ChevronDownIcon className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
+                    )}
                   </button>
                 </>
               )}

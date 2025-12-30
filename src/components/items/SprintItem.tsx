@@ -1,6 +1,7 @@
 "use client";
 
 import { SprintModel } from "@/hooks/useSprints";
+import { ChevronRightIcon } from "@/components/shared/Icons";
 
 interface SprintItemProps {
   sprint: SprintModel;
@@ -105,14 +106,7 @@ export function SprintItem({
         </div>
 
         {/* Arrow indicator */}
-        <svg
-          className="w-5 h-5 text-zinc-400 dark:text-zinc-500 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
+        <ChevronRightIcon className="w-5 h-5 text-zinc-400 dark:text-zinc-500 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
     </div>
   );

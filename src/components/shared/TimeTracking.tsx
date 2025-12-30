@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { TimeEntry } from "@/types/todo";
+import { CloseIcon, PlaySolidIcon, StopSolidIcon } from "@/components/shared/Icons";
 
 interface TimeTrackingProps {
   entries: TimeEntry[];
@@ -97,9 +98,7 @@ export function TimeTracking({
                 onClick={onStop}
                 className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1"
               >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <rect x="6" y="6" width="12" height="12" rx="1" />
-                </svg>
+                <StopSolidIcon className="w-4 h-4" />
                 Stop
               </button>
             ) : (
@@ -107,9 +106,7 @@ export function TimeTracking({
                 onClick={() => onStart()}
                 className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1"
               >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
+                <PlaySolidIcon className="w-4 h-4" />
                 Start
               </button>
             )}
@@ -206,9 +203,7 @@ export function TimeTracking({
                       className="p-1 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Delete entry"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <CloseIcon className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>

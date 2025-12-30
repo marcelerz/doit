@@ -1,8 +1,24 @@
 "use client";
 
+import {
+  EditIcon,
+  TrashIcon,
+  CloseIcon,
+  ArchiveIcon,
+  UndoIcon,
+  DuplicateIcon,
+  PlusIcon,
+} from "@/components/shared/Icons";
+import { ComponentType } from "react";
+
 type IconType = "edit" | "delete" | "remove" | "archive" | "unarchive" | "duplicate" | "add" | "close";
 type ButtonSize = "sm" | "md" | "lg";
 type ButtonVariant = "default" | "danger" | "success" | "warning" | "info" | "ghost";
+
+interface IconProps {
+  className?: string;
+  strokeWidth?: number;
+}
 
 interface IconButtonProps {
   icon: IconType;
@@ -14,17 +30,16 @@ interface IconButtonProps {
   className?: string;
 }
 
-const iconPaths: Record<IconType, string> = {
-  edit: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z",
-  delete:
-    "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16",
-  remove: "M6 18L18 6M6 6l12 12",
-  archive: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4",
-  unarchive: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6",
-  duplicate:
-    "M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z",
-  add: "M12 4v16m8-8H4",
-  close: "M6 18L18 6M6 6l12 12",
+// Map icon types to their corresponding icon components
+const iconComponents: Record<IconType, ComponentType<IconProps>> = {
+  edit: EditIcon,
+  delete: TrashIcon,
+  remove: CloseIcon,
+  archive: ArchiveIcon,
+  unarchive: UndoIcon,
+  duplicate: DuplicateIcon,
+  add: PlusIcon,
+  close: CloseIcon,
 };
 
 const sizeClasses: Record<ButtonSize, { button: string; icon: string }> = {
@@ -79,6 +94,7 @@ export function IconButton({
 }: IconButtonProps) {
   const resolvedVariant = variant ?? defaultVariants[icon];
   const resolvedTitle = title ?? defaultTitles[icon];
+  const IconComponent = iconComponents[icon];
 
   return (
     <button
@@ -90,9 +106,7 @@ export function IconButton({
       aria-label={resolvedTitle}
       title={resolvedTitle}
     >
-      <svg className={sizeClasses[size].icon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={iconPaths[icon]} />
-      </svg>
+      <IconComponent className={sizeClasses[size].icon} strokeWidth={2} />
     </button>
   );
 }

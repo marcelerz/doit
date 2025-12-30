@@ -10,6 +10,7 @@ import { ColorPicker } from "@/components/shared/ColorPicker";
 import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { ActionButtons } from "@/components/shared/ActionButtons";
 import { Modal } from "@/components/shared/Modal";
+import { CloseIcon } from "@/components/shared/Icons";
 
 interface ProjectDetailsOverlayProps {
   project: ProjectModel;
@@ -122,9 +123,7 @@ export function ProjectDetailsOverlay({
             className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
             aria-label="Close"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <CloseIcon className="w-6 h-6" />
           </button>
         </div>
 

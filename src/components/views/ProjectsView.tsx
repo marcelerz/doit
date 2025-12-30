@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ProjectItem } from "@/components/items/ProjectItem";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { PlusIcon, SearchIcon, CloseIcon } from "@/components/shared/Icons";
 import { ProjectModel } from "@/models/ProjectModel";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
@@ -139,9 +140,7 @@ export function ProjectsView({
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
           data-tutorial="add-project-button"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <PlusIcon className="w-5 h-5" />
           Add Project
         </button>
       </div>
@@ -149,19 +148,7 @@ export function ProjectsView({
       {/* Search and filter bar */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
           <input
             ref={inputRef}
             type="text"
@@ -175,9 +162,7 @@ export function ProjectsView({
               onClick={() => handleSearchChange("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <CloseIcon className="w-4 h-4" />
             </button>
           )}
         </div>

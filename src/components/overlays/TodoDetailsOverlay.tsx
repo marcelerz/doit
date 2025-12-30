@@ -27,6 +27,14 @@ import { useDropdownManager } from "@/hooks/useDropdownManager";
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
+import {
+  CloseIcon,
+  CheckIcon,
+  ClockIcon,
+  InfoIcon,
+  ExternalLinkIcon,
+  SaveTemplateIcon,
+} from "@/components/shared/Icons";
 
 interface TodoDetailsOverlayProps {
   todo: TodoModel;
@@ -291,9 +299,7 @@ export function TodoDetailsOverlay({
             className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-zinc-500 dark:text-zinc-400"
             aria-label="Close"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <CloseIcon className="w-5 h-5" />
           </button>
         </div>
 
@@ -319,11 +325,7 @@ export function TodoDetailsOverlay({
                   role="checkbox"
                   aria-checked={isChecked}
                 >
-                  {isChecked && (
-                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
+                  {isChecked && <CheckIcon className="w-3 h-3 text-white" strokeWidth={3} />}
                 </div>
               );
             })()}
@@ -363,14 +365,7 @@ export function TodoDetailsOverlay({
                         className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
                         title="Show marker reference"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
+                        <InfoIcon className="w-4 h-4" />
                       </button>
                       {dropdown.isOpen("marker-reference") && (
                         <>
@@ -384,14 +379,7 @@ export function TodoDetailsOverlay({
                                 onClick={() => dropdown.closeDropdown()}
                                 className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M6 18L18 6M6 6l12 12"
-                                  />
-                                </svg>
+                                <CloseIcon className="w-4 h-4" />
                               </button>
                             </div>
                             <div className="grid grid-cols-2 gap-1.5 text-xs">
@@ -897,14 +885,7 @@ export function TodoDetailsOverlay({
                     aria-label="Delay todo"
                     title="Quick delay"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+                    <ClockIcon className="w-4 h-4" />
                   </button>
                   {dropdown.isOpen("delayed") && (
                     <>
@@ -1140,14 +1121,7 @@ export function TodoDetailsOverlay({
                         title={`${link.description}: ${link.url}`}
                       >
                         <span className="font-bold">{link.id}</span>
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                          />
-                        </svg>
+                        <ExternalLinkIcon className="w-3 h-3" />
                       </a>
                     ))}
                   </div>
@@ -1165,14 +1139,7 @@ export function TodoDetailsOverlay({
               className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors"
               title="Save as template"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-                />
-              </svg>
+              <SaveTemplateIcon className="w-4 h-4" />
               Save as Template
             </button>
           )}

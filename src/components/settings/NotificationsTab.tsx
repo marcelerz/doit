@@ -11,6 +11,7 @@ import {
   NotificationPermission,
 } from "@/utils/notifications";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { WarningIcon, ClockIcon, CalendarIcon } from "@/components/shared/Icons";
 
 interface NotificationsTabProps {
   notifications: NotificationSettings;
@@ -46,14 +47,7 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
       <div className="space-y-6">
         <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
           <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
+            <WarningIcon className="w-5 h-5" />
             <span className="font-medium">Browser notifications are not supported</span>
           </div>
           <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">
@@ -182,19 +176,7 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
               <label className="flex items-center justify-between p-3 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/30">
-                    <svg
-                      className="w-4 h-4 text-amber-600 dark:text-amber-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
+                    <CalendarIcon className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div>
                     <span className="font-medium text-zinc-900 dark:text-zinc-100">Due Today</span>
@@ -213,19 +195,7 @@ export function NotificationsTab({ notifications, onUpdate }: NotificationsTabPr
               <label className="flex items-center justify-between p-3 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
-                    <svg
-                      className="w-4 h-4 text-blue-600 dark:text-blue-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+                    <ClockIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
                     <span className="font-medium text-zinc-900 dark:text-zinc-100">Due Soon</span>
