@@ -4,6 +4,7 @@ import { useBackups, type BackupData } from "@/hooks/useBackups";
 import { useNotification } from "@/hooks/useNotification";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { IconButton } from "@/components/shared/IconButton";
+import { ClockIcon, UploadIcon, EditIcon, ChartBarIcon } from "@/components/shared/Icons";
 import { SettingsHeader } from "./SettingsHeader";
 import { SettingsLoading } from "./SettingsLoading";
 import { NoticeBox } from "../shared/NoticeBox";
@@ -20,9 +21,23 @@ const tooltip = (
 );
 
 const getBackupSourceLabel = (backup: BackupData) => {
-  if (backup.source === "auto") return "🔄 Auto";
-  if (backup.source === "imported") return "📥 Imported";
-  return "✋ Manual";
+  if (backup.source === "auto")
+    return (
+      <span className="inline-flex items-center gap-1">
+        <ClockIcon className="w-3 h-3" /> Auto
+      </span>
+    );
+  if (backup.source === "imported")
+    return (
+      <span className="inline-flex items-center gap-1">
+        <UploadIcon className="w-3 h-3" /> Imported
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1">
+      <EditIcon className="w-3 h-3" /> Manual
+    </span>
+  );
 };
 
 const formatDate = (timestamp: number) => {
@@ -246,7 +261,9 @@ export function BackupTab() {
 
       {/* Statistics */}
       <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-        <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">📊 Backup Statistics</h3>
+        <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-1.5">
+          <ChartBarIcon className="w-4 h-4" /> Backup Statistics
+        </h3>
         <div className="grid grid-cols-2 gap-3 text-sm text-blue-800 dark:text-blue-200">
           <div>
             <span className="font-medium">Total Backups:</span> {stats.count}
