@@ -8,10 +8,21 @@ import {
   UndoIcon,
   DuplicateIcon,
   PlusIcon,
+  DownloadIcon,
 } from "@/components/shared/Icons";
 import { ComponentType } from "react";
 
-type IconType = "edit" | "delete" | "remove" | "archive" | "unarchive" | "duplicate" | "add" | "close";
+type IconType =
+  | "edit"
+  | "delete"
+  | "remove"
+  | "archive"
+  | "unarchive"
+  | "duplicate"
+  | "add"
+  | "close"
+  | "download"
+  | "restore";
 type ButtonSize = "sm" | "md" | "lg";
 type ButtonVariant = "default" | "danger" | "success" | "warning" | "info" | "ghost";
 
@@ -40,6 +51,8 @@ const iconComponents: Record<IconType, ComponentType<IconProps>> = {
   duplicate: DuplicateIcon,
   add: PlusIcon,
   close: CloseIcon,
+  download: DownloadIcon,
+  restore: UndoIcon,
 };
 
 const sizeClasses: Record<ButtonSize, { button: string; icon: string }> = {
@@ -69,6 +82,8 @@ const defaultVariants: Record<IconType, ButtonVariant> = {
   duplicate: "info",
   add: "info",
   close: "ghost",
+  download: "info",
+  restore: "success",
 };
 
 // Map icons to their default titles
@@ -81,6 +96,8 @@ const defaultTitles: Record<IconType, string> = {
   duplicate: "Duplicate",
   add: "Add",
   close: "Close",
+  download: "Download",
+  restore: "Restore",
 };
 
 export function IconButton({

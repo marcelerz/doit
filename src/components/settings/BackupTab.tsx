@@ -202,7 +202,7 @@ export function BackupTab() {
             <button
               onClick={handleCreateBackup}
               disabled={isCreating}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 text-white rounded-lg font-medium transition-colors"
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-400 text-white rounded-lg font-medium transition-colors"
             >
               {isCreating ? "Creating..." : "Create Backup Now"}
             </button>
@@ -215,7 +215,7 @@ export function BackupTab() {
             </p>
             <button
               onClick={exportCurrent}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
             >
               Export Current Data
             </button>
@@ -236,7 +236,7 @@ export function BackupTab() {
             <button
               onClick={triggerFileInput}
               disabled={isImporting}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-zinc-400 text-white rounded-lg font-medium transition-colors"
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-zinc-400 text-white rounded-lg font-medium transition-colors"
             >
               {isImporting ? "Importing..." : "Import Backup File"}
             </button>
@@ -296,18 +296,8 @@ export function BackupTab() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleRestoreBackup(backup)}
-                      className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
-                    >
-                      Restore
-                    </button>
-                    <button
-                      onClick={() => exportBackup(backup)}
-                      className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-                    >
-                      Export
-                    </button>
+                    <IconButton icon="restore" onClick={() => handleRestoreBackup(backup)} />
+                    <IconButton icon="download" onClick={() => exportBackup(backup)} title="Export" />
                     <IconButton icon="delete" onClick={() => handleDeleteBackup(backup.timestamp)} />
                   </div>
                 </div>
