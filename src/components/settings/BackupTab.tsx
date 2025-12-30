@@ -1,23 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import {
-  getAllBackups,
-  createBackup,
-  restoreBackup,
-  deleteBackup,
-  exportBackupAsFile,
-  exportCurrentDataAsFile,
-  importBackupFromFile,
-  getBackupStats,
-  type BackupData,
-} from "@/storage/backup";
-import { useSettings } from "@/hooks/useSettings";
+import { useBackups, type BackupData } from "@/hooks/useBackups";
 import { useNotification } from "@/hooks/useNotification";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { IconButton } from "@/components/shared/IconButton";
 import { SettingsHeader } from "./SettingsHeader";
 import { SettingsLoading } from "./SettingsLoading";
+import { NoticeBox } from "../shared/NoticeBox";
 
 const tooltip = (
   <div className="space-y-2">
@@ -30,72 +19,57 @@ const tooltip = (
   </div>
 );
 
+const getBackupSourceLabel = (backup: BackupData) => {
+  if (backup.source === "auto") return "🔄 Auto";
+  if (backup.source === "imported") return "📥 Imported";
+  return "✋ Manual";
+};
+
+const formatDate = (timestamp: number) => {
+  const date = new Date(timestamp);
+  return date.toLocaleString();
+};
+
+const formatSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 export function BackupTab() {
-  const { settings, isLoaded, updateBackupSettings } = useSettings();
+  const {
+    backups,
+    stats,
+    backupSettings,
+    isLoaded,
+    isCreating,
+    isImporting,
+    fileInputRef,
+    createBackup,
+    restoreBackup,
+    deleteBackup,
+    exportBackup,
+    exportCurrent,
+    importFile,
+    triggerFileInput,
+    resetFileInput,
+    updateSettings,
+    resetToDefaults,
+  } = useBackups();
+
   const { showSuccess, showError, NotificationComponent } = useNotification();
   const { showConfirmDialog, ConfirmDialogComponent } = useConfirmDialog();
-  const backupSettings = settings.backup;
-
-  const [backups, setBackups] = useState<BackupData[]>([]);
-  const [stats, setStats] = useState<{
-    count: number;
-    totalSize: number;
-    oldestDate: string | null;
-    newestDate: string | null;
-  }>({ count: 0, totalSize: 0, oldestDate: null, newestDate: null });
-  const [isCreating, setIsCreating] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
-  const [selectedBackup, setSelectedBackup] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isLoaded) {
-      loadBackups();
-    }
-  }, [isLoaded]);
-
-  const loadBackups = async () => {
-    const allBackups = await getAllBackups();
-    setBackups(allBackups);
-    const backupStats = await getBackupStats();
-    setStats(backupStats);
-
-    // Find the last auto-backup date from actual backups
-    const autoBackups = allBackups.filter((b) => b.source === "auto");
-    if (autoBackups.length > 0) {
-      const lastAutoBackup = autoBackups[0]; // Already sorted newest first
-      const lastAutoDate = new Date(lastAutoBackup.timestamp).toISOString().split("T")[0];
-
-      // Update settings if it doesn't match
-      if (backupSettings.lastBackupDate !== lastAutoDate) {
-        updateBackupSettings({ lastBackupDate: lastAutoDate });
-      }
-    }
-  };
-
-  const handleSettingsChange = (updates: Partial<typeof backupSettings>) => {
-    updateBackupSettings(updates);
-  };
 
   if (!isLoaded) {
     return <SettingsLoading />;
   }
 
   const handleCreateBackup = async () => {
-    setIsCreating(true);
-    try {
-      const success = await createBackup();
-      if (success) {
-        await loadBackups();
-        showSuccess("Backup created successfully!");
-      } else {
-        showError("Failed to create backup. Please try again.");
-      }
-    } catch (error) {
-      console.error("Backup error:", error);
-      showError("An error occurred while creating the backup.");
-    } finally {
-      setIsCreating(false);
+    const success = await createBackup();
+    if (success) {
+      showSuccess("Backup created successfully!");
+    } else {
+      showError("Failed to create backup. Please try again.");
     }
   };
 
@@ -126,12 +100,8 @@ export function BackupTab() {
       confirmText: "Delete",
       confirmVariant: "danger",
       onConfirm: async () => {
-        const success = deleteBackup(timestamp);
+        const success = await deleteBackup(timestamp);
         if (success) {
-          await loadBackups();
-          if (selectedBackup === timestamp) {
-            setSelectedBackup(null);
-          }
           showSuccess("Backup deleted successfully.");
         } else {
           showError("Failed to delete backup. Please try again.");
@@ -140,58 +110,17 @@ export function BackupTab() {
     });
   };
 
-  const handleExportBackup = (backup: BackupData) => {
-    exportBackupAsFile(backup);
-  };
-
-  const handleExportCurrent = async () => {
-    await exportCurrentDataAsFile();
-  };
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setIsImporting(true);
-    try {
-      const result = await importBackupFromFile(file);
-      if (result.success) {
-        await loadBackups();
-        showSuccess("Backup imported successfully!");
-      } else {
-        showError(`Failed to import backup: ${result.error || "Unknown error"}`);
-      }
-    } catch (error) {
-      console.error("Import error:", error);
-      showError("An error occurred while importing the backup.");
-    } finally {
-      setIsImporting(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+    const result = await importFile(file);
+    if (result.success) {
+      showSuccess("Backup imported successfully!");
+    } else {
+      showError(`Failed to import backup: ${result.error || "Unknown error"}`);
     }
-  };
-
-  const getBackupSourceLabel = (backup: BackupData) => {
-    if (backup.source === "auto") return "🔄 Auto";
-    if (backup.source === "imported") return "📥 Imported";
-    return "✋ Manual";
-  };
-
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString();
-  };
-
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    resetFileInput();
   };
 
   return (
@@ -200,6 +129,10 @@ export function BackupTab() {
         title="Backup & Restore"
         tooltip={tooltip}
         description="Automatically back up your data and restore from previous backups. Backups are stored locally in your browser."
+        action={{
+          label: "Reset to Defaults",
+          onClick: resetToDefaults,
+        }}
       />
 
       {/* Auto-Backup Settings */}
@@ -212,7 +145,7 @@ export function BackupTab() {
             <input
               type="checkbox"
               checked={backupSettings.autoBackupEnabled}
-              onChange={(e) => handleSettingsChange({ autoBackupEnabled: e.target.checked })}
+              onChange={(e) => updateSettings({ autoBackupEnabled: e.target.checked })}
               className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-600"
             />
             <div>
@@ -235,7 +168,7 @@ export function BackupTab() {
                   min="1"
                   max="365"
                   value={backupSettings.retentionDays}
-                  onChange={(e) => handleSettingsChange({ retentionDays: parseInt(e.target.value) || 1 })}
+                  onChange={(e) => updateSettings({ retentionDays: parseInt(e.target.value) || 1 })}
                   className="w-24 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">days</span>
@@ -281,7 +214,7 @@ export function BackupTab() {
               Export your current data as a JSON file to save offline.
             </p>
             <button
-              onClick={handleExportCurrent}
+              onClick={exportCurrent}
               className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
             >
               Export Current Data
@@ -301,7 +234,7 @@ export function BackupTab() {
               className="hidden"
             />
             <button
-              onClick={handleImportClick}
+              onClick={triggerFileInput}
               disabled={isImporting}
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-zinc-400 text-white rounded-lg font-medium transition-colors"
             >
@@ -345,11 +278,7 @@ export function BackupTab() {
             {backups.map((backup) => (
               <div
                 key={backup.timestamp}
-                className={`group bg-white dark:bg-zinc-900 p-4 rounded-lg shadow-sm border transition-all hover:shadow-md ${
-                  selectedBackup === backup.timestamp
-                    ? "border-blue-500 ring-1 ring-blue-500/20"
-                    : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
-                }`}
+                className="group bg-white dark:bg-zinc-900 p-4 rounded-lg shadow-sm border transition-all hover:shadow-md border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -374,7 +303,7 @@ export function BackupTab() {
                       Restore
                     </button>
                     <button
-                      onClick={() => handleExportBackup(backup)}
+                      onClick={() => exportBackup(backup)}
                       className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
                     >
                       Export
@@ -388,20 +317,16 @@ export function BackupTab() {
         )}
       </div>
 
-      {/* Warning */}
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-        <h4 className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-2">⚠️ Important Notes</h4>
-        <ul className="text-xs text-yellow-800 dark:text-yellow-200 space-y-1 list-disc list-inside">
-          {[
-            "Backups are stored in your browser's local storage",
-            "Clearing browser data will delete all backups",
-            "Export backups to save them outside the browser",
-            "Restoring a backup will replace all current data",
-          ].map((note, index) => (
-            <li key={index}>{note}</li>
-          ))}
-        </ul>
-      </div>
+      <NoticeBox
+        title="Important Notes"
+        variant="warning"
+        items={[
+          "Backups are stored in your browser's local storage",
+          "Clearing browser data will delete all backups",
+          "Export backups to save them outside the browser",
+          "Restoring a backup will replace all current data",
+        ]}
+      />
 
       {NotificationComponent}
       {ConfirmDialogComponent}

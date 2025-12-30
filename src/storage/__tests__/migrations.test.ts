@@ -3,7 +3,6 @@
  */
 
 import { migrateSettings, migrateTodos, getCurrentVersion } from "@/storage/migrations";
-import { Todo } from "@/types/todo";
 import { Settings, defaultSettings } from "@/types/settings";
 import { getColor } from "@/types/types";
 import { getDurationDay } from "@/types/time";
