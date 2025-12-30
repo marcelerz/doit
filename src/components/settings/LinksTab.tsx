@@ -7,7 +7,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { IconButton } from "@/components/shared/IconButton";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
-import { InfoBox } from "./InfoBox";
+import { NoticeBox } from "../shared/NoticeBox";
 
 export function LinksTab() {
   const { settings, isLoaded, addLinkPattern, updateLinkPattern, deleteLinkPattern } = useSettings();
@@ -198,7 +198,7 @@ export function LinksTab() {
         )}
       </div>
 
-      <InfoBox title="How it works">
+      <NoticeBox title="How it works">
         <p className="mb-2">
           Link patterns convert text like{" "}
           <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">T12345</code> into clickable links.
@@ -208,7 +208,7 @@ export function LinksTab() {
           <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">{"{id}"}</code> in the URL template as a
           placeholder for the number.
         </p>
-      </InfoBox>
+      </NoticeBox>
     </div>
   );
 }

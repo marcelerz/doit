@@ -12,7 +12,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsIcon, SunIcon, MoonIcon, DesktopIcon, GridIcon } from "@/components/shared/Icons";
 import { SettingsLoading } from "./SettingsLoading";
-import { InfoBox } from "./InfoBox";
+import { NoticeBox } from "../shared/NoticeBox";
 
 export function GeneralTab() {
   const { settings, isLoaded, updateGeneralSettings, updateFeatureSettings } = useSettings();
@@ -187,7 +187,7 @@ export function GeneralTab() {
           </div>
         </div>
 
-        <InfoBox
+        <NoticeBox
           items={[
             "Active tasks appear in the main 'Active' section",
             "When marked complete, tasks move to the 'Completed' section",

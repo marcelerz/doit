@@ -7,7 +7,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
 import { AutoAssignField } from "./AutoAssignField";
-import { InfoBox } from "./InfoBox";
+import { NoticeBox } from "../shared/NoticeBox";
 import { getTextColor } from "@/utils/colors";
 
 export function AutoAssignTab() {
@@ -174,7 +174,7 @@ export function AutoAssignTab() {
         </div>
       </div>
 
-      <InfoBox
+      <NoticeBox
         items={[
           "Auto-assignment default values are applied only if markers are not provided",
           "Explicitly provided markers always override auto-assignment defaults",

@@ -4,6 +4,7 @@ import { DateTimeSettings, defaultDateTimeSettings } from "@/types/settings";
 import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
+import { NoticeBox } from "../shared/NoticeBox";
 
 export function DateTimeTab() {
   const { settings, isLoaded, updateDateTimeSettings } = useSettings();
@@ -158,23 +159,19 @@ export function DateTimeTab() {
           </div>
         </div>
 
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-          <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-2">ℹ️ Shorthand Date Examples</h4>
-          <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
-            {[
-              "bod, eod - Beginning/End of day (derived from Work Hours tab)",
-              "morning, noon, afternoon, evening - Time-of-day shortcuts",
-              "bow, eow - Beginning/End of week (respects workWeekStart)",
-              "bom, eom - Beginning/End of month",
-              "boy, eoy - Beginning/End of year",
-              "bofy, eofy - Beginning/End of fiscal year (uses fiscalYearStart)",
-              "today, tomorrow, yesterday - Day-relative dates",
-              "mon, tue, wed, thu, fri, sat, sun - Next occurrence of weekday",
-            ].map((example, index) => (
-              <li key={index}>{example}</li>
-            ))}
-          </ul>
-        </div>
+        <NoticeBox
+          title="ℹ️ Shorthand Date Examples"
+          items={[
+            "bod, eod - Beginning/End of day (derived from Work Hours tab)",
+            "morning, noon, afternoon, evening - Time-of-day shortcuts",
+            "bow, eow - Beginning/End of week (respects workWeekStart)",
+            "bom, eom - Beginning/End of month",
+            "boy, eoy - Beginning/End of year",
+            "bofy, eofy - Beginning/End of fiscal year (uses fiscalYearStart)",
+            "today, tomorrow, yesterday - Day-relative dates",
+            "mon, tue, wed, thu, fri, sat, sun - Next occurrence of weekday",
+          ]}
+        />
       </div>
     </div>
   );

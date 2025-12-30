@@ -5,6 +5,7 @@ import { getDurationDay } from "@/types/time";
 import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
+import { NoticeBox } from "../shared/NoticeBox";
 
 export function SprintsTab() {
   const { settings, isLoaded, updateSprintSettings } = useSettings();
@@ -79,19 +80,12 @@ export function SprintsTab() {
       </div>
 
       {/* Info card pointing to main sprints view */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <span className="text-xl">💡</span>
-          <div>
-            <h3 className="font-medium text-blue-900 dark:text-blue-100">Managing Sprints</h3>
-            <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-              To create, start, complete, or archive sprints, go to the <strong>Sprints</strong> tab on the main view.
-              The Sprints tab provides full sprint lifecycle management, including burndown charts and velocity
-              tracking.
-            </p>
-          </div>
-        </div>
-      </div>
+      <NoticeBox title="Managing Sprints" icon="💡">
+        <p>
+          To create, start, complete, or archive sprints, go to the <strong>Sprints</strong> tab on the main view. The
+          Sprints tab provides full sprint lifecycle management, including burndown charts and velocity tracking.
+        </p>
+      </NoticeBox>
     </div>
   );
 }
