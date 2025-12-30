@@ -43,7 +43,7 @@ export function DateTimeTab() {
       <SettingsHeader
         title="Date & Time Settings"
         tooltip={tooltip}
-        description="Configure time boundaries for shorthand date expressions."
+        description="Customize how date and time shortcuts are interpreted throughout the app."
         action={{
           label: "Reset to Defaults",
           onClick: handleResetToDefaults,
