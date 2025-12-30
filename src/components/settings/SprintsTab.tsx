@@ -1,6 +1,6 @@
 "use client";
 
-import { SprintSettings, defaultSprintSettings } from "@/types/settings";
+import { defaultSprintSettings } from "@/types/settings";
 import { getDurationDay } from "@/types/time";
 import { useSettings } from "@/hooks/useSettings";
 import { SettingsLoading } from "./components/SettingsLoading";
