@@ -158,7 +158,7 @@ export function BackupTab() {
 
           {/* Retention Days */}
           {backupSettings.autoBackupEnabled && (
-            <div>
+            <div className="ml-7">
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                 Keep Backups For
               </label>
