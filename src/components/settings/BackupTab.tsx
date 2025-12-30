@@ -17,7 +17,18 @@ import {
 } from "@/storage/backup";
 import { Notification, ConfirmDialog, type NotificationType } from "@/components/shared/Notification";
 import { IconButton } from "@/components/shared/IconButton";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { SettingsHeader } from "./SettingsHeader";
+
+const tooltip = (
+  <div className="space-y-2">
+    <p>Save and restore your data.</p>
+    <ul className="space-y-1">
+      <li>• Export all data as JSON</li>
+      <li>• Restore from backup file</li>
+      <li>• Includes tasks, people, projects, settings</li>
+    </ul>
+  </div>
+);
 
 interface BackupTabProps {
   onRestore?: () => void; // Callback to refresh data after restore
@@ -203,16 +214,11 @@ export function BackupTab({ onRestore }: BackupTabProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-          <span>Backup & Restore</span>
-          <InfoTooltip content={tooltipContent.backup} />
-        </h2>
-      </div>
-
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Automatically back up your data and restore from previous backups. Backups are stored locally in your browser.
-      </p>
+      <SettingsHeader
+        title="Backup & Restore"
+        tooltip={tooltip}
+        description="Automatically back up your data and restore from previous backups. Backups are stored locally in your browser."
+      />
 
       {/* Auto-Backup Settings */}
       <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">

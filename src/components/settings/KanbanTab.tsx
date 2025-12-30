@@ -9,8 +9,44 @@ import { useState } from "react";
 import { SettingsModel } from "@/models/SettingsModel";
 import { useSettings } from "@/hooks/useSettings";
 import { IconButton } from "@/components/shared/IconButton";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { InfoTooltip } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
+
+const kanbanStatesTooltip = (
+  <div className="space-y-2">
+    <p>Workflow columns for the Kanban board.</p>
+    <ul className="space-y-1">
+      <li>• Drag tasks between states</li>
+      <li>• "Backlog", "Completed", and "Archived" are system states</li>
+      <li>• Set WIP (Work-In-Progress) limits on non-system states</li>
+      <li>• Columns turn red when over WIP limit</li>
+      <li>• Configure allowed transitions</li>
+    </ul>
+  </div>
+);
+
+const kanbanTransitionsTooltip = (
+  <div className="space-y-2">
+    <p>Define allowed state-to-state transitions.</p>
+    <ul className="space-y-1">
+      <li>• Control which states can move to others</li>
+      <li>• Prevents invalid workflow jumps</li>
+      <li>• Check = transition allowed</li>
+    </ul>
+  </div>
+);
+
+const kanbanViewsTooltip = (
+  <div className="space-y-2">
+    <p>Create filtered views of your Kanban board.</p>
+    <ul className="space-y-1">
+      <li>• Show only selected states</li>
+      <li>• Create views like "Active Work" or "Done"</li>
+      <li>• Set a default view</li>
+    </ul>
+  </div>
+);
 
 const AVAILABLE_ICONS = ["📋", "📝", "🔄", "👀", "✅", "📦", "🚀", "⏳", "🎯", "💡", "🔥", "⭐", "🏷️", "📌"];
 
@@ -196,23 +232,15 @@ export function KanbanTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-            <span>Kanban Board Settings</span>
-            <InfoTooltip content={tooltipContent.kanbanStates} />
-          </h3>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-            Configure workflow states, transitions, and views for your Kanban board.
-          </p>
-        </div>
-        <button
-          onClick={handleResetToDefaults}
-          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-        >
-          Reset to Defaults
-        </button>
-      </div>
+      <SettingsHeader
+        title="Kanban Board Settings"
+        tooltip={kanbanStatesTooltip}
+        description="Configure workflow states, transitions, and views for your Kanban board."
+        action={{
+          label: "Reset to Defaults",
+          onClick: handleResetToDefaults,
+        }}
+      />
 
       {/* Section Tabs */}
       <div className="flex gap-1 border-b border-zinc-200 dark:border-zinc-700">
@@ -225,7 +253,7 @@ export function KanbanTab() {
           }`}
         >
           Workflow States
-          <InfoTooltip content={tooltipContent.kanbanStates} asSpan />
+          <InfoTooltip content={kanbanStatesTooltip} asSpan />
         </button>
         <button
           onClick={() => setActiveSection("transitions")}
@@ -236,7 +264,7 @@ export function KanbanTab() {
           }`}
         >
           Transitions
-          <InfoTooltip content={tooltipContent.kanbanTransitions} asSpan />
+          <InfoTooltip content={kanbanTransitionsTooltip} asSpan />
         </button>
         <button
           onClick={() => setActiveSection("views")}
@@ -247,7 +275,7 @@ export function KanbanTab() {
           }`}
         >
           Views
-          <InfoTooltip content={tooltipContent.kanbanViews} asSpan />
+          <InfoTooltip content={kanbanViewsTooltip} asSpan />
         </button>
       </div>
 

@@ -2,9 +2,21 @@
 
 import { DateTimeSettings, defaultDateTimeSettings } from "@/types/settings";
 import { useSettings } from "@/hooks/useSettings";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
 import { NoticeBox } from "../shared/NoticeBox";
+
+const tooltip = (
+  <div className="space-y-2">
+    <p>Customize time shortcuts and calendar settings.</p>
+    <ul className="space-y-1">
+      <li>• Define what &quot;morning&quot;, &quot;noon&quot;, etc. mean</li>
+      <li>• Set your work week start day</li>
+      <li>• Configure fiscal year start</li>
+      <li>• BOD/EOD from Work Hours settings</li>
+    </ul>
+  </div>
+);
 
 export function DateTimeTab() {
   const { settings, isLoaded, updateDateTimeSettings } = useSettings();
@@ -28,23 +40,15 @@ export function DateTimeTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-          <span>Date & Time Settings</span>
-          <InfoTooltip content={tooltipContent.dateTimeSettings} />
-        </h2>
-        <button
-          onClick={handleResetToDefaults}
-          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-        >
-          Reset to Defaults
-        </button>
-      </div>
-
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Configure time boundaries for shorthand date expressions. BOD (Beginning of Day) and EOD (End of Day) are
-        automatically derived from your Work Hours settings.
-      </p>
+      <SettingsHeader
+        title="Date & Time Settings"
+        tooltip={tooltip}
+        description="Configure time boundaries for shorthand date expressions. BOD (Beginning of Day) and EOD (End of Day) are automatically derived from your Work Hours settings."
+        action={{
+          label: "Reset to Defaults",
+          onClick: handleResetToDefaults,
+        }}
+      />
 
       <div className="space-y-4">
         {/* Date & Time Settings */}

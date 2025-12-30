@@ -9,10 +9,62 @@ import {
 } from "@/types/settings";
 import { getDurationDay } from "@/types/time";
 import { useSettings } from "@/hooks/useSettings";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { InfoTooltip } from "@/components/shared/InfoTooltip";
 import { SettingsIcon, SunIcon, MoonIcon, DesktopIcon, GridIcon } from "@/components/shared/Icons";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
 import { NoticeBox } from "../shared/NoticeBox";
+
+const themeTooltip = (
+  <div className="space-y-2">
+    <p>Choose your preferred appearance.</p>
+    <ul className="space-y-1">
+      <li>
+        • <strong>Light</strong>: Bright, clean interface
+      </li>
+      <li>
+        • <strong>Dark</strong>: Easy on the eyes at night
+      </li>
+      <li>
+        • <strong>System</strong>: Matches your device setting
+      </li>
+    </ul>
+  </div>
+);
+
+const archiveDaysTooltip = (
+  <div className="space-y-2">
+    <p>Completed tasks move to Archive after this many days.</p>
+    <ul className="space-y-1">
+      <li>• Set to 0 to archive immediately</li>
+      <li>• Archived tasks stay visible but collapsed</li>
+      <li>• Reduces clutter in your active list</li>
+    </ul>
+  </div>
+);
+
+const autoDeleteTooltip = (
+  <div className="space-y-2">
+    <p>Permanently remove old tasks automatically.</p>
+    <ul className="space-y-1">
+      <li>• Counts from completion date</li>
+      <li>• Affects both completed and archived tasks</li>
+      <li>• Cannot be undone - be careful!</li>
+    </ul>
+  </div>
+);
+
+const featuresTooltip = (
+  <div className="space-y-2">
+    <p>Enable or disable app features.</p>
+    <ul className="space-y-1">
+      <li>• Toggle views you don&apos;t use</li>
+      <li>• Simplify the interface</li>
+      <li>• Disabled features hide their tabs</li>
+      <li>• Re-enable anytime in Settings</li>
+    </ul>
+  </div>
+);
 
 export function GeneralTab() {
   const { settings, isLoaded, updateGeneralSettings, updateFeatureSettings } = useSettings();
@@ -56,19 +108,14 @@ export function GeneralTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">General Settings</h2>
-        <button
-          onClick={() => updateGeneralSettings(defaultGeneralSettings)}
-          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-        >
-          Reset to Defaults
-        </button>
-      </div>
-
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Configure general application behavior and preferences.
-      </p>
+      <SettingsHeader
+        title="General Settings"
+        description="Configure general application behavior and preferences."
+        action={{
+          label: "Reset to Defaults",
+          onClick: () => updateGeneralSettings(defaultGeneralSettings),
+        }}
+      />
 
       <div className="space-y-4">
         {/* Theme Settings */}
@@ -77,7 +124,7 @@ export function GeneralTab() {
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
                 <span>Theme</span>
-                <InfoTooltip content={tooltipContent.theme} />
+                <InfoTooltip content={themeTooltip} />
               </h3>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
                 Choose your preferred color scheme. System will automatically match your device settings.
@@ -127,7 +174,7 @@ export function GeneralTab() {
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
                 <span>Archive Completed Tasks</span>
-                <InfoTooltip content={tooltipContent.archiveDays} />
+                <InfoTooltip content={archiveDaysTooltip} />
               </h3>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
                 Automatically move completed tasks to the archived section after a specified number of days. Set to 0 to
@@ -154,7 +201,7 @@ export function GeneralTab() {
             <div className="flex-1">
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
                 <span>Auto-Delete Tasks</span>
-                <InfoTooltip content={tooltipContent.autoDelete} />
+                <InfoTooltip content={autoDeleteTooltip} />
               </h3>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
                 Automatically delete completed and archived tasks after a specified number of days. This is useful for
@@ -202,7 +249,7 @@ export function GeneralTab() {
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
           <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
             <span>Features</span>
-            <InfoTooltip content={tooltipContent.features} />
+            <InfoTooltip content={featuresTooltip} />
           </h3>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
             Enable or disable features to simplify the interface. Disabled features will hide their views and related

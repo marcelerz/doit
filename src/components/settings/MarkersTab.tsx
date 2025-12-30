@@ -3,8 +3,19 @@
 import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
 import { getColor } from "@/types/types";
 import { useSettings } from "@/hooks/useSettings";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
+
+const tooltip = (
+  <div className="space-y-2">
+    <p>Customize colors for metadata markers.</p>
+    <ul className="space-y-1">
+      <li>• @assigned, $source people</li>
+      <li>• %project, !!priority, #tags</li>
+      <li>• Dates, durations, recurring</li>
+    </ul>
+  </div>
+);
 
 const markerInfo = [
   {
@@ -82,23 +93,15 @@ export function MarkersTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-          <span>Marker Colors</span>
-          <InfoTooltip content={tooltipContent.markers} />
-        </h2>
-        <button
-          onClick={handleResetToDefaults}
-          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-        >
-          Reset to Defaults
-        </button>
-      </div>
-
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Configure default colors used when creating new items. Individual people, projects, and priorities can have
-        their own colors set in their respective tabs.
-      </p>
+      <SettingsHeader
+        title="Marker Colors"
+        tooltip={tooltip}
+        description="Configure default colors used when creating new items. Individual people, projects, and priorities can have their own colors set in their respective tabs."
+        action={{
+          label: "Reset to Defaults",
+          onClick: handleResetToDefaults,
+        }}
+      />
 
       <div className="space-y-3">
         {markerInfo.map((marker) => (

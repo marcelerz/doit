@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SettingsHeader } from "./SettingsHeader";
 
 type HelpSection = "getting-started" | "views" | "input" | "filtering" | "people-projects" | "keyboard" | "advanced";
 
@@ -25,15 +26,12 @@ export function HelpTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Help & Documentation</h2>
-      </div>
+      <SettingsHeader
+        title="Help & Documentation"
+        description="Learn how to use Doit effectively with this comprehensive guide."
+      />
 
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Learn how to use Doit effectively with this comprehensive guide.
-      </p>
-
-      {/* Section Navigation */}
+      {/* Section Navigation */
       <div className="flex flex-wrap gap-2 mb-6">
         {sections.map((section) => (
           <button

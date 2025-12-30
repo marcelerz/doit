@@ -5,9 +5,20 @@ import { LinkPattern } from "@/types/linkPattern";
 import { getColor } from "@/types/types";
 import { useSettings } from "@/hooks/useSettings";
 import { IconButton } from "@/components/shared/IconButton";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
 import { NoticeBox } from "../shared/NoticeBox";
+
+const tooltip = (
+  <div className="space-y-2">
+    <p>Auto-link text patterns to URLs.</p>
+    <ul className="space-y-1">
+      <li>• Define patterns like "JIRA-123"</li>
+      <li>• Automatically creates clickable links</li>
+      <li>• Use $1, $2 for captured groups</li>
+    </ul>
+  </div>
+);
 
 export function LinksTab() {
   const { settings, isLoaded, addLinkPattern, updateLinkPattern, deleteLinkPattern } = useSettings();
@@ -67,25 +78,22 @@ export function LinksTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-          <span>Link Patterns</span>
-          <InfoTooltip content={tooltipContent.linkPatterns} />
-        </h2>
-        {!isAdding && (
-          <button
-            onClick={() => setIsAdding(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-          >
-            Add Link Pattern
-          </button>
-        )}
-      </div>
-
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Define custom link patterns to convert text markers into clickable links. Use {"{id}"} as a placeholder for the
-        identifier.
-      </p>
+      <SettingsHeader
+        title="Link Patterns"
+        tooltip={tooltip}
+        description={
+          <>
+            Define custom link patterns to convert text markers into clickable links. Use <code>{"{id}"}</code> as a
+            placeholder for the identifier.
+          </>
+        }
+        action={{
+          label: "Add Link Pattern",
+          onClick: () => setIsAdding(true),
+          variant: "primary",
+          hidden: isAdding,
+        }}
+      />
 
       {isAdding && (
         <form

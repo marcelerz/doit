@@ -4,8 +4,19 @@ import { useState } from "react";
 import { ProjectCategory } from "@/types/project";
 import { getColor } from "@/types/types";
 import { useSettings } from "@/hooks/useSettings";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
+
+const tooltip = (
+  <div className="space-y-2">
+    <p>Custom groupings for tasks.</p>
+    <ul className="space-y-1">
+      <li>• Create your own categories</li>
+      <li>• Different from projects</li>
+      <li>• Use for areas of life, contexts, etc.</li>
+    </ul>
+  </div>
+);
 
 export function CategoriesTab() {
   const { settings, isLoaded, addCategory, updateCategory, deleteCategory } = useSettings();
@@ -56,25 +67,17 @@ export function CategoriesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-          <span>Project Categories</span>
-          <InfoTooltip content={tooltipContent.categories} />
-        </h2>
-        {!isAdding && (
-          <button
-            onClick={() => setIsAdding(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-          >
-            Add Category
-          </button>
-        )}
-      </div>
-
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Organize your projects into categories like &quot;Work&quot;, &quot;Personal&quot;, or client names. Categories
-        can be assigned to projects and used to schedule specific types of work during designated time blocks.
-      </p>
+      <SettingsHeader
+        title="Project Categories"
+        tooltip={tooltip}
+        description="Organize your projects into categories like 'Work', 'Personal', or client names. Categories can be assigned to projects and used to schedule specific types of work during designated time blocks."
+        action={{
+          label: "Add Category",
+          onClick: () => setIsAdding(true),
+          variant: "primary",
+          hidden: isAdding,
+        }}
+      />
 
       {/* Add new category form */}
       {isAdding && (

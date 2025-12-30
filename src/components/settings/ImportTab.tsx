@@ -3,12 +3,24 @@
 import { useState, useRef, useCallback } from "react";
 import { importTodos, ImportResult, ImportedTodo, ImportFormat, convertAllToTodos } from "@/utils/import";
 import { Todo } from "@/types/todo";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { usePeople } from "@/hooks/usePeople";
 import { useProjects } from "@/hooks/useProjects";
 import { useSettings } from "@/hooks/useSettings";
 import { useTodos } from "@/hooks/useTodos";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
+
+const tooltip = (
+  <div className="space-y-2">
+    <p>Import tasks from external sources.</p>
+    <ul className="space-y-1">
+      <li>• Plain text (one task per line)</li>
+      <li>• Markdown checkboxes</li>
+      <li>• CSV format</li>
+      <li>• Duplicate detection available</li>
+    </ul>
+  </div>
+);
 
 type ImportStep = "upload" | "preview" | "complete";
 
@@ -146,15 +158,11 @@ export function ImportTab() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
-          <span>Import Tasks</span>
-          <InfoTooltip content={tooltipContent.importData} />
-        </h3>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Import tasks from other apps. Supported formats: Todoist, Things 3, Apple Reminders, CSV, and JSON.
-        </p>
-      </div>
+      <SettingsHeader
+        title="Import Tasks"
+        tooltip={tooltip}
+        description="Import tasks from other apps. Supported formats: Todoist, Things 3, Apple Reminders, CSV, and JSON."
+      />
 
       {/* Step 1: Upload */}
       {step === "upload" && (

@@ -2,8 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { STORAGE_KEYS, getStorageAdapter, setStorageAdapter, createIndexedDBAdapter } from "@/storage/storage";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { WarningTriangleIcon } from "@/components/shared/Icons";
+import { SettingsHeader } from "./SettingsHeader";
+
+const tooltip = (
+  <div className="space-y-2">
+    <p>Where your data is stored.</p>
+    <ul className="space-y-1">
+      <li>• IndexedDB (preferred, larger capacity)</li>
+      <li>• LocalStorage (fallback)</li>
+      <li>• Data stays in your browser</li>
+      <li>• Use Backup for data portability</li>
+    </ul>
+  </div>
+);
 
 interface StorageItem {
   key: string;
@@ -397,31 +409,28 @@ export function StorageTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-            <span>Storage</span>
-            <InfoTooltip content={tooltipContent.storage} />
-          </h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+      <SettingsHeader
+        title="Storage"
+        tooltip={tooltip}
+        description={
+          <>
             Using{" "}
             <span className="font-medium text-zinc-900 dark:text-zinc-100">
               {storageType === "indexedDB" ? "IndexedDB" : "localStorage"}
             </span>
-          </p>
-        </div>
-        <button
-          onClick={() => {
+          </>
+        }
+        action={{
+          label: "Refresh",
+          onClick: () => {
             const detectedType = detectStorageType();
             setStorageType(detectedType);
             estimateStorageQuota(detectedType);
             calculateStorageUsage();
-          }}
-          className="text-sm px-3 py-1.5 rounded-md bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
-        >
-          Refresh
-        </button>
-      </div>
+          },
+          variant: "subtle",
+        }}
+      />
 
       {/* Sub-tabs */}
       <div className="flex border-b border-zinc-200 dark:border-zinc-700">

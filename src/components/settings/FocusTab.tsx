@@ -5,9 +5,37 @@ import { FocusSettings, defaultFocusSettings } from "@/types/settings";
 import { getDurationMin, getDurationSec } from "@/types/time";
 import { playNotificationSound, AMBIENT_SOUNDS, playAmbientSound, stopAmbientSound } from "@/utils/notifications";
 import { useSettings } from "@/hooks/useSettings";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { InfoTooltip } from "@/components/shared/InfoTooltip";
 import { CloseIcon } from "@/components/shared/Icons";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
+
+const focusSoundsTooltip = (
+  <div className="space-y-2">
+    <p>Audio cues for Focus Mode transitions.</p>
+    <ul className="space-y-1">
+      <li>• 🎯 Task Start - begin work</li>
+      <li>• ✅ Task Complete - finished</li>
+      <li>• ☕ Short Break - quick rest</li>
+      <li>• 🧘 Long Break - extended rest</li>
+      <li>• ⏰ Break End - back to work</li>
+    </ul>
+    <p className="text-zinc-400 dark:text-zinc-600 pt-1">3 second delay between sounds for natural flow.</p>
+  </div>
+);
+
+const ambientSoundsTooltip = (
+  <div className="space-y-2">
+    <p>Background sounds for focus sessions.</p>
+    <ul className="space-y-1">
+      <li>• Choose different sounds for work & breaks</li>
+      <li>• Rain, nature, city ambiance, and more</li>
+      <li>• Sounds loop continuously</li>
+      <li>• Separate volume control</li>
+    </ul>
+    <p className="text-zinc-400 dark:text-zinc-600 pt-1">Only plays during active Focus Mode.</p>
+  </div>
+);
 
 export function FocusTab() {
   const { settings, isLoaded, updateFocusSettings } = useSettings();
@@ -67,20 +95,14 @@ export function FocusTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Focus Mode Settings</h3>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-            Configure timer behavior, sounds, and time tracking for Focus Mode.
-          </p>
-        </div>
-        <button
-          onClick={handleResetToDefaults}
-          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-        >
-          Reset to Defaults
-        </button>
-      </div>
+      <SettingsHeader
+        title="Focus Mode Settings"
+        description="Configure timer behavior, sounds, and time tracking for Focus Mode."
+        action={{
+          label: "Reset to Defaults",
+          onClick: handleResetToDefaults,
+        }}
+      />
 
       {/* Transition Confirmation Section */}
       <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
@@ -335,7 +357,7 @@ export function FocusTab() {
       <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
         <h4 className="font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
           Notifications & Sound
-          <InfoTooltip content={tooltipContent.focusSounds} />
+          <InfoTooltip content={focusSoundsTooltip} />
         </h4>
 
         {/* Browser Notifications */}
@@ -455,7 +477,7 @@ export function FocusTab() {
           <div>
             <h4 className="font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
               🎧 Ambient Sounds
-              <InfoTooltip content={tooltipContent.ambientSounds} />
+              <InfoTooltip content={ambientSoundsTooltip} />
             </h4>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
               Play background sounds during work and break periods.

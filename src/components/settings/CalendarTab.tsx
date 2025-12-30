@@ -3,9 +3,21 @@
 import { Calendar, CalendarView, CalendarDotColorBy, defaultCalendar } from "@/types/calendar";
 import { getWeekday } from "@/types/time";
 import { useSettings } from "@/hooks/useSettings";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { RefreshIcon, WarningSolidIcon } from "@/components/shared/Icons";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
+
+const tooltip = (
+  <div className="space-y-2">
+    <p>Monthly calendar view of your tasks.</p>
+    <ul className="space-y-1">
+      <li>• Dots indicate tasks due on each day</li>
+      <li>• Click a day to see task details</li>
+      <li>• Navigate between months easily</li>
+      <li>• Quick overview of upcoming deadlines</li>
+    </ul>
+  </div>
+);
 
 export function CalendarTab() {
   const { settings, isLoaded, updateCalendar } = useSettings();
@@ -19,23 +31,15 @@ export function CalendarTab() {
   return (
     <div className="space-y-8">
       {/* Header with Reset Button */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-            <span>Calendar Settings</span>
-            <InfoTooltip content={tooltipContent.calendarView} />
-          </h3>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-            Configure calendar view display options and task appearance.
-          </p>
-        </div>
-        <button
-          onClick={() => updateCalendar(defaultCalendar)}
-          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-        >
-          Reset to Defaults
-        </button>
-      </div>
+      <SettingsHeader
+        title="Calendar Settings"
+        tooltip={tooltip}
+        description="Configure calendar view display options and task appearance."
+        action={{
+          label: "Reset to Defaults",
+          onClick: () => updateCalendar(defaultCalendar),
+        }}
+      />
 
       {/* View Settings */}
       <section>

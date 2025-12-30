@@ -10,8 +10,33 @@ import { getTextColor } from "@/utils/colors";
 import { createBreakPeriodId } from "@/utils/idGenerator";
 import { useSettings } from "@/hooks/useSettings";
 import { IconButton } from "@/components/shared/IconButton";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { InfoTooltip } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
+
+const workHoursTooltip = (
+  <div className="space-y-2">
+    <p>Define when you&apos;re available to work.</p>
+    <ul className="space-y-1">
+      <li>• Sets Beginning/End of Day times</li>
+      <li>• Used for "eod", "bod" shortcuts</li>
+      <li>• Affects Gantt chart scheduling</li>
+      <li>• Configure per-day or weekday/weekend</li>
+    </ul>
+  </div>
+);
+
+const timeBlocksTooltip = (
+  <div className="space-y-2">
+    <p>Block out time for non-task activities.</p>
+    <ul className="space-y-1">
+      <li>• Meetings, lunch, focus time, etc.</li>
+      <li>• Shown on Gantt timeline</li>
+      <li>• Tasks scheduled around blocks</li>
+      <li>• Custom colors and icons</li>
+    </ul>
+  </div>
+);
 
 const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 const WEEKDAY_LABELS: Record<(typeof WEEKDAYS)[number], string> = {
@@ -163,7 +188,7 @@ export function WorkHoursTab() {
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                   <span>Time Blocks</span>
-                  <InfoTooltip content={tooltipContent.timeBlocks} size="sm" />
+                  <InfoTooltip content={timeBlocksTooltip} size="sm" />
                 </label>
                 <button
                   onClick={() => addBreak(type)}
@@ -301,23 +326,15 @@ export function WorkHoursTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-            <span>Work Hours Configuration</span>
-            <InfoTooltip content={tooltipContent.workHours} />
-          </h3>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-            Configure your daily work schedule. These hours are used in the Gantt view for task planning.
-          </p>
-        </div>
-        <button
-          onClick={() => updateWorkHoursSettings(defaultWorkHoursSettings)}
-          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-        >
-          Reset to Defaults
-        </button>
-      </div>
+      <SettingsHeader
+        title="Work Hours Configuration"
+        tooltip={workHoursTooltip}
+        description="Configure your daily work schedule. These hours are used in the Gantt view for task planning."
+        action={{
+          label: "Reset to Defaults",
+          onClick: () => updateWorkHoursSettings(defaultWorkHoursSettings),
+        }}
+      />
 
       {/* Schedule Type Selection */}
       <div className="space-y-3">

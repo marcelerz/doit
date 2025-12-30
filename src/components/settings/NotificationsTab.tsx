@@ -11,9 +11,22 @@ import {
   NotificationPermission,
 } from "@/utils/notifications";
 import { useSettings } from "@/hooks/useSettings";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { InfoTooltip } from "@/components/shared/InfoTooltip";
 import { WarningIcon, ClockIcon, CalendarIcon } from "@/components/shared/Icons";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
+
+const tooltip = (
+  <div className="space-y-2">
+    <p>Desktop notifications for important events.</p>
+    <ul className="space-y-1">
+      <li>• Overdue task reminders</li>
+      <li>• Due today alerts</li>
+      <li>• Upcoming deadline warnings</li>
+      <li>• Requires browser permission</li>
+    </ul>
+  </div>
+);
 
 export function NotificationsTab() {
   const { settings, isLoaded, updateNotificationSettings } = useSettings();
@@ -65,15 +78,13 @@ export function NotificationsTab() {
   return (
     <div className="space-y-6">
       {/* Header with Reset Button */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Notification Settings</h2>
-        <button
-          onClick={() => updateNotificationSettings(defaultNotificationSettings)}
-          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-        >
-          Reset to Defaults
-        </button>
-      </div>
+      <SettingsHeader
+        title="Notification Settings"
+        action={{
+          label: "Reset to Defaults",
+          onClick: () => updateNotificationSettings(defaultNotificationSettings),
+        }}
+      />
 
       {/* Permission Status */}
       <div className="p-4 rounded-lg border bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700">
@@ -81,7 +92,7 @@ export function NotificationsTab() {
           <div>
             <h3 className="font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
               <span>Notification Permission</span>
-              <InfoTooltip content={tooltipContent.notifications} />
+              <InfoTooltip content={tooltip} />
             </h3>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
               {permission === "granted" && "Notifications are enabled"}

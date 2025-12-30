@@ -7,8 +7,22 @@ import { useSettings } from "@/hooks/useSettings";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { IconButton } from "@/components/shared/IconButton";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
+
+const tooltip = (
+  <div className="space-y-2">
+    <p>Set task importance level.</p>
+    <ul className="space-y-1">
+      <li>
+        • Use <code className="bg-zinc-700 dark:bg-zinc-300 px-1 rounded">!!priority</code> in task text
+      </li>
+      <li>• Auto-detected: "urgent", "high", "low"</li>
+      <li>• Customize priorities in Settings</li>
+    </ul>
+    <p className="text-zinc-400 dark:text-zinc-600 pt-1">Priority colors show on task checkboxes.</p>
+  </div>
+);
 
 export function PrioritiesTab() {
   const { settings, isLoaded, addPriority, updatePriority, deletePriority } = useSettings();
@@ -66,26 +80,23 @@ export function PrioritiesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-          <span>Priorities</span>
-          <InfoTooltip content={tooltipContent.priority} />
-        </h2>
-        {!isAdding && (
-          <button
-            onClick={() => setIsAdding(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-          >
-            Add Priority
-          </button>
-        )}
-      </div>
-
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Manage priority levels for your tasks. Use{" "}
-        <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">!!</span> marker to assign
-        priorities. Lower order numbers appear first.
-      </p>
+      <SettingsHeader
+        title="Priorities"
+        tooltip={tooltip}
+        description={
+          <>
+            Manage priority levels for your tasks. Use{" "}
+            <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">!!</span> marker to assign
+            priorities. Lower order numbers appear first.
+          </>
+        }
+        action={{
+          label: "Add Priority",
+          onClick: () => setIsAdding(true),
+          variant: "primary",
+          hidden: isAdding,
+        }}
+      />
 
       <div className="space-y-4">
         {sortedPriorities.map((priority) => (

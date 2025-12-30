@@ -3,8 +3,45 @@
 import { Gantt, GanttZoomLevel, GanttPreset, defaultGantt, defaultGanttPresets, getGanttPresetId } from "@/types/gantt";
 import { getDurationMin } from "@/types/time";
 import { useSettings } from "@/hooks/useSettings";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
+import { InfoTooltip } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
+
+const sequentialTooltip = (
+  <div className="space-y-2">
+    <p>Simple task-to-task scheduling.</p>
+    <ul className="space-y-1">
+      <li>• Fixed buffer between tasks</li>
+      <li>• No structured breaks</li>
+      <li>• Predictable, even spacing</li>
+      <li>• Good for varied task lengths</li>
+    </ul>
+  </div>
+);
+
+const pomodoroTooltip = (
+  <div className="space-y-2">
+    <p>Time management technique with breaks.</p>
+    <ul className="space-y-1">
+      <li>• Short breaks between tasks</li>
+      <li>• Long breaks after N tasks</li>
+      <li>• Presets: Standard (25/5/15/4)</li>
+      <li>• Use Focus Mode for timer & sounds</li>
+    </ul>
+  </div>
+);
+
+const flowTooltip = (
+  <div className="space-y-2">
+    <p>Work/break/context cycles for deep focus.</p>
+    <ul className="space-y-1">
+      <li>• Extended work sessions</li>
+      <li>• Fixed break after each session</li>
+      <li>• Context switch time between tasks</li>
+      <li>• Presets: 52/17, Ultradian (90/20)</li>
+    </ul>
+  </div>
+);
 
 export function GanttTab() {
   const { settings, isLoaded, updateGantt } = useSettings();
@@ -71,20 +108,14 @@ export function GanttTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Gantt View Settings</h3>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-            Configure scheduling techniques and settings for the Gantt view.
-          </p>
-        </div>
-        <button
-          onClick={handleResetToDefaults}
-          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-        >
-          Reset to Defaults
-        </button>
-      </div>
+      <SettingsHeader
+        title="Gantt View Settings"
+        description="Configure scheduling techniques and settings for the Gantt view."
+        action={{
+          label: "Reset to Defaults",
+          onClick: handleResetToDefaults,
+        }}
+      />
 
       {/* Common Settings */}
       <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
@@ -178,7 +209,7 @@ export function GanttTab() {
         <div className="flex items-center gap-2">
           <span className="text-xl">📋</span>
           <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Sequential</h4>
-          <InfoTooltip content={tooltipContent.sequential} />
+          <InfoTooltip content={sequentialTooltip} />
           {gantt.schedulingTechnique === "sequential" && (
             <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
               Active
@@ -258,7 +289,7 @@ export function GanttTab() {
         <div className="flex items-center gap-2">
           <span className="text-xl">🍅</span>
           <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Pomodoro</h4>
-          <InfoTooltip content={tooltipContent.pomodoro} />
+          <InfoTooltip content={pomodoroTooltip} />
           {gantt.schedulingTechnique === "pomodoro" && (
             <span className="px-2 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-full">
               Active
@@ -427,7 +458,7 @@ export function GanttTab() {
         <div className="flex items-center gap-2">
           <span className="text-xl">🌊</span>
           <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Flow</h4>
-          <InfoTooltip content={tooltipContent.flow} />
+          <InfoTooltip content={flowTooltip} />
           {gantt.schedulingTechnique === "flow" && (
             <span className="px-2 py-0.5 text-xs font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 rounded-full">
               Active

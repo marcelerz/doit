@@ -3,9 +3,21 @@
 import { SprintSettings, defaultSprintSettings } from "@/types/settings";
 import { getDurationDay } from "@/types/time";
 import { useSettings } from "@/hooks/useSettings";
-import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./SettingsHeader";
 import { NoticeBox } from "../shared/NoticeBox";
+
+const tooltip = (
+  <div className="space-y-2">
+    <p>Time-boxed periods for agile planning.</p>
+    <ul className="space-y-1">
+      <li>• Create sprints with goals and dates</li>
+      <li>• Assign tasks to sprints</li>
+      <li>• Filter Kanban by sprint</li>
+      <li>• Track sprint progress</li>
+    </ul>
+  </div>
+);
 
 export function SprintsTab() {
   const { settings, isLoaded, updateSprintSettings } = useSettings();
@@ -18,23 +30,15 @@ export function SprintsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-            <span>Sprint Settings</span>
-            <InfoTooltip content={tooltipContent.sprints} />
-          </h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-            Configure default settings for sprints. Manage individual sprints in the Sprints tab on the main view.
-          </p>
-        </div>
-        <button
-          onClick={() => updateSprintSettings(defaultSprintSettings)}
-          className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-        >
-          Reset to Defaults
-        </button>
-      </div>
+      <SettingsHeader
+        title="Sprint Settings"
+        tooltip={tooltip}
+        description="Configure default settings for sprints. Manage individual sprints in the Sprints tab on the main view."
+        action={{
+          label: "Reset to Defaults",
+          onClick: () => updateSprintSettings(defaultSprintSettings),
+        }}
+      />
 
       {/* Settings */}
       <div className="grid grid-cols-1 gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
