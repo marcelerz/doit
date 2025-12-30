@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { NotificationSettings, defaultNotificationSettings } from "@/types/settings";
+import { defaultNotificationSettings } from "@/types/settings";
 import { getDurationHour, getDurationMin } from "@/types/time";
 import {
   isNotificationSupported,
@@ -80,6 +80,7 @@ export function NotificationsTab() {
       {/* Header with Reset Button */}
       <SettingsHeader
         title="Notification Settings"
+        description="Manage your desktop notification preferences."
         action={{
           label: "Reset to Defaults",
           onClick: () => updateNotificationSettings(defaultNotificationSettings),

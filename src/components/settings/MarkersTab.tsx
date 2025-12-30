@@ -5,6 +5,8 @@ import { getColor } from "@/types/types";
 import { useSettings } from "@/hooks/useSettings";
 import { SettingsLoading } from "./SettingsLoading";
 import { SettingsHeader } from "./SettingsHeader";
+import { CalendarIcon, ClockIcon, RepeatIcon, LinkIcon, LightningIcon } from "@/components/shared/Icons";
+import { ReactNode } from "react";
 
 const tooltip = (
   <div className="space-y-2">
@@ -17,57 +19,62 @@ const tooltip = (
   </div>
 );
 
-const markerInfo = [
+const markerInfo: {
+  key: keyof MarkerColors;
+  symbol: string | ReactNode;
+  label: string;
+  description: string;
+}[] = [
   {
-    key: "assigned" as keyof MarkerColors,
+    key: "assigned",
     symbol: "@/$",
     label: "People (Default)",
     description: "Default color for new people (assigned, source, mentioned)",
   },
   {
-    key: "project" as keyof MarkerColors,
+    key: "project",
     symbol: "%",
     label: "Project (Default)",
     description: "Default color for new projects",
   },
   {
-    key: "priority" as keyof MarkerColors,
+    key: "priority",
     symbol: "!!",
     label: "Priority (Default)",
     description: "Default color for new priorities",
   },
   {
-    key: "sprint" as keyof MarkerColors,
-    symbol: "🏃",
+    key: "sprint",
+    symbol: <LightningIcon className="w-6 h-6" />,
     label: "Sprint (Default)",
     description: "Default color for new sprints",
   },
   {
-    key: "dueDate" as keyof MarkerColors,
-    symbol: "📅",
+    key: "dueDate",
+    symbol: <CalendarIcon className="w-6 h-6" />,
     label: "Due Date",
     description: "Color for auto-detected due dates",
   },
   {
-    key: "duration" as keyof MarkerColors,
-    symbol: "⏱️",
+    key: "duration",
+    symbol: <ClockIcon className="w-6 h-6" />,
     label: "Duration",
     description: "Color for task durations",
   },
   {
-    key: "recurring" as keyof MarkerColors,
-    symbol: "🔄",
+    key: "recurring",
+    symbol: <RepeatIcon className="w-6 h-6" />,
     label: "Recurring",
     description: "Color for auto-detected recurring patterns",
   },
   {
-    key: "dependency" as keyof MarkerColors,
-    symbol: "🔗",
+    key: "dependency",
+    symbol: <LinkIcon className="w-6 h-6" />,
     label: "Dependency",
     description: "Color for task dependencies",
   },
   {
-    key: "tag" as keyof MarkerColors,
+    key: "tag",
     symbol: "#",
     label: "Tag",
     description: "Color for free-form tags",
@@ -96,7 +103,7 @@ export function MarkersTab() {
       <SettingsHeader
         title="Marker Colors"
         tooltip={tooltip}
-        description="Configure default colors used when creating new items. Individual people, projects, and priorities can have their own colors set in their respective tabs."
+        description="Configure default colors used when creating new items."
         action={{
           label: "Reset to Defaults",
           onClick: handleResetToDefaults,
