@@ -4,8 +4,8 @@ import { GanttZoomLevel, GanttPreset, defaultGantt, defaultGanttPresets, getGant
 import { getDurationMin } from "@/types/time";
 import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip } from "@/components/shared/InfoTooltip";
-import { SettingsLoading } from "./SettingsLoading";
-import { SettingsHeader } from "./SettingsHeader";
+import { SettingsLoading } from "./components/SettingsLoading";
+import { SettingsHeader } from "./components/SettingsHeader";
 
 const sequentialTooltip = (
   <div className="space-y-2">

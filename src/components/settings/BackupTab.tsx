@@ -5,8 +5,8 @@ import { useNotification } from "@/hooks/useNotification";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { IconButton } from "@/components/shared/IconButton";
 import { ClockIcon, UploadIcon, EditIcon, ChartBarIcon } from "@/components/shared/Icons";
-import { SettingsHeader } from "./SettingsHeader";
-import { SettingsLoading } from "./SettingsLoading";
+import { SettingsHeader } from "./components/SettingsHeader";
+import { SettingsLoading } from "./components/SettingsLoading";
 import { NoticeBox } from "../shared/NoticeBox";
 
 const tooltip = (

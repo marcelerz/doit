@@ -11,8 +11,8 @@ import { createBreakPeriodId } from "@/utils/idGenerator";
 import { useSettings } from "@/hooks/useSettings";
 import { IconButton } from "@/components/shared/IconButton";
 import { InfoTooltip } from "@/components/shared/InfoTooltip";
-import { SettingsLoading } from "./SettingsLoading";
-import { SettingsHeader } from "./SettingsHeader";
+import { SettingsLoading } from "./components/SettingsLoading";
+import { SettingsHeader } from "./components/SettingsHeader";
 
 const workHoursTooltip = (
   <div className="space-y-2">

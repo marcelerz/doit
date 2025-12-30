@@ -13,8 +13,8 @@ import {
 import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip } from "@/components/shared/InfoTooltip";
 import { WarningIcon, ClockIcon, CalendarIcon } from "@/components/shared/Icons";
-import { SettingsLoading } from "./SettingsLoading";
-import { SettingsHeader } from "./SettingsHeader";
+import { SettingsLoading } from "./components/SettingsLoading";
+import { SettingsHeader } from "./components/SettingsHeader";
 
 const tooltip = (
   <div className="space-y-2">

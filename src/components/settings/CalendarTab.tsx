@@ -4,8 +4,8 @@ import { CalendarView, CalendarDotColorBy, defaultCalendar } from "@/types/calen
 import { getWeekday } from "@/types/time";
 import { useSettings } from "@/hooks/useSettings";
 import { RefreshIcon, WarningSolidIcon } from "@/components/shared/Icons";
-import { SettingsLoading } from "./SettingsLoading";
-import { SettingsHeader } from "./SettingsHeader";
+import { SettingsLoading } from "./components/SettingsLoading";
+import { SettingsHeader } from "./components/SettingsHeader";
 
 const tooltip = (
   <div className="space-y-2">

@@ -7,8 +7,8 @@ import { playNotificationSound, AMBIENT_SOUNDS, playAmbientSound, stopAmbientSou
 import { useSettings } from "@/hooks/useSettings";
 import { InfoTooltip } from "@/components/shared/InfoTooltip";
 import { CloseIcon } from "@/components/shared/Icons";
-import { SettingsLoading } from "./SettingsLoading";
-import { SettingsHeader } from "./SettingsHeader";
+import { SettingsLoading } from "./components/SettingsLoading";
+import { SettingsHeader } from "./components/SettingsHeader";
 
 const focusSoundsTooltip = (
   <div className="space-y-2">

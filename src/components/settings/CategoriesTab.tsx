@@ -5,8 +5,8 @@ import { ProjectCategory } from "@/types/project";
 import { getColor } from "@/types/types";
 import { useSettings } from "@/hooks/useSettings";
 import { useProjects } from "@/hooks/useProjects";
-import { SettingsLoading } from "./SettingsLoading";
-import { SettingsHeader } from "./SettingsHeader";
+import { SettingsLoading } from "./components/SettingsLoading";
+import { SettingsHeader } from "./components/SettingsHeader";
 import { NoticeBox } from "../shared/NoticeBox";
 import { IconButton } from "@/components/shared/IconButton";
 

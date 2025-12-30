@@ -4,9 +4,9 @@ import { AutoAssignSettings, defaultAutoAssignSettings } from "@/types/settings"
 import { usePeople } from "@/hooks/usePeople";
 import { useProjects } from "@/hooks/useProjects";
 import { useSettings } from "@/hooks/useSettings";
-import { SettingsLoading } from "./SettingsLoading";
-import { SettingsHeader } from "./SettingsHeader";
-import { AutoAssignField } from "./AutoAssignField";
+import { SettingsLoading } from "./components/SettingsLoading";
+import { SettingsHeader } from "./components/SettingsHeader";
+import { AutoAssignField } from "./components/AutoAssignField";
 import { NoticeBox } from "../shared/NoticeBox";
 import { getTextColor } from "@/utils/colors";
 import { dueDateDefaultItems, durationDefaultItems, recurringDefaultItems } from "@/types/time";

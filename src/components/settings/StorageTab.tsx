@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { STORAGE_KEYS, getStorageAdapter, setStorageAdapter, createIndexedDBAdapter } from "@/storage/storage";
 import { WarningTriangleIcon } from "@/components/shared/Icons";
-import { SettingsHeader } from "./SettingsHeader";
+import { SettingsHeader } from "./components/SettingsHeader";
 
 const tooltip = (
   <div className="space-y-2">

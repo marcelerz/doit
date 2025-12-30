@@ -7,8 +7,8 @@ import { usePeople } from "@/hooks/usePeople";
 import { useProjects } from "@/hooks/useProjects";
 import { useSettings } from "@/hooks/useSettings";
 import { useTodos } from "@/hooks/useTodos";
-import { SettingsLoading } from "./SettingsLoading";
-import { SettingsHeader } from "./SettingsHeader";
+import { SettingsLoading } from "./components/SettingsLoading";
+import { SettingsHeader } from "./components/SettingsHeader";
 
 const tooltip = (
   <div className="space-y-2">

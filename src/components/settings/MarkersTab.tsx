@@ -3,8 +3,8 @@
 import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
 import { getColor } from "@/types/types";
 import { useSettings } from "@/hooks/useSettings";
-import { SettingsLoading } from "./SettingsLoading";
-import { SettingsHeader } from "./SettingsHeader";
+import { SettingsLoading } from "./components/SettingsLoading";
+import { SettingsHeader } from "./components/SettingsHeader";
 import { CalendarIcon, ClockIcon, RepeatIcon, LinkIcon, LightningIcon } from "@/components/shared/Icons";
 import { ReactNode } from "react";
 
