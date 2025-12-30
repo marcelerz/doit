@@ -33,8 +33,8 @@ import { PeopleView, peopleViewTutorialSteps } from "@/components/views/PeopleVi
 import { ProjectsView, projectsViewTutorialSteps } from "@/components/views/ProjectsView";
 import { SprintsView, sprintsViewTutorialSteps } from "@/components/views/SprintsView";
 import { useSelectionHistory, sortByUsage, sortStringsByUsage } from "@/hooks/useSelectionHistory";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { normalizeDateValue } from "@/utils/dateUtils";
-import { ConfirmDialog } from "@/components/shared/Notification";
 import { TemplatesManager, CreateTemplateModal, TemplateDropdown } from "@/components/shared/Templates";
 import { TodoTemplate } from "@/types/todoTemplate";
 import { getColor } from "@/types/types";
@@ -482,12 +482,8 @@ export function TodoApp() {
   const [isAddSprintOverlayOpen, setIsAddSprintOverlayOpen] = useState(false);
   const [isHelpOverlayOpen, setIsHelpOverlayOpen] = useState(false);
 
-  // Confirm dialog state
-  const [confirmDialog, setConfirmDialog] = useState<{
-    title: string;
-    message: string;
-    onConfirm: () => void;
-  } | null>(null);
+  // Confirm dialog hook
+  const { showConfirmDialog, hideConfirmDialog, ConfirmDialogComponent } = useConfirmDialog();
 
   // Auto-focus the input when the overlay opens
   useEffect(() => {
@@ -543,10 +539,6 @@ export function TodoApp() {
         }
         if (isAddSprintOverlayOpen) {
           setIsAddSprintOverlayOpen(false);
-          return;
-        }
-        if (confirmDialog) {
-          setConfirmDialog(null);
           return;
         }
         if (listViewRef.current?.isSelectionMode) {
@@ -660,7 +652,6 @@ export function TodoApp() {
     isAddPersonOverlayOpen,
     isAddProjectOverlayOpen,
     isAddSprintOverlayOpen,
-    confirmDialog,
     features,
   ]);
 
@@ -919,12 +910,13 @@ export function TodoApp() {
             onUnarchivePerson={unarchivePerson}
             onDeletePerson={deletePerson}
             onRequestDeleteConfirm={(id, name) => {
-              setConfirmDialog({
+              showConfirmDialog({
                 title: "Delete Person",
                 message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+                confirmText: "Delete",
+                confirmVariant: "danger",
                 onConfirm: () => {
                   deletePerson(id);
-                  setConfirmDialog(null);
                 },
               });
             }}
@@ -943,12 +935,13 @@ export function TodoApp() {
             onUnarchiveProject={unarchiveProject}
             onDeleteProject={deleteProject}
             onRequestDeleteConfirm={(id, name) => {
-              setConfirmDialog({
+              showConfirmDialog({
                 title: "Delete Project",
                 message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+                confirmText: "Delete",
+                confirmVariant: "danger",
                 onConfirm: () => {
                   deleteProject(id);
-                  setConfirmDialog(null);
                 },
               });
             }}
@@ -1007,7 +1000,6 @@ export function TodoApp() {
             editTodoComment={editTodoComment}
             deleteTodoComment={deleteTodoComment}
             onOpenTodoDetails={setDetailsOverlayTodo}
-            setConfirmDialog={setConfirmDialog}
             undoActions={undoActions}
             fadingOutIds={fadingOutIds}
             undo={undo}
@@ -1601,16 +1593,7 @@ export function TodoApp() {
       </div>
 
       {/* Confirm Dialog */}
-      {confirmDialog && (
-        <ConfirmDialog
-          title={confirmDialog.title}
-          message={confirmDialog.message}
-          onConfirm={confirmDialog.onConfirm}
-          onCancel={() => setConfirmDialog(null)}
-          confirmText="Delete"
-          confirmVariant="danger"
-        />
-      )}
+      {ConfirmDialogComponent}
 
       {/* Focus Mode */}
       {isFocusMode && (

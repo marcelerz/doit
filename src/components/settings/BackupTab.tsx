@@ -13,7 +13,8 @@ import {
   type BackupData,
 } from "@/storage/backup";
 import { useSettings } from "@/hooks/useSettings";
-import { Notification, ConfirmDialog, type NotificationType } from "@/components/shared/Notification";
+import { useNotification } from "@/hooks/useNotification";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { IconButton } from "@/components/shared/IconButton";
 import { SettingsHeader } from "./SettingsHeader";
 import { SettingsLoading } from "./SettingsLoading";
@@ -29,12 +30,10 @@ const tooltip = (
   </div>
 );
 
-interface BackupTabProps {
-  onRestore?: () => void; // Callback to refresh data after restore
-}
-
-export function BackupTab({ onRestore }: BackupTabProps) {
+export function BackupTab() {
   const { settings, isLoaded, updateBackupSettings } = useSettings();
+  const { showSuccess, showError, NotificationComponent } = useNotification();
+  const { showConfirmDialog, ConfirmDialogComponent } = useConfirmDialog();
   const backupSettings = settings.backup;
 
   const [backups, setBackups] = useState<BackupData[]>([]);
@@ -48,14 +47,6 @@ export function BackupTab({ onRestore }: BackupTabProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [notification, setNotification] = useState<{ message: string; type: NotificationType } | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<{
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    confirmText?: string;
-    confirmVariant?: "danger" | "primary";
-  } | null>(null);
 
   useEffect(() => {
     if (isLoaded) {
@@ -95,21 +86,21 @@ export function BackupTab({ onRestore }: BackupTabProps) {
     try {
       const success = await createBackup();
       if (success) {
-        await loadBackups(); // Await the refresh
-        setNotification({ message: "Backup created successfully!", type: "success" });
+        await loadBackups();
+        showSuccess("Backup created successfully!");
       } else {
-        setNotification({ message: "Failed to create backup. Please try again.", type: "error" });
+        showError("Failed to create backup. Please try again.");
       }
     } catch (error) {
       console.error("Backup error:", error);
-      setNotification({ message: "An error occurred while creating the backup.", type: "error" });
+      showError("An error occurred while creating the backup.");
     } finally {
       setIsCreating(false);
     }
   };
 
   const handleRestoreBackup = (backup: BackupData) => {
-    setConfirmDialog({
+    showConfirmDialog({
       title: "Restore Backup",
       message: `Are you sure you want to restore the backup from ${new Date(
         backup.timestamp,
@@ -119,19 +110,17 @@ export function BackupTab({ onRestore }: BackupTabProps) {
       onConfirm: async () => {
         const success = await restoreBackup(backup);
         if (success) {
-          setNotification({ message: "Backup restored successfully! The page will reload.", type: "success" });
-          onRestore?.();
+          showSuccess("Backup restored successfully! The page will reload.");
           setTimeout(() => window.location.reload(), 1000);
         } else {
-          setNotification({ message: "Failed to restore backup. Please try again.", type: "error" });
+          showError("Failed to restore backup. Please try again.");
         }
-        setConfirmDialog(null);
       },
     });
   };
 
   const handleDeleteBackup = (timestamp: number) => {
-    setConfirmDialog({
+    showConfirmDialog({
       title: "Delete Backup",
       message: "Are you sure you want to delete this backup? This action cannot be undone.",
       confirmText: "Delete",
@@ -143,11 +132,10 @@ export function BackupTab({ onRestore }: BackupTabProps) {
           if (selectedBackup === timestamp) {
             setSelectedBackup(null);
           }
-          setNotification({ message: "Backup deleted successfully.", type: "success" });
+          showSuccess("Backup deleted successfully.");
         } else {
-          setNotification({ message: "Failed to delete backup. Please try again.", type: "error" });
+          showError("Failed to delete backup. Please try again.");
         }
-        setConfirmDialog(null);
       },
     });
   };
@@ -173,13 +161,13 @@ export function BackupTab({ onRestore }: BackupTabProps) {
       const result = await importBackupFromFile(file);
       if (result.success) {
         await loadBackups();
-        setNotification({ message: "Backup imported successfully!", type: "success" });
+        showSuccess("Backup imported successfully!");
       } else {
-        setNotification({ message: `Failed to import backup: ${result.error || "Unknown error"}`, type: "error" });
+        showError(`Failed to import backup: ${result.error || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Import error:", error);
-      setNotification({ message: "An error occurred while importing the backup.", type: "error" });
+      showError("An error occurred while importing the backup.");
     } finally {
       setIsImporting(false);
       // Reset file input
@@ -415,22 +403,8 @@ export function BackupTab({ onRestore }: BackupTabProps) {
         </ul>
       </div>
 
-      {/* Notification */}
-      {notification && (
-        <Notification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />
-      )}
-
-      {/* Confirm Dialog */}
-      {confirmDialog && (
-        <ConfirmDialog
-          title={confirmDialog.title}
-          message={confirmDialog.message}
-          confirmText={confirmDialog.confirmText}
-          confirmVariant={confirmDialog.confirmVariant}
-          onConfirm={confirmDialog.onConfirm}
-          onCancel={() => setConfirmDialog(null)}
-        />
-      )}
+      {NotificationComponent}
+      {ConfirmDialogComponent}
     </div>
   );
 }

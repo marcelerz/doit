@@ -18,6 +18,7 @@ import { ListViewToolbar } from "@/components/shared/ListViewToolbar";
 import { FilterSection } from "@/components/shared/FilterSection";
 import { useDragReorder } from "@/hooks/useDragReorder";
 import { useListViewState, TodoFilters } from "@/hooks/useListViewState";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { getTextColor } from "@/utils/colors";
 import { exportTodos, ExportFormat } from "@/utils/export";
 import {
@@ -100,12 +101,6 @@ export interface ListViewHandle {
   focusSearch: () => void;
 }
 
-interface ConfirmDialogState {
-  title: string;
-  message: string;
-  onConfirm: () => void;
-}
-
 interface ListViewProps {
   // Todos
   todos: TodoModel[];
@@ -152,9 +147,6 @@ interface ListViewProps {
   // Details overlay
   onOpenTodoDetails: (todo: TodoModel) => void;
 
-  // Confirm dialog
-  setConfirmDialog: (dialog: ConfirmDialogState | null) => void;
-
   // Undo
   undoActions: UndoAction[];
   fadingOutIds: Set<string>;
@@ -194,7 +186,6 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
     editTodoComment,
     deleteTodoComment,
     onOpenTodoDetails,
-    setConfirmDialog,
     undoActions,
     fadingOutIds,
     undo,
@@ -205,6 +196,9 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
 ) {
   // Search input ref for focus handling
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Confirm dialog hook
+  const { showConfirmDialog, ConfirmDialogComponent } = useConfirmDialog();
 
   // Use the list view state hook for filter/sort/group management
   const {
@@ -353,18 +347,19 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
 
   const bulkDelete = useCallback(() => {
     const toDelete = todos.filter((t) => selectedTodoIds.has(t.id));
-    setConfirmDialog({
+    showConfirmDialog({
       title: "Delete Selected Tasks",
       message: `Are you sure you want to delete ${toDelete.length} task${
         toDelete.length === 1 ? "" : "s"
       }? This cannot be undone.`,
+      confirmText: "Delete",
+      confirmVariant: "danger",
       onConfirm: () => {
         toDelete.forEach((todo) => deleteTodo(todo.id));
         setSelectedTodoIds(new Set());
-        setConfirmDialog(null);
       },
     });
-  }, [todos, selectedTodoIds, deleteTodo, setConfirmDialog]);
+  }, [todos, selectedTodoIds, deleteTodo, showConfirmDialog]);
 
   const bulkUnarchive = useCallback(() => {
     const selectedArchived = todos.filter((t) => t.isArchived && selectedTodoIds.has(t.id));
@@ -1150,6 +1145,8 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
         people={sortedPeople}
         sprints={sprintsRaw}
       />
+
+      {ConfirmDialogComponent}
     </>
   );
 });
