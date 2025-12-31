@@ -17,7 +17,7 @@ async function getAllBackups(): Promise<BackupData[]> {
 
   try {
     const adapter = getStorageAdapter();
-    const allKeys = adapter.getAllKeys ? await adapter.getAllKeys() : [];
+    const allKeys = await adapter.getAllKeys();
     const keys = Array.isArray(allKeys) ? allKeys : [];
 
     for (const key of keys) {

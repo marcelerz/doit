@@ -8,8 +8,8 @@ export interface StorageAdapter {
   getItem(key: string): Promise<string | null>;
   setItem(key: string, value: string): Promise<void>;
   removeItem(key: string): Promise<void>;
-  clear?(): Promise<void>;
-  getAllKeys?(): Promise<string[]>;
+  clear(): Promise<void>;
+  getAllKeys(): Promise<string[]>;
 }
 
 class LocalStorageAdapter implements StorageAdapter {
@@ -308,7 +308,7 @@ export async function estimateStorageQuota(type?: StorageType): Promise<StorageQ
   // Calculate used space
   let used = 0;
   const adapter = getStorageAdapter();
-  const keys = adapter.getAllKeys ? await adapter.getAllKeys() : [];
+  const keys = await adapter.getAllKeys();
   for (const key of keys) {
     if (key && key.startsWith("doit-")) {
       try {
@@ -394,7 +394,7 @@ export async function migrateToLocalStorage(): Promise<MigrationResult> {
     }
 
     // Also migrate backup keys
-    const allKeys = currentAdapter.getAllKeys ? await currentAdapter.getAllKeys() : [];
+    const allKeys = await currentAdapter.getAllKeys();
     for (const key of allKeys) {
       if (key && key.startsWith("doit-backup-") && key !== "doit-backup-settings") {
         const value = await currentAdapter.getItem(key);
@@ -431,7 +431,7 @@ export async function clearAllAppData(): Promise<boolean> {
     }
 
     // Clear any backup keys and other doit- prefixed keys
-    const allKeys = adapter.getAllKeys ? await adapter.getAllKeys() : [];
+    const allKeys = await adapter.getAllKeys();
     for (const key of allKeys) {
       if (key && key.startsWith("doit-")) {
         await adapter.removeItem(key);

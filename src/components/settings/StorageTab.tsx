@@ -103,7 +103,7 @@ export function StorageTab() {
 
     // Add backup items
     let backupSize = 0;
-    const keys = adapter.getAllKeys ? await adapter.getAllKeys() : [];
+    const keys = await adapter.getAllKeys();
 
     for (const key of keys) {
       if (key && key.startsWith("doit-backup-") && key !== "doit-backup-settings") {
