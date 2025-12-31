@@ -4,9 +4,13 @@ import { useState, useEffect } from "react";
 import {
   STORAGE_KEYS,
   getStorageAdapter,
-  setStorageAdapter,
-  createIndexedDBAdapter,
-  createLocalStorageAdapter,
+  getStorageType,
+  isIndexedDBAvailable,
+  estimateStorageQuota,
+  migrateToIndexedDB,
+  migrateToLocalStorage,
+  clearAllAppData,
+  type StorageType,
 } from "@/storage/storage";
 import { WarningTriangleIcon } from "@/components/shared/Icons";
 import { SettingsHeader } from "./components/SettingsHeader";
@@ -30,14 +34,13 @@ interface StorageItem {
   color: string;
 }
 
-type StorageType = "localStorage" | "indexedDB";
 type SubTab = "current" | "switch";
 
 export function StorageTab() {
   const [storageItems, setStorageItems] = useState<StorageItem[]>([]);
   const [totalUsed, setTotalUsed] = useState(0);
   const [totalAvailable, setTotalAvailable] = useState(0);
-  const [detectionMethod, setDetectionMethod] = useState<"api" | "measured" | "fallback">("fallback");
+  const [detectionMethod, setDetectionMethod] = useState<"api" | "fallback">("fallback");
   const [storageType, setStorageType] = useState<StorageType>("localStorage");
   const [activeSubTab, setActiveSubTab] = useState<SubTab>("current");
   const [isMigrating, setIsMigrating] = useState(false);
@@ -47,83 +50,29 @@ export function StorageTab() {
   const [clearConfirmText, setClearConfirmText] = useState("");
   const [isClearing, setIsClearing] = useState(false);
 
+  const refreshStorageInfo = async (type?: StorageType) => {
+    const currentType = type || getStorageType();
+    setStorageType(currentType);
+
+    // Get quota info
+    const quotaInfo = await estimateStorageQuota(currentType);
+    setTotalAvailable(quotaInfo.available);
+    setDetectionMethod(quotaInfo.detectionMethod);
+
+    // Calculate detailed usage
+    await calculateStorageUsage(currentType);
+  };
+
   useEffect(() => {
     const init = async () => {
-      // Check if IndexedDB is available
-      const isIDBAvailable = await checkIndexedDBAvailable();
+      const isIDBAvailable = await isIndexedDBAvailable();
       setIndexedDBAvailable(isIDBAvailable);
-
-      const adapter = getStorageAdapter();
-      const adapterName = adapter.constructor.name;
-      const detectedType: StorageType = adapterName === "IndexedDBAdapter" ? "indexedDB" : "localStorage";
-      setStorageType(detectedType);
-
-      await estimateStorageQuota(detectedType);
-      await calculateStorageUsage();
+      await refreshStorageInfo();
     };
     init();
   }, []);
 
-  const checkIndexedDBAvailable = async (): Promise<boolean> => {
-    if (typeof window === "undefined" || !window.indexedDB) {
-      return false;
-    }
-    try {
-      const testDB = "doit-test-availability";
-      return new Promise((resolve) => {
-        const request = indexedDB.open(testDB, 1);
-        request.onerror = () => resolve(false);
-        request.onsuccess = () => {
-          request.result.close();
-          indexedDB.deleteDatabase(testDB);
-          resolve(true);
-        };
-        setTimeout(() => resolve(false), 1000);
-      });
-    } catch {
-      return false;
-    }
-  };
-
-  const detectStorageType = () => {
-    const adapter = getStorageAdapter();
-    const adapterName = adapter.constructor.name;
-    return adapterName === "IndexedDBAdapter" ? "indexedDB" : "localStorage";
-  };
-
-  const estimateStorageQuota = async (type?: StorageType) => {
-    const currentType = type || storageType;
-    try {
-      // Try to get actual quota using StorageManager API
-      if ("storage" in navigator && "estimate" in navigator.storage) {
-        const estimate = await navigator.storage.estimate();
-        if (estimate.quota) {
-          if (currentType === "indexedDB") {
-            // For IndexedDB, use the full quota (usually much larger)
-            setTotalAvailable(estimate.quota);
-          } else {
-            // For localStorage, browsers typically allocate 5-10MB from the total quota
-            const localStorageQuota = Math.min(estimate.quota * 0.001, 10 * 1024 * 1024); // Max 10MB
-            setTotalAvailable(localStorageQuota);
-          }
-          setDetectionMethod("api");
-          return;
-        }
-      }
-    } catch (error) {
-      console.warn("Failed to estimate storage quota:", error);
-    }
-
-    // Fallback based on storage type
-    if (currentType === "indexedDB") {
-      setTotalAvailable(50 * 1024 * 1024); // 50MB conservative estimate for IndexedDB
-    } else {
-      setTotalAvailable(5 * 1024 * 1024); // 5MB conservative estimate for localStorage
-    }
-    setDetectionMethod("fallback");
-  };
-
-  const calculateStorageUsage = async () => {
+  const calculateStorageUsage = async (currentType: StorageType) => {
     const items: StorageItem[] = [];
     let total = 0;
 
@@ -175,7 +124,7 @@ export function StorageTab() {
     }
 
     // For localStorage, add other items not managed by our app
-    if (storageType === "localStorage") {
+    if (currentType === "localStorage") {
       let otherSize = 0;
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -216,8 +165,6 @@ export function StorageTab() {
     switch (detectionMethod) {
       case "api":
         return "Detected via Storage API";
-      case "measured":
-        return "Measured by binary search";
       case "fallback":
         return storageType === "indexedDB" ? "Conservative estimate (50MB)" : "Conservative estimate (5MB)";
     }
@@ -227,142 +174,60 @@ export function StorageTab() {
     switch (detectionMethod) {
       case "api":
         return "text-green-600 dark:text-green-400";
-      case "measured":
-        return "text-blue-600 dark:text-blue-400";
       case "fallback":
         return "text-amber-600 dark:text-amber-400";
     }
   };
 
-  const migrateToIndexedDB = async () => {
+  const handleMigrateToIndexedDB = async () => {
     if (!indexedDBAvailable) return;
 
     setIsMigrating(true);
     setMigrationStatus("Migrating to IndexedDB...");
 
-    try {
-      const indexedDBAdapter = createIndexedDBAdapter();
-      const keys = Object.values(STORAGE_KEYS);
-      let migratedCount = 0;
-
-      for (const key of keys) {
-        const value = localStorage.getItem(key);
-        if (value) {
-          await indexedDBAdapter.setItem(key, value);
-          migratedCount++;
-        }
-      }
-
-      // Switch to IndexedDB adapter
-      setStorageAdapter(indexedDBAdapter);
-
-      // Mark as migrated
-      await indexedDBAdapter.setItem("doit-migrated-to-indexeddb", "true");
-
-      // Clear localStorage
-      for (const key of keys) {
-        localStorage.removeItem(key);
-      }
-
-      setStorageType("indexedDB");
-      setMigrationStatus(`Successfully migrated ${migratedCount} items to IndexedDB. Please reload the page.`);
-
-      // Refresh storage display
-      await estimateStorageQuota("indexedDB");
-      await calculateStorageUsage();
-    } catch (error) {
-      console.error("Migration failed:", error);
+    const result = await migrateToIndexedDB();
+    if (result.success) {
+      setMigrationStatus(`Successfully migrated ${result.migratedCount} items to IndexedDB. Please reload the page.`);
+      await refreshStorageInfo("indexedDB");
+    } else {
       setMigrationStatus("Migration failed. Please try again.");
-    } finally {
-      setIsMigrating(false);
     }
+
+    setIsMigrating(false);
   };
 
-  const migrateToLocalStorage = async () => {
+  const handleMigrateToLocalStorage = async () => {
     setIsMigrating(true);
     setMigrationStatus("Migrating to localStorage...");
 
-    try {
-      const currentAdapter = getStorageAdapter();
-      const keys = Object.values(STORAGE_KEYS);
-      let migratedCount = 0;
-
-      for (const key of keys) {
-        const value = await currentAdapter.getItem(key);
-        if (value) {
-          localStorage.setItem(key, value);
-          migratedCount++;
-        }
-      }
-
-      // Switch to localStorage adapter
-      const localStorageAdapter = createLocalStorageAdapter();
-      setStorageAdapter(localStorageAdapter);
-
-      // Remove migration flag
-      localStorage.removeItem("doit-migrated-to-indexeddb");
-
-      setStorageType("localStorage");
-      setMigrationStatus(`Successfully migrated ${migratedCount} items to localStorage. Please reload the page.`);
-
-      // Refresh storage display
-      await estimateStorageQuota("localStorage");
-      await calculateStorageUsage();
-    } catch (error) {
-      console.error("Migration failed:", error);
+    const result = await migrateToLocalStorage();
+    if (result.success) {
+      setMigrationStatus(
+        `Successfully migrated ${result.migratedCount} items to localStorage. Please reload the page.`,
+      );
+      await refreshStorageInfo("localStorage");
+    } else {
       setMigrationStatus("Migration failed. Please try again.");
-    } finally {
-      setIsMigrating(false);
     }
+
+    setIsMigrating(false);
   };
 
-  const clearAllData = async () => {
+  const handleClearAllData = async () => {
     if (clearConfirmText !== "DELETE ALL DATA") return;
 
     setIsClearing(true);
 
-    try {
-      const adapter = getStorageAdapter();
-      const keys = Object.values(STORAGE_KEYS);
-
-      // Clear all doit-related data from current storage
-      for (const key of keys) {
-        await adapter.removeItem(key);
-      }
-
-      // Also clear from localStorage if using IndexedDB (to ensure complete cleanup)
-      if (storageType === "indexedDB") {
-        for (const key of keys) {
-          localStorage.removeItem(key);
-        }
-      }
-
-      // Clear any backup keys
-      const keysList = adapter.getAllKeys ? await adapter.getAllKeys() : [];
-      for (const key of keysList) {
-        if (key && key.startsWith("doit-")) {
-          await adapter.removeItem(key);
-        }
-      }
-
-      // Also clear doit- prefixed keys from localStorage
-      const localStorageKeys = Object.keys(localStorage).filter((k) => k.startsWith("doit-"));
-      for (const key of localStorageKeys) {
-        localStorage.removeItem(key);
-      }
-
-      // Reset confirmation state
+    const success = await clearAllAppData();
+    if (success) {
       setShowClearConfirm(false);
       setClearConfirmText("");
-
-      // Reload the page to start fresh
       window.location.reload();
-    } catch (error) {
-      console.error("Failed to clear data:", error);
+    } else {
       alert("Failed to clear data. Please try again.");
-    } finally {
-      setIsClearing(false);
     }
+
+    setIsClearing(false);
   };
 
   return (
@@ -380,12 +245,7 @@ export function StorageTab() {
         }
         action={{
           label: "Refresh",
-          onClick: () => {
-            const detectedType = detectStorageType();
-            setStorageType(detectedType);
-            estimateStorageQuota(detectedType);
-            calculateStorageUsage();
-          },
+          onClick: () => refreshStorageInfo(),
           variant: "subtle",
         }}
       />
@@ -572,8 +432,6 @@ export function StorageTab() {
                   ) : (
                     <>
                       {detectionMethod === "api" && "Storage limit detected using browser's Storage API. "}
-                      {detectionMethod === "measured" &&
-                        "Storage limit measured by testing write capacity. This is an approximation. "}
                       {detectionMethod === "fallback" &&
                         "Using conservative 5MB estimate. Actual limit may be higher. "}
                       This data is stored locally on your device and is not synced across browsers or devices.
@@ -640,7 +498,7 @@ export function StorageTab() {
                     />
                     <div className="flex gap-2">
                       <button
-                        onClick={clearAllData}
+                        onClick={handleClearAllData}
                         disabled={clearConfirmText !== "DELETE ALL DATA" || isClearing}
                         className="px-4 py-2 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
@@ -744,7 +602,7 @@ export function StorageTab() {
                 </div>
                 {storageType === "indexedDB" && (
                   <button
-                    onClick={migrateToLocalStorage}
+                    onClick={handleMigrateToLocalStorage}
                     disabled={isMigrating}
                     className="ml-4 px-3 py-1.5 text-sm font-medium rounded-md bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
@@ -786,7 +644,7 @@ export function StorageTab() {
                 </div>
                 {storageType === "localStorage" && indexedDBAvailable && (
                   <button
-                    onClick={migrateToIndexedDB}
+                    onClick={handleMigrateToIndexedDB}
                     disabled={isMigrating}
                     className="ml-4 px-3 py-1.5 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >

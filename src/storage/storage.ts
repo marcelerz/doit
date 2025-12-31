@@ -233,3 +233,220 @@ export async function saveToStorage<T>(key: string, value: T): Promise<void> {
     console.error(`Failed to save data for ${key}:`, error);
   }
 }
+
+// Storage type detection
+export type StorageType = "localStorage" | "indexedDB";
+
+export function getStorageType(): StorageType {
+  const adapter = getStorageAdapter();
+  return adapter.constructor.name === "IndexedDBAdapter" ? "indexedDB" : "localStorage";
+}
+
+// Check if IndexedDB is available (handles Safari Private Mode)
+export async function isIndexedDBAvailable(): Promise<boolean> {
+  if (typeof window === "undefined" || !window.indexedDB) {
+    return false;
+  }
+  try {
+    const testDB = "doit-test-availability";
+    return new Promise((resolve) => {
+      const request = indexedDB.open(testDB, 1);
+      request.onerror = () => resolve(false);
+      request.onsuccess = () => {
+        request.result.close();
+        indexedDB.deleteDatabase(testDB);
+        resolve(true);
+      };
+      setTimeout(() => resolve(false), 1000);
+    });
+  } catch {
+    return false;
+  }
+}
+
+// Storage quota estimation
+export interface StorageQuotaInfo {
+  available: number;
+  used: number;
+  detectionMethod: "api" | "fallback";
+}
+
+export async function estimateStorageQuota(type?: StorageType): Promise<StorageQuotaInfo> {
+  const currentType = type || getStorageType();
+  let available = 0;
+  let detectionMethod: "api" | "fallback" = "fallback";
+
+  try {
+    // Try to get actual quota using StorageManager API
+    if ("storage" in navigator && "estimate" in navigator.storage) {
+      const estimate = await navigator.storage.estimate();
+      if (estimate.quota) {
+        if (currentType === "indexedDB") {
+          // For IndexedDB, use the full quota (usually much larger)
+          available = estimate.quota;
+        } else {
+          // For localStorage, browsers typically allocate 5-10MB from the total quota
+          available = Math.min(estimate.quota * 0.001, 10 * 1024 * 1024); // Max 10MB
+        }
+        detectionMethod = "api";
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to estimate storage quota:", error);
+  }
+
+  // Fallback based on storage type
+  if (available === 0) {
+    if (currentType === "indexedDB") {
+      available = 50 * 1024 * 1024; // 50MB conservative estimate for IndexedDB
+    } else {
+      available = 5 * 1024 * 1024; // 5MB conservative estimate for localStorage
+    }
+    detectionMethod = "fallback";
+  }
+
+  // Calculate used space
+  let used = 0;
+  const adapter = getStorageAdapter();
+  const keys = adapter.getAllKeys ? await adapter.getAllKeys() : [];
+  for (const key of keys) {
+    if (key && key.startsWith("doit-")) {
+      try {
+        const data = await adapter.getItem(key);
+        if (data) {
+          used += new Blob([data]).size;
+        }
+      } catch (error) {
+        console.error(`Failed to get size for ${key}:`, error);
+      }
+    }
+  }
+
+  return { available, used, detectionMethod };
+}
+
+// Storage migration
+export interface MigrationResult {
+  success: boolean;
+  migratedCount: number;
+  error?: string;
+}
+
+export async function migrateToIndexedDB(): Promise<MigrationResult> {
+  try {
+    const indexedDBAdapter = createIndexedDBAdapter();
+    const keys = Object.values(STORAGE_KEYS);
+    let migratedCount = 0;
+
+    for (const key of keys) {
+      const value = localStorage.getItem(key);
+      if (value) {
+        await indexedDBAdapter.setItem(key, value);
+        migratedCount++;
+      }
+    }
+
+    // Also migrate backup keys
+    const localStorageKeys = Object.keys(localStorage).filter(
+      (k) => k.startsWith("doit-backup-") && k !== "doit-backup-settings",
+    );
+    for (const key of localStorageKeys) {
+      const value = localStorage.getItem(key);
+      if (value) {
+        await indexedDBAdapter.setItem(key, value);
+        migratedCount++;
+      }
+    }
+
+    // Switch to IndexedDB adapter
+    setStorageAdapter(indexedDBAdapter);
+
+    // Mark as migrated
+    await indexedDBAdapter.setItem("doit-migrated-to-indexeddb", "true");
+
+    // Clear localStorage
+    for (const key of keys) {
+      localStorage.removeItem(key);
+    }
+    for (const key of localStorageKeys) {
+      localStorage.removeItem(key);
+    }
+
+    return { success: true, migratedCount };
+  } catch (error) {
+    console.error("Migration to IndexedDB failed:", error);
+    return { success: false, migratedCount: 0, error: String(error) };
+  }
+}
+
+export async function migrateToLocalStorage(): Promise<MigrationResult> {
+  try {
+    const currentAdapter = getStorageAdapter();
+    const keys = Object.values(STORAGE_KEYS);
+    let migratedCount = 0;
+
+    for (const key of keys) {
+      const value = await currentAdapter.getItem(key);
+      if (value) {
+        localStorage.setItem(key, value);
+        migratedCount++;
+      }
+    }
+
+    // Also migrate backup keys
+    const allKeys = currentAdapter.getAllKeys ? await currentAdapter.getAllKeys() : [];
+    for (const key of allKeys) {
+      if (key && key.startsWith("doit-backup-") && key !== "doit-backup-settings") {
+        const value = await currentAdapter.getItem(key);
+        if (value) {
+          localStorage.setItem(key, value);
+          migratedCount++;
+        }
+      }
+    }
+
+    // Switch to localStorage adapter
+    const localStorageAdapter = createLocalStorageAdapter();
+    setStorageAdapter(localStorageAdapter);
+
+    // Remove migration flag
+    localStorage.removeItem("doit-migrated-to-indexeddb");
+
+    return { success: true, migratedCount };
+  } catch (error) {
+    console.error("Migration to localStorage failed:", error);
+    return { success: false, migratedCount: 0, error: String(error) };
+  }
+}
+
+// Clear all app data
+export async function clearAllAppData(): Promise<boolean> {
+  try {
+    const adapter = getStorageAdapter();
+    const keys = Object.values(STORAGE_KEYS);
+
+    // Clear all doit-related data from current storage
+    for (const key of keys) {
+      await adapter.removeItem(key);
+    }
+
+    // Clear any backup keys and other doit- prefixed keys
+    const allKeys = adapter.getAllKeys ? await adapter.getAllKeys() : [];
+    for (const key of allKeys) {
+      if (key && key.startsWith("doit-")) {
+        await adapter.removeItem(key);
+      }
+    }
+
+    // Also clear from localStorage (to ensure complete cleanup if using IndexedDB)
+    const localStorageKeys = Object.keys(localStorage).filter((k) => k.startsWith("doit-"));
+    for (const key of localStorageKeys) {
+      localStorage.removeItem(key);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Failed to clear all data:", error);
+    return false;
+  }
+}

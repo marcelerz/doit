@@ -762,7 +762,8 @@ function createTodayEodRefiner(dateTimeSettings?: DateTimeSettings): Refiner {
       return results.map((result) => {
         // If the text is "today" and no time is specified, set to EOD
         if (result.text.toLowerCase() === "today" && !result.start.isCertain("hour")) {
-          const eod = dateTimeSettings?.eod || "17:00";
+          // Use evening time as EOD fallback (BOD/EOD are derived from work hours in SettingsModel)
+          const eod = dateTimeSettings?.evening || "17:00";
           const [hours, minutes] = eod.split(":").map(Number);
           result.start.assign("hour", hours);
           result.start.assign("minute", minutes);
