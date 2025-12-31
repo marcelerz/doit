@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { STORAGE_KEYS, removeFromStorageSync, getStorageAdapter } from "@/storage/storage";
+import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
 import { useSettings } from "@/hooks/useSettings";
 import { BACKUP_KEY_PREFIX, BackupData, BackupStats } from "@/storage/backup";
 
@@ -86,10 +86,11 @@ async function restoreBackupFromStorage(backup: BackupData): Promise<boolean> {
   }
 }
 
-function deleteBackupFromStorage(timestamp: number): boolean {
+async function deleteBackupFromStorage(timestamp: number): Promise<boolean> {
   try {
+    const adapter = getStorageAdapter();
     const backupKey = `${BACKUP_KEY_PREFIX}${timestamp}`;
-    removeFromStorageSync(backupKey);
+    await adapter.removeItem(backupKey);
     return true;
   } catch (error) {
     console.error("Failed to delete backup:", error);
@@ -250,7 +251,7 @@ export function useBackups() {
 
   const handleDeleteBackup = useCallback(
     async (timestamp: number): Promise<boolean> => {
-      const success = deleteBackupFromStorage(timestamp);
+      const success = await deleteBackupFromStorage(timestamp);
       if (success) {
         await loadBackups();
       }

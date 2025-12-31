@@ -5,13 +5,7 @@
  * This file contains types, constants, and functions needed during app startup (before React hooks are available).
  */
 
-import {
-  STORAGE_KEYS,
-  removeFromStorageSync,
-  getStorageAdapter,
-  loadFromStorage,
-  saveToStorage,
-} from "@/storage/storage";
+import { STORAGE_KEYS, getStorageAdapter, loadFromStorage, saveToStorage } from "@/storage/storage";
 
 // ============================================================================
 // Types & Constants
@@ -147,10 +141,11 @@ async function createBackup(source: "auto" | "manual" = "manual"): Promise<boole
 /**
  * Delete a specific backup
  */
-function deleteBackup(timestamp: number): boolean {
+async function deleteBackup(timestamp: number): Promise<boolean> {
   try {
+    const adapter = getStorageAdapter();
     const backupKey = `${BACKUP_KEY_PREFIX}${timestamp}`;
-    removeFromStorageSync(backupKey);
+    await adapter.removeItem(backupKey);
     return true;
   } catch (error) {
     console.error("Failed to delete backup:", error);
@@ -192,13 +187,13 @@ export async function cleanupOldBackups(): Promise<number> {
 
   let deletedCount = 0;
 
-  backups.forEach((backup) => {
+  for (const backup of backups) {
     if (backup.timestamp < cutoffTimestamp) {
-      if (deleteBackup(backup.timestamp)) {
+      if (await deleteBackup(backup.timestamp)) {
         deletedCount++;
       }
     }
-  });
+  }
 
   return deletedCount;
 }

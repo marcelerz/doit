@@ -5,15 +5,15 @@
  */
 
 export interface StorageAdapter {
-  getItem(key: string): Promise<string | null> | string | null;
-  setItem(key: string, value: string): Promise<void> | void;
-  removeItem(key: string): Promise<void> | void;
-  clear?(): Promise<void> | void;
-  getAllKeys?(): Promise<string[]> | string[];
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
+  removeItem(key: string): Promise<void>;
+  clear?(): Promise<void>;
+  getAllKeys?(): Promise<string[]>;
 }
 
 class LocalStorageAdapter implements StorageAdapter {
-  getItem(key: string): string | null {
+  async getItem(key: string): Promise<string | null> {
     try {
       return localStorage.getItem(key);
     } catch (error) {
@@ -22,7 +22,7 @@ class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
-  setItem(key: string, value: string): void {
+  async setItem(key: string, value: string): Promise<void> {
     try {
       localStorage.setItem(key, value);
     } catch (error) {
@@ -30,7 +30,7 @@ class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
-  removeItem(key: string): void {
+  async removeItem(key: string): Promise<void> {
     try {
       localStorage.removeItem(key);
     } catch (error) {
@@ -38,7 +38,7 @@ class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
-  clear(): void {
+  async clear(): Promise<void> {
     try {
       localStorage.clear();
     } catch (error) {
@@ -46,7 +46,7 @@ class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
-  getAllKeys(): string[] {
+  async getAllKeys(): Promise<string[]> {
     try {
       return Object.keys(localStorage);
     } catch (error) {
@@ -183,6 +183,11 @@ export function createIndexedDBAdapter(): StorageAdapter {
   return new IndexedDBAdapter();
 }
 
+// Create localStorage adapter instance
+export function createLocalStorageAdapter(): StorageAdapter {
+  return new LocalStorageAdapter();
+}
+
 // Storage keys - centralized registry of all storage keys
 export const STORAGE_KEYS = {
   TODOS: "doit-todos",
@@ -226,57 +231,5 @@ export async function saveToStorage<T>(key: string, value: T): Promise<void> {
     await storageAdapter.setItem(key, JSON.stringify(value));
   } catch (error) {
     console.error(`Failed to save data for ${key}:`, error);
-  }
-}
-
-export async function removeFromStorage(key: string): Promise<void> {
-  await storageAdapter.removeItem(key);
-}
-
-export async function clearAllStorage(): Promise<void> {
-  if (storageAdapter.clear) {
-    await storageAdapter.clear();
-  }
-}
-
-export async function getAllStorageKeys(): Promise<string[]> {
-  if (storageAdapter.getAllKeys) {
-    return await storageAdapter.getAllKeys();
-  }
-  return [];
-}
-
-// Synchronous versions for backward compatibility (only work with LocalStorage)
-export function loadFromStorageSync<T>(key: string, defaultValue: T): T {
-  const stored = storageAdapter.getItem(key);
-  if (stored instanceof Promise) {
-    console.warn(`Cannot use sync method with async storage adapter for key: ${key}`);
-    return defaultValue;
-  }
-  if (!stored) return defaultValue;
-
-  try {
-    return JSON.parse(stored);
-  } catch (error) {
-    console.error(`Failed to parse stored data for ${key}:`, error);
-    return defaultValue;
-  }
-}
-
-export function saveToStorageSync<T>(key: string, value: T): void {
-  try {
-    const result = storageAdapter.setItem(key, JSON.stringify(value));
-    if (result instanceof Promise) {
-      console.warn(`Cannot use sync method with async storage adapter for key: ${key}`);
-    }
-  } catch (error) {
-    console.error(`Failed to save data for ${key}:`, error);
-  }
-}
-
-export function removeFromStorageSync(key: string): void {
-  const result = storageAdapter.removeItem(key);
-  if (result instanceof Promise) {
-    console.warn(`Cannot use sync method with async storage adapter for key: ${key}`);
   }
 }

@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { STORAGE_KEYS, getStorageAdapter, setStorageAdapter, createIndexedDBAdapter } from "@/storage/storage";
+import {
+  STORAGE_KEYS,
+  getStorageAdapter,
+  setStorageAdapter,
+  createIndexedDBAdapter,
+  createLocalStorageAdapter,
+} from "@/storage/storage";
 import { WarningTriangleIcon } from "@/components/shared/Icons";
 import { SettingsHeader } from "./components/SettingsHeader";
 
@@ -26,43 +32,6 @@ interface StorageItem {
 
 type StorageType = "localStorage" | "indexedDB";
 type SubTab = "current" | "switch";
-
-// Create a localStorage adapter class for switching
-class LocalStorageAdapter {
-  getItem(key: string): string | null {
-    try {
-      return localStorage.getItem(key);
-    } catch (error) {
-      console.error(`Failed to get item ${key}:`, error);
-      return null;
-    }
-  }
-
-  setItem(key: string, value: string): void {
-    try {
-      localStorage.setItem(key, value);
-    } catch (error) {
-      console.error(`Failed to set item ${key}:`, error);
-    }
-  }
-
-  removeItem(key: string): void {
-    try {
-      localStorage.removeItem(key);
-    } catch (error) {
-      console.error(`Failed to remove item ${key}:`, error);
-    }
-  }
-
-  getAllKeys(): string[] {
-    try {
-      return Object.keys(localStorage);
-    } catch (error) {
-      console.error("Failed to get all keys:", error);
-      return [];
-    }
-  }
-}
 
 export function StorageTab() {
   const [storageItems, setStorageItems] = useState<StorageItem[]>([]);
@@ -172,8 +141,7 @@ export function StorageTab() {
     // Add main storage items
     for (const [key, config] of Object.entries(storageMap)) {
       try {
-        const result = adapter.getItem(key);
-        const data = result instanceof Promise ? await result : result;
+        const data = await adapter.getItem(key);
         if (data) {
           const size = new Blob([data]).size;
           items.push({ key, size, label: config.label, color: config.color });
@@ -186,14 +154,12 @@ export function StorageTab() {
 
     // Add backup items
     let backupSize = 0;
-    const allKeys = adapter.getAllKeys ? adapter.getAllKeys() : [];
-    const keys = allKeys instanceof Promise ? await allKeys : allKeys;
+    const keys = adapter.getAllKeys ? await adapter.getAllKeys() : [];
 
     for (const key of keys) {
       if (key && key.startsWith("doit-backup-") && key !== "doit-backup-settings") {
         try {
-          const result = adapter.getItem(key);
-          const data = result instanceof Promise ? await result : result;
+          const data = await adapter.getItem(key);
           if (data) {
             backupSize += new Blob([data]).size;
           }
@@ -322,8 +288,7 @@ export function StorageTab() {
       let migratedCount = 0;
 
       for (const key of keys) {
-        const result = currentAdapter.getItem(key);
-        const value = result instanceof Promise ? await result : result;
+        const value = await currentAdapter.getItem(key);
         if (value) {
           localStorage.setItem(key, value);
           migratedCount++;
@@ -331,7 +296,7 @@ export function StorageTab() {
       }
 
       // Switch to localStorage adapter
-      const localStorageAdapter = new LocalStorageAdapter();
+      const localStorageAdapter = createLocalStorageAdapter();
       setStorageAdapter(localStorageAdapter);
 
       // Remove migration flag
@@ -362,10 +327,7 @@ export function StorageTab() {
 
       // Clear all doit-related data from current storage
       for (const key of keys) {
-        if (adapter.removeItem) {
-          const result = adapter.removeItem(key);
-          if (result instanceof Promise) await result;
-        }
+        await adapter.removeItem(key);
       }
 
       // Also clear from localStorage if using IndexedDB (to ensure complete cleanup)
@@ -376,14 +338,10 @@ export function StorageTab() {
       }
 
       // Clear any backup keys
-      const allKeys = adapter.getAllKeys ? adapter.getAllKeys() : [];
-      const keysList = allKeys instanceof Promise ? await allKeys : allKeys;
+      const keysList = adapter.getAllKeys ? await adapter.getAllKeys() : [];
       for (const key of keysList) {
         if (key && key.startsWith("doit-")) {
-          if (adapter.removeItem) {
-            const result = adapter.removeItem(key);
-            if (result instanceof Promise) await result;
-          }
+          await adapter.removeItem(key);
         }
       }
 
