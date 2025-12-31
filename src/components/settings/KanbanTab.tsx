@@ -285,12 +285,14 @@ export function KanbanTab() {
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Define the workflow states for your Kanban board. System states (Completed, Archived) cannot be deleted.
             </p>
-            <button
-              onClick={() => setShowNewStateForm(!showNewStateForm)}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              {showNewStateForm ? "Cancel" : "Add State"}
-            </button>
+            {!showNewStateForm && (
+              <button
+                onClick={() => setShowNewStateForm(true)}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+              >
+                Add State
+              </button>
+            )}
           </div>
 
           {/* New State Form */}
@@ -344,13 +346,21 @@ export function KanbanTab() {
                   </div>
                 </div>
               </div>
-              <button
-                onClick={handleAddState}
-                disabled={!newStateName.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Add State
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddState}
+                  disabled={!newStateName.trim()}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
+                >
+                  Add State
+                </button>
+                <button
+                  onClick={() => setShowNewStateForm(false)}
+                  className="flex-1 px-4 py-2 bg-zinc-300 hover:bg-zinc-400 dark:bg-zinc-600 dark:hover:bg-zinc-500 text-zinc-900 dark:text-zinc-100 rounded-md font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
 
