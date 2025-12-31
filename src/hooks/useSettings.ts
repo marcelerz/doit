@@ -11,7 +11,7 @@ import { KanbanTransition } from "@/types/kanbanTransition";
 import { ProjectCategory } from "@/types/project";
 import { migrateSettings } from "@/storage/migrations";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storageInit";
+import { waitForStorageInit } from "@/storage/storage";
 import { SettingsModel } from "@/models/SettingsModel";
 
 export function useSettings() {

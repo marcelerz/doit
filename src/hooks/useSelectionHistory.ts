@@ -9,7 +9,7 @@ import {
   MAX_SELECTION_HISTORY,
 } from "@/types/selectionHistory";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storageInit";
+import { waitForStorageInit } from "@/storage/storage";
 
 /**
  * Usage statistics derived from selection history

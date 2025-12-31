@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storageInit";
+import { waitForStorageInit } from "@/storage/storage";
 import { Comment, ActivityEntry, getCommentId, getActivityId } from "@/types/types";
 import { getTimestamp } from "@/types/time";
 import { createActivityId, createCommentId } from "@/utils/idGenerator";

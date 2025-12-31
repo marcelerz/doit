@@ -5,7 +5,7 @@ import { Sprint, SprintStatus, getSprintId } from "@/types/sprint";
 import { getTimestamp } from "@/types/time";
 import { getActivityId, getCommentId } from "@/types/types";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storageInit";
+import { waitForStorageInit } from "@/storage/storage";
 import { createSprintId, createActivityId, createCommentId } from "@/utils/idGenerator";
 
 export interface SprintModel extends Sprint {

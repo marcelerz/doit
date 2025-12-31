@@ -12,7 +12,7 @@ import { LinkPattern } from "@/types/linkPattern";
 import { Sprint } from "@/types/sprint";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storageInit";
+import { waitForStorageInit } from "@/storage/storage";
 import { createViewPresetId } from "@/utils/idGenerator";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { ThemeMode } from "@/types/settings";
 import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storageInit";
+import { waitForStorageInit } from "@/storage/storage";
 
 // Function to apply theme
 const applyTheme = (theme: ThemeMode) => {

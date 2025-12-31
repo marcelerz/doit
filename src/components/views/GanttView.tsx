@@ -14,7 +14,7 @@ import { ProjectModel } from "@/models/ProjectModel";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storageInit";
+import { waitForStorageInit } from "@/storage/storage";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";

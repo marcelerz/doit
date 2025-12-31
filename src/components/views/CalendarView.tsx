@@ -12,7 +12,7 @@ import { TodoItem } from "@/components/items/TodoItem";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { Priority } from "@/types/priority";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storageInit";
+import { waitForStorageInit } from "@/storage/storage";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import {
   RefreshIcon,

@@ -25,7 +25,7 @@ import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurrin
 import { createActivity, generateMetadataActivities } from "@/utils/activityLogger";
 import { createActivityId, createCommentId, createSubtaskId } from "@/utils/idGenerator";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storageInit";
+import { waitForStorageInit } from "@/storage/storage";
 import { TodoModel, createTodoModels } from "@/models/TodoModel";
 import { SettingsModel, createSettingsModel } from "@/models/SettingsModel";
 import { parseDate } from "@/utils/dateUtils";

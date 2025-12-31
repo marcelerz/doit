@@ -11,9 +11,6 @@ jest.mock("@/storage/storage", () => ({
   STORAGE_KEYS: { TEST_ENTITIES: "doit-test-entities" },
   loadFromStorage: jest.fn().mockResolvedValue([]),
   saveToStorage: jest.fn().mockResolvedValue(undefined),
-}));
-
-jest.mock("@/storage/storageInit", () => ({
   waitForStorageInit: jest.fn().mockResolvedValue(undefined),
 }));
 

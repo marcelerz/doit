@@ -5,7 +5,7 @@ import { TodoMetadata } from "@/types/todo";
 import { TodoTemplate, getTodoTemplateId } from "@/types/todoTemplate";
 import { getTimestamp } from "@/types/time";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storageInit";
+import { waitForStorageInit } from "@/storage/storage";
 
 export function useTemplates() {
   const [templates, setTemplates] = useState<TodoTemplate[]>([]);

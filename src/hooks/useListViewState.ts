@@ -5,7 +5,7 @@ import { TodoModel } from "@/models/TodoModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { Settings } from "@/types/settings";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storageInit";
+import { waitForStorageInit } from "@/storage/storage";
 import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
 
 // Types

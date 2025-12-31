@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { SearchHistoryEntry, getSearchHistoryId } from "@/types/types";
 import { getTimestamp } from "@/types/time";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storageInit";
+import { waitForStorageInit } from "@/storage/storage";
 import { createSearchHistoryId } from "@/utils/idGenerator";
 
 const MAX_HISTORY_ITEMS = 20;

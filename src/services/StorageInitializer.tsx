@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { initializeStorageClient } from "@/storage/storageInit";
+import { initializeStorageClient } from "@/storage/storage";
 
 /**
  * Storage initializer component

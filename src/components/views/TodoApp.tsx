@@ -40,7 +40,7 @@ import { TodoTemplate } from "@/types/todoTemplate";
 import { getColor } from "@/types/types";
 import { parseTokensToMetadata } from "@/utils/tokenParser";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storageInit";
+import { waitForStorageInit } from "@/storage/storage";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { PlusIcon, CloseIcon, SettingsIcon, HelpIcon, DocumentIcon } from "@/components/shared/Icons";
 
