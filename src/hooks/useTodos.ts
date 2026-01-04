@@ -6,6 +6,9 @@ import {
   TodoMetadata,
   TimeEntry,
   TodoState,
+  TodoId,
+  SubtaskId,
+  TimeEntryId,
   getTodoId,
   getSubtaskId,
   getTimeEntryId,
@@ -17,6 +20,7 @@ import { getPersonId } from "@/types/person";
 import { getProjectId } from "@/types/project";
 import { getPriorityId } from "@/types/priority";
 import { getSprintId } from "@/types/sprint";
+import { KanbanStateId } from "@/types/kanbanState";
 import { parseDuration } from "@/utils/ganttScheduler";
 import { getActivityId, getCommentId, ActivityEntry, CommentId } from "@/types/types";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/storage/migrations";
@@ -591,7 +595,7 @@ export function useTodos() {
     );
   };
 
-  const addTodoComment = (todoId: string, content: string) => {
+  const addTodoComment = (todoId: TodoId, content: string) => {
     const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
@@ -610,7 +614,7 @@ export function useTodos() {
     );
   };
 
-  const editTodoComment = (todoId: string, commentId: CommentId, content: string) => {
+  const editTodoComment = (todoId: TodoId, commentId: CommentId, content: string) => {
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
@@ -628,7 +632,7 @@ export function useTodos() {
     );
   };
 
-  const deleteTodoComment = (todoId: string, commentId: CommentId) => {
+  const deleteTodoComment = (todoId: TodoId, commentId: CommentId) => {
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
@@ -642,7 +646,7 @@ export function useTodos() {
     );
   };
 
-  const reorderTodos = (orderedIds: string[]) => {
+  const reorderTodos = (orderedIds: TodoId[]) => {
     // Update sortOrder based on position in orderedIds array
     setRawTodos((prev) => {
       const orderMap = new Map(orderedIds.map((id, index) => [id, index]));
@@ -657,7 +661,7 @@ export function useTodos() {
   };
 
   // Subtask management functions
-  const addSubtask = (todoId: string, text: string) => {
+  const addSubtask = (todoId: TodoId, text: string) => {
     const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
@@ -679,7 +683,7 @@ export function useTodos() {
     );
   };
 
-  const toggleSubtask = (todoId: string, subtaskId: string) => {
+  const toggleSubtask = (todoId: TodoId, subtaskId: SubtaskId) => {
     const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
@@ -703,7 +707,7 @@ export function useTodos() {
     );
   };
 
-  const editSubtask = (todoId: string, subtaskId: string, text: string) => {
+  const editSubtask = (todoId: TodoId, subtaskId: SubtaskId, text: string) => {
     const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
@@ -721,7 +725,7 @@ export function useTodos() {
     );
   };
 
-  const deleteSubtask = (todoId: string, subtaskId: string) => {
+  const deleteSubtask = (todoId: TodoId, subtaskId: SubtaskId) => {
     const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
@@ -738,7 +742,7 @@ export function useTodos() {
   };
 
   // Time tracking functions
-  const startTimeTracking = (todoId: string, note?: string) => {
+  const startTimeTracking = (todoId: TodoId, note?: string) => {
     const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
@@ -763,7 +767,7 @@ export function useTodos() {
     );
   };
 
-  const stopTimeTracking = (todoId: string) => {
+  const stopTimeTracking = (todoId: TodoId) => {
     const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
@@ -787,7 +791,7 @@ export function useTodos() {
     );
   };
 
-  const addManualTimeEntry = (todoId: string, minutes: number, note?: string) => {
+  const addManualTimeEntry = (todoId: TodoId, minutes: number, note?: string) => {
     const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
@@ -814,7 +818,7 @@ export function useTodos() {
     );
   };
 
-  const deleteTimeEntry = (todoId: string, entryId: string) => {
+  const deleteTimeEntry = (todoId: TodoId, entryId: TimeEntryId) => {
     const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
@@ -843,10 +847,10 @@ export function useTodos() {
 
   // Set workflow state for Kanban board
   const setWorkflowState = (
-    todoId: string,
-    newStateId: string,
-    kanbanStates: Array<{ id: string; name?: string; mapsToTodoState?: string }>,
-    allowedTransitions?: Array<{ fromStateId: string; toStateId: string }>,
+    todoId: TodoId,
+    newStateId: KanbanStateId,
+    kanbanStates: Array<{ id: KanbanStateId; name?: string; mapsToTodoState?: string }>,
+    allowedTransitions?: Array<{ fromStateId: KanbanStateId; toStateId: KanbanStateId }>,
   ): boolean => {
     const todo = rawTodos.find((t) => t.id === todoId);
     if (!todo) return false;

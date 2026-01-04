@@ -48,7 +48,11 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
     return this._raw;
   }
 
-  get id(): string {
+  /**
+   * Returns the entity's ID with its proper branded type.
+   * The return type is T["id"] which preserves the specific branded type (PersonId, ProjectId, etc.)
+   */
+  get id(): T["id"] {
     return this._raw.id;
   }
 

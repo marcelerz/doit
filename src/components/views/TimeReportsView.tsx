@@ -6,7 +6,8 @@ import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { Settings } from "@/types/settings";
 import { ProjectCategory } from "@/types/project";
-import { Sprint } from "@/types/sprint";
+import { Sprint, SprintId } from "@/types/sprint";
+import { TodoId } from "@/types/todo";
 import { SprintModel } from "@/hooks/useSprints";
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
 import { PrintIcon } from "@/components/shared/Icons";
@@ -30,7 +31,7 @@ interface TimeReportsViewProps {
 }
 
 interface TimeEntry {
-  todoId: string;
+  todoId: TodoId;
   todoText: string;
   date: string;
   duration: number; // in minutes
@@ -38,7 +39,7 @@ interface TimeEntry {
   sourcePeople: string[];
   projects: string[];
   category?: string; // Project category (derived from project)
-  sprint?: string; // Sprint ID
+  sprint?: SprintId; // Sprint ID
 }
 
 function getWeekRange(date: Date, weekStart: number = 0): { start: Date; end: Date } {
@@ -226,7 +227,7 @@ export default function TimeReportsView({ todos, people, projects, settings, spr
             sourcePeople: todo.sourcePeople || [],
             projects: todoProjects,
             category: categoryId,
-            sprint: todo.sprint,
+            sprint: todo.sprintId,
           });
         }
       });

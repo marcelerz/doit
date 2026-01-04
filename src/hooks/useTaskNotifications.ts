@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { TodoModel } from "@/models/TodoModel";
 import { NotificationSettings } from "@/types/settings";
+import { TodoId } from "@/types/todo";
 import { checkAndNotifyDueTasks, getNotificationPermission } from "@/utils/notifications";
 
 /**
@@ -11,7 +12,7 @@ import { checkAndNotifyDueTasks, getNotificationPermission } from "@/utils/notif
  */
 export function useTaskNotifications(todos: TodoModel[], notificationSettings: NotificationSettings) {
   // Track which todos we've already notified about to avoid spam
-  const notifiedIds = useRef<Set<string>>(new Set());
+  const notifiedIds = useRef<Set<TodoId>>(new Set());
 
   useEffect(() => {
     // Don't run if notifications are disabled or permission not granted

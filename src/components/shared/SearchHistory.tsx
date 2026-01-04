@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { ClockIcon, CloseIcon, SearchIcon } from "@/components/shared/Icons";
+import { SearchHistoryId } from "@/types/types";
 
 interface SearchHistoryDropdownProps {
-  history: Array<{ id: string; query: string; timestamp: number }>;
+  history: Array<{ id: SearchHistoryId; query: string; timestamp: number }>;
   onSelect: (query: string) => void;
-  onRemove: (id: string) => void;
+  onRemove: (id: SearchHistoryId) => void;
   onClear: () => void;
   isVisible: boolean;
 }
@@ -61,8 +62,8 @@ interface SearchInputWithHistoryProps {
   onChange: (value: string) => void;
   onSearch: (query: string) => void;
   placeholder?: string;
-  history: Array<{ id: string; query: string; timestamp: number }>;
-  onRemoveFromHistory: (id: string) => void;
+  history: Array<{ id: SearchHistoryId; query: string; timestamp: number }>;
+  onRemoveFromHistory: (id: SearchHistoryId) => void;
   onClearHistory: () => void;
   className?: string;
 }

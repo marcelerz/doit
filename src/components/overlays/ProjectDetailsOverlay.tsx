@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { ProjectModel } from "@/models/ProjectModel";
-import { Project, ProjectCategory, getProjectCategoryId } from "@/types/project";
-import { getColor } from "@/types/types";
+import { Project, ProjectCategory, ProjectId, getProjectCategoryId } from "@/types/project";
+import { getColor, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
 import { ColorPicker } from "@/components/shared/ColorPicker";
@@ -15,13 +15,13 @@ import { CloseIcon } from "@/components/shared/Icons";
 interface ProjectDetailsOverlayProps {
   project: ProjectModel;
   onClose: () => void;
-  onUpdate: (id: string, updates: Partial<Project>) => void;
-  onDelete: (id: string) => void;
-  onArchive?: (id: string) => void;
-  onUnarchive?: (id: string) => void;
-  onAddComment: (projectId: string, content: string) => void;
-  onEditComment: (projectId: string, commentId: string, content: string) => void;
-  onDeleteComment: (projectId: string, commentId: string) => void;
+  onUpdate: (id: ProjectId, updates: Partial<Project>) => void;
+  onDelete: (id: ProjectId) => void;
+  onArchive?: (id: ProjectId) => void;
+  onUnarchive?: (id: ProjectId) => void;
+  onAddComment: (projectId: ProjectId, content: string) => void;
+  onEditComment: (projectId: ProjectId, commentId: CommentId, content: string) => void;
+  onDeleteComment: (projectId: ProjectId, commentId: CommentId) => void;
   categories?: ProjectCategory[];
 }
 

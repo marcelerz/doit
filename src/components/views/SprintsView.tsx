@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SprintModel } from "@/hooks/useSprints";
+import { SprintId } from "@/types/sprint";
 import { SprintItem } from "@/components/items/SprintItem";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TodoModel } from "@/models/TodoModel";
@@ -58,7 +59,7 @@ export const sprintsViewTutorialSteps: TutorialStep[] = [
 interface SprintsViewProps {
   sprints: SprintModel[];
   todos: TodoModel[];
-  onOpenSprint: (sprintId: string) => void;
+  onOpenSprint: (sprintId: SprintId) => void;
   onAddSprint: () => void;
   /** Ref for focus management from parent (keyboard shortcut "/") */
   searchInputRef?: React.RefObject<HTMLInputElement | null>;

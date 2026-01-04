@@ -5,6 +5,7 @@ import { PersonItem } from "@/components/items/PersonItem";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PlusIcon, SearchIcon, CloseIcon } from "@/components/shared/Icons";
 import { PersonModel } from "@/models/PersonModel";
+import { PersonId } from "@/types/person";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
 
@@ -57,11 +58,11 @@ export const peopleViewTutorialSteps: TutorialStep[] = [
 interface PeopleViewProps {
   people: PersonModel[];
   taskCountsByPerson: Map<string, number>;
-  onOpenPerson: (personId: string) => void;
-  onDeletePerson: (id: string) => void;
-  onArchivePerson: (id: string) => void;
-  onUnarchivePerson: (id: string) => void;
-  onRequestDeleteConfirm: (id: string, name: string) => void;
+  onOpenPerson: (personId: PersonId) => void;
+  onDeletePerson: (id: PersonId) => void;
+  onArchivePerson: (id: PersonId) => void;
+  onUnarchivePerson: (id: PersonId) => void;
+  onRequestDeleteConfirm: (id: PersonId, name: string) => void;
   onAddPerson: () => void;
   /** Ref for focus management from parent (keyboard shortcut "/") */
   searchInputRef?: React.RefObject<HTMLInputElement | null>;

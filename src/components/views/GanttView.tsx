@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TodoMetadata } from "@/types/todo";
+import { TodoMetadata, TodoId, SubtaskId, TimeEntryId } from "@/types/todo";
 import { TodoModel } from "@/models/TodoModel";
 import { WorkHoursSettings, Settings } from "@/types/settings";
 import { MarkerColors } from "@/types/markerColors";
@@ -11,6 +11,7 @@ import { LinkPattern } from "@/types/linkPattern";
 import { Priority } from "@/types/priority";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
+import { CommentId } from "@/types/types";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
@@ -107,11 +108,11 @@ interface GanttViewProps {
   todos: TodoModel[];
   markerColors: MarkerColors;
   workHours: WorkHoursSettings;
-  onToggle: (id: string) => void;
-  onDelete: (id: string) => void;
-  onEditTodo: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
-  onArchive?: (id: string) => void;
-  onUnarchive?: (id: string) => void;
+  onToggle: (id: TodoId) => void;
+  onDelete: (id: TodoId) => void;
+  onEditTodo: (id: TodoId, text: string, plainText: string, metadata: TodoMetadata) => void;
+  onArchive?: (id: TodoId) => void;
+  onUnarchive?: (id: TodoId) => void;
   settings: Settings;
   linkPatterns: LinkPattern[];
   availablePeople: PersonModel[];
@@ -120,22 +121,22 @@ interface GanttViewProps {
   onAddPerson: (person: string) => void;
   onAddProject: (project: string) => void;
   onAddPriority: (priority: string) => void;
-  onAddComment?: (todoId: string, content: string) => void;
+  onAddComment?: (todoId: TodoId, content: string) => void;
   onUpdateGanttSettings?: (gantt: Gantt) => void;
   // Subtask handlers
-  onAddSubtask?: (todoId: string, text: string) => void;
-  onToggleSubtask?: (todoId: string, subtaskId: string) => void;
-  onEditSubtask?: (todoId: string, subtaskId: string, text: string) => void;
-  onDeleteSubtask?: (todoId: string, subtaskId: string) => void;
+  onAddSubtask?: (todoId: TodoId, text: string) => void;
+  onToggleSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
+  onEditSubtask?: (todoId: TodoId, subtaskId: SubtaskId, text: string) => void;
+  onDeleteSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
   // Time tracking handlers
-  onStartTimeTracking?: (todoId: string, note?: string) => void;
-  onStopTimeTracking?: (todoId: string) => void;
-  onAddManualTimeEntry?: (todoId: string, minutes: number, note?: string) => void;
-  onDeleteTimeEntry?: (todoId: string, entryId: string) => void;
+  onStartTimeTracking?: (todoId: TodoId, note?: string) => void;
+  onStopTimeTracking?: (todoId: TodoId) => void;
+  onAddManualTimeEntry?: (todoId: TodoId, minutes: number, note?: string) => void;
+  onDeleteTimeEntry?: (todoId: TodoId, entryId: TimeEntryId) => void;
   // Template handler
-  onCreateTemplate?: (todoId: string) => void;
+  onCreateTemplate?: (todoId: TodoId) => void;
   // Duplicate handler
-  onDuplicate?: (id: string) => string | undefined;
+  onDuplicate?: (id: TodoId) => TodoId | undefined;
   // Focus mode handler
   onStartFocusMode?: (tasks: ScheduledTask[]) => void;
   // Open focus mode handler (task-free)
@@ -315,7 +316,7 @@ export function GanttView({
     const dayEnd = new Date(selectedDate);
     dayEnd.setHours(23, 59, 59, 999);
 
-    const scheduled = new Set<string>();
+    const scheduled = new Set<TodoId>();
     const todos = allActiveTodos.filter((todo) => {
       // Include if scheduled for this date
       if (taskSchedulingMap.get(todo.id) === dateKey) {

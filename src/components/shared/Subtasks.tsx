@@ -1,21 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Subtask } from "@/types/todo";
+import { Subtask, SubtaskId } from "@/types/todo";
 import { CheckIcon, CloseIcon, EditIcon, TrashIcon } from "@/components/shared/Icons";
 
 interface SubtasksProps {
   subtasks: Subtask[];
   onAdd: (text: string) => void;
-  onToggle: (subtaskId: string) => void;
-  onEdit: (subtaskId: string, text: string) => void;
-  onDelete: (subtaskId: string) => void;
+  onToggle: (subtaskId: SubtaskId) => void;
+  onEdit: (subtaskId: SubtaskId, text: string) => void;
+  onDelete: (subtaskId: SubtaskId) => void;
   readOnly?: boolean;
 }
 
 export function Subtasks({ subtasks, onAdd, onToggle, onEdit, onDelete, readOnly = false }: SubtasksProps) {
   const [newSubtaskText, setNewSubtaskText] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<SubtaskId | null>(null);
   const [editingText, setEditingText] = useState("");
 
   const handleAddSubtask = (e: React.FormEvent) => {

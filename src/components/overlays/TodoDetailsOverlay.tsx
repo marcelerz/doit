@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { TodoMetadata } from "@/types/todo";
+import { TodoMetadata, TodoId, SubtaskId, TimeEntryId } from "@/types/todo";
 import { Settings } from "@/types/settings";
 import { MarkerColors } from "@/types/markerColors";
 import { LinkPattern } from "@/types/linkPattern";
@@ -41,12 +41,12 @@ interface TodoDetailsOverlayProps {
   todos?: TodoModel[]; // All todos for dependency selection
   isOpen: boolean;
   onClose: () => void;
-  onToggle: (id: string) => void;
-  onDelete: (id: string) => void;
-  onDuplicate?: (id: string) => string | undefined;
-  onEdit: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
-  onArchive?: (id: string) => void;
-  onUnarchive?: (id: string) => void;
+  onToggle: (id: TodoId) => void;
+  onDelete: (id: TodoId) => void;
+  onDuplicate?: (id: TodoId) => TodoId | undefined;
+  onEdit: (id: TodoId, text: string, plainText: string, metadata: TodoMetadata) => void;
+  onArchive?: (id: TodoId) => void;
+  onUnarchive?: (id: TodoId) => void;
   markerColors: MarkerColors;
   settings: Settings;
   linkPatterns: LinkPattern[];
@@ -56,19 +56,19 @@ interface TodoDetailsOverlayProps {
   onAddPerson?: (name: string) => void;
   onAddProject?: (name: string) => void;
   onAddPriority?: (name: string) => void;
-  onAddComment?: (todoId: string, content: string) => void;
+  onAddComment?: (todoId: TodoId, content: string) => void;
   // Subtask handlers
-  onAddSubtask?: (todoId: string, text: string) => void;
-  onToggleSubtask?: (todoId: string, subtaskId: string) => void;
-  onEditSubtask?: (todoId: string, subtaskId: string, text: string) => void;
-  onDeleteSubtask?: (todoId: string, subtaskId: string) => void;
+  onAddSubtask?: (todoId: TodoId, text: string) => void;
+  onToggleSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
+  onEditSubtask?: (todoId: TodoId, subtaskId: SubtaskId, text: string) => void;
+  onDeleteSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
   // Time tracking handlers
-  onStartTimeTracking?: (todoId: string, note?: string) => void;
-  onStopTimeTracking?: (todoId: string) => void;
-  onAddManualTimeEntry?: (todoId: string, minutes: number, note?: string) => void;
-  onDeleteTimeEntry?: (todoId: string, entryId: string) => void;
+  onStartTimeTracking?: (todoId: TodoId, note?: string) => void;
+  onStopTimeTracking?: (todoId: TodoId) => void;
+  onAddManualTimeEntry?: (todoId: TodoId, minutes: number, note?: string) => void;
+  onDeleteTimeEntry?: (todoId: TodoId, entryId: TimeEntryId) => void;
   // Template handler
-  onCreateTemplate?: (todoId: string) => void;
+  onCreateTemplate?: (todoId: TodoId) => void;
   // Selection history recording
   onRecordSelections?: (selections: {
     assignedPeople?: string[];

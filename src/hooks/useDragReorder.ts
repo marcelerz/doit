@@ -2,31 +2,32 @@
 
 import { useState, useCallback } from "react";
 import { TodoModel } from "@/models/TodoModel";
+import { TodoId } from "@/types/todo";
 
 export interface UseDragReorderOptions {
   todos: TodoModel[];
-  reorderTodos: (newOrder: string[]) => void;
+  reorderTodos: (newOrder: TodoId[]) => void;
 }
 
 export interface UseDragReorderResult {
   // State
   isDragMode: boolean;
-  draggedTodoId: string | null;
-  dragOverTodoId: string | null;
+  draggedTodoId: TodoId | null;
+  dragOverTodoId: TodoId | null;
 
   // Actions
   toggleDragMode: () => void;
-  handleDragStart: (e: React.DragEvent, id: string) => void;
+  handleDragStart: (e: React.DragEvent, id: TodoId) => void;
   handleDragEnd: () => void;
-  handleDragOver: (e: React.DragEvent, id: string) => void;
+  handleDragOver: (e: React.DragEvent, id: TodoId) => void;
   handleDragLeave: () => void;
-  handleDrop: (e: React.DragEvent, targetId: string) => void;
+  handleDrop: (e: React.DragEvent, targetId: TodoId) => void;
 }
 
 export function useDragReorder({ todos, reorderTodos }: UseDragReorderOptions): UseDragReorderResult {
   const [isDragMode, setIsDragMode] = useState(false);
-  const [draggedTodoId, setDraggedTodoId] = useState<string | null>(null);
-  const [dragOverTodoId, setDragOverTodoId] = useState<string | null>(null);
+  const [draggedTodoId, setDraggedTodoId] = useState<TodoId | null>(null);
+  const [dragOverTodoId, setDragOverTodoId] = useState<TodoId | null>(null);
 
   const toggleDragMode = useCallback(() => {
     setIsDragMode((prev) => !prev);
@@ -34,7 +35,7 @@ export function useDragReorder({ todos, reorderTodos }: UseDragReorderOptions): 
     setDragOverTodoId(null);
   }, []);
 
-  const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
+  const handleDragStart = useCallback((e: React.DragEvent, id: TodoId) => {
     setDraggedTodoId(id);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", id);
@@ -46,7 +47,7 @@ export function useDragReorder({ todos, reorderTodos }: UseDragReorderOptions): 
   }, []);
 
   const handleDragOver = useCallback(
-    (e: React.DragEvent, id: string) => {
+    (e: React.DragEvent, id: TodoId) => {
       e.preventDefault();
       if (draggedTodoId && draggedTodoId !== id) {
         setDragOverTodoId(id);
@@ -60,7 +61,7 @@ export function useDragReorder({ todos, reorderTodos }: UseDragReorderOptions): 
   }, []);
 
   const handleDrop = useCallback(
-    (e: React.DragEvent, targetId: string) => {
+    (e: React.DragEvent, targetId: TodoId) => {
       e.preventDefault();
       const sourceId = draggedTodoId;
 

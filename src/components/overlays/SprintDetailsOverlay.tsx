@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { SprintModel } from "@/hooks/useSprints";
-import { Sprint } from "@/types/sprint";
+import { Sprint, SprintId } from "@/types/sprint";
+import { TodoId } from "@/types/todo";
 import { MarkerColors } from "@/types/markerColors";
-import { getColor } from "@/types/types";
+import { getColor, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
 import { ActionButtons } from "@/components/shared/ActionButtons";
@@ -18,18 +19,18 @@ interface SprintDetailsOverlayProps {
   todos: TodoModel[];
   markerColors: MarkerColors;
   onClose: () => void;
-  onUpdate: (id: string, updates: Partial<Sprint>) => void;
-  onDelete: (id: string) => void;
-  onStart: (id: string) => void;
-  onComplete: (id: string) => void;
-  onCancel: (id: string) => void;
-  onArchive: (id: string) => void;
-  onUnarchive: (id: string) => void;
-  onAddComment: (sprintId: string, content: string) => void;
-  onEditComment: (sprintId: string, commentId: string, content: string) => void;
-  onDeleteComment: (sprintId: string, commentId: string) => void;
+  onUpdate: (id: SprintId, updates: Partial<Sprint>) => void;
+  onDelete: (id: SprintId) => void;
+  onStart: (id: SprintId) => void;
+  onComplete: (id: SprintId) => void;
+  onCancel: (id: SprintId) => void;
+  onArchive: (id: SprintId) => void;
+  onUnarchive: (id: SprintId) => void;
+  onAddComment: (sprintId: SprintId, content: string) => void;
+  onEditComment: (sprintId: SprintId, commentId: CommentId, content: string) => void;
+  onDeleteComment: (sprintId: SprintId, commentId: CommentId) => void;
   onTodoClick?: (todo: TodoModel) => void;
-  onRemoveTodoFromSprint?: (todoId: string) => void;
+  onRemoveTodoFromSprint?: (todoId: TodoId) => void;
 }
 
 type TabType = "details" | "todos" | "reports";

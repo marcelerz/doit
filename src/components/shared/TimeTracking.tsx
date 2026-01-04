@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TimeEntry } from "@/types/todo";
+import { TimeEntry, TimeEntryId } from "@/types/todo";
 import { CloseIcon, PlaySolidIcon, StopSolidIcon } from "@/components/shared/Icons";
 
 interface TimeTrackingProps {
@@ -12,7 +12,7 @@ interface TimeTrackingProps {
   onStart: (note?: string) => void;
   onStop: () => void;
   onAddManual: (minutes: number, note?: string) => void;
-  onDelete: (entryId: string) => void;
+  onDelete: (entryId: TimeEntryId) => void;
   readOnly?: boolean;
 }
 

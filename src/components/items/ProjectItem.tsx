@@ -1,15 +1,16 @@
 "use client";
 
 import { ProjectModel } from "@/models/ProjectModel";
+import { ProjectId } from "@/types/project";
 import { ArchiveIcon, TrashIcon, UndoIcon, ClipboardIcon } from "@/components/shared/Icons";
 
 interface ProjectItemProps {
   project: ProjectModel;
   onClick: () => void;
-  onDelete: (id: string) => void;
-  onArchive?: (id: string) => void;
-  onUnarchive?: (id: string) => void;
-  onRequestDeleteConfirm: (id: string, name: string) => void;
+  onDelete: (id: ProjectId) => void;
+  onArchive?: (id: ProjectId) => void;
+  onUnarchive?: (id: ProjectId) => void;
+  onRequestDeleteConfirm: (id: ProjectId, name: string) => void;
   taskCount?: number; // Number of tasks in this project
 }
 

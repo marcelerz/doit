@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Sprint, SprintStatus, getSprintId } from "@/types/sprint";
+import { Sprint, SprintId, SprintStatus, getSprintId } from "@/types/sprint";
 import { getTimestamp } from "@/types/time";
-import { getActivityId, getCommentId } from "@/types/types";
+import { getActivityId, getCommentId, CommentId } from "@/types/types";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { createSprintId, createActivityId, createCommentId } from "@/utils/idGenerator";
@@ -194,7 +194,7 @@ export function useSprints() {
     return newSprint.id;
   };
 
-  const updateSprint = (id: string, updates: Partial<Sprint>) => {
+  const updateSprint = (id: SprintId, updates: Partial<Sprint>) => {
     setSprints((prev) =>
       prev.map((s) => {
         if (s.id === id) {
@@ -218,11 +218,11 @@ export function useSprints() {
     );
   };
 
-  const deleteSprint = (id: string) => {
+  const deleteSprint = (id: SprintId) => {
     setSprints((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const startSprint = (id: string) => {
+  const startSprint = (id: SprintId) => {
     const now = Date.now();
     const today = new Date().toISOString().split("T")[0];
 
@@ -250,7 +250,7 @@ export function useSprints() {
     );
   };
 
-  const completeSprint = (id: string) => {
+  const completeSprint = (id: SprintId) => {
     const now = Date.now();
     const today = new Date().toISOString().split("T")[0];
 
@@ -278,7 +278,7 @@ export function useSprints() {
     );
   };
 
-  const cancelSprint = (id: string) => {
+  const cancelSprint = (id: SprintId) => {
     const now = Date.now();
     const today = new Date().toISOString().split("T")[0];
 
@@ -306,7 +306,7 @@ export function useSprints() {
     );
   };
 
-  const archiveSprint = (id: string) => {
+  const archiveSprint = (id: SprintId) => {
     const now = Date.now();
 
     setSprints((prev) =>
@@ -332,7 +332,7 @@ export function useSprints() {
     );
   };
 
-  const unarchiveSprint = (id: string) => {
+  const unarchiveSprint = (id: SprintId) => {
     const now = Date.now();
 
     setSprints((prev) =>
@@ -358,7 +358,7 @@ export function useSprints() {
     );
   };
 
-  const addSprintComment = (sprintId: string, content: string) => {
+  const addSprintComment = (sprintId: SprintId, content: string) => {
     const now = Date.now();
     setSprints((prev) =>
       prev.map((s) => {
@@ -377,7 +377,7 @@ export function useSprints() {
     );
   };
 
-  const editSprintComment = (sprintId: string, commentId: string, content: string) => {
+  const editSprintComment = (sprintId: SprintId, commentId: CommentId, content: string) => {
     setSprints((prev) =>
       prev.map((s) => {
         if (s.id === sprintId) {
@@ -395,7 +395,7 @@ export function useSprints() {
     );
   };
 
-  const deleteSprintComment = (sprintId: string, commentId: string) => {
+  const deleteSprintComment = (sprintId: SprintId, commentId: CommentId) => {
     setSprints((prev) =>
       prev.map((s) => {
         if (s.id === sprintId) {

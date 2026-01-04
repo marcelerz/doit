@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { TodoMetadata } from "@/types/todo";
+import { TodoMetadata, TodoId } from "@/types/todo";
 import { Settings } from "@/types/settings";
 import { MarkerColors } from "@/types/markerColors";
 import { LinkPattern } from "@/types/linkPattern";
@@ -30,11 +30,11 @@ import {
 
 interface TodoItemProps {
   todo: TodoModel;
-  onToggle: (id: string) => void;
-  onDelete: (id: string) => void;
-  onEdit: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
-  onArchive?: (id: string) => void;
-  onUnarchive?: (id: string) => void;
+  onToggle: (id: TodoId) => void;
+  onDelete: (id: TodoId) => void;
+  onEdit: (id: TodoId, text: string, plainText: string, metadata: TodoMetadata) => void;
+  onArchive?: (id: TodoId) => void;
+  onUnarchive?: (id: TodoId) => void;
   markerColors: MarkerColors;
   settings: Settings;
   linkPatterns: LinkPattern[];
@@ -50,21 +50,21 @@ interface TodoItemProps {
   ) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onAddComment?: (todoId: string, content: string) => void;
-  onEditComment?: (todoId: string, commentId: CommentId, content: string) => void;
-  onDeleteComment?: (todoId: string, commentId: CommentId) => void;
+  onAddComment?: (todoId: TodoId, content: string) => void;
+  onEditComment?: (todoId: TodoId, commentId: CommentId, content: string) => void;
+  onDeleteComment?: (todoId: TodoId, commentId: CommentId) => void;
   // Bulk selection props
   isSelectionMode?: boolean;
   isSelected?: boolean;
-  onSelectionChange?: (id: string, selected: boolean) => void;
+  onSelectionChange?: (id: TodoId, selected: boolean) => void;
   // Drag and drop props
   isDraggable?: boolean;
   isDraggedOver?: boolean;
-  onDragStart?: (e: React.DragEvent, id: string) => void;
+  onDragStart?: (e: React.DragEvent, id: TodoId) => void;
   onDragEnd?: (e: React.DragEvent) => void;
-  onDragOver?: (e: React.DragEvent, id: string) => void;
+  onDragOver?: (e: React.DragEvent, id: TodoId) => void;
   onDragLeave?: (e: React.DragEvent) => void;
-  onDrop?: (e: React.DragEvent, id: string) => void;
+  onDrop?: (e: React.DragEvent, id: TodoId) => void;
   // Sprint data (for displaying sprint name in expanded view)
   sprints?: Sprint[];
   // Next planned sprint for quick assignment

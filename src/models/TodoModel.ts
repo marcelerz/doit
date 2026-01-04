@@ -45,7 +45,7 @@ export class TodoModel {
     return this._raw;
   }
 
-  get id(): string {
+  get id(): TodoId {
     return this._raw.id;
   }
 

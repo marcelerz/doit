@@ -32,7 +32,7 @@ export function useServiceWorker() {
     }
 
     // Base path for deployment (matches next.config.ts)
-    const basePath = process.env.NODE_ENV === "production" ? "/doit" : "";
+    const basePath = process.env.GITHUB_PAGES === "true" ? "/doit" : "";
 
     // Register service worker
     const registerSW = async () => {

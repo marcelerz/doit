@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { FeatureSettings } from "@/types/settings";
 import { TodoTemplate } from "@/types/todoTemplate";
-import { SearchHistoryEntry } from "@/types/types";
+import { SearchHistoryEntry, SearchHistoryId } from "@/types/types";
 import { TodoFilters, GroupBy, SortField, SortDirection, ViewPreset } from "@/hooks/useListViewState";
 import { SearchHistoryDropdown } from "@/components/shared/SearchHistory";
 import { ExportFormat } from "@/utils/export";
@@ -44,7 +44,7 @@ export interface ListViewToolbarProps {
   // Search history
   searchHistory: SearchHistoryEntry[];
   addToSearchHistory: (query: string) => void;
-  removeFromSearchHistory: (id: string) => void;
+  removeFromSearchHistory: (id: SearchHistoryId) => void;
   clearSearchHistory: () => void;
 
   // Feature flags

@@ -7,6 +7,7 @@ import { Settings } from "@/types/settings";
 import { MarkerColors } from "@/types/markerColors";
 import { CalendarView as CalendarViewType, Calendar } from "@/types/calendar";
 import { CommentId } from "@/types/types";
+import { TodoId, SubtaskId, TimeEntryId, TodoMetadata } from "@/types/todo";
 import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import { TodoItem } from "@/components/items/TodoItem";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
@@ -77,32 +78,32 @@ interface CalendarViewProps {
   availablePeople: PersonModel[];
   availableProjects: ProjectModel[];
   availablePriorities: Priority[];
-  onToggle: (id: string) => void;
-  onDelete: (id: string) => void;
-  onArchive: (id: string) => void;
-  onUnarchive: (id: string) => void;
-  onEdit: (id: string, text: string, plainText: string, metadata: any) => void;
+  onToggle: (id: TodoId) => void;
+  onDelete: (id: TodoId) => void;
+  onArchive: (id: TodoId) => void;
+  onUnarchive: (id: TodoId) => void;
+  onEdit: (id: TodoId, text: string, plainText: string, metadata: TodoMetadata) => void;
   onAddPerson: (name: string) => void;
   onAddProject: (name: string) => void;
   onAddPriority: (name: string) => void;
-  onAddComment: (todoId: string, content: string) => void;
-  onEditComment: (todoId: string, commentId: CommentId, content: string) => void;
-  onDeleteComment: (todoId: string, commentId: CommentId) => void;
+  onAddComment: (todoId: TodoId, content: string) => void;
+  onEditComment: (todoId: TodoId, commentId: CommentId, content: string) => void;
+  onDeleteComment: (todoId: TodoId, commentId: CommentId) => void;
   onQuickAdd?: (dueDate: string) => void;
   // Subtask handlers
-  onAddSubtask?: (todoId: string, text: string) => void;
-  onToggleSubtask?: (todoId: string, subtaskId: string) => void;
-  onEditSubtask?: (todoId: string, subtaskId: string, text: string) => void;
-  onDeleteSubtask?: (todoId: string, subtaskId: string) => void;
+  onAddSubtask?: (todoId: TodoId, text: string) => void;
+  onToggleSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
+  onEditSubtask?: (todoId: TodoId, subtaskId: SubtaskId, text: string) => void;
+  onDeleteSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
   // Time tracking handlers
-  onStartTimeTracking?: (todoId: string, note?: string) => void;
-  onStopTimeTracking?: (todoId: string) => void;
-  onAddManualTimeEntry?: (todoId: string, minutes: number, note?: string) => void;
-  onDeleteTimeEntry?: (todoId: string, entryId: string) => void;
+  onStartTimeTracking?: (todoId: TodoId, note?: string) => void;
+  onStopTimeTracking?: (todoId: TodoId) => void;
+  onAddManualTimeEntry?: (todoId: TodoId, minutes: number, note?: string) => void;
+  onDeleteTimeEntry?: (todoId: TodoId, entryId: TimeEntryId) => void;
   // Template handler
-  onCreateTemplate?: (todoId: string) => void;
+  onCreateTemplate?: (todoId: TodoId) => void;
   // Duplicate handler
-  onDuplicate?: (id: string) => string | undefined;
+  onDuplicate?: (id: TodoId) => TodoId | undefined;
 }
 
 // Get week number for a date

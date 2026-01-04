@@ -1,15 +1,16 @@
 "use client";
 
 import { PersonModel } from "@/models/PersonModel";
+import { PersonId } from "@/types/person";
 import { ArchiveIcon, TrashIcon, UndoIcon, ClipboardIcon } from "@/components/shared/Icons";
 
 interface PersonItemProps {
   person: PersonModel;
   onClick: () => void;
-  onDelete: (id: string) => void;
-  onArchive?: (id: string) => void;
-  onUnarchive?: (id: string) => void;
-  onRequestDeleteConfirm: (id: string, name: string) => void;
+  onDelete: (id: PersonId) => void;
+  onArchive?: (id: PersonId) => void;
+  onUnarchive?: (id: PersonId) => void;
+  onRequestDeleteConfirm: (id: PersonId, name: string) => void;
   taskCount?: number; // Number of tasks assigned to this person
 }
 

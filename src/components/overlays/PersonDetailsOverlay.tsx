@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { PersonModel } from "@/models/PersonModel";
-import { Person } from "@/types/person";
-import { getColor } from "@/types/types";
+import { Person, PersonId } from "@/types/person";
+import { getColor, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
 import { ColorPicker } from "@/components/shared/ColorPicker";
@@ -15,13 +15,13 @@ import { CloseIcon } from "@/components/shared/Icons";
 interface PersonDetailsOverlayProps {
   person: PersonModel;
   onClose: () => void;
-  onUpdate: (id: string, updates: Partial<Person>) => void;
-  onDelete: (id: string) => void;
-  onArchive?: (id: string) => void;
-  onUnarchive?: (id: string) => void;
-  onAddComment: (personId: string, content: string) => void;
-  onEditComment: (personId: string, commentId: string, content: string) => void;
-  onDeleteComment: (personId: string, commentId: string) => void;
+  onUpdate: (id: PersonId, updates: Partial<Person>) => void;
+  onDelete: (id: PersonId) => void;
+  onArchive?: (id: PersonId) => void;
+  onUnarchive?: (id: PersonId) => void;
+  onAddComment: (personId: PersonId, content: string) => void;
+  onEditComment: (personId: PersonId, commentId: CommentId, content: string) => void;
+  onDeleteComment: (personId: PersonId, commentId: CommentId) => void;
 }
 
 export function PersonDetailsOverlay({

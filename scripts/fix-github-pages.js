@@ -87,6 +87,20 @@ if (fs.existsSync(indexPath)) {
   console.log(`⚠️  index.html not found, skipping 404.html creation`);
 }
 
+// Step 3: Update site.webmanifest with /doit/ basePath
+const manifestPath = path.join(outDirPath, "site.webmanifest");
+if (fs.existsSync(manifestPath)) {
+  let manifest = fs.readFileSync(manifestPath, "utf8");
+  // Update paths to include /doit/ prefix
+  manifest = manifest
+    .replace('"start_url": "/"', '"start_url": "/doit/"')
+    .replace('"scope": "/"', '"scope": "/doit/"')
+    .replace('"id": "/"', '"id": "/doit/"')
+    .replace(/"\s*\/android-chrome-/g, '"/doit/android-chrome-');
+  fs.writeFileSync(manifestPath, manifest, "utf8");
+  console.log(`✅ Updated site.webmanifest with /doit/ basePath`);
+}
+
 // If no rename requested, we're done
 if (!renameTo) {
   console.log(`\n✨ Done! Your Next.js build is ready for GitHub Pages.`);

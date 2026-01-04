@@ -1,15 +1,16 @@
 "use client";
 
-import { TodoMetadata } from "@/types/todo";
+import { TodoMetadata, TodoId, SubtaskId, TimeEntryId } from "@/types/todo";
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { KanbanSettings, Settings } from "@/types/settings";
-import { KanbanState } from "@/types/kanbanState";
+import { KanbanState, KanbanStateId } from "@/types/kanbanState";
 import { MarkerColors } from "@/types/markerColors";
 import { Priority } from "@/types/priority";
 import { LinkPattern } from "@/types/linkPattern";
 import { Sprint } from "@/types/sprint";
+import { CommentId } from "@/types/types";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
@@ -114,16 +115,16 @@ interface KanbanViewProps {
   todos: TodoModel[];
   markerColors: MarkerColors;
   kanban: KanbanSettings;
-  onToggle: (id: string) => void;
-  onDelete: (id: string) => void;
-  onEditTodo: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
-  onArchive?: (id: string) => void;
-  onUnarchive?: (id: string) => void;
+  onToggle: (id: TodoId) => void;
+  onDelete: (id: TodoId) => void;
+  onEditTodo: (id: TodoId, text: string, plainText: string, metadata: TodoMetadata) => void;
+  onArchive?: (id: TodoId) => void;
+  onUnarchive?: (id: TodoId) => void;
   onSetWorkflowState: (
-    todoId: string,
-    newStateId: string,
-    kanbanStates: Array<{ id: string; mapsToTodoState?: string }>,
-    allowedTransitions?: Array<{ fromStateId: string; toStateId: string }>,
+    todoId: TodoId,
+    newStateId: KanbanStateId,
+    kanbanStates: Array<{ id: KanbanStateId; mapsToTodoState?: string }>,
+    allowedTransitions?: Array<{ fromStateId: KanbanStateId; toStateId: KanbanStateId }>,
   ) => boolean;
   settings: Settings;
   linkPatterns: LinkPattern[];
@@ -133,22 +134,22 @@ interface KanbanViewProps {
   onAddPerson: (person: string) => void;
   onAddProject: (project: string) => void;
   onAddPriority: (priority: string) => void;
-  onAddComment?: (todoId: string, content: string) => void;
+  onAddComment?: (todoId: TodoId, content: string) => void;
   onUpdateKanbanSettings?: (kanban: KanbanSettings) => void;
   // Subtask handlers
-  onAddSubtask?: (todoId: string, text: string) => void;
-  onToggleSubtask?: (todoId: string, subtaskId: string) => void;
-  onEditSubtask?: (todoId: string, subtaskId: string, text: string) => void;
-  onDeleteSubtask?: (todoId: string, subtaskId: string) => void;
+  onAddSubtask?: (todoId: TodoId, text: string) => void;
+  onToggleSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
+  onEditSubtask?: (todoId: TodoId, subtaskId: SubtaskId, text: string) => void;
+  onDeleteSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
   // Time tracking handlers
-  onStartTimeTracking?: (todoId: string, note?: string) => void;
-  onStopTimeTracking?: (todoId: string) => void;
-  onAddManualTimeEntry?: (todoId: string, minutes: number, note?: string) => void;
-  onDeleteTimeEntry?: (todoId: string, entryId: string) => void;
+  onStartTimeTracking?: (todoId: TodoId, note?: string) => void;
+  onStopTimeTracking?: (todoId: TodoId) => void;
+  onAddManualTimeEntry?: (todoId: TodoId, minutes: number, note?: string) => void;
+  onDeleteTimeEntry?: (todoId: TodoId, entryId: TimeEntryId) => void;
   // Template handler
-  onCreateTemplate?: (todoId: string) => void;
+  onCreateTemplate?: (todoId: TodoId) => void;
   // Duplicate handler
-  onDuplicate?: (id: string) => string | undefined;
+  onDuplicate?: (id: TodoId) => TodoId | undefined;
   // Sprints data
   sprints?: Sprint[];
   runningSprint?: Sprint;
@@ -217,10 +218,10 @@ export function KanbanView({
   sprints = [],
   runningSprint,
 }: KanbanViewProps) {
-  const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
+  const [selectedTodoId, setSelectedTodoId] = useState<TodoId | null>(null);
   const [viewOptions, setViewOptions] = useState<KanbanViewOptions>(defaultViewOptions);
-  const [draggedTodoId, setDraggedTodoId] = useState<string | null>(null);
-  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
+  const [draggedTodoId, setDraggedTodoId] = useState<TodoId | null>(null);
+  const [dragOverColumnId, setDragOverColumnId] = useState<KanbanStateId | null>(null);
   const [isOptionsLoaded, setIsOptionsLoaded] = useState(false);
 
   // Filter and preset state
@@ -487,7 +488,7 @@ export function KanbanView({
 
   // Check if a transition is allowed
   const canTransition = useCallback(
-    (fromStateId: string, toStateId: string): boolean => {
+    (fromStateId: KanbanStateId | string, toStateId: KanbanStateId | string): boolean => {
       if (fromStateId === toStateId) return false;
       if (kanban.allowedTransitions.length === 0) return true; // No restrictions
       return kanban.allowedTransitions.some((t) => t.fromStateId === fromStateId && t.toStateId === toStateId);
@@ -497,7 +498,7 @@ export function KanbanView({
 
   // Check if a state can accept more items (WIP limit check)
   const canAcceptMore = useCallback(
-    (stateId: string): boolean => {
+    (stateId: KanbanStateId | string): boolean => {
       const state = kanban.states.find((s) => s.id === stateId);
       if (!state) return false;
       // System states have no WIP limit
@@ -598,7 +599,7 @@ export function KanbanView({
 
   // Get allowed target states for a todo
   const getAllowedTargets = useCallback(
-    (todoId: string): string[] => {
+    (todoId: TodoId): KanbanStateId[] => {
       const todo = todos.find((t) => t.id === todoId);
       if (!todo) return [];
 
@@ -609,7 +610,7 @@ export function KanbanView({
   );
 
   // Drag and drop handlers
-  const handleDragStart = (e: React.DragEvent, todoId: string) => {
+  const handleDragStart = (e: React.DragEvent, todoId: TodoId) => {
     setDraggedTodoId(todoId);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", todoId);
@@ -621,7 +622,7 @@ export function KanbanView({
     }
   };
 
-  const handleDragOver = (e: React.DragEvent, stateId: string) => {
+  const handleDragOver = (e: React.DragEvent, stateId: KanbanStateId) => {
     e.preventDefault();
     if (!draggedTodoId) return;
 
@@ -641,7 +642,7 @@ export function KanbanView({
     setDragOverColumnId(null);
   };
 
-  const handleDrop = (e: React.DragEvent, targetStateId: string) => {
+  const handleDrop = (e: React.DragEvent, targetStateId: KanbanStateId) => {
     e.preventDefault();
     setDragOverColumnId(null);
 
@@ -665,7 +666,7 @@ export function KanbanView({
   };
 
   // Handle todo click
-  const handleTodoClick = (todoId: string) => {
+  const handleTodoClick = (todoId: TodoId) => {
     setSelectedTodoId(todoId);
   };
 

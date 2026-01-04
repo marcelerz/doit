@@ -8,6 +8,7 @@
 import { TodoModel } from "@/models/TodoModel";
 import { WorkHoursSettings, DaySchedule } from "@/types/settings";
 import { Priority } from "@/types/priority";
+import { TodoId } from "@/types/todo";
 import { Gantt, SchedulingTechnique } from "@/types/gantt";
 import { DEFAULT_BLOCK_TYPES } from "@/types/timeBlock";
 
@@ -500,7 +501,7 @@ export function scheduleDayTasks(
   breakBlocks: BreakBlock[],
   selectedDate: Date,
   ganttSettings: Gantt,
-  scheduledTodoIds?: Set<string>,
+  scheduledTodoIds?: Set<TodoId>,
 ): DayScheduleResult {
   const tasks: ScheduledTask[] = [];
   const now = new Date();
@@ -1044,7 +1045,7 @@ export interface WeekDaySchedule {
   }>;
   // Individual segments for more accurate visualization
   segments: Array<{
-    todoId: string;
+    todoId: TodoId;
     startPercent: number;
     widthPercent: number;
     color: string;

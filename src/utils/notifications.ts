@@ -1,4 +1,5 @@
 import { TodoModel } from "@/models/TodoModel";
+import { TodoId } from "@/types/todo";
 import { getBrowserApis } from "./browserApis";
 
 export type NotificationPermission = "default" | "granted" | "denied";
@@ -455,14 +456,14 @@ export function notifyDueSoon(todo: TodoModel, hours: number): Notification | nu
  */
 export function checkAndNotifyDueTasks(
   todos: TodoModel[],
-  notifiedIds: Set<string>,
+  notifiedIds: Set<TodoId>,
   settings: {
     notifyOverdue: boolean;
     notifyDueToday: boolean;
     notifyDueSoon: boolean;
     dueSoonHours: number;
   },
-): Set<string> {
+): Set<TodoId> {
   const newNotifiedIds = new Set(notifiedIds);
   const now = new Date();
 

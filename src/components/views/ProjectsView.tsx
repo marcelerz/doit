@@ -5,6 +5,7 @@ import { ProjectItem } from "@/components/items/ProjectItem";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PlusIcon, SearchIcon, CloseIcon } from "@/components/shared/Icons";
 import { ProjectModel } from "@/models/ProjectModel";
+import { ProjectId } from "@/types/project";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
 
@@ -57,11 +58,11 @@ export const projectsViewTutorialSteps: TutorialStep[] = [
 interface ProjectsViewProps {
   projects: ProjectModel[];
   taskCountsByProject: Map<string, number>;
-  onOpenProject: (projectId: string) => void;
-  onDeleteProject: (id: string) => void;
-  onArchiveProject: (id: string) => void;
-  onUnarchiveProject: (id: string) => void;
-  onRequestDeleteConfirm: (id: string, name: string) => void;
+  onOpenProject: (projectId: ProjectId) => void;
+  onDeleteProject: (id: ProjectId) => void;
+  onArchiveProject: (id: ProjectId) => void;
+  onUnarchiveProject: (id: ProjectId) => void;
+  onRequestDeleteConfirm: (id: ProjectId, name: string) => void;
   onAddProject: () => void;
   /** Ref for focus management from parent (keyboard shortcut "/") */
   searchInputRef?: React.RefObject<HTMLInputElement | null>;

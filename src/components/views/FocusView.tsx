@@ -5,7 +5,7 @@ import { TodoModel } from "@/models/TodoModel";
 import { Settings } from "@/types/settings";
 import { MarkerColors } from "@/types/markerColors";
 import { LinkPattern } from "@/types/linkPattern";
-import { TodoMetadata } from "@/types/todo";
+import { TodoMetadata, TodoId } from "@/types/todo";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { Badge } from "@/components/shared/Badge";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
@@ -26,17 +26,17 @@ import { CloseIcon, VolumeOnIcon, VolumeOffIcon, BellIcon } from "@/components/s
 interface FocusViewProps {
   todos: TodoModel[];
   scheduledTasks: ScheduledTask[];
-  onToggle: (id: string) => void;
-  onDelete: (id: string) => void;
-  onEdit: (id: string, text: string, plainText: string, metadata: TodoMetadata) => void;
-  onArchive?: (id: string) => void;
+  onToggle: (id: TodoId) => void;
+  onDelete: (id: TodoId) => void;
+  onEdit: (id: TodoId, text: string, plainText: string, metadata: TodoMetadata) => void;
+  onArchive?: (id: TodoId) => void;
   markerColors: MarkerColors;
   settings: Settings;
   linkPatterns: LinkPattern[];
   onOpenDetails: (todo: TodoModel) => void;
   onClose: () => void;
-  onStartTimeTracking?: (todoId: string, note?: string) => void;
-  onStopTimeTracking?: (todoId: string) => void;
+  onStartTimeTracking?: (todoId: TodoId, note?: string) => void;
+  onStopTimeTracking?: (todoId: TodoId) => void;
 }
 
 // A schedule item is either a task segment or a break
@@ -189,12 +189,12 @@ export function FocusView({
   const [soundEnabled, setSoundEnabled] = useState(focusSettings.soundEnabled ?? true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(getNotificationPermission() === "granted");
   const [showExtendMenu, setShowExtendMenu] = useState(false);
-  const [pendingAutoComplete, setPendingAutoComplete] = useState<string | null>(null);
+  const [pendingAutoComplete, setPendingAutoComplete] = useState<TodoId | null>(null);
 
   // Refs
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const confirmationTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const timeTrackingActiveRef = useRef<string | null>(null);
+  const timeTrackingActiveRef = useRef<TodoId | null>(null);
   const onStopTimeTrackingRef = useRef(onStopTimeTracking);
   onStopTimeTrackingRef.current = onStopTimeTracking;
 

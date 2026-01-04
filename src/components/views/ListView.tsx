@@ -8,8 +8,9 @@ import { SprintModel } from "@/hooks/useSprints";
 import { UndoAction } from "@/hooks/useTodos";
 import { Settings } from "@/types/settings";
 import { Priority } from "@/types/priority";
-import { CommentId, SearchHistoryEntry } from "@/types/types";
+import { CommentId, SearchHistoryEntry, SearchHistoryId } from "@/types/types";
 import { TodoTemplate } from "@/types/todoTemplate";
+import { TodoId, TodoMetadata } from "@/types/todo";
 import { TodoItem } from "@/components/items/TodoItem";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { BatchEditModal, BatchEditData } from "@/components/overlays/BatchEditModal";
@@ -123,16 +124,16 @@ interface ListViewProps {
   // Search history
   searchHistory: SearchHistoryEntry[];
   addToSearchHistory: (query: string) => void;
-  removeFromSearchHistory: (id: string) => void;
+  removeFromSearchHistory: (id: SearchHistoryId) => void;
   clearSearchHistory: () => void;
 
   // Todo actions
-  toggleTodo: (id: string) => void;
-  deleteTodo: (id: string) => void;
-  archiveTodo: (id: string) => void;
-  unarchiveTodo: (id: string) => void;
-  editTodo: (id: string, text: string, plainText: string, metadata: any) => void;
-  reorderTodos: (newOrder: string[]) => void;
+  toggleTodo: (id: TodoId) => void;
+  deleteTodo: (id: TodoId) => void;
+  archiveTodo: (id: TodoId) => void;
+  unarchiveTodo: (id: TodoId) => void;
+  editTodo: (id: TodoId, text: string, plainText: string, metadata: TodoMetadata) => void;
+  reorderTodos: (newOrder: TodoId[]) => void;
 
   // People/Project/Priority actions
   onAddPerson: (name: string) => void;
@@ -140,9 +141,9 @@ interface ListViewProps {
   onAddPriority: (name: string, color?: string) => void;
 
   // Comment actions
-  addTodoComment: (todoId: string, text: string) => void;
-  editTodoComment: (todoId: string, commentId: CommentId, text: string) => void;
-  deleteTodoComment: (todoId: string, commentId: CommentId) => void;
+  addTodoComment: (todoId: TodoId, text: string) => void;
+  editTodoComment: (todoId: TodoId, commentId: CommentId, text: string) => void;
+  deleteTodoComment: (todoId: TodoId, commentId: CommentId) => void;
 
   // Details overlay
   onOpenTodoDetails: (todo: TodoModel) => void;

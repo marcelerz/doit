@@ -36,7 +36,8 @@ import { useSelectionHistory, sortByUsage, sortStringsByUsage } from "@/hooks/us
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { normalizeDateValue } from "@/utils/dateUtils";
 import { TemplatesManager, CreateTemplateModal, TemplateDropdown } from "@/components/shared/Templates";
-import { TodoTemplate } from "@/types/todoTemplate";
+import { TodoTemplate, TodoTemplateId } from "@/types/todoTemplate";
+import { TodoId } from "@/types/todo";
 import { getColor } from "@/types/types";
 import { parseTokensToMetadata } from "@/utils/tokenParser";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
@@ -148,9 +149,9 @@ export function TodoApp() {
   // Template state
   const [showTemplatesManager, setShowTemplatesManager] = useState(false);
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
-  const [templateTodoId, setTemplateTodoId] = useState<string | null>(null);
+  const [templateTodoId, setTemplateTodoId] = useState<TodoId | null>(null);
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
-  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [activeTemplateId, setActiveTemplateId] = useState<TodoTemplateId | null>(null);
 
   // Get the active template object
   const activeTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) : null;
@@ -294,7 +295,7 @@ export function TodoApp() {
   };
 
   // Template handling
-  const handleCreateTemplate = (todoId: string) => {
+  const handleCreateTemplate = (todoId: TodoId) => {
     setTemplateTodoId(todoId);
     setShowCreateTemplate(true);
   };
