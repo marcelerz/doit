@@ -31,11 +31,14 @@ export function useServiceWorker() {
       return;
     }
 
+    // Base path for deployment (matches next.config.ts)
+    const basePath = process.env.NODE_ENV === "production" ? "/doit" : "";
+
     // Register service worker
     const registerSW = async () => {
       try {
-        const registration = await navigator.serviceWorker.register("/sw.js", {
-          scope: "/",
+        const registration = await navigator.serviceWorker.register(`${basePath}/sw.js`, {
+          scope: `${basePath}/`,
         });
 
         console.log("[PWA] Service worker registered:", registration.scope);

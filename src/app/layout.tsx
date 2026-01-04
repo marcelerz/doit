@@ -32,21 +32,21 @@ export const metadata: Metadata = {
   icons: {
     // Classic favicon
     icon: [
-      { url: "/favicon.ico" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/doit/favicon.ico" },
+      { url: "/doit/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/doit/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/doit/favicon.svg", type: "image/svg+xml" },
     ],
     // Apple touch icon
     apple: [
       {
-        url: "/apple-touch-icon.png",
+        url: "/doit/apple-touch-icon.png",
         sizes: "180x180",
         type: "image/png",
       },
     ],
   },
-  manifest: "/site.webmanifest",
+  manifest: "/doit/site.webmanifest",
 };
 
 export const viewport: Viewport = {

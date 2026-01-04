@@ -137,7 +137,7 @@ describe("useServiceWorker", () => {
     it("should register service worker when supported", async () => {
       renderHook(() => useServiceWorker());
 
-      // Wait for registration to be called
+      // Wait for registration to be called (development mode uses empty base path)
       await waitFor(() => {
         expect(mockServiceWorkerRegister).toHaveBeenCalledWith("/sw.js", { scope: "/" });
       });

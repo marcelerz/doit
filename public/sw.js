@@ -1,41 +1,44 @@
 // Service Worker for DoIt PWA
-const CACHE_NAME = "doit-cache-v2";
-const STATIC_CACHE_NAME = "doit-static-v2";
-const DYNAMIC_CACHE_NAME = "doit-dynamic-v2";
+const CACHE_NAME = "doit-cache-v3";
+const STATIC_CACHE_NAME = "doit-static-v3";
+const DYNAMIC_CACHE_NAME = "doit-dynamic-v3";
+
+// Base path for GitHub Pages deployment
+const BASE_PATH = "/doit";
 
 // Static assets to cache immediately on install
 const STATIC_ASSETS = [
-  "/",
-  "/favicon.ico",
-  "/favicon.svg",
-  "/favicon-16x16.png",
-  "/favicon-32x32.png",
-  "/apple-touch-icon.png",
-  "/android-chrome-192x192.png",
-  "/android-chrome-512x512.png",
-  "/site.webmanifest",
+  `${BASE_PATH}/`,
+  `${BASE_PATH}/favicon.ico`,
+  `${BASE_PATH}/favicon.svg`,
+  `${BASE_PATH}/favicon-16x16.png`,
+  `${BASE_PATH}/favicon-32x32.png`,
+  `${BASE_PATH}/apple-touch-icon.png`,
+  `${BASE_PATH}/android-chrome-192x192.png`,
+  `${BASE_PATH}/android-chrome-512x512.png`,
+  `${BASE_PATH}/site.webmanifest`,
 ];
 
 // Sound files to cache (ambient sounds for Pomodoro)
 const SOUND_ASSETS = [
-  "/sounds/10-minutes-swedish-summer-evening-19559.mp3",
-  "/sounds/bushes-medium-heavy-wind-in-dry-vegetation-19537.mp3",
-  "/sounds/crickets_night_2-19628.mp3",
-  "/sounds/cricketsandfrogs-19596.mp3",
-  "/sounds/field-recording-backyard-new-york-19524.mp3",
-  "/sounds/gentle-rain-on-window-for-sleep-422420.mp3",
-  "/sounds/light-rain-on-metal-roof-114527.mp3",
-  "/sounds/rain-and-distant-thunder-60230.mp3",
-  "/sounds/rain-and-thunder-61426.mp3",
-  "/sounds/relaxing-rain-387677.mp3",
-  "/sounds/relaxing-rain-444802.mp3",
-  "/sounds/rooftop-city-neighbourhood-morning-distant-traffic-residents-activity-19574.mp3",
-  "/sounds/sea-sound-4-19385.mp3",
-  "/sounds/small-town-ambiance-60015.mp3",
-  "/sounds/sweden-springtime-birds-field-recording-190420-19629.mp3",
-  "/sounds/tranquil-flow-387676.mp3",
-  "/sounds/tranquil-stream-387678.mp3",
-  "/sounds/winter-morning-60210.mp3",
+  `${BASE_PATH}/sounds/10-minutes-swedish-summer-evening-19559.mp3`,
+  `${BASE_PATH}/sounds/bushes-medium-heavy-wind-in-dry-vegetation-19537.mp3`,
+  `${BASE_PATH}/sounds/crickets_night_2-19628.mp3`,
+  `${BASE_PATH}/sounds/cricketsandfrogs-19596.mp3`,
+  `${BASE_PATH}/sounds/field-recording-backyard-new-york-19524.mp3`,
+  `${BASE_PATH}/sounds/gentle-rain-on-window-for-sleep-422420.mp3`,
+  `${BASE_PATH}/sounds/light-rain-on-metal-roof-114527.mp3`,
+  `${BASE_PATH}/sounds/rain-and-distant-thunder-60230.mp3`,
+  `${BASE_PATH}/sounds/rain-and-thunder-61426.mp3`,
+  `${BASE_PATH}/sounds/relaxing-rain-387677.mp3`,
+  `${BASE_PATH}/sounds/relaxing-rain-444802.mp3`,
+  `${BASE_PATH}/sounds/rooftop-city-neighbourhood-morning-distant-traffic-residents-activity-19574.mp3`,
+  `${BASE_PATH}/sounds/sea-sound-4-19385.mp3`,
+  `${BASE_PATH}/sounds/small-town-ambiance-60015.mp3`,
+  `${BASE_PATH}/sounds/sweden-springtime-birds-field-recording-190420-19629.mp3`,
+  `${BASE_PATH}/sounds/tranquil-flow-387676.mp3`,
+  `${BASE_PATH}/sounds/tranquil-stream-387678.mp3`,
+  `${BASE_PATH}/sounds/winter-morning-60210.mp3`,
 ];
 
 // Install event - cache static assets

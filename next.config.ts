@@ -4,7 +4,12 @@ const nextConfig: NextConfig = {
   /* config options here */
   poweredByHeader: false,
   reactStrictMode: true,
-  distDir: "build",
+  basePath: "/doit",
+  assetPrefix: "/doit/",
+  images: {
+    unoptimized: true,
+  },
+  output: "export", // Enable static HTML export for GitHub Pages
 };
 
 export default nextConfig;
