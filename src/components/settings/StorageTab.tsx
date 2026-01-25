@@ -10,7 +10,10 @@ import {
   migrateToIndexedDB,
   migrateToLocalStorage,
   clearAllAppData,
+  checkPersistentStorage,
+  requestPersistentStorage,
   type StorageType,
+  type PersistentStorageInfo,
 } from "@/storage/storage";
 import { WarningTriangleIcon } from "@/components/shared/Icons";
 import { SettingsHeader } from "./components/SettingsHeader";
@@ -49,6 +52,8 @@ export function StorageTab() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearConfirmText, setClearConfirmText] = useState("");
   const [isClearing, setIsClearing] = useState(false);
+  const [persistentStorage, setPersistentStorage] = useState<PersistentStorageInfo>({ isPersisted: false, supported: false });
+  const [isRequestingPersistence, setIsRequestingPersistence] = useState(false);
 
   const refreshStorageInfo = async (type?: StorageType) => {
     const currentType = type || getStorageType();
@@ -59,8 +64,19 @@ export function StorageTab() {
     setTotalAvailable(quotaInfo.available);
     setDetectionMethod(quotaInfo.detectionMethod);
 
+    // Check persistent storage status
+    const persistenceInfo = await checkPersistentStorage();
+    setPersistentStorage(persistenceInfo);
+
     // Calculate detailed usage
     await calculateStorageUsage(currentType);
+  };
+
+  const handleRequestPersistence = async () => {
+    setIsRequestingPersistence(true);
+    const result = await requestPersistentStorage();
+    setPersistentStorage(result);
+    setIsRequestingPersistence(false);
   };
 
   useEffect(() => {
@@ -398,6 +414,135 @@ export function StorageTab() {
               </div>
             </div>
           )}
+
+          {/* Important: Local-only storage notice */}
+          <div className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <svg
+                className="w-5 h-5 text-zinc-600 dark:text-zinc-400 flex-shrink-0 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
+                />
+              </svg>
+              <div>
+                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+                  Local Storage Only - No Backend Database
+                </h4>
+                <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                  All your data is stored <strong>locally in your browser</strong>. There is no server or cloud
+                  database - your todos, projects, and settings never leave your device. This means:
+                </p>
+                <ul className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 space-y-1">
+                  <li>• Your data is private and never sent to any server</li>
+                  <li>• Data does not sync between devices or browsers</li>
+                  <li>• Clearing browser data will delete your tasks</li>
+                  <li>• Use the Backup feature to export and protect your data</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Persistent Storage Status */}
+          <div className={`border rounded-lg p-4 ${
+            persistentStorage.isPersisted
+              ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+              : persistentStorage.supported
+              ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+              : "bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700"
+          }`}>
+            <div className="flex items-start gap-3">
+              <svg
+                className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                  persistentStorage.isPersisted
+                    ? "text-green-600 dark:text-green-400"
+                    : persistentStorage.supported
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-zinc-500 dark:text-zinc-400"
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                {persistentStorage.isPersisted ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                )}
+              </svg>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <h4 className={`text-sm font-semibold mb-1 ${
+                    persistentStorage.isPersisted
+                      ? "text-green-900 dark:text-green-100"
+                      : persistentStorage.supported
+                      ? "text-amber-900 dark:text-amber-100"
+                      : "text-zinc-900 dark:text-zinc-100"
+                  }`}>
+                    Storage Persistence
+                  </h4>
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                    persistentStorage.isPersisted
+                      ? "bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200"
+                      : persistentStorage.supported
+                      ? "bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-200"
+                      : "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400"
+                  }`}>
+                    {persistentStorage.isPersisted ? "Protected" : persistentStorage.supported ? "Not Protected" : "Not Supported"}
+                  </span>
+                </div>
+                <p className={`text-sm ${
+                  persistentStorage.isPersisted
+                    ? "text-green-800 dark:text-green-200"
+                    : persistentStorage.supported
+                    ? "text-amber-800 dark:text-amber-200"
+                    : "text-zinc-600 dark:text-zinc-400"
+                }`}>
+                  {persistentStorage.isPersisted ? (
+                    <>
+                      Your storage is marked as persistent. The browser will not automatically clear your data
+                      under storage pressure.
+                    </>
+                  ) : persistentStorage.supported ? (
+                    <>
+                      Your storage is not marked as persistent. The browser may clear your data if storage runs low.
+                      Consider installing the app as a PWA or bookmarking this site to improve persistence.
+                    </>
+                  ) : (
+                    <>
+                      Persistent storage API is not supported in this browser. Your data may be cleared if browser
+                      storage runs low. We recommend creating regular backups.
+                    </>
+                  )}
+                </p>
+                {persistentStorage.supported && !persistentStorage.isPersisted && (
+                  <button
+                    onClick={handleRequestPersistence}
+                    disabled={isRequestingPersistence}
+                    className="mt-2 px-3 py-1.5 text-sm font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isRequestingPersistence ? "Requesting..." : "Request Persistent Storage"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* Info about storage */}
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">

@@ -965,6 +965,8 @@ export function FocusView({
                     text={nextItem.task.todo.plainText}
                     markerColors={markerColors}
                     linkPatterns={linkPatterns}
+                    dateTimeSettings={settings.dateTime}
+                    workHoursSettings={settings.workHours}
                   />
                 </p>
               </div>
@@ -1067,6 +1069,8 @@ export function FocusView({
                         text={nextItem.task.todo.plainText}
                         markerColors={markerColors}
                         linkPatterns={linkPatterns}
+                        dateTimeSettings={settings.dateTime}
+                        workHoursSettings={settings.workHours}
                       />
                     </p>
                   </div>
@@ -1162,7 +1166,7 @@ export function FocusView({
 
               {/* Task Text */}
               <p className="text-2xl font-medium text-zinc-900 dark:text-zinc-100 leading-relaxed mb-6">
-                <MarkedText text={currentTodo.plainText} markerColors={markerColors} linkPatterns={linkPatterns} />
+                <MarkedText text={currentTodo.plainText} markerColors={markerColors} linkPatterns={linkPatterns} dateTimeSettings={settings.dateTime} workHoursSettings={settings.workHours} />
               </p>
 
               {/* Metadata */}

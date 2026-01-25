@@ -1218,6 +1218,8 @@ export function KanbanView({
                             text={todo.plainText || todo.text}
                             linkPatterns={linkPatterns}
                             markerColors={markerColors}
+                            dateTimeSettings={settings.dateTime}
+                            workHoursSettings={settings.workHours}
                           />
                         </div>
 

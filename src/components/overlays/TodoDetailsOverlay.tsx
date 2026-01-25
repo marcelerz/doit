@@ -452,6 +452,8 @@ export function TodoDetailsOverlay({
                     availablePeople={availablePeople}
                     availableProjects={availableProjects}
                     availablePriorities={availablePriorities}
+                    dateTimeSettings={settings.dateTime}
+                    workHoursSettings={settings.workHours}
                   />
                 </h2>
               )}

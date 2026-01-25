@@ -315,6 +315,67 @@ export async function isIndexedDBAvailable(): Promise<boolean> {
   }
 }
 
+// Persistent storage status
+export interface PersistentStorageInfo {
+  isPersisted: boolean;
+  supported: boolean;
+}
+
+/**
+ * Check if storage is currently persisted
+ */
+export async function checkPersistentStorage(): Promise<PersistentStorageInfo> {
+  if (typeof navigator === "undefined" || !navigator.storage || !navigator.storage.persisted) {
+    return { isPersisted: false, supported: false };
+  }
+
+  try {
+    const isPersisted = await navigator.storage.persisted();
+    return { isPersisted, supported: true };
+  } catch (error) {
+    console.warn("Failed to check persistent storage status:", error);
+    return { isPersisted: false, supported: false };
+  }
+}
+
+/**
+ * Request persistent storage from the browser
+ * This prevents the browser from automatically clearing storage under pressure
+ *
+ * Note: This is automatically called on every page load during storage initialization.
+ * All data is stored locally in the browser - there is no backend database.
+ */
+export async function requestPersistentStorage(): Promise<PersistentStorageInfo> {
+  if (typeof navigator === "undefined" || !navigator.storage || !navigator.storage.persist) {
+    console.log("Persistent storage API not supported in this browser");
+    return { isPersisted: false, supported: false };
+  }
+
+  try {
+    // Check if already persisted
+    const alreadyPersisted = await navigator.storage.persisted();
+    if (alreadyPersisted) {
+      console.log("Storage is already persisted");
+      return { isPersisted: true, supported: true };
+    }
+
+    // Request persistence
+    const granted = await navigator.storage.persist();
+    if (granted) {
+      console.log("Persistent storage granted - data will not be cleared under storage pressure");
+    } else {
+      console.log(
+        "Persistent storage not granted - browser may clear data under storage pressure. " +
+          "Consider bookmarking or installing as PWA for better persistence.",
+      );
+    }
+    return { isPersisted: granted, supported: true };
+  } catch (error) {
+    console.warn("Failed to request persistent storage:", error);
+    return { isPersisted: false, supported: false };
+  }
+}
+
 // Storage quota estimation
 export interface StorageQuotaInfo {
   available: number;
@@ -650,12 +711,19 @@ export async function initializeStorage(): Promise<{
 /**
  * Initialize storage on the client side only
  * This should be called once when the app starts
+ *
+ * Note: All data is stored locally in the browser - there is no backend database.
+ * Persistent storage is requested on every page load to prevent data loss.
  */
 export function initializeStorageClient(): void {
   if (typeof window !== "undefined" && !initializationPromise) {
     initializationPromise = initializeStorage()
-      .then(() => {
+      .then(async () => {
         isInitialized = true;
+
+        // Request persistent storage on every page load
+        // This helps ensure the browser won't clear our data under storage pressure
+        await requestPersistentStorage();
       })
       .catch((error) => {
         console.error("Failed to initialize storage:", error);

@@ -485,6 +485,8 @@ export function TodoItem({
                 availablePeople={availablePeople}
                 availableProjects={availableProjects}
                 availablePriorities={availablePriorities}
+                dateTimeSettings={settings.dateTime}
+                workHoursSettings={settings.workHours}
               />
             </div>
 

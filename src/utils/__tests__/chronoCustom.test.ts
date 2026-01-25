@@ -614,4 +614,84 @@ describe("chronoCustom", () => {
       expect(has2h).toBe(false);
     });
   });
+
+  describe("adjacent date + time merging", () => {
+    it("should merge 'tomorrow eod' into a single result", () => {
+      const results = parseWithCustomChrono(
+        "tomorrow eod",
+        referenceDate,
+        defaultDateTimeSettings,
+        defaultWorkHoursSettings,
+      );
+      expect(results).toHaveLength(1);
+      expect(results[0].text).toBe("tomorrow eod");
+      expect(results[0].start.date().getDate()).toBe(16); // Tomorrow
+      expect(results[0].start.date().getHours()).toBe(17); // EOD time
+    });
+
+    it("should merge 'tomorrow morning' into a single result", () => {
+      const results = parseWithCustomChrono("tomorrow morning", referenceDate, defaultDateTimeSettings);
+      expect(results).toHaveLength(1);
+      expect(results[0].text).toBe("tomorrow morning");
+      expect(results[0].start.date().getDate()).toBe(16); // Tomorrow
+      expect(results[0].start.date().getHours()).toBe(9); // Morning time
+    });
+
+    it("should merge 'next monday bod' into a single result", () => {
+      const results = parseWithCustomChrono(
+        "next monday bod",
+        referenceDate,
+        defaultDateTimeSettings,
+        defaultWorkHoursSettings,
+      );
+      // Debug: check what chrono returns
+      // console.log("Results for 'next monday bod':", results.map(r => ({ text: r.text, date: r.start.date() })));
+      expect(results).toHaveLength(1);
+      expect(results[0].text).toBe("next monday bod");
+      // The merged result should have time from bod (9:00 BOD)
+      expect(results[0].start.date().getHours()).toBe(9); // BOD time
+    });
+
+    it("should merge 'next friday eod' into a single result", () => {
+      const results = parseWithCustomChrono(
+        "next friday eod",
+        referenceDate,
+        defaultDateTimeSettings,
+        defaultWorkHoursSettings,
+      );
+      expect(results).toHaveLength(1);
+      expect(results[0].text).toBe("next friday eod");
+      // The merged result should have time from eod (17:00 EOD)
+      expect(results[0].start.date().getHours()).toBe(17); // EOD time
+    });
+
+    it("should NOT merge 'tomorrow then eod' - they are not adjacent", () => {
+      const results = parseWithCustomChrono(
+        "tomorrow then eod",
+        referenceDate,
+        defaultDateTimeSettings,
+        defaultWorkHoursSettings,
+      );
+      // "tomorrow" and "eod" should remain separate because "then" separates them
+      expect(results.length).toBeGreaterThanOrEqual(2);
+      expect(results.some((r) => r.text === "tomorrow")).toBe(true);
+      expect(results.some((r) => r.text === "eod")).toBe(true);
+    });
+
+    it("should merge 'today noon' into a single result", () => {
+      const results = parseWithCustomChrono("today noon", referenceDate, defaultDateTimeSettings);
+      expect(results).toHaveLength(1);
+      expect(results[0].text).toBe("today noon");
+      expect(results[0].start.date().getDate()).toBe(15); // Today
+      expect(results[0].start.date().getHours()).toBe(12); // Noon time
+    });
+
+    it("should merge 'tomorrow evening' into a single result", () => {
+      const results = parseWithCustomChrono("tomorrow evening", referenceDate, defaultDateTimeSettings);
+      expect(results).toHaveLength(1);
+      expect(results[0].text).toBe("tomorrow evening");
+      expect(results[0].start.date().getDate()).toBe(16); // Tomorrow
+      expect(results[0].start.date().getHours()).toBe(18); // Evening time
+    });
+  });
 });

@@ -4,11 +4,14 @@ import { LinkPattern } from "@/types/linkPattern";
 import { Priority } from "@/types/priority";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
+import { DateTimeSettings, WorkHoursSettings } from "@/types/settings";
 import {
   detectMentionedPeople,
   detectMentionedProjects,
   detectSourcePeople,
   detectPriorities,
+  detectDatesInText,
+  detectDurationPatterns,
 } from "@/utils/autoDetection";
 
 interface MarkedTextProps {
@@ -19,6 +22,8 @@ interface MarkedTextProps {
   availablePeople?: PersonModel[];
   availableProjects?: ProjectModel[];
   availablePriorities?: Priority[];
+  dateTimeSettings?: DateTimeSettings;
+  workHoursSettings?: WorkHoursSettings;
 }
 
 export function MarkedText({
@@ -29,6 +34,8 @@ export function MarkedText({
   availablePeople = [],
   availableProjects = [],
   availablePriorities = [],
+  dateTimeSettings,
+  workHoursSettings,
 }: MarkedTextProps) {
   // Parse the text and create elements with markers highlighted
   const parts: React.ReactNode[] = [];
@@ -317,6 +324,44 @@ export function MarkedText({
     });
   }
 
+  // Auto-detect dates (if settings are provided)
+  const detectedDates = detectDatesInText(text, new Date(), dateTimeSettings, workHoursSettings);
+  for (const detected of detectedDates) {
+    // Skip if this position overlaps with any existing match
+    const overlapsOther = allMatches.some((m) => !(detected.end <= m.start || detected.start >= m.end));
+
+    if (overlapsOther) {
+      continue;
+    }
+
+    // Add as dueDate
+    allMatches.push({
+      start: detected.start,
+      end: detected.end,
+      text: detected.text,
+      type: "dueDate",
+    });
+  }
+
+  // Auto-detect durations
+  const detectedDurations = detectDurationPatterns(text);
+  for (const detected of detectedDurations) {
+    // Skip if this position overlaps with any existing match
+    const overlapsOther = allMatches.some((m) => !(detected.end <= m.start || detected.start >= m.end));
+
+    if (overlapsOther) {
+      continue;
+    }
+
+    // Add as duration
+    allMatches.push({
+      start: detected.start,
+      end: detected.end,
+      text: detected.text,
+      type: "duration",
+    });
+  }
+
   // Sort matches by start position
   allMatches.sort((a, b) => a.start - b.start);
 
@@ -361,6 +406,10 @@ export function MarkedText({
       } else if (match.type === "priority") {
         bgColor = match.name ? findPriorityColor(match.name) : undefined;
         if (!bgColor) bgColor = markerColors?.[match.type];
+      } else if (match.type === "dueDate") {
+        bgColor = markerColors?.dueDate;
+      } else if (match.type === "duration") {
+        bgColor = markerColors?.duration;
       } else {
         // Use marker color for other types
         bgColor = markerColors?.[match.type as keyof MarkerColors];

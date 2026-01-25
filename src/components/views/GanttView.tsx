@@ -2026,6 +2026,8 @@ export function GanttView({
                 availablePeople={availablePeople}
                 availableProjects={availableProjects}
                 availablePriorities={availablePriorities}
+                dateTimeSettings={settings.dateTime}
+                workHoursSettings={settings.workHours}
               />
 
               {/* Structured metadata grid */}

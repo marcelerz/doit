@@ -754,6 +754,100 @@ function createDurationFilterRefiner(): Refiner {
 }
 
 /**
+ * Time-of-day shorthand keywords that can be merged with a preceding date
+ * These are patterns that specify a time but are detected separately from dates like "tomorrow"
+ */
+const TIME_OF_DAY_SHORTHANDS = new Set([
+  // Basic time-of-day
+  "bod",
+  "eod",
+  "morning",
+  "noon",
+  "afternoon",
+  "evening",
+  "midnight",
+  "midday",
+  // Extended variants
+  "startofday",
+  "endofday",
+  "beginningofday",
+  "beginningoftheday",
+  "endoftheday",
+  "startoftheday",
+  // Tonight
+  "tonight",
+  "tonite",
+]);
+
+/**
+ * Create a refiner that merges adjacent date + time-of-day results
+ * For example: "tomorrow eod" should be one result, not two
+ *
+ * This handles the case where chrono parses "tomorrow" and our shorthand parser
+ * parses "eod" as separate results. We merge them into a single result that
+ * takes the date from the first and the time from the second.
+ */
+function createAdjacentTimeMergeRefiner(): Refiner {
+  return {
+    refine: (context: ParsingContext, results) => {
+      const text = context.text;
+      const merged: typeof results = [];
+
+      let i = 0;
+      while (i < results.length) {
+        const current = results[i];
+
+        // Check if there's a next result that could be merged
+        if (i + 1 < results.length) {
+          const next = results[i + 1];
+          const currentEnd = current.index + current.text.length;
+          const nextStart = next.index;
+
+          // Check if only whitespace separates them
+          const between = text.slice(currentEnd, nextStart);
+          const isAdjacent = /^\s*$/.test(between) && between.length <= 2;
+
+          // Check if the second result is a time-of-day shorthand
+          const nextTextLower = next.text.toLowerCase().replace(/\s+/g, "");
+          const isTimeShorthand = TIME_OF_DAY_SHORTHANDS.has(nextTextLower);
+
+          if (isAdjacent && isTimeShorthand) {
+            // Merge the results: take date from first, time from second
+            // Create a new result with extended text span
+            const mergedText = text.slice(current.index, next.index + next.text.length);
+
+            // Copy the start components from the first result
+            const mergedResult = current.clone();
+            mergedResult.text = mergedText;
+
+            // Apply the time from the second result
+            if (next.start.isCertain("hour")) {
+              mergedResult.start.assign("hour", next.start.get("hour")!);
+            }
+            if (next.start.isCertain("minute")) {
+              mergedResult.start.assign("minute", next.start.get("minute")!);
+            }
+            if (next.start.isCertain("second")) {
+              mergedResult.start.assign("second", next.start.get("second")!);
+            }
+
+            merged.push(mergedResult);
+            i += 2; // Skip both results
+            continue;
+          }
+        }
+
+        // No merge, keep the current result
+        merged.push(current);
+        i++;
+      }
+
+      return merged;
+    },
+  };
+}
+
+/**
  * Create a refiner to apply EOD time to "today" without specific time
  */
 function createTodayEodRefiner(dateTimeSettings?: DateTimeSettings): Refiner {
@@ -1012,6 +1106,7 @@ export function createCustomChrono(
 
   // Add our custom refiners
   custom.refiners.unshift(createDurationFilterRefiner());
+  custom.refiners.push(createAdjacentTimeMergeRefiner());
   custom.refiners.push(createTodayEodRefiner(dateTimeSettings));
 
   return custom;
