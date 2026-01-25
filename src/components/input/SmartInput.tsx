@@ -92,6 +92,8 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
 
     // Track unmount state to prevent callbacks after unmount
     const unmountedRef = useRef(false);
+    // Guard to prevent handleInput during setValue to avoid race conditions
+    const isSettingValueRef = useRef(false);
     useEffect(() => {
       return () => {
         unmountedRef.current = true;
@@ -132,6 +134,8 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           // Guard against calls after unmount
           if (unmountedRef.current) return;
           if (editableRef.current) {
+            // Set guard to prevent handleInput from firing during DOM manipulation
+            isSettingValueRef.current = true;
             const { fragment, tokens, plainText } = renderTokensFromText(text);
             // Clear content safely (not setting untrusted content)
             while (editableRef.current.firstChild) {
@@ -141,6 +145,10 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
             if (onTokensChange) {
               onTokensChange(tokens, text, plainText);
             }
+            // Clear guard after DOM operations settle
+            requestAnimationFrame(() => {
+              isSettingValueRef.current = false;
+            });
           }
         },
         focus: () => {
@@ -800,6 +808,9 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
     };
 
     const handleInput = () => {
+      // Skip if we're in the middle of setValue to prevent race conditions
+      if (isSettingValueRef.current) return;
+
       const div = editableRef.current;
       if (!div) return;
 

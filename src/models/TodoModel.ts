@@ -354,6 +354,31 @@ export class TodoModel {
   }
 
   /**
+   * Get due date as an ISO string (for form inputs)
+   * Returns format "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM" if time is set
+   */
+  get dueDateISO(): string | undefined {
+    const timestamp = this.dueDate;
+    if (!timestamp) return undefined;
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+
+    // If time is midnight, return date-only format
+    if (hours === 0 && minutes === 0) {
+      return `${year}-${month}-${day}`;
+    }
+
+    // Return full datetime format
+    const hoursStr = hours.toString().padStart(2, "0");
+    const minutesStr = minutes.toString().padStart(2, "0");
+    return `${year}-${month}-${day}T${hoursStr}:${minutesStr}`;
+  }
+
+  /**
    * Get metadata for UI editing purposes.
    * Converts typed ID fields to string-based TodoMetadata.
    * Uses the string getters which resolve IDs to names via registry
@@ -366,7 +391,7 @@ export class TodoModel {
       mentionedPeople: this.mentionedPeople,
       projects: this.projects,
       priority: this.priorityName,
-      dueDate: this.dueDateDisplay,
+      dueDate: this.dueDateISO,
       duration: this.durationDisplay,
       recurring: this.recurring,
       tags: this.tags,
@@ -567,11 +592,13 @@ export class TodoModel {
 
   /**
    * Get priority name for display (using priority ID with auto-assign)
+   * Falls back to the raw ID if priority not found in settings
    */
   get priorityName(): string | undefined {
     const id = this.priorityId;
     if (!id) return undefined;
-    return this._settingsModel.findPriorityById(id)?.name;
+    const found = this._settingsModel.findPriorityById(id);
+    return found?.name || (id as string);
   }
 
   /**

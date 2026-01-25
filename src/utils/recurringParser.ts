@@ -316,53 +316,56 @@ export function calculateNextOccurrence(pattern: RecurringPattern, fromDate: Dat
       break;
 
     case "nth-weekday":
-      // Find nth occurrence of weekday in next month (or later months if needed)
+      // Find nth occurrence of weekday in the next available month that has it
+      // For example, "5th Monday" only exists in months that start on specific days
       {
-        const targetMonth = next.getMonth() + 1;
-        const targetYear = targetMonth > 11 ? next.getFullYear() + 1 : next.getFullYear();
-        const normalizedTargetMonth = targetMonth % 12;
-        next.setFullYear(targetYear);
-        next.setMonth(normalizedTargetMonth);
-        next.setDate(1);
+        let currentMonth = next.getMonth() + 1;
+        let currentYear = next.getFullYear();
+        if (currentMonth > 11) {
+          currentMonth = 0;
+          currentYear++;
+        }
 
         if (pattern.nthWeek === NTH_WEEK_LAST) {
-          // "last" weekday of month - go to last day and walk back
+          // "last" weekday of month - always exists in every month
+          next.setFullYear(currentYear);
+          next.setMonth(currentMonth);
           const lastDay = getLastDayOfMonth(next);
           next.setDate(lastDay);
           while (next.getDay() !== pattern.weekday) {
             next.setDate(next.getDate() - 1);
           }
         } else {
-          // Find first occurrence of the weekday
-          while (next.getDay() !== pattern.weekday) {
-            next.setDate(next.getDate() + 1);
-          }
-          // Add weeks to get to nth occurrence
-          const nthWeekOffset = ((pattern.nthWeek || 1) - 1) * 7;
-          next.setDate(next.getDate() + nthWeekOffset);
+          // Search forward to find a month that has the nth occurrence
+          // Most months have 4 occurrences of each weekday; only some have 5
+          const nthWeek = pattern.nthWeek || 1;
+          const maxAttempts = 12; // At most 12 months to find a valid one
 
-          // If the nth occurrence spills into next month, it doesn't exist
-          // in this month - move to next month and find the nth weekday there
-          if (next.getMonth() !== normalizedTargetMonth) {
-            const nextMonth = (normalizedTargetMonth + 1) % 12;
-            const nextYear = normalizedTargetMonth + 1 > 11 ? next.getFullYear() + 1 : next.getFullYear();
-            next.setFullYear(nextYear);
-            next.setMonth(nextMonth);
+          for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            next.setFullYear(currentYear);
+            next.setMonth(currentMonth);
             next.setDate(1);
-            // Find first occurrence of the weekday in the new month
+
+            // Find first occurrence of the weekday in this month
             while (next.getDay() !== pattern.weekday) {
               next.setDate(next.getDate() + 1);
             }
-            // Add weeks to get to nth occurrence in the new month
+
+            // Add weeks to get to nth occurrence
+            const nthWeekOffset = (nthWeek - 1) * 7;
             next.setDate(next.getDate() + nthWeekOffset);
-            // If still spills over (e.g., looking for 5th Monday), use 1st occurrence
-            if (next.getMonth() !== nextMonth) {
-              next.setFullYear(nextYear);
-              next.setMonth(nextMonth);
-              next.setDate(1);
-              while (next.getDay() !== pattern.weekday) {
-                next.setDate(next.getDate() + 1);
-              }
+
+            // Check if this date is still in the target month
+            if (next.getMonth() === currentMonth) {
+              // Found a valid month with the nth occurrence
+              break;
+            }
+
+            // This month doesn't have the nth occurrence, try next month
+            currentMonth++;
+            if (currentMonth > 11) {
+              currentMonth = 0;
+              currentYear++;
             }
           }
         }

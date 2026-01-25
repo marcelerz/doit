@@ -179,7 +179,7 @@ export function TodoDetailsOverlay({
       setTimeout(() => {
         smartInputRef.current?.setValue(todo.text);
         smartInputRef.current?.focus();
-      }, 50);
+      }, 100);
     }
   }, [isEditing, todo.text]);
 
@@ -241,11 +241,22 @@ export function TodoDetailsOverlay({
   const handleMetadataChange = (newMetadata: TodoMetadata) => {
     const parts: string[] = [todo.plainText];
 
-    newMetadata.assignedPeople.forEach((p) => parts.push(`@${p}`));
-    newMetadata.sourcePeople.forEach((p) => parts.push(`$${p}`));
-    newMetadata.projects.forEach((p) => parts.push(`%${p}`));
-    if (newMetadata.priority) parts.push(`!!${newMetadata.priority}`);
-    (newMetadata.tags ?? []).forEach((t) => parts.push(`#${t}`));
+    // Only append items NOT already in plainText (preserves original positions)
+    newMetadata.assignedPeople
+      .filter((p) => !todo.plainText.includes(`@${p}`))
+      .forEach((p) => parts.push(`@${p}`));
+    newMetadata.sourcePeople
+      .filter((p) => !todo.plainText.includes(`$${p}`))
+      .forEach((p) => parts.push(`$${p}`));
+    newMetadata.projects
+      .filter((p) => !todo.plainText.includes(`%${p}`))
+      .forEach((p) => parts.push(`%${p}`));
+    if (newMetadata.priority && !todo.plainText.includes(`!!${newMetadata.priority}`)) {
+      parts.push(`!!${newMetadata.priority}`);
+    }
+    (newMetadata.tags ?? [])
+      .filter((t) => !todo.plainText.includes(`#${t}`))
+      .forEach((t) => parts.push(`#${t}`));
 
     const newText = parts.join(" ");
     onEdit(todo.id, newText, todo.plainText, newMetadata);
@@ -349,7 +360,12 @@ export function TodoDetailsOverlay({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleSaveEdit}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+                      disabled={editPlainText.trim() === ""}
+                      className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                        editPlainText.trim() === ""
+                          ? "bg-zinc-300 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 cursor-not-allowed"
+                          : "bg-blue-600 hover:bg-blue-700 text-white"
+                      }`}
                     >
                       Save
                     </button>

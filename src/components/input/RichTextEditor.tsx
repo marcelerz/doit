@@ -1,4 +1,15 @@
 import { useState, useEffect, useRef } from "react";
+import DOMPurify from "dompurify";
+
+// Sanitize HTML content to prevent XSS attacks
+function sanitizeHtml(html: string): string {
+  if (typeof window === "undefined") return html;
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ["b", "i", "u", "strong", "em", "a", "br", "p", "span"],
+    ALLOWED_ATTR: ["href", "target", "rel", "style"],
+    ALLOW_DATA_ATTR: false,
+  });
+}
 
 interface RichTextEditorProps {
   value?: string;
@@ -122,7 +133,7 @@ export default function RichTextEditor({
               }, 0);
             }
           }}
-          dangerouslySetInnerHTML={{ __html: value || "" }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(value || "") }}
           style={{ minHeight, maxHeight }}
           className={`overflow-y-auto text-sm px-3 py-2 rounded ${
             noBorderInViewMode ? "border-0" : "border border-zinc-300 dark:border-zinc-600"

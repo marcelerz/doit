@@ -1,9 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import DOMPurify from "dompurify";
 import { Comment, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { EditIcon, TrashIcon } from "@/components/shared/Icons";
+
+// Sanitize HTML content to prevent XSS attacks
+function sanitizeHtml(html: string): string {
+  if (typeof window === "undefined") return html;
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ["b", "i", "u", "strong", "em", "a", "br", "p", "span"],
+    ALLOWED_ATTR: ["href", "target", "rel", "style"],
+    ALLOW_DATA_ATTR: false,
+  });
+}
 
 interface CommentsProps {
   comments: Comment[];
@@ -18,11 +29,12 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
   const [editContent, setEditContent] = useState("");
   const [expandedCommentId, setExpandedCommentId] = useState<CommentId | null>(null);
 
-  // Helper to check if HTML content is empty
+  // Helper to check if HTML content is empty (uses sanitized HTML for safety)
   const isHtmlEmpty = (html: string): boolean => {
     if (!html) return true;
+    if (typeof window === "undefined") return html.trim().length === 0;
     const temp = document.createElement("div");
-    temp.innerHTML = html;
+    temp.innerHTML = sanitizeHtml(html);
     const text = temp.textContent || "";
     return text.trim().length === 0;
   };
@@ -151,7 +163,7 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
                     <div className="flex justify-between items-start gap-2 mb-2">
                       <div
                         className="text-sm text-zinc-700 dark:text-zinc-300 flex-1 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer"
-                        dangerouslySetInnerHTML={{ __html: latestEntry.content }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(latestEntry.content) }}
                       />
                       <div className="flex gap-1 flex-shrink-0">
                         <button
@@ -196,7 +208,7 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
                             <div key={idx} className="text-xs">
                               <div
                                 className="text-zinc-600 dark:text-zinc-400 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer"
-                                dangerouslySetInnerHTML={{ __html: entry.content }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(entry.content) }}
                               />
                               <span className="text-zinc-500 dark:text-zinc-500">{formatDate(entry.timestamp)}</span>
                             </div>

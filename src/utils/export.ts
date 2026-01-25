@@ -163,7 +163,9 @@ export function downloadFile(content: string, filename: string, mimeType: string
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // Defer URL revocation to allow download to complete
+  // Using setTimeout ensures the browser has time to start the download
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /**

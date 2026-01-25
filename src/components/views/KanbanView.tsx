@@ -649,15 +649,23 @@ export function KanbanView({
     e.preventDefault();
     setDragOverColumnId(null);
 
-    if (!draggedTodoId) return;
+    // Always clear drag state at the end, even for failed transitions
+    const todoId = draggedTodoId;
+    if (!todoId) {
+      setDraggedTodoId(null);
+      return;
+    }
 
-    const todo = todos.find((t) => t.id === draggedTodoId);
-    if (!todo) return;
+    const todo = todos.find((t) => t.id === todoId);
+    if (!todo) {
+      setDraggedTodoId(null);
+      return;
+    }
 
     const fromState = todo.workflowState || "backlog";
     // Check both transition rules and WIP limit
     if (canTransition(fromState, targetStateId) && canAcceptMore(targetStateId)) {
-      onSetWorkflowState(draggedTodoId, targetStateId, kanban.states, kanban.allowedTransitions);
+      onSetWorkflowState(todoId, targetStateId, kanban.states, kanban.allowedTransitions);
     }
 
     setDraggedTodoId(null);

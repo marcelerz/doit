@@ -8,6 +8,52 @@ import { getTimestamp } from "@/types/time";
 import { getActivityId } from "@/types/types";
 import { createSubtaskId, createActivityId } from "@/utils/idGenerator";
 
+/**
+ * Parse JSON with enhanced error context including line numbers
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseJsonWithContext(content: string): any {
+  try {
+    return JSON.parse(content);
+  } catch (e) {
+    if (e instanceof SyntaxError) {
+      // Try to extract position info from the error message
+      const posMatch = e.message.match(/position\s*(\d+)/i);
+      if (posMatch) {
+        const position = parseInt(posMatch[1], 10);
+        const { line, column, context } = getJsonErrorContext(content, position);
+        throw new Error(
+          `JSON syntax error at line ${line}, column ${column}: ${e.message}\n` +
+            `Context: ...${context}...`
+        );
+      }
+    }
+    throw e;
+  }
+}
+
+/**
+ * Get line number and context for a JSON parse error position
+ */
+function getJsonErrorContext(
+  content: string,
+  position: number
+): { line: number; column: number; context: string } {
+  const lines = content.substring(0, position).split("\n");
+  const line = lines.length;
+  const column = (lines[lines.length - 1]?.length ?? 0) + 1;
+
+  // Extract context around the error (30 chars before and after)
+  const start = Math.max(0, position - 30);
+  const end = Math.min(content.length, position + 30);
+  const context = content
+    .substring(start, end)
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r");
+
+  return { line, column, context };
+}
+
 // Supported import formats
 export type ImportFormat = "todoist" | "things" | "reminders" | "csv" | "json" | "auto";
 
@@ -75,7 +121,7 @@ export function detectFormat(content: string, fileName?: string): ImportFormat {
 
   // Try to parse as JSON
   try {
-    const data = JSON.parse(content);
+    const data = parseJsonWithContext(content);
 
     // Todoist export format
     if (Array.isArray(data) && data[0]?.content && data[0]?.checked !== undefined) {
@@ -123,7 +169,7 @@ export function parseTodoist(content: string): ImportResult {
   const todos: ImportedTodo[] = [];
 
   try {
-    const data = JSON.parse(content);
+    const data = parseJsonWithContext(content);
 
     if (!Array.isArray(data)) {
       return {
@@ -208,7 +254,7 @@ export function parseThings(content: string): ImportResult {
   const todos: ImportedTodo[] = [];
 
   try {
-    const data = JSON.parse(content);
+    const data = parseJsonWithContext(content);
     const items = Array.isArray(data) ? data : data.items || [];
 
     for (const item of items) {
@@ -259,7 +305,7 @@ export function parseReminders(content: string): ImportResult {
   const todos: ImportedTodo[] = [];
 
   try {
-    const data = JSON.parse(content);
+    const data = parseJsonWithContext(content);
     const items = Array.isArray(data) ? data : data.reminders || data.items || [];
 
     for (const item of items) {
@@ -530,7 +576,7 @@ export function parseJSON(content: string): ImportResult {
   const todos: ImportedTodo[] = [];
 
   try {
-    const data = JSON.parse(content);
+    const data = parseJsonWithContext(content);
     const items = Array.isArray(data) ? data : data.todos || data.tasks || data.items || [];
 
     for (const item of items) {

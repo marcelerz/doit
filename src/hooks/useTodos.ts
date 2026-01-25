@@ -368,7 +368,7 @@ export function useTodos() {
       }
     }
 
-    const previousState = JSON.parse(JSON.stringify(todoToToggle)); // Deep copy
+    const previousState = structuredClone(todoToToggle);
     const now = getTimestamp(Date.now());
 
     // Track activity
@@ -471,7 +471,7 @@ export function useTodos() {
     const todoToDelete = rawTodos.find((t) => t.id === id);
     if (!todoToDelete) return;
 
-    const previousState = JSON.parse(JSON.stringify(todoToDelete)); // Deep copy
+    const previousState = structuredClone(todoToDelete);
     const now = getTimestamp(Date.now());
     const deletedTodo: Todo = {
       ...todoToDelete,
@@ -525,7 +525,7 @@ export function useTodos() {
       return; // Don't allow archive
     }
 
-    const previousState = JSON.parse(JSON.stringify(todoToArchive)); // Deep copy
+    const previousState = structuredClone(todoToArchive);
     const now = getTimestamp(Date.now());
     const updatedTodo: Todo = {
       ...todoToArchive,
