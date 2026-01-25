@@ -9,7 +9,7 @@
  * via useMemo for automatic wrapping.
  */
 
-import type { Project, ProjectId } from "@/types/project";
+import type { Project, ProjectCategoryId, ProjectId } from "@/types/project";
 import { getProjectId } from "@/types/project";
 import { generatePrefixedUUID } from "@/utils/idGenerator";
 import { BaseEntityModel } from "./BaseEntityModel";
@@ -52,7 +52,7 @@ export class ProjectModel extends BaseEntityModel<Project> {
   /**
    * Get project category ID
    */
-  get category(): string | undefined {
+  get category(): ProjectCategoryId | undefined {
     return this._raw.category;
   }
 
@@ -62,12 +62,14 @@ export class ProjectModel extends BaseEntityModel<Project> {
 
   /**
    * Check if this project can be deleted
-   * @param allTodos Optional array of todos to check for dependencies
+   * @param allTodos Optional array of todos to check for dependencies.
+   *                 Should use TodoModel instances which account for auto-assigned defaults.
    * @returns Validation result with reason if not allowed
    */
-  canDelete(allTodos?: Array<{ projects?: string[] }>): { canDelete: boolean; reason?: string } {
+  canDelete(allTodos?: Array<{ projectIds: ProjectId[] }>): { canDelete: boolean; reason?: string } {
     if (allTodos) {
-      const isUsed = allTodos.some((todo) => todo.projects?.includes(this.id));
+      // Use projectIds which includes auto-assigned defaults, not raw projects
+      const isUsed = allTodos.some((todo) => todo.projectIds.includes(this.id));
       if (isUsed) {
         return { canDelete: false, reason: "Project is used in active todos" };
       }

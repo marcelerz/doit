@@ -34,6 +34,13 @@ export function useServiceWorker() {
     // Base path for deployment (matches next.config.ts)
     const basePath = process.env.GITHUB_PAGES === "true" ? "/doit" : "";
 
+    // Track interval and event handlers for cleanup
+    let updateIntervalId: ReturnType<typeof setInterval> | null = null;
+    let updateFoundHandler: (() => void) | null = null;
+    let currentRegistration: ServiceWorkerRegistration | null = null;
+    let currentInstallingWorker: ServiceWorker | null = null;
+    let stateChangeHandler: (() => void) | null = null;
+
     // Register service worker
     const registerSW = async () => {
       try {
@@ -42,6 +49,7 @@ export function useServiceWorker() {
         });
 
         console.log("[PWA] Service worker registered:", registration.scope);
+        currentRegistration = registration;
 
         setState((prev) => ({
           ...prev,
@@ -49,23 +57,31 @@ export function useServiceWorker() {
           registration,
         }));
 
-        // Check for updates
-        registration.addEventListener("updatefound", () => {
+        // Check for updates - create named handler for cleanup
+        updateFoundHandler = () => {
           const newWorker = registration.installing;
 
+          // Clean up previous statechange listener if any
+          if (currentInstallingWorker && stateChangeHandler) {
+            currentInstallingWorker.removeEventListener("statechange", stateChangeHandler);
+          }
+
           if (newWorker) {
-            newWorker.addEventListener("statechange", () => {
+            currentInstallingWorker = newWorker;
+            stateChangeHandler = () => {
               if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
                 // New service worker is available
                 console.log("[PWA] New service worker available");
                 setState((prev) => ({ ...prev, isUpdateAvailable: true }));
               }
-            });
+            };
+            newWorker.addEventListener("statechange", stateChangeHandler);
           }
-        });
+        };
+        registration.addEventListener("updatefound", updateFoundHandler);
 
         // Check for updates periodically (every hour)
-        setInterval(() => {
+        updateIntervalId = setInterval(() => {
           registration.update();
         }, 60 * 60 * 1000);
       } catch (error) {
@@ -78,8 +94,22 @@ export function useServiceWorker() {
       registerSW();
     } else {
       window.addEventListener("load", registerSW);
-      return () => window.removeEventListener("load", registerSW);
     }
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener("load", registerSW);
+      if (updateIntervalId) {
+        clearInterval(updateIntervalId);
+      }
+      if (currentRegistration && updateFoundHandler && currentRegistration.removeEventListener) {
+        currentRegistration.removeEventListener("updatefound", updateFoundHandler);
+      }
+      // Clean up statechange listener on installing worker
+      if (currentInstallingWorker && stateChangeHandler && currentInstallingWorker.removeEventListener) {
+        currentInstallingWorker.removeEventListener("statechange", stateChangeHandler);
+      }
+    };
   }, []);
 
   // Track online/offline status
@@ -112,9 +142,14 @@ export function useServiceWorker() {
       state.registration.waiting.postMessage({ type: "SKIP_WAITING" });
 
       // Reload once the new service worker takes over
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        window.location.reload();
-      });
+      // Use { once: true } to automatically remove the listener after it fires
+      navigator.serviceWorker.addEventListener(
+        "controllerchange",
+        () => {
+          window.location.reload();
+        },
+        { once: true },
+      );
     }
   }, [state.registration]);
 
@@ -122,11 +157,27 @@ export function useServiceWorker() {
   const clearCache = useCallback(async () => {
     if (!state.registration?.active) return false;
 
+    const TIMEOUT_MS = 5000;
+
     return new Promise<boolean>((resolve) => {
       const messageChannel = new MessageChannel();
+      let resolved = false;
+
+      // Timeout to prevent indefinite hang if service worker doesn't respond
+      const timeoutId = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          console.warn("[PWA] clearCache timed out after", TIMEOUT_MS, "ms");
+          resolve(false);
+        }
+      }, TIMEOUT_MS);
 
       messageChannel.port1.onmessage = (event) => {
-        resolve(event.data.success);
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeoutId);
+          resolve(event.data.success);
+        }
       };
 
       state.registration!.active!.postMessage({ type: "CLEAR_CACHE" }, [messageChannel.port2]);
@@ -137,11 +188,27 @@ export function useServiceWorker() {
   const getVersion = useCallback(async () => {
     if (!state.registration?.active) return null;
 
+    const TIMEOUT_MS = 5000;
+
     return new Promise<string | null>((resolve) => {
       const messageChannel = new MessageChannel();
+      let resolved = false;
+
+      // Timeout to prevent indefinite hang if service worker doesn't respond
+      const timeoutId = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          console.warn("[PWA] getVersion timed out after", TIMEOUT_MS, "ms");
+          resolve(null);
+        }
+      }, TIMEOUT_MS);
 
       messageChannel.port1.onmessage = (event) => {
-        resolve(event.data.version);
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeoutId);
+          resolve(event.data.version);
+        }
       };
 
       state.registration!.active!.postMessage({ type: "GET_VERSION" }, [messageChannel.port2]);

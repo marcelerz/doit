@@ -123,7 +123,7 @@ export function detectDurationPatterns(text: string): DetectedDuration[] {
     }
 
     // Format the value (e.g., "1.5h", "46m")
-    const value = Number.isInteger(number) ? `${number}${normalizedUnit}` : `${number}${normalizedUnit}`;
+    const value = `${number}${normalizedUnit}`;
 
     results.push({
       text: fullMatch,
@@ -234,10 +234,7 @@ export function detectDatesInText(
       (range) => !(resultEnd <= range.start || resultStart >= range.end),
     );
 
-    if (overlapsWithDuration) {
-      return false;
-    }
-    return true;
+    return !overlapsWithDuration;
   });
 
   const chronoDates: DetectedDate[] = filteredChronoResults.map((result) => {
@@ -532,8 +529,6 @@ export function detectMentionedPeople(text: string, availablePeople: PersonLike[
 
   // Sort by position in text
   results.sort((a, b) => a.start - b.start);
-
-  results.forEach((person, index) => {});
 
   return results;
 }
@@ -1011,8 +1006,6 @@ export function detectSourcePeople(text: string, availablePeople: PersonLike[]):
   // Sort by position in text
   results.sort((a, b) => a.start - b.start);
 
-  results.forEach((person, index) => {});
-
   return results;
 }
 
@@ -1165,12 +1158,14 @@ export function detectHashtags(text: string): DetectedTag[] {
     const tagName = match[1];
     const fullMatch = match[0];
 
-    // Calculate actual start (accounting for possible preceding character)
-    const start = match.index + (fullMatch.length - tagName.length - 1);
-    const end = match.index + fullMatch.length;
+    // Calculate actual start by finding the hash position directly
+    // This is more robust than arithmetic which can be off-by-one
+    const hashPosition = fullMatch.indexOf("#");
+    const start = match.index + hashPosition;
+    const end = start + 1 + tagName.length; // hash plus tag name
 
     results.push({
-      text: fullMatch.trim(),
+      text: `#${tagName}`, // Always return consistent format
       start,
       end,
       tagName,

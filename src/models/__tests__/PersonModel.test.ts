@@ -4,7 +4,6 @@
 
 import { PersonModel, createPersonModels, createPersonModel } from "@/models/PersonModel";
 import { Person, getPersonId } from "@/types/person";
-import { getColor } from "@/types/types";
 
 // Helper to create a test person
 const createTestPerson = (overrides: Partial<Person> = {}): Person => ({
@@ -98,9 +97,10 @@ describe("PersonModel", () => {
 
     it("should allow deletion when person not in any todos", () => {
       const model = new PersonModel(createTestPerson({ id: getPersonId("person-1") }));
+      // Use assignedPeopleIds (not raw assignedPeople) to match TodoModel interface
       const todos = [
-        { assignedPeople: [getPersonId("person-2")], sourcePeople: [] },
-        { assignedPeople: [], sourcePeople: [getPersonId("person-3")] },
+        { assignedPeopleIds: [getPersonId("person-2")] },
+        { assignedPeopleIds: [] },
       ];
 
       const result = model.canDelete(todos);
@@ -110,7 +110,7 @@ describe("PersonModel", () => {
 
     it("should not allow deletion when person is assigned to todo", () => {
       const model = new PersonModel(createTestPerson({ id: getPersonId("person-1") }));
-      const todos = [{ assignedPeople: [getPersonId("person-1")], sourcePeople: [] }];
+      const todos = [{ assignedPeopleIds: [getPersonId("person-1")] }];
 
       const result = model.canDelete(todos);
 
@@ -118,9 +118,10 @@ describe("PersonModel", () => {
       expect(result.reason).toContain("assigned to active todos");
     });
 
-    it("should allow deletion when person is source of todo", () => {
+    it("should allow deletion when person is source of todo (sourcePeopleIds not checked)", () => {
       const model = new PersonModel(createTestPerson({ id: getPersonId("person-1") }));
-      const todos = [{ assignedPeople: [], sourcePeople: [getPersonId("person-1")] }];
+      // canDelete only checks assignedPeopleIds, not sourcePeopleIds
+      const todos = [{ assignedPeopleIds: [] }];
 
       const result = model.canDelete(todos);
 
@@ -130,8 +131,8 @@ describe("PersonModel", () => {
     it("should not allow deletion when person is in multiple todos", () => {
       const model = new PersonModel(createTestPerson({ id: getPersonId("person-1") }));
       const todos = [
-        { assignedPeople: [getPersonId("person-1"), getPersonId("person-2")], sourcePeople: [] },
-        { assignedPeople: [], sourcePeople: [getPersonId("person-1")] },
+        { assignedPeopleIds: [getPersonId("person-1"), getPersonId("person-2")] },
+        { assignedPeopleIds: [] },
       ];
 
       const result = model.canDelete(todos);

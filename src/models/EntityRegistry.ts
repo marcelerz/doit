@@ -38,8 +38,8 @@ export class EntityRegistry {
     this._personMap = new Map(people.map((p) => [p.id, createPersonModel(p)]));
     this._projectMap = new Map(projects.map((p) => [p.id, createProjectModel(p)]));
 
-    // Build todo map with registry reference
-    this._todoMap = new Map(todos.map((t) => [t.id, createTodoModel(t, settings)]));
+    // Build todo map with registry reference for cross-entity lookups
+    this._todoMap = new Map(todos.map((t) => [t.id, createTodoModel(t, settings, this)]));
   }
 
   // ============================================================================
@@ -75,9 +75,9 @@ export class EntityRegistry {
    * @returns PersonModel or null if not found
    */
   findPersonByName(name: string): PersonModel | null {
-    const lowerName = name.toLowerCase();
     for (const person of this._personMap.values()) {
-      if (person.matchesAnyName([lowerName])) {
+      // matchesAnyName handles case-insensitive comparison internally
+      if (person.matchesAnyName([name])) {
         return person;
       }
     }
@@ -97,9 +97,9 @@ export class EntityRegistry {
    * @returns ProjectModel or null if not found
    */
   findProjectByName(name: string): ProjectModel | null {
-    const lowerName = name.toLowerCase();
     for (const project of this._projectMap.values()) {
-      if (project.matchesAnyName([lowerName])) {
+      // matchesAnyName handles case-insensitive comparison internally
+      if (project.matchesAnyName([name])) {
         return project;
       }
     }

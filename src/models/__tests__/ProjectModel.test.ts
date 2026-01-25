@@ -4,7 +4,6 @@
 
 import { ProjectModel, createProjectModels, createProjectModel } from "@/models/ProjectModel";
 import { Project, getProjectId, getProjectCategoryId } from "@/types/project";
-import { getColor } from "@/types/types";
 
 // Helper to create a test project
 const createTestProject = (overrides: Partial<Project> = {}): Project => ({
@@ -99,7 +98,8 @@ describe("ProjectModel", () => {
 
     it("should allow deletion when project not in any todos", () => {
       const model = new ProjectModel(createTestProject({ id: getProjectId("project-1") }));
-      const todos = [{ projects: [getProjectId("project-2")] }, { projects: [getProjectId("project-3")] }];
+      // Use projectIds (not raw projects) to match TodoModel interface
+      const todos = [{ projectIds: [getProjectId("project-2")] }, { projectIds: [getProjectId("project-3")] }];
 
       const result = model.canDelete(todos);
 
@@ -108,7 +108,7 @@ describe("ProjectModel", () => {
 
     it("should not allow deletion when project is used in todo", () => {
       const model = new ProjectModel(createTestProject({ id: getProjectId("project-1") }));
-      const todos = [{ projects: [getProjectId("project-1")] }];
+      const todos = [{ projectIds: [getProjectId("project-1")] }];
 
       const result = model.canDelete(todos);
 
@@ -119,9 +119,9 @@ describe("ProjectModel", () => {
     it("should not allow deletion when project is in multiple todos", () => {
       const model = new ProjectModel(createTestProject({ id: getProjectId("project-1") }));
       const todos = [
-        { projects: [getProjectId("project-1"), getProjectId("project-2")] },
-        { projects: [getProjectId("project-1")] },
-        { projects: [getProjectId("project-3")] },
+        { projectIds: [getProjectId("project-1"), getProjectId("project-2")] },
+        { projectIds: [getProjectId("project-1")] },
+        { projectIds: [getProjectId("project-3")] },
       ];
 
       const result = model.canDelete(todos);
@@ -129,9 +129,9 @@ describe("ProjectModel", () => {
       expect(result.canDelete).toBe(false);
     });
 
-    it("should handle todos with undefined projects", () => {
+    it("should handle todos with empty projectIds", () => {
       const model = new ProjectModel(createTestProject({ id: getProjectId("project-1") }));
-      const todos = [{ projects: undefined }, { projects: [getProjectId("project-2")] }];
+      const todos = [{ projectIds: [] }, { projectIds: [getProjectId("project-2")] }];
 
       const result = model.canDelete(todos);
 
@@ -176,14 +176,14 @@ describe("ProjectModel", () => {
   });
 
   describe("project-specific properties", () => {
-    it("should expose category from raw project", () => {
+    it("should expose category via getter", () => {
       const model = new ProjectModel(createTestProject({ category: getProjectCategoryId("work") }));
-      expect(model.raw_DONOTUSE.category).toBe(getProjectCategoryId("work"));
+      expect(model.category).toBe(getProjectCategoryId("work"));
     });
 
     it("should handle undefined category", () => {
       const model = new ProjectModel(createTestProject({ category: undefined }));
-      expect(model.raw_DONOTUSE.category).toBeUndefined();
+      expect(model.category).toBeUndefined();
     });
   });
 });

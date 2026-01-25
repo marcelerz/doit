@@ -27,6 +27,7 @@ class LocalStorageAdapter implements StorageAdapter {
       localStorage.setItem(key, value);
     } catch (error) {
       console.error(`Failed to set item ${key}:`, error);
+      throw error;
     }
   }
 
@@ -35,6 +36,7 @@ class LocalStorageAdapter implements StorageAdapter {
       localStorage.removeItem(key);
     } catch (error) {
       console.error(`Failed to remove item ${key}:`, error);
+      throw error;
     }
   }
 
@@ -43,6 +45,7 @@ class LocalStorageAdapter implements StorageAdapter {
       localStorage.clear();
     } catch (error) {
       console.error("Failed to clear storage:", error);
+      throw error;
     }
   }
 
@@ -62,14 +65,21 @@ class IndexedDBAdapter implements StorageAdapter {
   private storeName = "keyvalue";
   private dbVersion = 1;
   private db: IDBDatabase | null = null;
+  private dbPromise: Promise<IDBDatabase> | null = null;
 
   private async getDB(): Promise<IDBDatabase> {
     if (this.db) return this.db;
 
-    return new Promise((resolve, reject) => {
+    // If already opening, return the existing promise to avoid race condition
+    if (this.dbPromise) return this.dbPromise;
+
+    this.dbPromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        this.dbPromise = null; // Reset on error to allow retry
+        reject(request.error);
+      };
       request.onsuccess = () => {
         this.db = request.result;
         resolve(this.db);
@@ -82,6 +92,19 @@ class IndexedDBAdapter implements StorageAdapter {
         }
       };
     });
+
+    return this.dbPromise;
+  }
+
+  /**
+   * Close the IndexedDB connection to release resources
+   */
+  close(): void {
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+      this.dbPromise = null;
+    }
   }
 
   async getItem(key: string): Promise<string | null> {
@@ -114,6 +137,7 @@ class IndexedDBAdapter implements StorageAdapter {
       });
     } catch (error) {
       console.error(`Failed to set item ${key}:`, error);
+      throw error;
     }
   }
 
@@ -130,6 +154,7 @@ class IndexedDBAdapter implements StorageAdapter {
       });
     } catch (error) {
       console.error(`Failed to remove item ${key}:`, error);
+      throw error;
     }
   }
 
@@ -146,6 +171,7 @@ class IndexedDBAdapter implements StorageAdapter {
       });
     } catch (error) {
       console.error("Failed to clear storage:", error);
+      throw error;
     }
   }
 
@@ -226,11 +252,13 @@ export async function loadFromStorage<T>(key: string, defaultValue: T): Promise<
   }
 }
 
-export async function saveToStorage<T>(key: string, value: T): Promise<void> {
+export async function saveToStorage<T>(key: string, value: T): Promise<boolean> {
   try {
     await storageAdapter.setItem(key, JSON.stringify(value));
+    return true;
   } catch (error) {
     console.error(`Failed to save data for ${key}:`, error);
+    return false;
   }
 }
 
@@ -250,14 +278,25 @@ export async function isIndexedDBAvailable(): Promise<boolean> {
   try {
     const testDB = "doit-test-availability";
     return new Promise((resolve) => {
+      let resolved = false;
       const request = indexedDB.open(testDB, 1);
-      request.onerror = () => resolve(false);
+
+      const resolveOnce = (value: boolean) => {
+        if (!resolved) {
+          resolved = true;
+          resolve(value);
+        }
+      };
+
+      request.onerror = () => resolveOnce(false);
       request.onsuccess = () => {
         request.result.close();
         indexedDB.deleteDatabase(testDB);
-        resolve(true);
+        resolveOnce(true);
       };
-      setTimeout(() => resolve(false), 1000);
+
+      // Timeout as fallback, but won't override if already resolved
+      setTimeout(() => resolveOnce(false), 1000);
     });
   } catch {
     return false;
@@ -336,12 +375,15 @@ export async function migrateToIndexedDB(): Promise<MigrationResult> {
   try {
     const indexedDBAdapter = createIndexedDBAdapter();
     const keys = Object.values(STORAGE_KEYS);
+    const migratedKeys: string[] = [];
     let migratedCount = 0;
 
+    // Phase 1: Copy all data to IndexedDB, tracking successfully migrated keys
     for (const key of keys) {
       const value = localStorage.getItem(key);
       if (value) {
         await indexedDBAdapter.setItem(key, value);
+        migratedKeys.push(key);
         migratedCount++;
       }
     }
@@ -354,22 +396,26 @@ export async function migrateToIndexedDB(): Promise<MigrationResult> {
       const value = localStorage.getItem(key);
       if (value) {
         await indexedDBAdapter.setItem(key, value);
+        migratedKeys.push(key);
         migratedCount++;
       }
     }
 
-    // Switch to IndexedDB adapter
-    setStorageAdapter(indexedDBAdapter);
-
-    // Mark as migrated
+    // Phase 2: Mark as migrated BEFORE clearing localStorage
+    // This ensures we can recover if clearing fails
     await indexedDBAdapter.setItem("doit-migrated-to-indexeddb", "true");
 
-    // Clear localStorage
-    for (const key of keys) {
-      localStorage.removeItem(key);
-    }
-    for (const key of localStorageKeys) {
-      localStorage.removeItem(key);
+    // Phase 3: Switch to IndexedDB adapter
+    setStorageAdapter(indexedDBAdapter);
+
+    // Phase 4: Clear localStorage only for keys we successfully migrated
+    for (const key of migratedKeys) {
+      try {
+        localStorage.removeItem(key);
+      } catch (clearError) {
+        // Log but don't fail - data is safely in IndexedDB
+        console.warn(`Failed to clear localStorage key ${key}:`, clearError);
+      }
     }
 
     return { success: true, migratedCount };
@@ -462,10 +508,15 @@ let isInitialized = false;
 /**
  * Wait for storage to be initialized
  * This should be called before any storage operations
+ * If initialization hasn't started yet, this will trigger it
  */
 export async function waitForStorageInit(): Promise<void> {
   if (isInitialized) {
     return;
+  }
+  // If initialization hasn't started yet, start it now
+  if (!initializationPromise) {
+    initializeStorageClient();
   }
   if (initializationPromise) {
     await initializationPromise;

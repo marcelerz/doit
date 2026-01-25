@@ -31,6 +31,9 @@ const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "
 const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "last"];
 const ORDINAL_WORDS = ["first", "second", "third", "fourth", "fifth", "last"];
 
+// Constant for "last" weekday of month (6th index in ORDINALS array, representing "last")
+const NTH_WEEK_LAST = 6;
+
 // Helper to normalize ordinal words to numeric form
 function normalizeOrdinal(ordinal: string): string {
   const lower = ordinal.toLowerCase();
@@ -39,6 +42,16 @@ function normalizeOrdinal(ordinal: string): string {
     return ORDINALS[wordIndex];
   }
   return lower;
+}
+
+// Helper to validate monthDay is between 1-31
+function isValidMonthDay(day: number): boolean {
+  return day >= 1 && day <= 31;
+}
+
+// Helper to validate month is between 1-12
+function isValidMonth(month: number): boolean {
+  return month >= 1 && month <= 12;
 }
 
 export function parseRecurringPattern(pattern: string): RecurringPattern | null {
@@ -139,6 +152,9 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
   const everyMonthMatch = normalized.match(/^(?:every|each)\s+month\s+on\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?$/);
   if (everyMonthMatch) {
     const monthDay = parseInt(everyMonthMatch[1], 10);
+    if (!isValidMonthDay(monthDay)) {
+      return null; // Invalid day of month
+    }
     return {
       type: "monthly",
       monthDay,
@@ -150,6 +166,9 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
   const onTheDayMatch = normalized.match(/^on\s+the\s+(\d+)(?:st|nd|rd|th)$/);
   if (onTheDayMatch) {
     const monthDay = parseInt(onTheDayMatch[1], 10);
+    if (!isValidMonthDay(monthDay)) {
+      return null; // Invalid day of month
+    }
     return {
       type: "monthly",
       monthDay,
@@ -213,6 +232,9 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
   const monthlyMatch = normalized.match(/^monthly\s+on\s+(\d+)(st|nd|rd|th)?$/);
   if (monthlyMatch) {
     const monthDay = parseInt(monthlyMatch[1], 10);
+    if (!isValidMonthDay(monthDay)) {
+      return null; // Invalid day of month
+    }
     return {
       type: "monthly",
       monthDay,
@@ -224,6 +246,9 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
   const quarterlyMatch = normalized.match(/^quarterly\s+on\s+(\d+)(st|nd|rd|th)?$/);
   if (quarterlyMatch) {
     const monthDay = parseInt(quarterlyMatch[1], 10);
+    if (!isValidMonthDay(monthDay)) {
+      return null; // Invalid day of month
+    }
     return {
       type: "quarterly",
       monthDay,
@@ -234,8 +259,15 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
   // Yearly pattern: %yearly on jan 15
   const yearlyMatch = normalized.match(/^yearly\s+on\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d+)$/);
   if (yearlyMatch) {
-    const month = MONTHS.indexOf(yearlyMatch[1]) + 1;
+    const monthIndex = MONTHS.indexOf(yearlyMatch[1]);
+    if (monthIndex === -1) {
+      return null; // Invalid month (shouldn't happen with this regex, but defensive)
+    }
+    const month = monthIndex + 1;
     const monthDay = parseInt(yearlyMatch[2], 10);
+    if (!isValidMonth(month) || !isValidMonthDay(monthDay)) {
+      return null; // Invalid month or day
+    }
     return {
       type: "yearly",
       month,
@@ -285,23 +317,55 @@ export function calculateNextOccurrence(pattern: RecurringPattern, fromDate: Dat
 
     case "nth-weekday":
       // Find nth occurrence of weekday in next month (or later months if needed)
-      next.setMonth(next.getMonth() + 1);
-      next.setDate(1);
+      {
+        const targetMonth = next.getMonth() + 1;
+        const targetYear = targetMonth > 11 ? next.getFullYear() + 1 : next.getFullYear();
+        const normalizedTargetMonth = targetMonth % 12;
+        next.setFullYear(targetYear);
+        next.setMonth(normalizedTargetMonth);
+        next.setDate(1);
 
-      if (pattern.nthWeek === 6) {
-        // "last" weekday of month
-        next.setMonth(next.getMonth() + 1);
-        next.setDate(0); // Last day of previous month
-        while (next.getDay() !== pattern.weekday) {
-          next.setDate(next.getDate() - 1);
+        if (pattern.nthWeek === NTH_WEEK_LAST) {
+          // "last" weekday of month - go to last day and walk back
+          const lastDay = getLastDayOfMonth(next);
+          next.setDate(lastDay);
+          while (next.getDay() !== pattern.weekday) {
+            next.setDate(next.getDate() - 1);
+          }
+        } else {
+          // Find first occurrence of the weekday
+          while (next.getDay() !== pattern.weekday) {
+            next.setDate(next.getDate() + 1);
+          }
+          // Add weeks to get to nth occurrence
+          const nthWeekOffset = ((pattern.nthWeek || 1) - 1) * 7;
+          next.setDate(next.getDate() + nthWeekOffset);
+
+          // If the nth occurrence spills into next month, it doesn't exist
+          // in this month - move to next month and find the nth weekday there
+          if (next.getMonth() !== normalizedTargetMonth) {
+            const nextMonth = (normalizedTargetMonth + 1) % 12;
+            const nextYear = normalizedTargetMonth + 1 > 11 ? next.getFullYear() + 1 : next.getFullYear();
+            next.setFullYear(nextYear);
+            next.setMonth(nextMonth);
+            next.setDate(1);
+            // Find first occurrence of the weekday in the new month
+            while (next.getDay() !== pattern.weekday) {
+              next.setDate(next.getDate() + 1);
+            }
+            // Add weeks to get to nth occurrence in the new month
+            next.setDate(next.getDate() + nthWeekOffset);
+            // If still spills over (e.g., looking for 5th Monday), use 1st occurrence
+            if (next.getMonth() !== nextMonth) {
+              next.setFullYear(nextYear);
+              next.setMonth(nextMonth);
+              next.setDate(1);
+              while (next.getDay() !== pattern.weekday) {
+                next.setDate(next.getDate() + 1);
+              }
+            }
+          }
         }
-      } else {
-        // Find first occurrence of the weekday
-        while (next.getDay() !== pattern.weekday) {
-          next.setDate(next.getDate() + 1);
-        }
-        // Add weeks to get to nth occurrence
-        next.setDate(next.getDate() + ((pattern.nthWeek || 1) - 1) * 7);
       }
       break;
 
@@ -312,11 +376,34 @@ export function calculateNextOccurrence(pattern: RecurringPattern, fromDate: Dat
       break;
 
     case "quarterly":
-      // Next quarter on the specified day
-      const currentMonth = next.getMonth();
-      const nextQuarterMonth = Math.floor(currentMonth / 3) * 3 + 3;
-      next.setMonth(nextQuarterMonth);
-      next.setDate(Math.min(pattern.monthDay || 1, getLastDayOfMonth(next)));
+      // Next quarter on the specified day (or current quarter if day hasn't passed)
+      {
+        const currentMonth = next.getMonth();
+        const currentQuarterMonth = Math.floor(currentMonth / 3) * 3; // First month of current quarter
+        const targetDay = pattern.monthDay || 1;
+
+        // Check if we can use the current quarter
+        // Create a date for the target day in the current quarter's first month
+        const currentQuarterTarget = new Date(next);
+        currentQuarterTarget.setMonth(currentQuarterMonth);
+        currentQuarterTarget.setDate(Math.min(targetDay, getLastDayOfMonth(currentQuarterTarget)));
+
+        // If current quarter's target date is still in the future, use it
+        if (currentQuarterTarget > fromDate) {
+          next.setMonth(currentQuarterMonth);
+          next.setDate(Math.min(targetDay, getLastDayOfMonth(next)));
+        } else {
+          // Move to next quarter
+          const nextQuarterMonth = currentQuarterMonth + 3;
+          if (nextQuarterMonth > 11) {
+            next.setFullYear(next.getFullYear() + 1);
+            next.setMonth(nextQuarterMonth - 12);
+          } else {
+            next.setMonth(nextQuarterMonth);
+          }
+          next.setDate(Math.min(targetDay, getLastDayOfMonth(next)));
+        }
+      }
       break;
 
     case "yearly":
@@ -355,7 +442,7 @@ export function formatRecurringPattern(pattern: RecurringPattern): string {
       return `Every ${WEEKDAYS[pattern.weekday || 0]}`;
 
     case "nth-weekday":
-      const ordinal = pattern.nthWeek === 6 ? "last" : ORDINALS[pattern.nthWeek! - 1];
+      const ordinal = pattern.nthWeek === NTH_WEEK_LAST ? "last" : ORDINALS[pattern.nthWeek! - 1];
       return `Every ${ordinal} ${WEEKDAYS[pattern.weekday || 0]}`;
 
     case "monthly":
