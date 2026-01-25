@@ -565,8 +565,16 @@ export function TodoItem({
                           ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
                           : todo.isDueToday
                           ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
-                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                          : ""
                       }`}
+                      style={
+                        !todo.isOverdue && !todo.isDueToday
+                          ? {
+                              backgroundColor: markerColors.dueDate,
+                              color: getTextColor(markerColors.dueDate),
+                            }
+                          : undefined
+                      }
                       title={todo.metadata.dueDate}
                     >
                       {todo.dueDateDisplay}
@@ -575,7 +583,13 @@ export function TodoItem({
                     <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">—</span>
                   )}
                   {todo.metadata.duration && (
-                    <span className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
+                    <span
+                      className="px-1.5 py-0.5 rounded whitespace-nowrap"
+                      style={{
+                        backgroundColor: markerColors.duration,
+                        color: getTextColor(markerColors.duration),
+                      }}
+                    >
                       {todo.durationDisplay}
                     </span>
                   )}
@@ -820,7 +834,21 @@ export function TodoItem({
                           e.stopPropagation();
                           onMarkerClick?.("dueDates", todo.metadata.dueDate!);
                         }}
-                        className="px-2 py-0.5 text-xs rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors"
+                        className={`px-2 py-0.5 text-xs rounded transition-colors hover:opacity-80 ${
+                          todo.isOverdue
+                            ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                            : todo.isDueToday
+                            ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                            : ""
+                        }`}
+                        style={
+                          !todo.isOverdue && !todo.isDueToday
+                            ? {
+                                backgroundColor: markerColors.dueDate,
+                                color: getTextColor(markerColors.dueDate),
+                              }
+                            : undefined
+                        }
                         title={todo.metadata.dueDate}
                       >
                         {formatDateForDisplay(todo.metadata.dueDate)}
@@ -842,7 +870,7 @@ export function TodoItem({
                         className="px-2 py-0.5 text-xs rounded transition-opacity hover:opacity-80"
                         style={{
                           backgroundColor: markerColors.duration,
-                          color: "#333",
+                          color: getTextColor(markerColors.duration),
                         }}
                       >
                         {todo.metadata.duration}

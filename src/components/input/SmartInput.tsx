@@ -29,6 +29,7 @@ export interface TokenMatch {
 }
 
 export interface SmartEditableInputProps {
+  initialValue?: string; // Initial value to set on mount (for editing scenarios)
   markerColors?: Record<string, string>; // e.g. { assigned: "#cce5ff", project: "#e2ccff" }
   onTokensChange?: (tokens: TokenMatch[], rawText: string, plainText: string) => void;
   placeholder?: string;
@@ -52,6 +53,7 @@ export interface SmartEditableInputHandle {
 const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInputProps>(
   (
     {
+      initialValue,
       markerColors = {},
       onTokensChange,
       placeholder,
@@ -99,6 +101,25 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
         unmountedRef.current = true;
       };
     }, []);
+
+    // Initialize content on mount if initialValue is provided
+    useEffect(() => {
+      if (initialValue && editableRef.current && editableRef.current.textContent === "") {
+        isSettingValueRef.current = true;
+        const { fragment, tokens, plainText } = renderTokensFromText(initialValue);
+        while (editableRef.current.firstChild) {
+          editableRef.current.removeChild(editableRef.current.firstChild);
+        }
+        editableRef.current.appendChild(fragment);
+        if (onTokensChange) {
+          onTokensChange(tokens, initialValue, plainText);
+        }
+        requestAnimationFrame(() => {
+          isSettingValueRef.current = false;
+        });
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only on mount
 
     // Close autocomplete when clicking outside
     useEffect(() => {

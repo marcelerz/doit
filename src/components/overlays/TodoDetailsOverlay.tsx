@@ -176,12 +176,9 @@ export function TodoDetailsOverlay({
 
   useEffect(() => {
     if (isEditing && smartInputRef.current) {
-      setTimeout(() => {
-        smartInputRef.current?.setValue(todo.text);
-        smartInputRef.current?.focus();
-      }, 100);
+      smartInputRef.current.focus();
     }
-  }, [isEditing, todo.text]);
+  }, [isEditing]);
 
   const handleEditTokensChange = (tokens: TokenMatch[], fullText: string, plainText: string) => {
     setEditTokens(tokens);
@@ -239,27 +236,9 @@ export function TodoDetailsOverlay({
   };
 
   const handleMetadataChange = (newMetadata: TodoMetadata) => {
-    const parts: string[] = [todo.plainText];
-
-    // Only append items NOT already in plainText (preserves original positions)
-    newMetadata.assignedPeople
-      .filter((p) => !todo.plainText.includes(`@${p}`))
-      .forEach((p) => parts.push(`@${p}`));
-    newMetadata.sourcePeople
-      .filter((p) => !todo.plainText.includes(`$${p}`))
-      .forEach((p) => parts.push(`$${p}`));
-    newMetadata.projects
-      .filter((p) => !todo.plainText.includes(`%${p}`))
-      .forEach((p) => parts.push(`%${p}`));
-    if (newMetadata.priority && !todo.plainText.includes(`!!${newMetadata.priority}`)) {
-      parts.push(`!!${newMetadata.priority}`);
-    }
-    (newMetadata.tags ?? [])
-      .filter((t) => !todo.plainText.includes(`#${t}`))
-      .forEach((t) => parts.push(`#${t}`));
-
-    const newText = parts.join(" ");
-    onEdit(todo.id, newText, todo.plainText, newMetadata);
+    // Property field changes should NOT modify the todo text
+    // Pass the ORIGINAL text unchanged, only update metadata
+    onEdit(todo.id, todo.text, todo.plainText, newMetadata);
 
     // Record selections for usage history
     onRecordSelections?.({
@@ -345,6 +324,7 @@ export function TodoDetailsOverlay({
                 <div className="space-y-2">
                   <SmartEditableInput
                     ref={smartInputRef}
+                    initialValue={todo.text}
                     markerColors={markerColors}
                     availablePeople={availablePeople}
                     availableProjects={availableProjects}
