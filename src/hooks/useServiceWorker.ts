@@ -31,8 +31,10 @@ export function useServiceWorker() {
       return;
     }
 
-    // Base path for deployment (matches next.config.ts)
-    const basePath = process.env.GITHUB_PAGES === "true" ? "/doit" : "";
+    // Detect base path from current URL (handles GitHub Pages deployment)
+    // If running at marcelerz.github.io/doit/, basePath should be "/doit"
+    const pathname = window.location.pathname;
+    const basePath = pathname.startsWith("/doit") ? "/doit" : "";
 
     // Track interval and event handlers for cleanup
     let updateIntervalId: ReturnType<typeof setInterval> | null = null;
