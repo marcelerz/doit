@@ -408,8 +408,31 @@ export const parseDate = (
   // new Date("YYYY-MM-DD") interprets as UTC midnight, which causes timezone issues
   const isoDateOnlyMatch = trimmedInput.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoDateOnlyMatch) {
-    const [, year, month, day] = isoDateOnlyMatch;
-    const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const [, yearStr, monthStr, dayStr] = isoDateOnlyMatch;
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const day = parseInt(dayStr, 10);
+
+    // Validate date components are in valid ranges
+    if (isNaN(year) || isNaN(month) || isNaN(day)) {
+      return null;
+    }
+    if (month < 1 || month > 12 || day < 1 || day > 31) {
+      return null;
+    }
+
+    const localDate = new Date(year, month - 1, day);
+
+    // Check that the date is valid (handles edge cases like Feb 30)
+    if (
+      isNaN(localDate.getTime()) ||
+      localDate.getFullYear() !== year ||
+      localDate.getMonth() !== month - 1 ||
+      localDate.getDate() !== day
+    ) {
+      return null;
+    }
+
     return {
       original: trimmedInput,
       formatted: formatDateTime(localDate, use24Hour),

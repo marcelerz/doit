@@ -502,8 +502,10 @@ export class TodoModel {
     if (!dueDate) return undefined;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    dueDate.setHours(0, 0, 0, 0);
-    const diffTime = dueDate.getTime() - today.getTime();
+    // Create a copy to avoid mutating the original Date object
+    const dueDateNormalized = new Date(dueDate.getTime());
+    dueDateNormalized.setHours(0, 0, 0, 0);
+    const diffTime = dueDateNormalized.getTime() - today.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 

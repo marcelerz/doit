@@ -66,6 +66,7 @@ class IndexedDBAdapter implements StorageAdapter {
   private dbVersion = 1;
   private db: IDBDatabase | null = null;
   private dbPromise: Promise<IDBDatabase> | null = null;
+  private isOpening = false;
 
   private async getDB(): Promise<IDBDatabase> {
     if (this.db) return this.db;
@@ -73,15 +74,26 @@ class IndexedDBAdapter implements StorageAdapter {
     // If already opening, return the existing promise to avoid race condition
     if (this.dbPromise) return this.dbPromise;
 
-    this.dbPromise = new Promise((resolve, reject) => {
+    // Prevent concurrent open attempts using a flag
+    if (this.isOpening) {
+      // Wait a bit and retry - another open attempt is in progress
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      return this.getDB();
+    }
+
+    this.isOpening = true;
+
+    this.dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
       request.onerror = () => {
         this.dbPromise = null; // Reset on error to allow retry
+        this.isOpening = false;
         reject(request.error);
       };
       request.onsuccess = () => {
         this.db = request.result;
+        this.isOpening = false;
         resolve(this.db);
       };
 

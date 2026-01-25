@@ -79,8 +79,11 @@ function createSprintModel(sprint: Sprint): SprintModel {
     start.setHours(0, 0, 0, 0);
 
     daysElapsed = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    daysRemaining = sprint.durationDays - daysElapsed;
-    progress = Math.min(100, Math.max(0, (daysElapsed / sprint.durationDays) * 100));
+    daysRemaining = Math.max(0, sprint.durationDays - daysElapsed); // Clamp to 0 minimum
+    // Guard against division by zero when durationDays is 0
+    progress = sprint.durationDays > 0
+      ? Math.min(100, Math.max(0, (daysElapsed / sprint.durationDays) * 100))
+      : 100; // If duration is 0, consider it 100% complete
   }
 
   return {

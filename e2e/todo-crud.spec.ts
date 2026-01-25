@@ -57,7 +57,9 @@ test.describe("Todo CRUD Operations", () => {
     await todoApp.deleteTodo("Task to delete");
 
     // Verify it's gone (might be in deleted state or removed)
-    await page.waitForTimeout(500);
+    // Wait for the undo timeout to pass (10 seconds) or the item to be hidden
+    todoItem = page.locator('[data-testid="todo-item"]').filter({ hasText: "Task to delete" });
+    await expect(todoItem).toBeHidden({ timeout: 15000 });
   });
 
   test("should persist todos after page reload", async ({ page, todoApp }) => {

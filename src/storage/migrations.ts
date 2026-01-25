@@ -266,26 +266,26 @@ export function migrateTodos(loadedTodos: any[], settings: Settings): Todo[] {
 /**
  * Check if migration is needed and update version
  */
-export function checkAndUpdateVersion(): boolean {
+export async function checkAndUpdateVersion(): Promise<boolean> {
   try {
     const adapter = getStorageAdapter();
-    const storedVersionResult = adapter.getItem(STORAGE_KEYS.VERSION);
+    const storedVersionResult = await adapter.getItem(STORAGE_KEYS.VERSION);
     const storedVersion = typeof storedVersionResult === "string" ? storedVersionResult : null;
     const currentVersion = storedVersion ? parseInt(storedVersion, 10) : 0;
 
     if (currentVersion < CURRENT_VERSION) {
       // Create auto-backup before migration if enabled
-      autoBackupIfNeeded();
+      await autoBackupIfNeeded();
 
-      adapter.setItem(STORAGE_KEYS.VERSION, CURRENT_VERSION.toString());
+      await adapter.setItem(STORAGE_KEYS.VERSION, CURRENT_VERSION.toString());
       return true; // Migration needed
     }
 
     // Even if no migration needed, check for auto-backup
-    autoBackupIfNeeded();
+    await autoBackupIfNeeded();
 
     // Cleanup old backups
-    cleanupOldBackups();
+    await cleanupOldBackups();
 
     return false; // No migration needed
   } catch (error) {

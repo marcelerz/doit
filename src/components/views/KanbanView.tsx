@@ -426,13 +426,16 @@ export function KanbanView({
 
       if (grouped[stateId]) {
         grouped[stateId].push(todo);
-      } else {
-        // If state doesn't exist anymore, put in first state
+      } else if (sortedStates.length > 0) {
+        // If state doesn't exist anymore, put in first available state
         const firstState = sortedStates[0];
-        if (firstState) {
+        // Double-check the state exists in grouped (should always be true after initialization)
+        if (firstState && grouped[firstState.id]) {
           grouped[firstState.id].push(todo);
         }
       }
+      // Note: If sortedStates is empty, the todo is orphaned and won't be displayed.
+      // This is acceptable as it means the board has no states configured.
     });
 
     // Sort todos within each state

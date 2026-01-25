@@ -19,8 +19,12 @@ test.describe("Theme and Appearance", () => {
     const htmlClass = await html.getAttribute("class");
 
     // App should have dark mode styles
-    // This depends on implementation - either dark class or color-scheme
-    expect(htmlClass !== null || true).toBe(true);
+    // Check that the html element has a class attribute (dark mode should set 'dark' class)
+    expect(htmlClass).not.toBeNull();
+    // Optionally verify dark mode class is present
+    if (htmlClass) {
+      expect(htmlClass.includes("dark") || htmlClass.includes("color-scheme")).toBe(true);
+    }
   });
 
   test("should respect system light mode preference", async ({ page }) => {

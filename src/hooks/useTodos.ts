@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Todo,
   TodoMetadata,
@@ -130,6 +130,29 @@ export function useTodos() {
   const [dependencyBlockNotification, setDependencyBlockNotification] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
+  // Refs for timeout cleanup
+  const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const undoActionsRef = useRef<UndoAction[]>([]);
+
+  // Keep ref in sync with state for cleanup purposes
+  useEffect(() => {
+    undoActionsRef.current = undoActions;
+  }, [undoActions]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      // Clear notification timeout
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+      // Clear all undo action timeouts
+      undoActionsRef.current.forEach((action) => {
+        clearTimeout(action.timeoutId);
+      });
+    };
+  }, []);
+
   // Create a SettingsModel from settings for use with TodoModel
   const settingsModel = useMemo(() => createSettingsModel(settings), [settings]);
 
@@ -139,31 +162,31 @@ export function useTodos() {
   // Load todos from storage on mount
   useEffect(() => {
     // Wait for storage to be initialized before loading data
-    waitForStorageInit().then(() => {
-      // Check if migration is needed
-      const migrationNeeded = checkAndUpdateVersion();
+    waitForStorageInit().then(async () => {
+      // Check if migration is needed (must await since it's async)
+      const migrationNeeded = await checkAndUpdateVersion();
 
       // Load settings and todos asynchronously
-      return Promise.all([
+      const [storedSettings, loadedTodos] = await Promise.all([
         loadFromStorage(STORAGE_KEYS.SETTINGS, defaultSettings),
         loadFromStorage<Todo[]>(STORAGE_KEYS.TODOS, []),
-      ]).then(([storedSettings, loadedTodos]) => {
-        const migratedSettings = migrateSettings(storedSettings);
-        setSettings(migratedSettings);
-        const migratedTodos = migrateTodos(loadedTodos, migratedSettings);
-        // Filter out any deleted todos
-        const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
-        setRawTodos(cleanedTodos);
+      ]);
 
-        // If migration was needed or we removed deleted todos, save the cleaned data
-        if (migrationNeeded || cleanedTodos.length !== loadedTodos.length) {
-          saveToStorage(STORAGE_KEYS.TODOS, cleanedTodos).catch((error) => {
-            console.error("Failed to save todos:", error);
-          });
-        }
+      const migratedSettings = migrateSettings(storedSettings);
+      setSettings(migratedSettings);
+      const migratedTodos = migrateTodos(loadedTodos, migratedSettings);
+      // Filter out any deleted todos
+      const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
+      setRawTodos(cleanedTodos);
 
-        setIsLoaded(true);
-      });
+      // If migration was needed or we removed deleted todos, save the cleaned data
+      if (migrationNeeded || cleanedTodos.length !== loadedTodos.length) {
+        saveToStorage(STORAGE_KEYS.TODOS, cleanedTodos).catch((error) => {
+          console.error("Failed to save todos:", error);
+        });
+      }
+
+      setIsLoaded(true);
     });
   }, []);
 
@@ -336,8 +359,11 @@ export function useTodos() {
       const validation = todoModel.canComplete(todos);
       if (!validation.canComplete) {
         setDependencyBlockNotification(validation.reason || "Cannot complete task");
-        // Clear notification after 5 seconds
-        setTimeout(() => setDependencyBlockNotification(null), 5000);
+        // Clear previous timeout if any, then set new one
+        if (notificationTimeoutRef.current) {
+          clearTimeout(notificationTimeoutRef.current);
+        }
+        notificationTimeoutRef.current = setTimeout(() => setDependencyBlockNotification(null), 5000);
         return; // Don't allow completion
       }
     }
@@ -491,8 +517,11 @@ export function useTodos() {
     const validation = todoModel.canArchive(todos);
     if (!validation.canArchive) {
       setDependencyBlockNotification(validation.reason || "Cannot archive task");
-      // Clear notification after 5 seconds
-      setTimeout(() => setDependencyBlockNotification(null), 5000);
+      // Clear previous timeout if any, then set new one
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+      notificationTimeoutRef.current = setTimeout(() => setDependencyBlockNotification(null), 5000);
       return; // Don't allow archive
     }
 

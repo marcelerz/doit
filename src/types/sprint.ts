@@ -46,10 +46,3 @@ export interface Sprint {
     | "cancelled"
   >[];
 }
-
-// Search history
-export interface SearchHistoryEntry {
-  id: string;
-  query: string;
-  timestamp: number;
-}

@@ -90,6 +90,14 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       position: { top: 0, left: 0 },
     });
 
+    // Track unmount state to prevent callbacks after unmount
+    const unmountedRef = useRef(false);
+    useEffect(() => {
+      return () => {
+        unmountedRef.current = true;
+      };
+    }, []);
+
     // Close autocomplete when clicking outside
     useEffect(() => {
       const handleClickOutside = (e: MouseEvent) => {
@@ -108,17 +116,27 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       ref,
       () => ({
         clear: () => {
+          // Guard against calls after unmount
+          if (unmountedRef.current) return;
           if (editableRef.current) {
-            editableRef.current.innerHTML = "";
+            // Clear content safely (not setting untrusted content)
+            while (editableRef.current.firstChild) {
+              editableRef.current.removeChild(editableRef.current.firstChild);
+            }
             if (onTokensChange) {
               onTokensChange([], "", "");
             }
           }
         },
         setValue: (text: string) => {
+          // Guard against calls after unmount
+          if (unmountedRef.current) return;
           if (editableRef.current) {
             const { fragment, tokens, plainText } = renderTokensFromText(text);
-            editableRef.current.innerHTML = "";
+            // Clear content safely (not setting untrusted content)
+            while (editableRef.current.firstChild) {
+              editableRef.current.removeChild(editableRef.current.firstChild);
+            }
             editableRef.current.appendChild(fragment);
             if (onTokensChange) {
               onTokensChange(tokens, text, plainText);
@@ -126,6 +144,8 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
           }
         },
         focus: () => {
+          // Guard against calls after unmount
+          if (unmountedRef.current) return;
           if (editableRef.current) {
             editableRef.current.focus();
           }
@@ -141,7 +161,10 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       if (editableRef.current && editableRef.current.textContent) {
         const currentText = editableRef.current.textContent;
         const { fragment, tokens, plainText } = renderTokensFromText(currentText);
-        editableRef.current.innerHTML = "";
+        // Clear content safely (not setting untrusted content)
+        while (editableRef.current.firstChild) {
+          editableRef.current.removeChild(editableRef.current.firstChild);
+        }
         editableRef.current.appendChild(fragment);
         if (onTokensChange) {
           onTokensChange(tokens, currentText, plainText);

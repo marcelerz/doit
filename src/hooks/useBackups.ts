@@ -47,6 +47,35 @@ async function getAllBackups(): Promise<BackupData[]> {
   return backups;
 }
 
+/**
+ * Normalize storage data to ensure it's a proper JSON string.
+ * Handles cases where data might be a string, object, or null.
+ */
+function normalizeStorageData(data: string | null, defaultValue: unknown): string {
+  if (data === null) {
+    return JSON.stringify(defaultValue);
+  }
+  // If it's already a string, verify it's valid JSON and return as-is
+  if (typeof data === "string") {
+    try {
+      JSON.parse(data); // Validate it's proper JSON
+      return data;
+    } catch {
+      // If parsing fails, the string is corrupted or double-encoded
+      // Try to fix double-encoding by parsing twice
+      try {
+        const parsed = JSON.parse(JSON.parse(data));
+        return JSON.stringify(parsed);
+      } catch {
+        // If all else fails, return default
+        return JSON.stringify(defaultValue);
+      }
+    }
+  }
+  // If it's an object (shouldn't happen but handle just in case)
+  return JSON.stringify(data);
+}
+
 async function createBackupInStorage(source: "auto" | "manual" = "manual"): Promise<boolean> {
   try {
     const adapter = getStorageAdapter();
@@ -59,8 +88,8 @@ async function createBackupInStorage(source: "auto" | "manual" = "manual"): Prom
     const backup: BackupData = {
       timestamp: now.getTime(),
       date: now.toISOString(),
-      todos: typeof todosData === "string" ? todosData : JSON.stringify(todosData || []),
-      settings: typeof settingsData === "string" ? settingsData : JSON.stringify(settingsData || {}),
+      todos: normalizeStorageData(todosData, []),
+      settings: normalizeStorageData(settingsData, {}),
       source,
     };
 
@@ -120,19 +149,19 @@ async function exportCurrentDataAsFile(): Promise<void> {
   const backup: BackupData = {
     timestamp: now.getTime(),
     date: now.toISOString(),
-    todos: typeof todosData === "string" ? todosData : JSON.stringify(todosData || []),
-    settings: typeof settingsData === "string" ? settingsData : JSON.stringify(settingsData || {}),
+    todos: normalizeStorageData(todosData, []),
+    settings: normalizeStorageData(settingsData, {}),
     source: "manual",
   };
 
   exportBackupAsFile(backup);
 }
 
-function importBackupFromFile(file: File): Promise<{ success: boolean; error?: string }> {
+async function importBackupFromFile(file: File): Promise<{ success: boolean; error?: string }> {
   return new Promise((resolve) => {
     const reader = new FileReader();
 
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const content = e.target?.result as string;
         const importedBackup = JSON.parse(content) as BackupData;
@@ -151,9 +180,9 @@ function importBackupFromFile(file: File): Promise<{ success: boolean; error?: s
           source: "imported",
         };
 
-        // Store the imported backup
+        // Store the imported backup - await to ensure write completes
         const backupKey = `${BACKUP_KEY_PREFIX}${importedBackup.timestamp}`;
-        getStorageAdapter().setItem(backupKey, JSON.stringify(backupWithMetadata));
+        await getStorageAdapter().setItem(backupKey, JSON.stringify(backupWithMetadata));
 
         resolve({ success: true });
       } catch (error) {

@@ -396,6 +396,11 @@ export function TodoApp() {
           }
         }
         setUiOptionsLoaded(true);
+      })
+      .catch((error) => {
+        console.error("Failed to load UI options:", error);
+        // Still mark as loaded so the app can proceed with defaults
+        setUiOptionsLoaded(true);
       });
   }, []);
 
@@ -1230,7 +1235,9 @@ export function TodoApp() {
                 )}
 
                 {/* Smart Input Markers Legend */}
-                <MarkerReference />
+                <div className="mb-4">
+                  <MarkerReference />
+                </div>
 
                 {/* Add Form */}
                 <form

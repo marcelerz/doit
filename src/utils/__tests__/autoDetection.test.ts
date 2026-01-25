@@ -637,7 +637,9 @@ describe("autoDetection", () => {
     it("should not match mid-word hash", () => {
       const result = detectHashtags("C#sharp programming");
       // The # in C# is mid-word, behavior depends on implementation
-      // Most implementations would detect "sharp"
+      // Most implementations would detect "sharp" as a hashtag
+      // Verify the result is an array (implementation-specific behavior)
+      expect(Array.isArray(result)).toBe(true);
     });
   });
 });

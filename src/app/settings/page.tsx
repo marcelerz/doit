@@ -41,7 +41,18 @@ type Tab =
   | "import"
   | "storage";
 
-type Feature = "ganttView" | "kanbanView" | "calendarView" | "sprintsView" | "focusMode";
+type Feature =
+  | "ganttView"
+  | "kanbanView"
+  | "calendarView"
+  | "sprintsView"
+  | "statsView"
+  | "focusMode"
+  | "templates"
+  | "batchProcessing"
+  | "reordering"
+  | "exports"
+  | "timeTracking";
 
 // Organized tab groups for sidebar navigation
 const tabGroups = [
