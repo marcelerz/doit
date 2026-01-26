@@ -5,7 +5,8 @@ import DOMPurify from "dompurify";
 function sanitizeHtml(html: string): string {
   if (typeof window === "undefined") return html;
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ["b", "i", "u", "strong", "em", "a", "br", "p", "span"],
+    // Include "div" since contentEditable creates <div> elements for line breaks
+    ALLOWED_TAGS: ["b", "i", "u", "strong", "em", "a", "br", "p", "span", "div"],
     ALLOWED_ATTR: ["href", "target", "rel", "style"],
     ALLOW_DATA_ATTR: false,
   });
@@ -135,7 +136,7 @@ export default function RichTextEditor({
           }}
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(value || "") }}
           style={{ minHeight, maxHeight }}
-          className={`overflow-y-auto text-sm px-3 py-2 rounded ${
+          className={`overflow-y-auto text-sm px-3 py-2 rounded whitespace-pre-wrap ${
             noBorderInViewMode ? "border-0" : "border border-zinc-300 dark:border-zinc-600"
           } bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 ${
             noBorderInViewMode ? "cursor-pointer" : "cursor-text"
@@ -160,17 +161,20 @@ export default function RichTextEditor({
             }
           }}
           onBlur={(_e) => {
+            // Always call onBlur callback immediately to save content
+            // (important for modal close - content must be saved before unmount)
+            if (onBlur && editorRef.current) {
+              const html = editorRef.current.innerHTML;
+              onBlur(html || "");
+            }
+
             // If alwaysEditable, don't exit edit mode
             if (alwaysEditable) {
-              // Still call onBlur callback if provided
-              if (onBlur && editorRef.current) {
-                const html = editorRef.current.innerHTML;
-                onBlur(html || "");
-              }
               return;
             }
 
             // Use setTimeout to allow clicking on toolbar/link input
+            // This only affects the UI state, not the content saving
             setTimeout(() => {
               // Check if focus moved to link input or toolbar
               const activeEl = document.activeElement;
@@ -178,15 +182,11 @@ export default function RichTextEditor({
                 return;
               }
 
-              // Save and exit edit mode
+              // Update state and exit edit mode
               if (editorRef.current) {
                 const html = editorRef.current.innerHTML;
                 lastValueRef.current = html || "";
                 onChange(html || "");
-                // Call onBlur callback if provided
-                if (onBlur) {
-                  onBlur(html || "");
-                }
               }
               setIsEditing(false);
               setShowFormattingToolbar(false);
