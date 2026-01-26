@@ -520,7 +520,7 @@ export const normalizeDateValue = (
   }
 
   // Preprocess certain formats to make them parseable
-  let processedValue = dateValue.toLowerCase().trim();
+  const processedValue = dateValue.toLowerCase().trim();
 
   // Handle "next [day]" format by converting spaces to calculate the next occurrence
   const nextDayMatch = processedValue.match(/^next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/);

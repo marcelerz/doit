@@ -382,7 +382,7 @@ function getEndOfWeek(ref: Date, workWeekEnd: number, _dt?: DateTimeSettings, wo
  * If the date has passed this year, returns next year's date
  */
 function getNextHoliday(ref: Date, month: number, day: number): Date {
-  let year = ref.getFullYear();
+  const year = ref.getFullYear();
   const holiday = new Date(year, month - 1, day);
   if (holiday < ref) {
     holiday.setFullYear(year + 1);
@@ -399,7 +399,7 @@ function getNextHoliday(ref: Date, month: number, day: number): Date {
  * @param nth Which occurrence (1-5)
  */
 function getNthWeekdayOfMonth(ref: Date, month: number, weekday: number, nth: number): Date {
-  let year = ref.getFullYear();
+  const year = ref.getFullYear();
 
   // Start at the first of the month
   const firstOfMonth = new Date(year, month - 1, 1);
@@ -429,7 +429,7 @@ function getNthWeekdayOfMonth(ref: Date, month: number, weekday: number, nth: nu
  * @param weekday Day of week (0=Sunday, 1=Monday, etc.)
  */
 function getLastWeekdayOfMonth(ref: Date, month: number, weekday: number): Date {
-  let year = ref.getFullYear();
+  const year = ref.getFullYear();
 
   // Start at the last day of the month
   const lastOfMonth = new Date(year, month, 0); // Day 0 of next month = last day of this month
@@ -452,7 +452,7 @@ function getLastWeekdayOfMonth(ref: Date, month: number, weekday: number): Date 
  * Get the next occurrence of a season start date
  */
 function getNextSeason(ref: Date, month: number, day: number): Date {
-  let year = ref.getFullYear();
+  const year = ref.getFullYear();
   const season = new Date(year, month - 1, day);
   if (season <= ref) {
     season.setFullYear(year + 1);
@@ -539,7 +539,7 @@ function getCyberMonday(ref: Date): Date {
  * Get Election Day (First Tuesday after first Monday in November)
  */
 function getElectionDay(ref: Date): Date {
-  let year = ref.getFullYear();
+  const year = ref.getFullYear();
   const electionDay = calculateElectionDay(year);
   if (electionDay <= ref) {
     return calculateElectionDay(year + 1);
@@ -567,7 +567,7 @@ function calculateElectionDay(year: number): Date {
  * Q4: Oct-Dec (ends December 31)
  */
 function getEndOfFiscalQuarter(ref: Date, quarter: number, _dt?: DateTimeSettings, wh?: WorkHoursSettings): Date {
-  let year = ref.getFullYear();
+  const year = ref.getFullYear();
 
   // Quarter end months: Q1=March(2), Q2=June(5), Q3=September(8), Q4=December(11)
   const endMonth = quarter * 3 - 1;
@@ -589,7 +589,7 @@ function getEndOfFiscalQuarter(ref: Date, quarter: number, _dt?: DateTimeSetting
  * H2: Jul-Dec (ends December 31)
  */
 function getEndOfFiscalHalf(ref: Date, half: number, _dt?: DateTimeSettings, wh?: WorkHoursSettings): Date {
-  let year = ref.getFullYear();
+  const year = ref.getFullYear();
 
   // Half end months: H1=June(5), H2=December(11)
   const endMonth = half === 1 ? 5 : 11;

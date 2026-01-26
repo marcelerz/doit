@@ -143,33 +143,6 @@ Note: Alternatives resolve to canonical names
 
 ## Implementation Details
 
-### Files Modified
-
-1. **`src/utils/chronoDateParser.ts`**
-
-   - Added `DetectedPerson` interface
-   - Added `detectMentionedPeople()` function with blacklist
-
-2. **`src/components/input/SmartInput.tsx`**
-
-   - Removed `^` from `buildTokenRegex()` patterns
-   - Added person detection after date detection in `renderTokensFromText()`
-   - Removed `^` from autocomplete markers
-   - Added overlap prevention with dates and explicit markers
-
-3. **`src/components/shared/MarkedText.tsx`**
-
-   - Removed `^` pattern from `markerPatterns`
-   - Added `detectMentionedPeople()` call for auto-detection
-   - Added overlap prevention logic
-
-4. **`src/types/settings.ts`**
-
-   - Updated comment: `mentioned: string; // (auto-detected)`
-
-5. **Multiple component files**
-   - Updated marker references to show `mentioned: ""` with comment
-
 ### Token Flow
 
 1. **SmartInput** detects people in input text
@@ -209,25 +182,6 @@ Input: "Ask John Doe"
 → Detects: "John Doe" (longer match takes priority)
 ```
 
-## Testing
-
-A comprehensive test suite is available in `test-person-detection.js`:
-
-```bash
-node test-person-detection.js
-```
-
-Tests cover:
-
-- ✅ Simple name mentions
-- ✅ Alternative name recognition
-- ✅ Multiple people detection
-- ✅ Case insensitivity
-- ✅ Abbreviations
-- ✅ Blacklist filtering
-- ✅ Explicit marker compatibility
-- ✅ Compound word handling
-
 ## Migration Notes
 
 - **No migration required** - Existing data continues to work
@@ -243,11 +197,3 @@ Tests cover:
 4. **Better UX** - Similar experience to modern chat apps (Discord, Slack)
 5. **Smarter detection** - Avoids common words and conflicts
 
-## Future Enhancements
-
-Potential improvements:
-
-- User-configurable blacklist
-- Fuzzy matching for misspellings
-- Nickname support
-- @mention-style autocomplete dropdown during typing

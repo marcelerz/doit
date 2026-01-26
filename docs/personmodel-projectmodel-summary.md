@@ -233,39 +233,6 @@ const handleUpdate = (person: PersonModel) => {
 6. **Searchability**: Unified search across all entity fields
 7. **Display Helpers**: Consistent formatting across the app
 
-## Files Changed
-
-**New Files:**
-
-- `src/models/PersonModel.ts` (309 lines)
-- `src/models/ProjectModel.ts` (307 lines)
-- `docs/personmodel-projectmodel-summary.md` (this file)
-
-**Updated Hooks:**
-
-- `src/hooks/usePeople.ts` - Returns `PersonModel[]`
-- `src/hooks/useProjects.ts` - Returns `ProjectModel[]`
-
-**Updated Components (14 files):**
-
-- `src/components/items/PersonItem.tsx`
-- `src/components/items/ProjectItem.tsx`
-- `src/components/items/TodoItem.tsx`
-- `src/components/overlays/PersonDetailsOverlay.tsx`
-- `src/components/overlays/ProjectDetailsOverlay.tsx`
-- `src/components/overlays/TodoDetailsOverlay.tsx`
-- `src/components/views/PeopleView.tsx`
-- `src/components/views/ProjectsView.tsx`
-- `src/components/views/CalendarView.tsx`
-- `src/components/views/GanttView.tsx`
-- `src/components/input/SmartInput.tsx`
-- `src/components/shared/MarkedText.tsx`
-- `src/components/settings/AutoAssignTab.tsx`
-
-**Updated Documentation:**
-
-- `.github/copilot-instructions.md` - Added PersonModel and ProjectModel documentation
-
 ## Migration Notes
 
 - **No data migration needed** - Models wrap existing data structures

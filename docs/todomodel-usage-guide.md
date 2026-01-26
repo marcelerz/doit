@@ -233,12 +233,3 @@ To migrate existing components:
 5. **Simpler components**: Less code, easier to read
 6. **Better testing**: Test business logic separately from UI
 
-## Future Enhancements
-
-The TodoModel can be extended to handle:
-
-- Setting metadata (e.g., `setDueDate()` that also updates delay date)
-- Validation (e.g., `canComplete()` checks dependencies)
-- Computed fields (e.g., `estimatedEndTime` from duration + due date)
-- Change detection (e.g., `hasChanged()` for dirty state)
-- Batch operations (e.g., `assignTo(person)` updates metadata and text)

@@ -4,6 +4,15 @@ import { getBrowserApis } from "./browserApis";
 
 export type NotificationPermission = "default" | "granted" | "denied";
 
+/**
+ * Get the base path for the app (e.g., "/doit" on GitHub Pages, "" locally)
+ */
+function getBasePath(): string {
+  const apis = getBrowserApis();
+  const pathname = apis.getLocationPathname();
+  return pathname.startsWith("/doit") ? "/doit" : "";
+}
+
 const SOUND_TYPES = ["short-break", "long-break", "task-complete", "task-start", "break-end", "pause"] as const;
 export type SoundType = (typeof SOUND_TYPES)[number];
 
@@ -87,7 +96,7 @@ export function playAmbientSound(soundFile: string, volume: number = 0.3): void 
     currentAmbientSound = null;
   }
 
-  const audio = apis.createAudio(`/sounds/${soundFile}`);
+  const audio = apis.createAudio(`${getBasePath()}/sounds/${soundFile}`);
   if (!audio) return;
 
   ambientAudio = audio;

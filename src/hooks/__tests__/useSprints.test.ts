@@ -10,14 +10,13 @@ jest.mock("@/storage/storage", () => ({
   STORAGE_KEYS: { SPRINTS: "doit-sprints" },
   loadFromStorage: jest.fn().mockResolvedValue([]),
   saveToStorage: jest.fn().mockResolvedValue(undefined),
-}));
-
-jest.mock("@/storage/storageInit", () => ({
   waitForStorageInit: jest.fn().mockResolvedValue(undefined),
 }));
 
 // Import mocks after setup
 import { loadFromStorage, saveToStorage } from "@/storage/storage";
+import { getSprintId } from "@/types/sprint";
+import { getCommentId } from "@/types/types";
 
 describe("useSprints", () => {
   beforeEach(() => {
@@ -299,7 +298,7 @@ describe("useSprints", () => {
       });
 
       act(() => {
-        result.current.updateSprint("sprint-1", { name: "Updated", durationDays: 21 });
+        result.current.updateSprint(getSprintId("sprint-1"), { name: "Updated", durationDays: 21 });
       });
 
       expect(result.current.sprints[0].name).toBe("Updated");
@@ -328,7 +327,7 @@ describe("useSprints", () => {
       });
 
       act(() => {
-        result.current.updateSprint("sprint-1", { name: "Updated" });
+        result.current.updateSprint(getSprintId("sprint-1"), { name: "Updated" });
       });
 
       expect(result.current.sprints[0].activity).toHaveLength(1);
@@ -369,7 +368,7 @@ describe("useSprints", () => {
       });
 
       act(() => {
-        result.current.deleteSprint("sprint-1");
+        result.current.deleteSprint(getSprintId("sprint-1"));
       });
 
       expect(result.current.sprints).toHaveLength(1);
@@ -400,7 +399,7 @@ describe("useSprints", () => {
       });
 
       act(() => {
-        result.current.startSprint("sprint-1");
+        result.current.startSprint(getSprintId("sprint-1"));
       });
 
       expect(result.current.sprints[0].status).toBe("active");
@@ -430,7 +429,7 @@ describe("useSprints", () => {
       });
 
       act(() => {
-        result.current.startSprint("sprint-1");
+        result.current.startSprint(getSprintId("sprint-1"));
       });
 
       const lastActivity = result.current.sprints[0].activity[result.current.sprints[0].activity.length - 1];
@@ -461,7 +460,7 @@ describe("useSprints", () => {
       });
 
       act(() => {
-        result.current.completeSprint("sprint-1");
+        result.current.completeSprint(getSprintId("sprint-1"));
       });
 
       expect(result.current.sprints[0].status).toBe("completed");
@@ -493,7 +492,7 @@ describe("useSprints", () => {
       });
 
       act(() => {
-        result.current.cancelSprint("sprint-1");
+        result.current.cancelSprint(getSprintId("sprint-1"));
       });
 
       expect(result.current.sprints[0].status).toBe("cancelled");
@@ -524,7 +523,7 @@ describe("useSprints", () => {
       });
 
       act(() => {
-        result.current.archiveSprint("sprint-1");
+        result.current.archiveSprint(getSprintId("sprint-1"));
       });
 
       expect(result.current.sprints[0].state).toBe("archived");
@@ -556,7 +555,7 @@ describe("useSprints", () => {
       });
 
       act(() => {
-        result.current.unarchiveSprint("sprint-1");
+        result.current.unarchiveSprint(getSprintId("sprint-1"));
       });
 
       expect(result.current.sprints[0].state).toBe("active");
@@ -587,7 +586,7 @@ describe("useSprints", () => {
       });
 
       act(() => {
-        result.current.addSprintComment("sprint-1", "This is a comment");
+        result.current.addSprintComment(getSprintId("sprint-1"), "This is a comment");
       });
 
       expect(result.current.sprints[0].comments).toHaveLength(1);
@@ -616,7 +615,7 @@ describe("useSprints", () => {
       });
 
       act(() => {
-        result.current.editSprintComment("sprint-1", "comment-1", "Updated");
+        result.current.editSprintComment(getSprintId("sprint-1"), getCommentId("comment-1"), "Updated");
       });
 
       expect(result.current.sprints[0].comments[0].history).toHaveLength(2);
@@ -648,7 +647,7 @@ describe("useSprints", () => {
       });
 
       act(() => {
-        result.current.deleteSprintComment("sprint-1", "comment-1");
+        result.current.deleteSprintComment(getSprintId("sprint-1"), getCommentId("comment-1"));
       });
 
       expect(result.current.sprints[0].comments).toHaveLength(1);

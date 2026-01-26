@@ -694,7 +694,7 @@ export function GanttView({
     const nextInterval = Math.ceil(startMinutes / intervalMinutes) * intervalMinutes;
     startMarker.setMinutes(nextInterval, 0, 0);
 
-    let currentMarker = new Date(startMarker);
+    const currentMarker = new Date(startMarker);
 
     // Generate markers at the specified interval until we exceed the end time
     while (currentMarker <= dayEndTime) {

@@ -27,6 +27,18 @@ jest.mock("@/storage/migrations", () => ({
 // Import mocks after setup
 import { loadFromStorage, saveToStorage } from "@/storage/storage";
 import { defaultSettings } from "@/types/settings";
+import { getTodoId, getSubtaskId, TodoMetadata, getTag } from "@/types/todo";
+import { getCommentId } from "@/types/types";
+import { getTimestamp } from "@/types/time";
+
+// Helper to create default metadata for tests
+const createMetadata = (overrides: Partial<TodoMetadata> = {}): TodoMetadata => ({
+  assignedPeople: [],
+  sourcePeople: [],
+  mentionedPeople: [],
+  projects: [],
+  ...overrides,
+});
 
 describe("useTodos", () => {
   beforeEach(() => {
@@ -130,7 +142,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.addTodo("New todo", "New todo", {});
+        result.current.addTodo("New todo", "New todo", createMetadata());
       });
 
       expect(result.current.todos).toHaveLength(1);
@@ -147,9 +159,9 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.addTodo("Tagged todo", "Tagged todo", {
+        result.current.addTodo("Tagged todo", "Tagged todo", createMetadata({
           tags: ["important", "work"],
-        });
+        }));
       });
 
       expect(result.current.todos[0].tags).toHaveLength(2);
@@ -164,7 +176,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.addTodo("Test", "Test", {});
+        result.current.addTodo("Test", "Test", createMetadata());
       });
 
       // Access raw activity from the model
@@ -204,7 +216,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.duplicateTodo("todo-1");
+        result.current.duplicateTodo(getTodoId("todo-1"));
       });
 
       expect(result.current.todos).toHaveLength(2);
@@ -242,7 +254,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.toggleTodo("todo-1");
+        result.current.toggleTodo(getTodoId("todo-1"));
       });
 
       expect(result.current.todos[0].state).toBe("completed");
@@ -277,7 +289,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.toggleTodo("todo-1");
+        result.current.toggleTodo(getTodoId("todo-1"));
       });
 
       expect(result.current.todos[0].state).toBe("active");
@@ -311,7 +323,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.toggleTodo("todo-1");
+        result.current.toggleTodo(getTodoId("todo-1"));
       });
 
       expect(result.current.undoActions).toHaveLength(1);
@@ -347,7 +359,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.deleteTodo("todo-1");
+        result.current.deleteTodo(getTodoId("todo-1"));
       });
 
       // Todo is marked as deleted but still in the list (for undo)
@@ -385,7 +397,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.archiveTodo("todo-1");
+        result.current.archiveTodo(getTodoId("todo-1"));
       });
 
       expect(result.current.todos[0].state).toBe("archived");
@@ -423,7 +435,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.unarchiveTodo("todo-1");
+        result.current.unarchiveTodo(getTodoId("todo-1"));
       });
 
       expect(result.current.todos[0].state).toBe("completed");
@@ -458,7 +470,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.unarchiveTodo("todo-1");
+        result.current.unarchiveTodo(getTodoId("todo-1"));
       });
 
       expect(result.current.todos[0].state).toBe("active");
@@ -499,7 +511,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.editTodo("todo-1", "Updated", "Updated", {
+        result.current.editTodo(getTodoId("todo-1"), "Updated", "Updated", {
           assignedPeople: [],
           sourcePeople: [],
           mentionedPeople: [],
@@ -541,7 +553,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.addTodoComment("todo-1", "This is a comment");
+        result.current.addTodoComment(getTodoId("todo-1"), "This is a comment");
       });
 
       expect(result.current.todos[0].raw.comments).toHaveLength(1);
@@ -575,7 +587,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.editTodoComment("todo-1", "comment-1", "Updated");
+        result.current.editTodoComment(getTodoId("todo-1"), getCommentId("comment-1"), "Updated");
       });
 
       expect(result.current.todos[0].raw.comments[0].history).toHaveLength(2);
@@ -612,7 +624,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.deleteTodoComment("todo-1", "comment-1");
+        result.current.deleteTodoComment(getTodoId("todo-1"), getCommentId("comment-1"));
       });
 
       expect(result.current.todos[0].raw.comments).toHaveLength(1);
@@ -648,7 +660,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.addSubtask("todo-1", "Subtask 1");
+        result.current.addSubtask(getTodoId("todo-1"), "Subtask 1");
       });
 
       expect(result.current.todos[0].raw.subtasks).toHaveLength(1);
@@ -682,7 +694,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.toggleSubtask("todo-1", "subtask-1");
+        result.current.toggleSubtask(getTodoId("todo-1"), getSubtaskId("subtask-1"));
       });
 
       expect(result.current.todos[0].raw.subtasks[0].completed).toBe(true);
@@ -715,7 +727,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.editSubtask("todo-1", "subtask-1", "Updated");
+        result.current.editSubtask(getTodoId("todo-1"), getSubtaskId("subtask-1"), "Updated");
       });
 
       expect(result.current.todos[0].raw.subtasks[0].text).toBe("Updated");
@@ -751,7 +763,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.deleteSubtask("todo-1", "subtask-1");
+        result.current.deleteSubtask(getTodoId("todo-1"), getSubtaskId("subtask-1"));
       });
 
       expect(result.current.todos[0].raw.subtasks).toHaveLength(1);
@@ -787,7 +799,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.toggleTodo("todo-1");
+        result.current.toggleTodo(getTodoId("todo-1"));
       });
 
       expect(result.current.todos[0].state).toBe("completed");
@@ -826,7 +838,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.toggleTodo("todo-1");
+        result.current.toggleTodo(getTodoId("todo-1"));
       });
 
       const actionId = result.current.undoActions[0].id;
@@ -884,7 +896,7 @@ describe("useTodos", () => {
       });
 
       act(() => {
-        result.current.reorderTodos(["todo-2", "todo-1"]);
+        result.current.reorderTodos([getTodoId("todo-2"), getTodoId("todo-1")]);
       });
 
       // Note: The hook may preserve the model order or update it
@@ -902,14 +914,21 @@ describe("useTodos", () => {
         await Promise.resolve();
       });
 
-      const todosToImport = [
+      const now = getTimestamp(Date.now());
+      const todosToImport: Array<Omit<import("@/types/todo").Todo, "id">> = [
         {
-          id: "imported-1",
           text: "Imported",
           plainText: "Imported",
           state: "active" as const,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
+          context: "",
+          tags: [],
+          dependencies: [],
+          assignedPeople: [],
+          sourcePeople: [],
+          mentionedPeople: [],
+          projects: [],
+          createdAt: now,
+          updatedAt: now,
           comments: [],
           activity: [],
           subtasks: [],
@@ -936,7 +955,7 @@ describe("useTodos", () => {
       (saveToStorage as jest.Mock).mockClear();
 
       act(() => {
-        result.current.addTodo("Test", "Test", {});
+        result.current.addTodo("Test", "Test", createMetadata());
       });
 
       await act(async () => {

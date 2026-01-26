@@ -342,7 +342,7 @@ export function createTaskSchedulingMap(todos: TodoModel[], config: SchedulingCo
       // (not on the date of the tracked time)
       if (remainingMinutes > 0) {
         // Find the next available work day starting from today
-        let scheduleDate = new Date(today);
+        const scheduleDate = new Date(today);
         const todayStr = today.toISOString().split("T")[0];
 
         // Check if we can still schedule today (if there's time left in work hours)
@@ -384,7 +384,7 @@ export function createTaskSchedulingMap(todos: TodoModel[], config: SchedulingCo
     return true;
   });
 
-  let currentDay = new Date(today);
+  const currentDay = new Date(today);
   let remainingTodos = [...activeTodosOnly];
 
   // Schedule active tasks across days starting from today

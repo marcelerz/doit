@@ -10,9 +10,6 @@ jest.mock("@/storage/storage", () => ({
   STORAGE_KEYS: { TEMPLATES: "doit-templates" },
   loadFromStorage: jest.fn().mockResolvedValue([]),
   saveToStorage: jest.fn().mockResolvedValue(undefined),
-}));
-
-jest.mock("@/storage/storageInit", () => ({
   waitForStorageInit: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -78,7 +75,7 @@ describe("useTemplates", () => {
       });
 
       act(() => {
-        result.current.addTemplate({ name: "New Template", text: "New text" });
+        result.current.addTemplate({ name: "New Template", text: "New text", plainText: "New text", metadata: {} });
       });
 
       expect(result.current.templates).toHaveLength(1);
@@ -96,7 +93,7 @@ describe("useTemplates", () => {
       });
 
       act(() => {
-        result.current.addTemplate({ name: "Test", text: "Text" });
+        result.current.addTemplate({ name: "Test", text: "Text", plainText: "Text", metadata: {} });
       });
 
       // Wait for save effect
@@ -285,7 +282,7 @@ describe("useTemplates", () => {
 
       // Try to add a template before loading
       act(() => {
-        result.current.addTemplate({ name: "Test", text: "Text" });
+        result.current.addTemplate({ name: "Test", text: "Text", plainText: "Text", metadata: {} });
       });
 
       // Wait a bit

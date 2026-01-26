@@ -104,7 +104,7 @@ test.describe("Cross-View Data Consistency", () => {
 
   test("should show same todos in list and kanban", async ({ page, todoApp }) => {
     // Check list view count
-    let count = await todoApp.getTodoCount();
+    const count = await todoApp.getTodoCount();
     expect(count).toBe(1);
 
     // Switch to kanban

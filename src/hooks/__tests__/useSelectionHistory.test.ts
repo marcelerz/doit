@@ -28,9 +28,6 @@ jest.mock("@/storage/storage", () => ({
     sprints: [],
   }),
   saveToStorage: jest.fn().mockResolvedValue(undefined),
-}));
-
-jest.mock("@/storage/storageInit", () => ({
   waitForStorageInit: jest.fn().mockResolvedValue(undefined),
 }));
 

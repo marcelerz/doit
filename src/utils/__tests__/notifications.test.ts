@@ -79,6 +79,7 @@ const createTestSettings = (): SettingsModel =>
       afternoon: getShortTime("14:00"),
       evening: getShortTime("18:00"),
       workWeekStart: getWeekday(1),
+      workWeekEnd: getWeekday(5),
       fiscalYearStart: getMonth(1),
     },
     workHours: {
@@ -180,6 +181,11 @@ const createTestSettings = (): SettingsModel =>
       exports: true,
       focusMode: true,
       timeTracking: true,
+    },
+    backup: {
+      autoBackupEnabled: true,
+      retentionDays: 30,
+      lastBackupDate: null,
     },
   });
 
@@ -823,7 +829,7 @@ describe("notifications with MockBrowserApis", () => {
         dueSoonHours: 2,
       });
 
-      expect(result.has("overdue-1")).toBe(true);
+      expect(result.has(getTodoId("overdue-1"))).toBe(true);
       expect(mockApis.notificationsCreated.length).toBeGreaterThan(0);
     });
 
@@ -847,7 +853,7 @@ describe("notifications with MockBrowserApis", () => {
         dueSoonHours: 2,
       });
 
-      expect(result.has("today-1")).toBe(true);
+      expect(result.has(getTodoId("today-1"))).toBe(true);
     });
 
     it("should notify for tasks due soon", () => {
@@ -869,7 +875,7 @@ describe("notifications with MockBrowserApis", () => {
         dueSoonHours: 2,
       });
 
-      expect(result.has("soon-1")).toBe(true);
+      expect(result.has(getTodoId("soon-1"))).toBe(true);
     });
 
     it("should skip already notified tasks", () => {
@@ -884,7 +890,7 @@ describe("notifications with MockBrowserApis", () => {
       });
       const model = new TodoModel(todo, settings);
 
-      checkAndNotifyDueTasks([model], new Set(["already-notified"]), {
+      checkAndNotifyDueTasks([model], new Set([getTodoId("already-notified")]), {
         notifyOverdue: true,
         notifyDueToday: true,
         notifyDueSoon: true,
@@ -954,7 +960,7 @@ describe("notifications with MockBrowserApis", () => {
         dueSoonHours: 2,
       });
 
-      expect(result.has("date-only")).toBe(true);
+      expect(result.has(getTodoId("date-only"))).toBe(true);
     });
 
     it("should handle tasks without dueDate gracefully", () => {

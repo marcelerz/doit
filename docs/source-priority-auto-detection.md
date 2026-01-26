@@ -193,13 +193,3 @@ The following **remain in the todo text**:
 
 This behavior allows you to quickly set metadata values without cluttering the todo text, while keeping conversational context for people, projects, sources, and priorities.
 
-## Testing
-
-Run the comprehensive test suite:
-
-```bash
-node test-source-priority-detection.js  # Individual tests
-node test-all-auto-detection.js         # Integration tests
-```
-
-All tests should pass, demonstrating correct detection and overlap handling.

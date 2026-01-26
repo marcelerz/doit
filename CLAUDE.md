@@ -13,7 +13,7 @@ npm run test             # Jest unit tests
 npm run test:watch       # Jest in watch mode
 npm run test:coverage    # Coverage report (84%+ target)
 npm run test:e2e         # Playwright E2E tests
-npm run test:all         # Full validation suite (lint + typecheck + test)
+npm run test:all         # Full validation suite (typecheck + lint + test + e2e + visual)
 npm run deploy:gh-pages  # Deploy to GitHub Pages
 ```
 
@@ -70,16 +70,17 @@ Parses natural language in task input:
 - `ListView.tsx` - Filterable/sortable list with grouping
 - `KanbanView.tsx` - Drag-and-drop board with workflow states
 - `GanttView.tsx` - Timeline with scheduling algorithms
-- `CalendarView.tsx`, `FocusView.tsx`, `StatisticsView.tsx`, etc.
+- `CalendarView.tsx`, `FocusView.tsx`, `StatisticsView.tsx`
+- `SprintsView.tsx`, `ProjectsView.tsx`, `PeopleView.tsx`, `TimeReportsView.tsx`
 
 ### Component Organization
 
 - `views/` - Large view containers
-- `items/` - List item components (TodoItem, PersonItem, ProjectItem)
+- `items/` - List item components (TodoItem, PersonItem, ProjectItem, SprintItem)
 - `overlays/` - Modals and detail views
 - `input/` - SmartInput, RichTextEditor
-- `shared/` - 28 reusable components
-- `settings/` - Settings page components
+- `shared/` - 26 reusable components
+- `settings/` - Settings tab components
 
 ## Coding Standards
 
@@ -118,7 +119,7 @@ npx playwright test --ui                   # Interactive UI mode
 
 ## Key Storage Keys
 
-All prefixed with `doit-`: `todos`, `people`, `projects`, `settings`, `version`, `view-presets`, `view-options`, `*-view-options`, `selection-history`, `backup-settings`
+All prefixed with `doit-`: `todos`, `people`, `projects`, `sprints`, `settings`, `version`, `templates`, `view-presets`, `view-options`, `*-view-options`, `ui-options`, `selection-history`, `search-history`, `backup-settings`, `tutorial-preferences`
 
 ## Documentation
 

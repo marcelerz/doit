@@ -10,9 +10,6 @@ jest.mock("@/storage/storage", () => ({
   STORAGE_KEYS: { SETTINGS: "doit-settings" },
   loadFromStorage: jest.fn().mockResolvedValue(null),
   saveToStorage: jest.fn().mockResolvedValue(undefined),
-}));
-
-jest.mock("@/storage/storageInit", () => ({
   waitForStorageInit: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -23,6 +20,11 @@ jest.mock("@/storage/migrations", () => ({
 // Import mocks after setup
 import { loadFromStorage, saveToStorage } from "@/storage/storage";
 import { defaultSettings } from "@/types/settings";
+import { getColor } from "@/types/types";
+import { getDurationDay, getDurationMin, getShortTime } from "@/types/time";
+import { getKanbanStateId } from "@/types/kanbanState";
+import { getLinkPatternId } from "@/types/linkPattern";
+import { getProjectCategoryId } from "@/types/project";
 
 describe("useSettings", () => {
   beforeEach(() => {
@@ -121,7 +123,7 @@ describe("useSettings", () => {
       const initialCount = result.current.settings.linkPatterns.length;
 
       act(() => {
-        result.current.addLinkPattern({ pattern: "JIRA-{id}", url: "https://jira.example.com/{id}" });
+        result.current.addLinkPattern({ prefix: "JIRA", urlTemplate: "https://jira.example.com/{id}", description: "Jira ticket", color: getColor("#3498db") });
       });
 
       expect(result.current.settings.linkPatterns).toHaveLength(initialCount + 1);
@@ -130,7 +132,7 @@ describe("useSettings", () => {
     it("should update a link pattern", async () => {
       (loadFromStorage as jest.Mock).mockResolvedValue({
         ...defaultSettings,
-        linkPatterns: [{ id: "lp-1", pattern: "OLD-{id}", url: "https://old.com/{id}" }],
+        linkPatterns: [{ id: getLinkPatternId("lp-1"), prefix: "OLD", urlTemplate: "https://old.com/{id}", description: "Old link", color: getColor("#000000") }],
       });
 
       const { result } = renderHook(() => useSettings());
@@ -140,18 +142,18 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.updateLinkPattern("lp-1", { pattern: "NEW-{id}" });
+        result.current.updateLinkPattern(getLinkPatternId("lp-1"), { prefix: "NEW" });
       });
 
-      expect(result.current.settings.linkPatterns[0].pattern).toBe("NEW-{id}");
+      expect(result.current.settings.linkPatterns[0].prefix).toBe("NEW");
     });
 
     it("should delete a link pattern", async () => {
       (loadFromStorage as jest.Mock).mockResolvedValue({
         ...defaultSettings,
         linkPatterns: [
-          { id: "lp-1", pattern: "A-{id}", url: "https://a.com/{id}" },
-          { id: "lp-2", pattern: "B-{id}", url: "https://b.com/{id}" },
+          { id: getLinkPatternId("lp-1"), prefix: "A", urlTemplate: "https://a.com/{id}", description: "A link", color: getColor("#000000") },
+          { id: getLinkPatternId("lp-2"), prefix: "B", urlTemplate: "https://b.com/{id}", description: "B link", color: getColor("#ffffff") },
         ],
       });
 
@@ -162,11 +164,11 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.deleteLinkPattern("lp-1");
+        result.current.deleteLinkPattern(getLinkPatternId("lp-1"));
       });
 
       expect(result.current.settings.linkPatterns).toHaveLength(1);
-      expect(result.current.settings.linkPatterns[0].id).toBe("lp-2");
+      expect(result.current.settings.linkPatterns[0].id).toBe(getLinkPatternId("lp-2"));
     });
   });
 
@@ -179,10 +181,10 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.updateMarkerColors({ assigned: "#ff0000" });
+        result.current.updateMarkerColors({ assigned: getColor("#ff0000") });
       });
 
-      expect(result.current.settings.markerColors.assigned).toBe("#ff0000");
+      expect(result.current.settings.markerColors.assigned).toBe(getColor("#ff0000"));
     });
   });
 
@@ -195,10 +197,10 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.updateGeneralSettings({ archiveDays: 30 });
+        result.current.updateGeneralSettings({ archiveDays: getDurationDay(30) });
       });
 
-      expect(result.current.settings.general.archiveDays).toBe(30);
+      expect(result.current.settings.general.archiveDays).toBe(getDurationDay(30));
     });
   });
 
@@ -211,10 +213,10 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.updateDateTimeSettings({ morning: "08:00" });
+        result.current.updateDateTimeSettings({ morning: getShortTime("08:00") });
       });
 
-      expect(result.current.settings.dateTime.morning).toBe("08:00");
+      expect(result.current.settings.dateTime.morning).toBe(getShortTime("08:00"));
     });
   });
 
@@ -243,10 +245,10 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.updateGantt({ defaultTaskDuration: 60 });
+        result.current.updateGantt({ defaultTaskDuration: getDurationMin(60) });
       });
 
-      expect(result.current.settings.gantt.defaultTaskDuration).toBe(60);
+      expect(result.current.settings.gantt.defaultTaskDuration).toBe(getDurationMin(60));
     });
   });
 
@@ -312,7 +314,7 @@ describe("useSettings", () => {
       act(() => {
         result.current.addKanbanState({
           name: "Testing",
-          color: "#9b59b6",
+          color: getColor("#9b59b6"),
           icon: "🧪",
           order: 5,
         });
@@ -386,7 +388,7 @@ describe("useSettings", () => {
       const initialCount = result.current.settings.kanban.allowedTransitions.length;
 
       act(() => {
-        result.current.addKanbanTransition({ fromStateId: "state-1", toStateId: "state-2" });
+        result.current.addKanbanTransition({ fromStateId: getKanbanStateId("state-1"), toStateId: getKanbanStateId("state-2") });
       });
 
       expect(result.current.settings.kanban.allowedTransitions.length).toBeGreaterThanOrEqual(initialCount);
@@ -397,7 +399,7 @@ describe("useSettings", () => {
         ...defaultSettings,
         kanban: {
           ...defaultSettings.kanban,
-          allowedTransitions: [{ fromStateId: "state-1", toStateId: "state-2" }],
+          allowedTransitions: [{ fromStateId: getKanbanStateId("state-1"), toStateId: getKanbanStateId("state-2") }],
         },
       });
 
@@ -410,7 +412,7 @@ describe("useSettings", () => {
       const initialCount = result.current.settings.kanban.allowedTransitions.length;
 
       act(() => {
-        result.current.addKanbanTransition({ fromStateId: "state-1", toStateId: "state-2" });
+        result.current.addKanbanTransition({ fromStateId: getKanbanStateId("state-1"), toStateId: getKanbanStateId("state-2") });
       });
 
       expect(result.current.settings.kanban.allowedTransitions).toHaveLength(initialCount);
@@ -422,8 +424,8 @@ describe("useSettings", () => {
         kanban: {
           ...defaultSettings.kanban,
           allowedTransitions: [
-            { fromStateId: "state-1", toStateId: "state-2" },
-            { fromStateId: "state-2", toStateId: "state-3" },
+            { fromStateId: getKanbanStateId("state-1"), toStateId: getKanbanStateId("state-2") },
+            { fromStateId: getKanbanStateId("state-2"), toStateId: getKanbanStateId("state-3") },
           ],
         },
       });
@@ -435,7 +437,7 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.removeKanbanTransition("state-1", "state-2");
+        result.current.removeKanbanTransition(getKanbanStateId("state-1"), getKanbanStateId("state-2"));
       });
 
       expect(result.current.settings.kanban.allowedTransitions).toHaveLength(1);
@@ -453,7 +455,7 @@ describe("useSettings", () => {
       act(() => {
         result.current.addKanbanView({
           name: "My View",
-          stateIds: ["state-1", "state-2"],
+          stateIds: [getKanbanStateId("state-1"), getKanbanStateId("state-2")],
         });
       });
 
@@ -534,7 +536,7 @@ describe("useSettings", () => {
       const initialCount = result.current.settings.categories?.length || 0;
 
       act(() => {
-        result.current.addCategory({ name: "Work", color: "#3498db" });
+        result.current.addCategory({ name: "Work", color: getColor("#3498db") });
       });
 
       expect(result.current.settings.categories?.length).toBe(initialCount + 1);
@@ -543,7 +545,7 @@ describe("useSettings", () => {
     it("should update a category", async () => {
       (loadFromStorage as jest.Mock).mockResolvedValue({
         ...defaultSettings,
-        categories: [{ id: "cat-1", name: "Original", color: "#000" }],
+        categories: [{ id: getProjectCategoryId("cat-1"), name: "Original", color: getColor("#000000") }],
       });
 
       const { result } = renderHook(() => useSettings());
@@ -553,7 +555,7 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.updateCategory("cat-1", { name: "Updated" });
+        result.current.updateCategory(getProjectCategoryId("cat-1"), { name: "Updated" });
       });
 
       expect(result.current.settings.categories?.[0]?.name).toBe("Updated");
@@ -563,8 +565,8 @@ describe("useSettings", () => {
       (loadFromStorage as jest.Mock).mockResolvedValue({
         ...defaultSettings,
         categories: [
-          { id: "cat-1", name: "Cat 1", color: "#000" },
-          { id: "cat-2", name: "Cat 2", color: "#fff" },
+          { id: getProjectCategoryId("cat-1"), name: "Cat 1", color: getColor("#000000") },
+          { id: getProjectCategoryId("cat-2"), name: "Cat 2", color: getColor("#ffffff") },
         ],
       });
 
@@ -575,7 +577,7 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.deleteCategory("cat-1");
+        result.current.deleteCategory(getProjectCategoryId("cat-1"));
       });
 
       expect(result.current.settings.categories).toHaveLength(1);
@@ -592,12 +594,12 @@ describe("useSettings", () => {
 
       act(() => {
         result.current.updateSprintSettings({
-          defaultDuration: 21,
+          defaultSprintDuration: getDurationDay(21),
           showBacklogInSprint: false,
         });
       });
 
-      expect(result.current.settings.sprints.defaultDuration).toBe(21);
+      expect(result.current.settings.sprints.defaultSprintDuration).toBe(getDurationDay(21));
     });
   });
 
@@ -611,6 +613,7 @@ describe("useSettings", () => {
 
       act(() => {
         result.current.updateFocusSettings({
+          ...result.current.settings.focus,
           autoTimeTracking: true,
           soundEnabled: false,
         });
@@ -650,7 +653,7 @@ describe("useSettings", () => {
       (localStorage.setItem as jest.Mock).mockClear();
 
       act(() => {
-        result.current.updateGeneralSettings({ archiveDays: 60 });
+        result.current.updateGeneralSettings({ archiveDays: getDurationDay(60) });
       });
 
       await act(async () => {

@@ -393,7 +393,7 @@ export function MarkedText({
     } else {
       // Add the marker as a badge with custom color
       let bgColor: string | undefined;
-      let displayText = match.text;
+      const displayText = match.text;
 
       // Use individual colors for people, projects, and priorities
       if (match.type === "assigned" || match.type === "source" || match.type === "mentioned") {

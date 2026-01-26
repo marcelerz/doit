@@ -123,8 +123,10 @@ describe("useServiceWorker", () => {
     });
 
     it("should handle lack of service worker support", async () => {
-      // Delete service worker from navigator
-      delete (navigator as Partial<Navigator>).serviceWorker;
+      // Remove service worker from navigator by deleting the property
+      // Using 'in' check, so we need to actually delete the property, not just set to undefined
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (navigator as any).serviceWorker;
 
       const { result } = renderHook(() => useServiceWorker());
 

@@ -97,12 +97,6 @@ Overlapping detections are removed, with more specific patterns taking priority.
    - Both share same `start` and `end` positions
    - Rendered together with appropriate badges
 
-### Files Modified
-
-- `src/utils/chronoDateParser.ts` - Added `detectRecurringPatterns()` function
-- `src/utils/recurringParser.ts` - Added support for "first", "second", etc. word forms
-- `src/components/input/SmartInput.tsx` - Added recurring token creation logic
-
 ### Data Structure
 
 ```typescript
@@ -116,18 +110,6 @@ export interface DetectedDate {
 }
 ```
 
-## Testing
-
-Test file: `test-recurring-detection.js`
-
-Run: `node test-recurring-detection.js`
-
-Shows:
-
-- What chrono detects (partial weekday names)
-- What our regex detects (full "every" patterns)
-- Comparison of detection methods
-
 ## Console Logging
 
 When typing in SmartInput, you'll see:
@@ -139,16 +121,6 @@ When typing in SmartInput, you'll see:
      First occurrence: 12/8/2025, 12:00:00 PM
 🔁 [Recurring Patterns] Found 1 recurring patterns
 ```
-
-## Future Enhancements
-
-Possible additions:
-
-- `every other day` - Alternating days
-- `every 2nd and 4th monday` - Multiple occurrences per month
-- `every weekday at 9am` - Time-specific patterns
-- `every month on the 15th` - Specific day of month
-- `twice a week` - Frequency-based patterns
 
 ## Visual Styling
 

@@ -96,7 +96,7 @@ describe("useEntityManager", () => {
       });
 
       act(() => {
-        result.current.addEntity({ name: "New Entity", alternatives: [] } as TestEntity, `test-${generateUUID()}`);
+        result.current.addEntity({ name: "New Entity", alternatives: [] } as unknown as TestEntity, `test-${generateUUID()}`);
       });
 
       expect(result.current.rawEntities).toHaveLength(1);
@@ -115,7 +115,7 @@ describe("useEntityManager", () => {
       });
 
       act(() => {
-        result.current.addEntity({ name: "Test", alternatives: [] } as TestEntity, `test-${generateUUID()}`);
+        result.current.addEntity({ name: "Test", alternatives: [] } as unknown as TestEntity, `test-${generateUUID()}`);
       });
 
       await act(async () => {
@@ -382,7 +382,7 @@ describe("useEntityManager", () => {
       const { result } = renderHook(() => useEntityManager<TestEntity, TestModel>(testConfig, createTestModels));
 
       act(() => {
-        result.current.addEntity({ name: "Test", alternatives: [] } as TestEntity, `test-${generateUUID()}`);
+        result.current.addEntity({ name: "Test", alternatives: [] } as unknown as TestEntity, `test-${generateUUID()}`);
       });
 
       await act(async () => {

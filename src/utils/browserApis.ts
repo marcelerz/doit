@@ -14,6 +14,7 @@
 export interface IBrowserApis {
   // Window detection
   hasWindow(): boolean;
+  getLocationPathname(): string;
 
   // Audio APIs
   createAudioContext(): AudioContext | null;
@@ -36,6 +37,10 @@ export interface IBrowserApis {
 class RealBrowserApis implements IBrowserApis {
   hasWindow(): boolean {
     return typeof window !== "undefined";
+  }
+
+  getLocationPathname(): string {
+    return this.hasWindow() ? window.location.pathname : "";
   }
 
   createAudioContext(): AudioContext | null {
@@ -85,10 +90,11 @@ class RealBrowserApis implements IBrowserApis {
     if (!this.hasNotificationSupport()) return null;
     if (Notification.permission !== "granted") return null;
 
+    const basePath = this.getLocationPathname().startsWith("/doit") ? "/doit" : "";
     try {
       return new Notification(title, {
-        icon: "/favicon.ico",
-        badge: "/favicon.ico",
+        icon: `${basePath}/favicon.ico`,
+        badge: `${basePath}/favicon.ico`,
         ...options,
       });
     } catch (error) {
@@ -112,6 +118,7 @@ class RealBrowserApis implements IBrowserApis {
 export class MockBrowserApis implements IBrowserApis {
   // Configuration
   public windowExists = false;
+  public locationPathname = "/";
   public notificationSupported = true;
   public notificationPermission: NotificationPermission = "default";
 
@@ -130,6 +137,10 @@ export class MockBrowserApis implements IBrowserApis {
 
   hasWindow(): boolean {
     return this.windowExists;
+  }
+
+  getLocationPathname(): string {
+    return this.windowExists ? this.locationPathname : "";
   }
 
   createAudioContext(): AudioContext | null {
@@ -235,6 +246,7 @@ export class MockBrowserApis implements IBrowserApis {
 
   reset(): void {
     this.windowExists = false;
+    this.locationPathname = "/";
     this.notificationSupported = true;
     this.notificationPermission = "default";
     this.audioContextsCreated = 0;

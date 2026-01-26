@@ -56,6 +56,7 @@ const createSettings = (overrides: Partial<Settings> = {}): SettingsModel =>
       afternoon: getShortTime("14:00"),
       evening: getShortTime("18:00"),
       workWeekStart: getWeekday(1),
+      workWeekEnd: getWeekday(5),
       fiscalYearStart: getMonth(1),
     },
     workHours: {
@@ -161,6 +162,11 @@ const createSettings = (overrides: Partial<Settings> = {}): SettingsModel =>
       exports: true,
       focusMode: true,
       timeTracking: true,
+    },
+    backup: {
+      autoBackupEnabled: true,
+      retentionDays: 30,
+      lastBackupDate: null,
     },
     ...overrides,
   });

@@ -367,17 +367,6 @@ function MyComponent({ todos }: MyComponentProps) {
 }
 ```
 
-## Future Enhancements
-
-Additional business logic that could be added to TodoModel:
-
-1. **Progress Tracking**: `todoModel.progressPercentage` (based on dependencies or subtasks)
-2. **Time Estimates**: `todoModel.estimatedCompletionTime` (based on duration and schedule)
-3. **Smart Scheduling**: `todoModel.suggestedStartTime(workHours)` (when to start based on due date)
-4. **Effort Calculation**: `todoModel.effortScore` (complexity based on metadata)
-5. **Batch Operations**: `TodoModel.bulkUpdate()`, `TodoModel.bulkValidate()`
-6. **Export/Import**: `todoModel.toJSON()`, `TodoModel.fromJSON()`
-
 ## Complete API Reference
 
 ### Properties (Read-only)
@@ -399,14 +388,3 @@ Additional business logic that could be added to TodoModel:
 - Display: `getSummary(maxLength)`
 - Dependencies: `isBlockerFor(allTodos)`
 - Raw access: `raw` property
-
-## Files Changed
-
-- `src/models/TodoModel.ts` - Added 30+ new methods and properties
-- `src/hooks/useTodos.ts` - Returns `TodoModel[]`, uses validation methods
-- `src/components/items/TodoItem.tsx` - Accepts `TodoModel`
-- `src/components/overlays/TodoDetailsOverlay.tsx` - Accepts `TodoModel`
-- `src/components/views/TodoApp.tsx` - Uses `matchesSearch()` method
-- `src/components/views/GanttView.tsx` - Accepts `TodoModel[]`
-- `src/components/views/CalendarView.tsx` - Accepts `TodoModel[]`
-- `src/components/input/SmartInput.tsx` - Accepts `TodoModel[]` for dependencies

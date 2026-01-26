@@ -6,7 +6,6 @@
     "dev": "next dev",
     "build": "next build",
     "build:gh-pages": "node scripts/build-gh-pages.js",
-    "deploy:gh-pages": "node scripts/build-gh-pages.js --deploy",
     "start": "next start",
     "clean": "rm -rf .next && rm -rf coverage",
     "lint": "eslint .",

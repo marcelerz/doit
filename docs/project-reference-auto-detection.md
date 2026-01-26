@@ -203,25 +203,6 @@ All auto-detected without markers!
 
 ## Implementation Details
 
-### Files Modified
-
-1. **`src/utils/chronoDateParser.ts`**
-
-   - Added `DetectedProject` interface
-   - Added `detectMentionedProjects()` function with context pattern matching
-   - Imported `Project` type from settings
-
-2. **`src/components/input/SmartInput.tsx`**
-
-   - Imported `detectMentionedProjects` and `DetectedProject`
-   - Added project detection after person detection in `renderTokensFromText()`
-   - Added overlap prevention with dates, people, and explicit # markers
-
-3. **`src/components/shared/MarkedText.tsx`**
-   - Imported `detectMentionedProjects`
-   - Added project detection after person detection
-   - Added overlap prevention logic
-
 ### Token Flow
 
 1. **SmartInput** detects projects in input text with context patterns
@@ -296,24 +277,6 @@ Input: "Focus on project Website for Marketing"
 If a project is named "Work" or "Time" (blacklisted words), it won't be auto-detected.
 Solution: Use explicit `%Work` or `%Time` markers, or rename the project.
 
-## Testing
-
-A comprehensive test suite is available in `test-project-detection.js`:
-
-```bash
-node test-project-detection.js
-```
-
-Tests cover:
-
-- ✅ All context patterns (on, in, for, project suffix)
-- ✅ "on project", "in project", "for project" patterns
-- ✅ Alternative name recognition
-- ✅ Multiple projects detection
-- ✅ Case insensitivity
-- ✅ No false positives without context
-- ✅ Alternative names with context
-
 ## Comparison with Person Detection
 
 | Feature              | Person Detection       | Project Detection            |
@@ -342,12 +305,3 @@ Tests cover:
 5. **Smart detection** - Context words prevent false positives
 6. **Flexible** - Both auto-detection and explicit % markers work
 
-## Future Enhancements
-
-Potential improvements:
-
-- Additional context patterns (e.g., "about", "regarding", "related to")
-- User-configurable context words
-- Project-specific patterns (e.g., "repo <name>" for code projects)
-- Fuzzy matching for misspellings
-- Learning from user corrections

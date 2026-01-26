@@ -507,6 +507,7 @@ My Task,yes`;
         project: "Work",
         tags: ["urgent"],
         subtasks: ["Step 1", "Step 2"],
+        assignedPeople: [],
         source: "json" as ImportFormat,
       };
 
@@ -527,6 +528,7 @@ My Task,yes`;
         isCompleted: true,
         tags: [],
         subtasks: [],
+        assignedPeople: [],
         source: "json" as ImportFormat,
       };
 
@@ -544,6 +546,7 @@ My Task,yes`;
         priority: "high",
         tags: ["urgent", "review"],
         subtasks: [],
+        assignedPeople: [],
         source: "json" as ImportFormat,
       };
 
@@ -561,6 +564,7 @@ My Task,yes`;
         isCompleted: false,
         tags: [],
         subtasks: [],
+        assignedPeople: [],
         source: "todoist" as ImportFormat,
       };
 
@@ -575,8 +579,8 @@ My Task,yes`;
   describe("convertAllToTodos", () => {
     it("should convert array of imported todos", () => {
       const imported = [
-        { title: "Task 1", isCompleted: false, tags: [], subtasks: [], source: "json" as ImportFormat },
-        { title: "Task 2", isCompleted: true, tags: [], subtasks: [], source: "json" as ImportFormat },
+        { title: "Task 1", isCompleted: false, tags: [], subtasks: [], assignedPeople: [], source: "json" as ImportFormat },
+        { title: "Task 2", isCompleted: true, tags: [], subtasks: [], assignedPeople: [], source: "json" as ImportFormat },
       ];
 
       const result = convertAllToTodos(imported);

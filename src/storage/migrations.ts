@@ -50,9 +50,9 @@ function shouldDelete(todo: Todo, autoDeleteEnabled: boolean, deleteDays: number
 function migrateTodo(todo: any): Todo {
   // If todo already has a state field (v4+), use it
   let state: TodoState = todo.state || "active";
-  let completedAt = todo.completedAt || null;
+  const completedAt = todo.completedAt || null;
   let archivedAt = todo.archivedAt || null;
-  let deletedAt = todo.deletedAt || null;
+  const deletedAt = todo.deletedAt || null;
 
   // Only calculate state from legacy fields if state doesn't exist
   if (!todo.state) {

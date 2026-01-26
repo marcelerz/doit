@@ -152,6 +152,7 @@ describe("SettingsModel", () => {
           afternoon: getShortTime("14:00"),
           evening: getShortTime("18:00"),
           workWeekStart: getWeekday(1),
+          workWeekEnd: getWeekday(5),
           fiscalYearStart: getMonth(4),
         },
       });

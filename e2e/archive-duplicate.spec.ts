@@ -12,7 +12,7 @@ test.describe("Archive and Unarchive", () => {
     await todoApp.addTodo("Task to archive");
 
     // Verify todo exists
-    let count = await todoApp.getTodoCount();
+    const count = await todoApp.getTodoCount();
     expect(count).toBe(1);
 
     // Open details and archive

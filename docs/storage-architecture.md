@@ -279,8 +279,6 @@ console.log(localStorage);
 2. Navigate to IndexedDB → doit-db → keyvalue
 3. View all stored keys and values
 
-## Error Handling and Safety
-
 ## Error Handling
 
 All storage operations include try-catch blocks and log errors to console. Failed operations return default values rather than throwing exceptions, ensuring the app remains functional even if storage fails.

@@ -37,6 +37,7 @@ import { Priority, getPriorityId } from "@/types/priority";
 import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
 import { defaultCalendar } from "@/types/calendar";
 import { defaultCategories } from "@/types/project";
+import { defaultBackupSettings } from "@/storage/backup";
 import { TodoModel } from "@/models/TodoModel";
 import { generateUUID } from "@/utils/idGenerator";
 import { createSettingsModel, SettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
@@ -67,6 +68,7 @@ const createMinimalSettings = (): Settings => ({
   categories: defaultCategories,
   notifications: defaultNotificationSettings,
   features: defaultFeatureSettings,
+  backup: defaultBackupSettings,
 });
 
 // Helper to create minimal WorkHoursSettings

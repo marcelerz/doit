@@ -1,11 +1,13 @@
-# Doit - Advanced Todo & Project Management App
+# DoIt - Advanced Todo & Project Management App
+
+NOTE: This is still under construction and probably very buggy!
 
 A powerful, feature-rich todo and project management application built with Next.js, TypeScript, and Tailwind CSS. Features multiple views, smart input detection, sprint planning, and comprehensive storage options.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwind-css)
-![License](https://img.shields.io/badge/License-MIT-green)
+![License](https://img.shields.io/badge/License-Personal_Use-orange)
 
 ## ✨ Features
 
@@ -13,7 +15,7 @@ A powerful, feature-rich todo and project management application built with Next
 
 - ✅ **State-based Todo System** - Active, Completed, Archived, Deleted states with full timestamp tracking
 - ✅ **Smart Input** - Natural language parsing with auto-detection of dates, people, projects, and priorities
-- ✅ **Multiple Views** - List, Kanban, Gantt, and Calendar views
+- ✅ **Multiple Views** - List, Kanban, Gantt, Calendar, Focus, Statistics, and Time Reports
 - ✅ **People & Projects** - Full entity management with assignments and mentions
 - ✅ **Sprint Planning** - Scrum-style sprint management with Kanban integration
 - ✅ **Comments & Activity** - Full history tracking on todos, people, and projects
@@ -50,6 +52,19 @@ A powerful, feature-rich todo and project management application built with Next
 - Monthly calendar with task indicators
 - Click to view and edit tasks for any day
 
+#### 🎯 Focus View
+
+- Pomodoro timer with configurable work/break intervals
+- Flow mode for extended focus sessions
+- Ambient sounds for concentration
+- Task queue management
+
+#### 📈 Statistics & Time Reports
+
+- Task completion trends
+- Time tracking reports
+- Sprint velocity metrics
+
 ### Smart Input Detection
 
 The app automatically detects and parses:
@@ -80,7 +95,7 @@ The app automatically detects and parses:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/doit.git
+git clone https://github.com/marcelerz/doit.git
 cd doit
 
 # Install dependencies
@@ -105,7 +120,7 @@ npm start
 ## 🧪 Testing
 
 ```bash
-# Run tests
+# Run unit tests
 npm test
 
 # Run tests in watch mode
@@ -113,9 +128,13 @@ npm run test:watch
 
 # Run tests with coverage
 npm run test:coverage
-```
 
-Current test coverage: **84%+** with 1000+ tests.
+# Run E2E tests
+npm run test:e2e
+
+# Run all tests (unit + E2E + visual)
+npm run test:all
+```
 
 ## 📁 Project Structure
 
@@ -133,21 +152,25 @@ doit/
 │   │   ├── input/              # SmartInput, RichTextEditor
 │   │   ├── shared/             # Reusable components
 │   │   └── settings/           # Settings tab components
-│   ├── hooks/                  # React hooks
+│   ├── hooks/                  # React hooks (state management)
 │   │   ├── useTodos.ts         # Todo state management
 │   │   ├── usePeople.ts        # People management
 │   │   ├── useProjects.ts      # Projects management
-│   │   ├── useSettings.ts      # App settings
-│   │   └── useSprints.ts       # Sprint management
+│   │   ├── useSprints.ts       # Sprint management
+│   │   └── useSettings.ts      # App settings
 │   ├── models/                 # Business logic layer
-│   │   ├── TodoModel.ts        # Todo business logic (30+ methods)
+│   │   ├── TodoModel.ts        # Todo business logic
 │   │   ├── PersonModel.ts      # Person business logic
-│   │   └── ProjectModel.ts     # Project business logic
-│   ├── services/               # Service abstractions
-│   │   └── NotificationService.ts  # Browser notifications
+│   │   ├── ProjectModel.ts     # Project business logic
+│   │   └── SettingsModel.ts    # Settings business logic
+│   ├── services/               # React providers
+│   │   ├── ServiceWorkerProvider.tsx  # PWA service worker
+│   │   ├── StorageInitializer.tsx     # Storage initialization
+│   │   └── ThemeProvider.tsx          # Dark/light theme
 │   ├── storage/                # Storage abstraction
 │   │   ├── storage.ts          # IndexedDB/localStorage adapters
-│   │   └── migrations.ts       # Data migrations
+│   │   ├── migrations.ts       # Data migrations
+│   │   └── backup.ts           # Backup/restore functionality
 │   ├── types/                  # TypeScript types
 │   │   ├── todo.ts             # Todo types
 │   │   └── settings.ts         # Settings types
@@ -197,6 +220,7 @@ Each data domain has its own hook:
 - `useTodos()` - Returns `TodoModel[]` with full CRUD
 - `usePeople()` - Returns `PersonModel[]` with assignments
 - `useProjects()` - Returns `ProjectModel[]` with linking
+- `useSprints()` - Sprint management
 - `useSettings()` - App configuration
 
 ## ⚙️ Configuration
@@ -205,14 +229,20 @@ Each data domain has its own hook:
 
 - **General** - Archive retention, auto-delete
 - **Priorities** - Custom priority levels with colors
+- **Categories** - Project categories
 - **Date/Time** - Morning, noon, afternoon, evening times
 - **Work Hours** - Schedule configuration, time blocks
-- **Gantt** - Scheduling technique settings, Pomodoro config
+- **Gantt** - Scheduling technique settings
+- **Focus** - Pomodoro/Flow mode configuration
+- **Calendar** - Calendar display options
 - **Kanban** - Workflow states, transitions, views
 - **Sprints** - Sprint management, default duration
 - **Auto-Assign** - Default metadata for new todos
 - **Markers** - Color customization
+- **Links** - URL pattern detection
+- **Notifications** - Browser notification settings
 - **Backup** - Export/import data
+- **Storage** - IndexedDB/localStorage settings
 
 ### Markers Reference
 
@@ -246,11 +276,11 @@ Each data domain has its own hook:
 - **Date Parsing**: chrono-node
 - **Storage**: IndexedDB + localStorage
 - **Audio**: Web Audio API
-- **Testing**: Jest + ts-jest
+- **Testing**: Jest + Playwright
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Personal Use License - This software is available for personal, non-commercial use only. Commercial use, redistribution, and derivative works are prohibited. See [LICENSE](LICENSE) for full details.
 
 ## 🤝 Contributing
 
@@ -270,7 +300,3 @@ Additional documentation is available in the `docs/` folder:
 - [Storage Architecture](docs/storage-architecture.md)
 - [Auto-Detection Features](docs/auto-date-detection.md)
 - [Recurring Tasks](docs/recurring-tasks.md)
-
----
-
-Built with ❤️ using Next.js and TypeScript

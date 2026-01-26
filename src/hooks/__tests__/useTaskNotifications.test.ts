@@ -6,6 +6,7 @@ import { renderHook, act } from "@testing-library/react";
 import { useTaskNotifications } from "../useTaskNotifications";
 import { TodoModel } from "@/models/TodoModel";
 import { NotificationSettings } from "@/types/settings";
+import { getDurationHour, getDurationMin } from "@/types/time";
 import * as notifications from "@/utils/notifications";
 
 // Mock the notifications utils
@@ -37,7 +38,8 @@ describe("useTaskNotifications", () => {
     notifyOverdue: true,
     notifyDueToday: true,
     notifyDueSoon: true,
-    dueSoonHours: 24,
+    dueSoonHours: getDurationHour(24),
+    checkInterval: getDurationMin(15),
   };
 
   const createMockTodo = (id: string, isActive: boolean = true): TodoModel => {
@@ -236,7 +238,7 @@ describe("useTaskNotifications", () => {
       expect(mockCheckAndNotifyDueTasks).toHaveBeenCalledTimes(1);
 
       // Change settings
-      const newSettings = { ...defaultSettings, dueSoonHours: 12 };
+      const newSettings = { ...defaultSettings, dueSoonHours: getDurationHour(12) };
       rerender({ settings: newSettings });
 
       expect(mockCheckAndNotifyDueTasks).toHaveBeenCalledTimes(2);
