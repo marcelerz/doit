@@ -6,7 +6,6 @@
 
 import { TodoModel } from "@/models/TodoModel";
 import { ProjectModel } from "@/models/ProjectModel";
-import { Priority } from "@/types/priority";
 
 /**
  * Day data for calendar grid

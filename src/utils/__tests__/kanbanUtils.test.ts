@@ -18,10 +18,9 @@ import {
   KanbanFilters,
 } from "@/utils/kanbanUtils";
 import { createTestTodo, resetSettingsModel_DONOTUSE, DEFAULT_PRIORITIES } from "./testHelpers";
+import { TodoModel } from "@/models/TodoModel";
 import { Priority } from "@/types/priority";
 import { KanbanState, AllowedTransition, getKanbanStateId } from "@/types/kanbanState";
-import { getTodoId } from "@/types/todo";
-import { getPriorityId } from "@/types/priority";
 import { getColor } from "@/types/types";
 
 // Helper to create test priorities
@@ -32,10 +31,10 @@ function createTestPriorities(): Priority[] {
 // Helper to create test kanban states
 function createTestStates(): KanbanState[] {
   return [
-    { id: getKanbanStateId("backlog"), name: "Backlog", order: 0, isSystem: true },
-    { id: getKanbanStateId("in-progress"), name: "In Progress", order: 1, wipLimit: 3 },
-    { id: getKanbanStateId("review"), name: "Review", order: 2, wipLimit: 2 },
-    { id: getKanbanStateId("completed"), name: "Done", order: 3, isSystem: true },
+    { id: getKanbanStateId("backlog"), name: "Backlog", color: getColor("#94a3b8"), order: 0, isSystem: true },
+    { id: getKanbanStateId("in-progress"), name: "In Progress", color: getColor("#fbbf24"), order: 1, wipLimit: 3 },
+    { id: getKanbanStateId("review"), name: "Review", color: getColor("#a78bfa"), order: 2, wipLimit: 2 },
+    { id: getKanbanStateId("completed"), name: "Done", color: getColor("#4ade80"), order: 3, isSystem: true },
   ];
 }
 
@@ -345,36 +344,36 @@ describe("kanbanUtils", () => {
 
   describe("canAcceptMoreTasks", () => {
     it("should return true for system states", () => {
-      const state: KanbanState = { id: getKanbanStateId("backlog"), name: "Backlog", order: 0, isSystem: true };
+      const state: KanbanState = { id: getKanbanStateId("backlog"), name: "Backlog", color: getColor("#94a3b8"), order: 0, isSystem: true };
       expect(canAcceptMoreTasks(state, 100)).toBe(true);
     });
 
     it("should return true when no WIP limit", () => {
-      const state: KanbanState = { id: getKanbanStateId("review"), name: "Review", order: 2 };
+      const state: KanbanState = { id: getKanbanStateId("review"), name: "Review", color: getColor("#a78bfa"), order: 2 };
       expect(canAcceptMoreTasks(state, 100)).toBe(true);
     });
 
     it("should return true when under WIP limit", () => {
-      const state: KanbanState = { id: getKanbanStateId("in-progress"), name: "In Progress", order: 1, wipLimit: 3 };
+      const state: KanbanState = { id: getKanbanStateId("in-progress"), name: "In Progress", color: getColor("#fbbf24"), order: 1, wipLimit: 3 };
       expect(canAcceptMoreTasks(state, 2)).toBe(true);
     });
 
     it("should return false when at WIP limit", () => {
-      const state: KanbanState = { id: getKanbanStateId("in-progress"), name: "In Progress", order: 1, wipLimit: 3 };
+      const state: KanbanState = { id: getKanbanStateId("in-progress"), name: "In Progress", color: getColor("#fbbf24"), order: 1, wipLimit: 3 };
       expect(canAcceptMoreTasks(state, 3)).toBe(false);
     });
   });
 
   describe("getWipLimitStatus", () => {
     it("should return no limit for system states", () => {
-      const state: KanbanState = { id: getKanbanStateId("backlog"), name: "Backlog", order: 0, isSystem: true };
+      const state: KanbanState = { id: getKanbanStateId("backlog"), name: "Backlog", color: getColor("#94a3b8"), order: 0, isSystem: true };
       const result = getWipLimitStatus(state, 5);
 
       expect(result.hasLimit).toBe(false);
     });
 
     it("should indicate at limit", () => {
-      const state: KanbanState = { id: getKanbanStateId("in-progress"), name: "In Progress", order: 1, wipLimit: 3 };
+      const state: KanbanState = { id: getKanbanStateId("in-progress"), name: "In Progress", color: getColor("#fbbf24"), order: 1, wipLimit: 3 };
       const result = getWipLimitStatus(state, 3);
 
       expect(result.hasLimit).toBe(true);
@@ -383,7 +382,7 @@ describe("kanbanUtils", () => {
     });
 
     it("should indicate over limit", () => {
-      const state: KanbanState = { id: getKanbanStateId("in-progress"), name: "In Progress", order: 1, wipLimit: 3 };
+      const state: KanbanState = { id: getKanbanStateId("in-progress"), name: "In Progress", color: getColor("#fbbf24"), order: 1, wipLimit: 3 };
       const result = getWipLimitStatus(state, 5);
 
       expect(result.isOverLimit).toBe(true);

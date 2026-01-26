@@ -118,22 +118,31 @@ export function SprintsView({ sprints, todos, onOpenSprint, onAddSprint, searchI
     });
   }, [sprints, search, showArchived]);
 
-  // Count todos per sprint
-  const todoCountBySprint = useMemo(() => {
-    const counts: Record<string, { total: number; completed: number }> = {};
+  // Group todos by sprint
+  const todosBySprint = useMemo(() => {
+    const grouped: Record<string, TodoModel[]> = {};
     todos.forEach((todo) => {
       if (todo.sprint) {
-        if (!counts[todo.sprint]) {
-          counts[todo.sprint] = { total: 0, completed: 0 };
+        if (!grouped[todo.sprint]) {
+          grouped[todo.sprint] = [];
         }
-        counts[todo.sprint].total++;
-        if (todo.state === "completed") {
-          counts[todo.sprint].completed++;
-        }
+        grouped[todo.sprint].push(todo);
       }
     });
-    return counts;
+    return grouped;
   }, [todos]);
+
+  // Count todos per sprint (for backwards compatibility)
+  const todoCountBySprint = useMemo(() => {
+    const counts: Record<string, { total: number; completed: number }> = {};
+    Object.entries(todosBySprint).forEach(([sprintId, sprintTodos]) => {
+      counts[sprintId] = {
+        total: sprintTodos.length,
+        completed: sprintTodos.filter((t) => t.state === "completed").length,
+      };
+    });
+    return counts;
+  }, [todosBySprint]);
 
   return (
     <div className="space-y-4">
@@ -200,6 +209,7 @@ export function SprintsView({ sprints, todos, onOpenSprint, onAddSprint, searchI
                 isRunning={sprint.status === "active"}
                 todoCount={todoCountBySprint[sprint.id]?.total || 0}
                 completedTodoCount={todoCountBySprint[sprint.id]?.completed || 0}
+                sprintTodos={todosBySprint[sprint.id] || []}
               />
             </li>
           ))}

@@ -10,7 +10,6 @@ import {
   applyQuickFilter,
   getMarkerColorKey,
   BatchEditData,
-  QuickFilterType,
 } from "@/utils/listViewUtils";
 import { createTestTodo, resetSettingsModel_DONOTUSE } from "./testHelpers";
 import { getTodoId } from "@/types/todo";

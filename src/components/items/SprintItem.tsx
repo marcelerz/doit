@@ -1,14 +1,20 @@
 "use client";
 
 import { SprintModel } from "@/hooks/useSprints";
+import { TodoModel } from "@/models/TodoModel";
 import { ChevronRightIcon } from "@/components/shared/Icons";
+import { SprintProgress } from "@/components/shared/SprintProgress";
 
 interface SprintItemProps {
   sprint: SprintModel;
   onClick: () => void;
   isRunning?: boolean;
+  /** @deprecated Use sprintTodos instead */
   todoCount?: number;
+  /** @deprecated Use sprintTodos instead */
   completedTodoCount?: number;
+  /** Todos assigned to this sprint (for progress calculation) */
+  sprintTodos?: TodoModel[];
 }
 
 export function SprintItem({
@@ -17,8 +23,14 @@ export function SprintItem({
   isRunning = false,
   todoCount = 0,
   completedTodoCount = 0,
+  sprintTodos = [],
 }: SprintItemProps) {
-  const progressPercent = todoCount > 0 ? Math.round((completedTodoCount / todoCount) * 100) : 0;
+  // Use sprintTodos if available, otherwise fall back to counts
+  const effectiveTodoCount = sprintTodos.length > 0 ? sprintTodos.length : todoCount;
+  const effectiveCompletedCount = sprintTodos.length > 0
+    ? sprintTodos.filter(t => t.state === "completed").length
+    : completedTodoCount;
+  const progressPercent = effectiveTodoCount > 0 ? Math.round((effectiveCompletedCount / effectiveTodoCount) * 100) : 0;
 
   return (
     <div
@@ -69,12 +81,25 @@ export function SprintItem({
               {!sprint.actualStartDate && sprint.plannedStartDate && <span>Planned: {sprint.plannedStartDate}</span>}
             </div>
 
-            {/* Progress bar for active sprint */}
-            {sprint.status === "active" && (
+            {/* Progress bars for active sprint */}
+            {sprint.status === "active" && sprintTodos.length > 0 && (
+              <div className="mt-3">
+                <SprintProgress
+                  daysElapsed={sprint.daysElapsed}
+                  durationDays={sprint.durationDays}
+                  daysRemaining={sprint.daysRemaining}
+                  sprintTodos={sprintTodos}
+                  compact={true}
+                />
+              </div>
+            )}
+
+            {/* Fallback for active sprint without sprintTodos */}
+            {sprint.status === "active" && sprintTodos.length === 0 && effectiveTodoCount > 0 && (
               <div className="mt-3">
                 <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 mb-1">
                   <span>
-                    {completedTodoCount}/{todoCount} tasks completed
+                    {effectiveCompletedCount}/{effectiveTodoCount} tasks completed
                   </span>
                   {sprint.daysRemaining !== null && (
                     <span className={sprint.daysRemaining < 0 ? "text-red-500" : ""}>
@@ -96,9 +121,9 @@ export function SprintItem({
             )}
 
             {/* Task count for non-active sprints */}
-            {sprint.status !== "active" && todoCount > 0 && (
+            {sprint.status !== "active" && effectiveTodoCount > 0 && (
               <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                {completedTodoCount}/{todoCount} tasks
+                {effectiveCompletedCount}/{effectiveTodoCount} tasks
                 {sprint.isCompleted && ` • ${progressPercent}% completed`}
               </div>
             )}

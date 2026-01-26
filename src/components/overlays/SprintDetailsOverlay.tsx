@@ -5,11 +5,14 @@ import { SprintModel } from "@/hooks/useSprints";
 import { Sprint, SprintId } from "@/types/sprint";
 import { TodoId } from "@/types/todo";
 import { MarkerColors } from "@/types/markerColors";
+import { LinkPattern } from "@/types/linkPattern";
 import { getColor, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
+import { processLinkPatternsInHtml } from "@/utils/linkPatternUtils";
 import { Activity } from "@/components/shared/Activity";
 import { ActionButtons } from "@/components/shared/ActionButtons";
 import { Modal } from "@/components/shared/Modal";
+import { SprintProgress } from "@/components/shared/SprintProgress";
 import { CloseIcon, CheckIcon } from "@/components/shared/Icons";
 import { TodoModel } from "@/models/TodoModel";
 
@@ -18,6 +21,7 @@ interface SprintDetailsOverlayProps {
   allSprints: SprintModel[];
   todos: TodoModel[];
   markerColors: MarkerColors;
+  linkPatterns?: LinkPattern[];
   onClose: () => void;
   onUpdate: (id: SprintId, updates: Partial<Sprint>) => void;
   onDelete: (id: SprintId) => void;
@@ -40,6 +44,7 @@ export function SprintDetailsOverlay({
   allSprints,
   todos,
   markerColors,
+  linkPatterns = [],
   onClose,
   onUpdate,
   onDelete,
@@ -368,34 +373,16 @@ export function SprintDetailsOverlay({
               {/* Progress (for active sprints) */}
               {sprint.status === "active" && (
                 <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Sprint Progress</span>
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">
-                      {sprint.daysElapsed} of {sprint.durationDays} days
-                    </span>
                   </div>
-                  <div className="h-3 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden mb-2">
-                    <div
-                      className={`h-full transition-all duration-300 ${
-                        sprint.daysRemaining !== null && sprint.daysRemaining < 0 ? "bg-red-500" : "bg-blue-500"
-                      }`}
-                      style={{ width: `${sprint.progress}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-                    <span>
-                      {completedTodos.length}/{sprintTodos.length} tasks completed
-                    </span>
-                    {sprint.daysRemaining !== null && (
-                      <span className={sprint.daysRemaining < 0 ? "text-red-500 font-medium" : ""}>
-                        {sprint.daysRemaining < 0
-                          ? `${Math.abs(sprint.daysRemaining)} days overdue`
-                          : sprint.daysRemaining === 0
-                          ? "Last day!"
-                          : `${sprint.daysRemaining} days remaining`}
-                      </span>
-                    )}
-                  </div>
+                  <SprintProgress
+                    daysElapsed={sprint.daysElapsed}
+                    durationDays={sprint.durationDays}
+                    daysRemaining={sprint.daysRemaining}
+                    sprintTodos={sprintTodos}
+                    compact={false}
+                  />
                 </div>
               )}
 
@@ -412,11 +399,14 @@ export function SprintDetailsOverlay({
                     minHeight="80px"
                     maxHeight="200px"
                     noBorderInViewMode={true}
+                    linkPatterns={linkPatterns}
                   />
                 ) : (
                   <div
-                    className="px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300"
-                    dangerouslySetInnerHTML={{ __html: sprint.goal || "<em>No goal set</em>" }}
+                    className="px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer"
+                    dangerouslySetInnerHTML={{
+                      __html: processLinkPatternsInHtml(sprint.goal || "<em>No goal set</em>", linkPatterns),
+                    }}
                   />
                 )}
               </div>
@@ -505,6 +495,7 @@ export function SprintDetailsOverlay({
                       minHeight="60px"
                       maxHeight="200px"
                       alwaysEditable={true}
+                      linkPatterns={linkPatterns}
                     />
                   </div>
                   <button
@@ -516,7 +507,7 @@ export function SprintDetailsOverlay({
                   </button>
                 </div>
 
-                <Activity activities={sprint.activity || []} comments={sprint.comments} />
+                <Activity activities={sprint.activity || []} comments={sprint.comments} linkPatterns={linkPatterns} />
               </div>
             </div>
           )}

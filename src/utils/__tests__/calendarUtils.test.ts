@@ -21,6 +21,7 @@ import {
   isCurrentMonth,
 } from "@/utils/calendarUtils";
 import { createTestTodo, resetSettingsModel_DONOTUSE } from "./testHelpers";
+import { TodoModel } from "@/models/TodoModel";
 import { ProjectModel, createProjectModel } from "@/models/ProjectModel";
 import { getProjectId } from "@/types/project";
 import { getTodoId } from "@/types/todo";
@@ -33,6 +34,8 @@ function createTestProject(overrides: Partial<Parameters<typeof createProjectMod
     name: overrides.name || "Test Project",
     color: overrides.color || getColor("#6366f1"),
     alternatives: overrides.alternatives || [],
+    comments: [],
+    activity: [],
     ...overrides,
   });
 }

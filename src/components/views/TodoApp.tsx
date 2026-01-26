@@ -1081,6 +1081,7 @@ export function TodoApp() {
                 onEditComment={editPersonComment}
                 onDeleteComment={deletePersonComment}
                 markerColors={settings.markerColors}
+                linkPatterns={settings.linkPatterns}
               />
             ) : null;
           })()}
@@ -1102,6 +1103,7 @@ export function TodoApp() {
                 onDeleteComment={deleteProjectComment}
                 categories={settings.categories}
                 markerColors={settings.markerColors}
+                linkPatterns={settings.linkPatterns}
               />
             ) : null;
           })()}
@@ -1116,6 +1118,7 @@ export function TodoApp() {
                 allSprints={sprints}
                 todos={todos}
                 markerColors={settings.markerColors}
+                linkPatterns={settings.linkPatterns}
                 onClose={() => setDetailsOverlaySprintId(null)}
                 onUpdate={updateSprint}
                 onDelete={(id) => {

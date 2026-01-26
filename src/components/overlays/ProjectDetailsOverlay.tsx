@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ProjectModel } from "@/models/ProjectModel";
 import { Project, ProjectCategory, ProjectId, getProjectCategoryId } from "@/types/project";
 import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
+import { LinkPattern } from "@/types/linkPattern";
 import { getColor, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
@@ -25,6 +26,7 @@ interface ProjectDetailsOverlayProps {
   onDeleteComment: (projectId: ProjectId, commentId: CommentId) => void;
   categories?: ProjectCategory[];
   markerColors?: MarkerColors;
+  linkPatterns?: LinkPattern[];
 }
 
 export function ProjectDetailsOverlay({
@@ -39,6 +41,7 @@ export function ProjectDetailsOverlay({
   onDeleteComment: _onDeleteComment,
   categories = [],
   markerColors = defaultMarkerColors,
+  linkPatterns = [],
 }: ProjectDetailsOverlayProps) {
   const [editingName, setEditingName] = useState(project.name);
   const [editingAlternatives, setEditingAlternatives] = useState(project.alternatives);
@@ -216,6 +219,7 @@ export function ProjectDetailsOverlay({
               minHeight="100px"
               maxHeight="300px"
               noBorderInViewMode={true}
+              linkPatterns={linkPatterns}
             />
           </div>
 
@@ -267,6 +271,7 @@ export function ProjectDetailsOverlay({
                 minHeight="60px"
                 maxHeight="200px"
                 alwaysEditable={true}
+                linkPatterns={linkPatterns}
               />
             </div>
             <button
@@ -278,7 +283,7 @@ export function ProjectDetailsOverlay({
             </button>
           </div>
 
-          <Activity activities={project.activity || []} comments={project.comments} />
+          <Activity activities={project.activity || []} comments={project.comments} linkPatterns={linkPatterns} />
         </div>
       </div>
     </Modal>

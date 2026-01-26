@@ -155,7 +155,7 @@ export function extractLinks(
           text: match[0],
         });
       }
-    } catch (e) {
+    } catch (_e) {
       // Invalid regex pattern - skip silently
     }
   });

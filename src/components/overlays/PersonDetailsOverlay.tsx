@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { PersonModel } from "@/models/PersonModel";
 import { Person, PersonId } from "@/types/person";
 import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
+import { LinkPattern } from "@/types/linkPattern";
 import { getColor, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
@@ -24,6 +25,7 @@ interface PersonDetailsOverlayProps {
   onEditComment: (personId: PersonId, commentId: CommentId, content: string) => void;
   onDeleteComment: (personId: PersonId, commentId: CommentId) => void;
   markerColors?: MarkerColors;
+  linkPatterns?: LinkPattern[];
 }
 
 export function PersonDetailsOverlay({
@@ -37,6 +39,7 @@ export function PersonDetailsOverlay({
   onEditComment: _onEditComment,
   onDeleteComment: _onDeleteComment,
   markerColors = defaultMarkerColors,
+  linkPatterns = [],
 }: PersonDetailsOverlayProps) {
   const [editingName, setEditingName] = useState(person.name);
   const [editingAlternatives, setEditingAlternatives] = useState(person.alternatives);
@@ -180,6 +183,7 @@ export function PersonDetailsOverlay({
               minHeight="100px"
               maxHeight="300px"
               noBorderInViewMode={true}
+              linkPatterns={linkPatterns}
             />
           </div>
 
@@ -231,6 +235,7 @@ export function PersonDetailsOverlay({
                 minHeight="60px"
                 maxHeight="200px"
                 alwaysEditable={true}
+                linkPatterns={linkPatterns}
               />
             </div>
             <button
@@ -242,7 +247,7 @@ export function PersonDetailsOverlay({
             </button>
           </div>
 
-          <Activity activities={person.activity || []} comments={person.comments} />
+          <Activity activities={person.activity || []} comments={person.comments} linkPatterns={linkPatterns} />
         </div>
       </div>
     </Modal>

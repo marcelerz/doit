@@ -7,9 +7,12 @@
 import { TodoModel } from "@/models/TodoModel";
 import { SettingsModel, createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { Settings } from "@/types/settings";
-import { Todo, getTodoId } from "@/types/todo";
+import { Todo, TodoId, getTodoId, Tag } from "@/types/todo";
+import { PersonId } from "@/types/person";
+import { ProjectId } from "@/types/project";
 import { getPriorityId, Priority } from "@/types/priority";
 import { getColor } from "@/types/types";
+import { Timestamp } from "@/types/time";
 import {
   getShortTime,
   getWeekday,
@@ -20,6 +23,42 @@ import {
   getDurationSec,
   getDurationHour,
 } from "@/types/time";
+
+/**
+ * Flexible test overrides that allow strings for branded types.
+ * This makes writing tests more convenient.
+ */
+export interface TestTodoOverrides {
+  id?: string | TodoId;
+  text?: string;
+  plainText?: string;
+  state?: Todo["state"];
+  createdAt?: number | Timestamp;
+  completedAt?: number | Timestamp;
+  assignedPeople?: string[];
+  sourcePeople?: string[];
+  mentionedPeople?: string[];
+  projects?: string[];
+  tags?: string[];
+  dependencies?: string[];
+  priority?: string;
+  dueDate?: string | number;
+  duration?: string | number;
+  sprint?: string;
+  workflowState?: string;
+  metadata?: {
+    assignedPeople?: string[];
+    sourcePeople?: string[];
+    mentionedPeople?: string[];
+    projects?: string[];
+    tags?: string[];
+    priority?: string;
+    dueDate?: string | number;
+    duration?: string | number;
+    sprint?: string;
+  };
+  priorityOrder?: number;
+}
 
 // Re-export for convenience
 export { resetSettingsModel_DONOTUSE };
@@ -182,31 +221,34 @@ export function createTestSettings(overrides: Partial<Settings> = {}): SettingsM
 /**
  * Create a raw Todo object for testing
  */
-export function createRawTodo(overrides: Partial<Todo> = {}): Todo {
+export function createRawTodo(overrides: TestTodoOverrides = {}): Todo {
+  const id = typeof overrides.id === "string" ? getTodoId(overrides.id) : (overrides.id || getTodoId(`test-${Date.now()}-${Math.random()}`));
+  const createdAt = overrides.createdAt ? getTimestamp(overrides.createdAt as number) : getTimestamp(Date.now());
+  const completedAt = overrides.completedAt ? getTimestamp(overrides.completedAt as number) : undefined;
+
   return {
-    id: getTodoId(overrides.id || `test-${Date.now()}-${Math.random()}`),
+    id,
     text: overrides.text || "Test todo",
     plainText: overrides.plainText || overrides.text || "Test todo",
     state: overrides.state || "active",
-    createdAt: overrides.createdAt ? getTimestamp(overrides.createdAt) : getTimestamp(Date.now()),
+    createdAt,
     context: "",
-    assignedPeople: overrides.assignedPeople || [],
-    sourcePeople: overrides.sourcePeople || [],
-    mentionedPeople: overrides.mentionedPeople || [],
-    projects: overrides.projects || [],
-    tags: overrides.tags || [],
-    dependencies: overrides.dependencies || [],
+    assignedPeople: (overrides.assignedPeople || []) as PersonId[],
+    sourcePeople: (overrides.sourcePeople || []) as PersonId[],
+    mentionedPeople: (overrides.mentionedPeople || []) as PersonId[],
+    projects: (overrides.projects || []) as ProjectId[],
+    tags: (overrides.tags || []) as Tag[],
+    dependencies: (overrides.dependencies || []) as TodoId[],
     comments: [],
     activity: [],
     subtasks: [],
-    completedAt: overrides.completedAt ? getTimestamp(overrides.completedAt) : undefined,
-    priority: overrides.priority,
-    dueDate: parseDateToTimestamp(overrides.dueDate as string | number | undefined) as Todo["dueDate"],
-    duration: overrides.duration,
-    sprint: overrides.sprint,
-    workflowState: overrides.workflowState,
-    ...overrides,
-  } as Todo;
+    completedAt,
+    priority: overrides.priority as Todo["priority"],
+    dueDate: parseDateToTimestamp(overrides.dueDate) as Todo["dueDate"],
+    duration: overrides.duration as Todo["duration"],
+    sprint: overrides.sprint as Todo["sprint"],
+    workflowState: overrides.workflowState as Todo["workflowState"],
+  };
 }
 
 /**
@@ -261,7 +303,7 @@ function parseDurationToSeconds(durationValue: string | number | undefined): num
  * Create a TodoModel for testing with proper settings
  */
 export function createTestTodo(
-  overrides: Partial<Todo & { metadata?: Partial<Todo>; priorityOrder?: number }> = {},
+  overrides: TestTodoOverrides = {},
   settings?: SettingsModel
 ): TodoModel {
   const metadata = overrides.metadata || {};
@@ -269,7 +311,7 @@ export function createTestTodo(
 
   // Convert priority name to ID if provided as a name
   const priorityName = metadata.priority ?? overrides.priority;
-  const priorityId = priorityName ? getPriorityIdFromName(priorityName as string) ?? priorityName : undefined;
+  const priorityId = priorityName ? getPriorityIdFromName(priorityName) ?? priorityName : undefined;
 
   const todo = createRawTodo({
     ...overrides,
@@ -278,9 +320,9 @@ export function createTestTodo(
     mentionedPeople: metadata.mentionedPeople ?? overrides.mentionedPeople,
     projects: metadata.projects ?? overrides.projects,
     tags: metadata.tags ?? overrides.tags,
-    priority: priorityId as Todo["priority"],
-    dueDate: parseDateToTimestamp(metadata.dueDate ?? overrides.dueDate) as Todo["dueDate"],
-    duration: parseDurationToSeconds(metadata.duration ?? overrides.duration) as Todo["duration"],
+    priority: priorityId,
+    dueDate: parseDateToTimestamp(metadata.dueDate ?? overrides.dueDate),
+    duration: parseDurationToSeconds(metadata.duration ?? overrides.duration),
     sprint: metadata.sprint ?? overrides.sprint,
   });
   return new TodoModel(todo, settingsModel);

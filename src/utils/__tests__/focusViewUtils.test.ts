@@ -34,7 +34,7 @@ function createScheduledTask(
     startTime: new Date(),
     endTime: new Date(Date.now() + 30 * 60 * 1000),
     durationMinutes: 30,
-    segments: [{ durationMinutes: 30, startTime: new Date(), endTime: new Date() }],
+    segments: [{ durationMinutes: 30, startTime: new Date(), endTime: new Date(), nextBreak: null }],
     ...options,
   } as ScheduledTask;
 }
@@ -122,7 +122,7 @@ describe("focusViewUtils", () => {
     it("should create schedule items for task segments", () => {
       const todo = createTestTodo({ id: "1" });
       const task = createScheduledTask(todo, {
-        segments: [{ durationMinutes: 25, startTime: new Date(), endTime: new Date() }],
+        segments: [{ durationMinutes: 25, startTime: new Date(), endTime: new Date(), nextBreak: null }],
       });
 
       const schedule = buildFlatSchedule([task]);
@@ -136,8 +136,8 @@ describe("focusViewUtils", () => {
       const todo = createTestTodo({ id: "1" });
       const task = createScheduledTask(todo, {
         segments: [
-          { durationMinutes: 25, startTime: new Date(), endTime: new Date(), nextBreak: { durationMinutes: 5, label: "Short break" } },
-          { durationMinutes: 25, startTime: new Date(), endTime: new Date() },
+          { durationMinutes: 25, startTime: new Date(), endTime: new Date(), nextBreak: { type: "short", durationMinutes: 5, icon: "🍅", label: "Short break" } },
+          { durationMinutes: 25, startTime: new Date(), endTime: new Date(), nextBreak: null },
         ],
       });
 
@@ -153,8 +153,8 @@ describe("focusViewUtils", () => {
       const todo = createTestTodo({ id: "1" });
       const task = createScheduledTask(todo, {
         segments: [
-          { durationMinutes: 25, startTime: new Date(), endTime: new Date() },
-          { durationMinutes: 25, startTime: new Date(), endTime: new Date() },
+          { durationMinutes: 25, startTime: new Date(), endTime: new Date(), nextBreak: null },
+          { durationMinutes: 25, startTime: new Date(), endTime: new Date(), nextBreak: null },
         ],
       });
 
@@ -167,8 +167,8 @@ describe("focusViewUtils", () => {
     it("should not add break after last segment of last task", () => {
       const todo = createTestTodo({ id: "1" });
       const task = createScheduledTask(todo, {
-        segments: [{ durationMinutes: 25, startTime: new Date(), endTime: new Date() }],
-        nextBreak: { durationMinutes: 5, label: "Break" },
+        segments: [{ durationMinutes: 25, startTime: new Date(), endTime: new Date(), nextBreak: null }],
+        nextBreak: { type: "short", durationMinutes: 5, icon: "🍅", label: "Break" },
       });
 
       const schedule = buildFlatSchedule([task]);
@@ -181,11 +181,11 @@ describe("focusViewUtils", () => {
       const todo2 = createTestTodo({ id: "2" });
       const tasks = [
         createScheduledTask(todo1, {
-          segments: [{ durationMinutes: 25, startTime: new Date(), endTime: new Date() }],
-          nextBreak: { durationMinutes: 5, label: "Break" },
+          segments: [{ durationMinutes: 25, startTime: new Date(), endTime: new Date(), nextBreak: null }],
+          nextBreak: { type: "short", durationMinutes: 5, icon: "🍅", label: "Break" },
         }),
         createScheduledTask(todo2, {
-          segments: [{ durationMinutes: 25, startTime: new Date(), endTime: new Date() }],
+          segments: [{ durationMinutes: 25, startTime: new Date(), endTime: new Date(), nextBreak: null }],
         }),
       ];
 

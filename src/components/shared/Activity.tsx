@@ -1,7 +1,9 @@
 "use client";
 
 import { Comment } from "@/types/types";
+import { LinkPattern } from "@/types/linkPattern";
 import { formatActivityTime, formatActivityDateTime } from "@/utils/activityLogger";
+import { processLinkPatternsInHtml } from "@/utils/linkPatternUtils";
 
 // Generic activity entry that works for todos, people, projects, and sprints
 interface GenericActivityEntry {
@@ -22,12 +24,13 @@ interface ActivityProps {
   activities: GenericActivityEntry[];
   comments: Comment[];
   onNavigateToTask?: (taskId: string) => void;
+  linkPatterns?: LinkPattern[];
 }
 
 // Union type for combined timeline items
 type TimelineItem = { type: "activity"; data: GenericActivityEntry } | { type: "comment"; data: Comment };
 
-export function Activity({ activities, comments, onNavigateToTask }: ActivityProps) {
+export function Activity({ activities, comments, onNavigateToTask, linkPatterns = [] }: ActivityProps) {
   // Combine activities and comments into a single timeline
   const timelineItems: TimelineItem[] = [
     ...activities.map((activity): TimelineItem => ({ type: "activity", data: activity })),
@@ -216,7 +219,9 @@ export function Activity({ activities, comments, onNavigateToTask }: ActivityPro
                         </span>
                         <div
                           className="mt-1 text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 p-2 rounded [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer"
-                          dangerouslySetInnerHTML={{ __html: entry.content }}
+                          dangerouslySetInnerHTML={{
+                            __html: processLinkPatternsInHtml(entry.content, linkPatterns),
+                          }}
                         />
                       </div>
                       <span

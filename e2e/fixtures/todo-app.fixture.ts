@@ -295,7 +295,6 @@ export const test = base.extend<{ todoApp: TodoAppFixture }>({
 
       getAppState: async (): Promise<AppStateSnapshot> => {
         const todoTexts = await fixture.getTodos();
-        const todoItems = page.locator('[data-testid="todo-item"]');
         const completedItems = page.locator('[data-testid="todo-item"][data-completed="true"]');
         const completedCount = await completedItems.count().catch(() => 0);
 

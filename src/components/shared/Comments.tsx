@@ -3,8 +3,10 @@
 import { useState } from "react";
 import DOMPurify from "dompurify";
 import { Comment, CommentId } from "@/types/types";
+import { LinkPattern } from "@/types/linkPattern";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { EditIcon, TrashIcon } from "@/components/shared/Icons";
+import { processLinkPatternsInHtml } from "@/utils/linkPatternUtils";
 
 // Sanitize HTML content to prevent XSS attacks
 function sanitizeHtml(html: string): string {
@@ -21,9 +23,16 @@ interface CommentsProps {
   onAddComment: (content: string) => void;
   onEditComment: (commentId: CommentId, content: string) => void;
   onDeleteComment: (commentId: CommentId) => void;
+  linkPatterns?: LinkPattern[];
 }
 
-export function Comments({ comments, onAddComment, onEditComment, onDeleteComment }: CommentsProps) {
+export function Comments({
+  comments,
+  onAddComment,
+  onEditComment,
+  onDeleteComment,
+  linkPatterns = [],
+}: CommentsProps) {
   const [newComment, setNewComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<CommentId | null>(null);
   const [editContent, setEditContent] = useState("");
@@ -169,7 +178,9 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
                     <div className="flex justify-between items-start gap-2 mb-2">
                       <div
                         className="text-sm text-zinc-700 dark:text-zinc-300 flex-1 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer"
-                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(latestEntry.content) }}
+                        dangerouslySetInnerHTML={{
+                          __html: processLinkPatternsInHtml(sanitizeHtml(latestEntry.content), linkPatterns),
+                        }}
                       />
                       <div className="flex gap-1 flex-shrink-0">
                         <button
@@ -214,7 +225,9 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
                             <div key={idx} className="text-xs">
                               <div
                                 className="text-zinc-600 dark:text-zinc-400 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer"
-                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(entry.content) }}
+                                dangerouslySetInnerHTML={{
+                                  __html: processLinkPatternsInHtml(sanitizeHtml(entry.content), linkPatterns),
+                                }}
                               />
                               <span className="text-zinc-500 dark:text-zinc-500">{formatDate(entry.timestamp)}</span>
                             </div>

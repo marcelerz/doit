@@ -518,6 +518,7 @@ export function TodoDetailsOverlay({
             minHeight="100px"
             maxHeight="300px"
             noBorderInViewMode={true}
+            linkPatterns={linkPatterns}
           />
         </div>
 
@@ -1274,6 +1275,7 @@ export function TodoDetailsOverlay({
                   minHeight="60px"
                   maxHeight="200px"
                   alwaysEditable={true}
+                  linkPatterns={linkPatterns}
                 />
               </div>
               <button
@@ -1296,6 +1298,7 @@ export function TodoDetailsOverlay({
             activities={todo.activity}
             comments={todo.comments}
             onNavigateToTask={onSelectTodo ? (taskId) => onSelectTodo(taskId as TodoId) : undefined}
+            linkPatterns={linkPatterns}
           />
         </div>
       </div>

@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import DOMPurify from "dompurify";
+import { LinkPattern } from "@/types/linkPattern";
+import { processLinkPatternsInHtml } from "@/utils/linkPatternUtils";
 
 // Sanitize HTML content to prevent XSS attacks
 function sanitizeHtml(html: string): string {
@@ -24,6 +26,7 @@ interface RichTextEditorProps {
   showKeyboardShortcuts?: boolean;
   alwaysEditable?: boolean; // When true, always stays in edit mode
   noBorderInViewMode?: boolean; // When true, hides border in view mode
+  linkPatterns?: LinkPattern[]; // Link patterns to auto-detect in display mode
 }
 
 export default function RichTextEditor({
@@ -38,6 +41,7 @@ export default function RichTextEditor({
   showKeyboardShortcuts = false,
   alwaysEditable = false,
   noBorderInViewMode = false,
+  linkPatterns = [],
 }: RichTextEditorProps) {
   const [showFormattingToolbar, setShowFormattingToolbar] = useState(false);
   const [toolbarPosition, setToolbarPosition] = useState({ top: 0, left: 0 });
@@ -136,7 +140,9 @@ export default function RichTextEditor({
               }, 0);
             }
           }}
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(value || "") }}
+          dangerouslySetInnerHTML={{
+            __html: processLinkPatternsInHtml(sanitizeHtml(value || ""), linkPatterns),
+          }}
           style={{ minHeight, maxHeight }}
           className={`overflow-y-auto text-sm px-3 py-2 rounded whitespace-pre-wrap ${
             noBorderInViewMode ? "border-0" : "border border-zinc-300 dark:border-zinc-600"

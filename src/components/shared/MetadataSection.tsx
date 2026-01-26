@@ -73,7 +73,7 @@ export function MetadataSection({
         </span>
         {tooltip && <InfoTooltip content={tooltip} />}
       </h4>
-      {noItemsMessage && (!availableItems || availableItems.length <= 1) ? (
+      {noItemsMessage && (!availableItems || availableItems.length === 0) ? (
         <div className="text-xs text-zinc-500 dark:text-zinc-400 italic">{noItemsMessage}</div>
       ) : (
         <div className="flex flex-wrap gap-1.5">
