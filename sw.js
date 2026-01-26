@@ -138,19 +138,19 @@ self.addEventListener("fetch", (event) => {
   }
 
   // For sounds, use cache-first strategy
-  if (url.pathname.startsWith("/sounds/")) {
+  if (url.pathname.startsWith("/sounds/") || url.pathname.startsWith(`${BASE_PATH}/sounds/`)) {
     event.respondWith(cacheFirst(request, DYNAMIC_CACHE_NAME));
     return;
   }
 
   // For Next.js static assets (_next/static), use cache-first
-  if (url.pathname.startsWith("/_next/static/")) {
+  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith(`${BASE_PATH}/_next/static/`)) {
     event.respondWith(cacheFirst(request, DYNAMIC_CACHE_NAME));
     return;
   }
 
   // For other _next requests, use stale-while-revalidate
-  if (url.pathname.startsWith("/_next/")) {
+  if (url.pathname.startsWith("/_next/") || url.pathname.startsWith(`${BASE_PATH}/_next/`)) {
     event.respondWith(staleWhileRevalidate(request, DYNAMIC_CACHE_NAME));
     return;
   }
@@ -166,14 +166,14 @@ async function networkFirst(request, cacheName) {
   try {
     const networkResponse = await fetch(request);
 
-    // Cache successful responses
-    if (networkResponse.ok) {
+    // Cache successful responses (skip 206 partial responses which can't be cached)
+    if (networkResponse.ok && networkResponse.status !== 206) {
       const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
     }
 
     return networkResponse;
-  } catch (error) {
+  } catch (_error) {
     // Network failed, try cache
     const cachedResponse = await caches.match(request);
 
@@ -209,14 +209,14 @@ async function cacheFirst(request, cacheName) {
   try {
     const networkResponse = await fetch(request);
 
-    // Cache successful responses
-    if (networkResponse.ok) {
+    // Cache successful responses (skip 206 partial responses which can't be cached)
+    if (networkResponse.ok && networkResponse.status !== 206) {
       const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
     }
 
     return networkResponse;
-  } catch (error) {
+  } catch (_error) {
     // Return a basic error response
     return new Response("Resource not available offline", {
       status: 503,
@@ -231,10 +231,10 @@ async function staleWhileRevalidate(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cachedResponse = await cache.match(request);
 
-  // Fetch in background to update cache
+  // Fetch in background to update cache (skip 206 partial responses which can't be cached)
   const fetchPromise = fetch(request)
     .then((networkResponse) => {
-      if (networkResponse.ok) {
+      if (networkResponse.ok && networkResponse.status !== 206) {
         cache.put(request, networkResponse.clone());
       }
       return networkResponse;
