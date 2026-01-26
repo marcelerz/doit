@@ -62,7 +62,7 @@ test.describe("Advanced Search", () => {
     await expect(app).toBeVisible();
   });
 
-  test("should update results as user types", async ({ page, todoApp }) => {
+  test("should update results as user types", async ({ page, todoApp: _todoApp }) => {
     const searchInput = page.getByTestId("search-input");
 
     // Type "c" - should match "Call" and "client"

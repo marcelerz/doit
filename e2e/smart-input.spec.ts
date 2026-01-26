@@ -46,7 +46,7 @@ test.describe("Smart Input Features", () => {
     await expect(todoItem).toBeVisible();
   });
 
-  test("should clear input after adding todo", async ({ page, todoApp }) => {
+  test("should clear input after adding todo", async ({ page, todoApp: _todoApp }) => {
     // Open the Add overlay
     const addButton = page.locator('button:has-text("Add")').first();
     await addButton.click();
@@ -70,7 +70,7 @@ test.describe("Smart Input Features", () => {
     await expect(todoItems).toHaveCount(1);
   });
 
-  test("should support keyboard navigation in autocomplete", async ({ page, todoApp }) => {
+  test("should support keyboard navigation in autocomplete", async ({ page, todoApp: _todoApp }) => {
     // Open the Add overlay
     const addButton = page.locator('button:has-text("Add")').first();
     await addButton.click();

@@ -5,13 +5,12 @@ import { TodoMetadata, TodoId, SubtaskId, TimeEntryId } from "@/types/todo";
 import { TodoModel } from "@/models/TodoModel";
 import { WorkHoursSettings, Settings } from "@/types/settings";
 import { MarkerColors } from "@/types/markerColors";
-import { GanttZoomLevel, SchedulingTechnique, Gantt } from "@/types/gantt";
+import { GanttZoomLevel, Gantt } from "@/types/gantt";
 import { DEFAULT_BLOCK_TYPES, TimeBlockType } from "@/types/timeBlock";
 import { LinkPattern } from "@/types/linkPattern";
 import { Priority } from "@/types/priority";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
-import { CommentId } from "@/types/types";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
@@ -34,18 +33,13 @@ import {
 } from "@/components/shared/Icons";
 import {
   ScheduledTask,
-  TaskSegment,
   BreakBlock as SchedulerBreakBlock,
-  BreakInfo,
   parseTime,
-  parseDuration,
   getScheduleForDate,
-  getPomodoroBreakDuration,
   sortTodosForScheduling,
   createTaskSchedulingMap,
   scheduleDayTasks,
   scheduleWeekTasks,
-  WeekDaySchedule,
 } from "@/utils/ganttScheduler";
 
 // Gantt View Tutorial Steps
@@ -200,7 +194,7 @@ export function GanttView({
     today.setHours(0, 0, 0, 0);
     return today;
   });
-  const [weekOffset, setWeekOffset] = useState(0); // 0 = current week, 1 = next week, -1 = previous week
+  const [_weekOffset, _setWeekOffset] = useState(0); // 0 = current week, 1 = next week, -1 = previous week
 
   // View options state - initialized with defaults, loaded from storage in useEffect
 
@@ -273,7 +267,7 @@ export function GanttView({
   );
 
   // Parse duration string to minutes
-  const parseDuration = (duration: string | undefined): number => {
+  const _parseDuration = (duration: string | undefined): number => {
     if (!duration) return settings.gantt.defaultTaskDuration;
 
     const match = duration.match(/(\d+)([mhd])?/i);
@@ -492,6 +486,15 @@ export function GanttView({
     };
   }, [activeTasks, completedTasks, dayStartTime, dayEndTime, breakBlocks, taskConflicts]);
 
+  // Navigate to adjacent date - defined before keyboard handler that uses it
+  const navigateDate = useCallback((delta: number) => {
+    setSelectedDate((prev) => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() + delta);
+      return newDate;
+    });
+  }, []);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -560,20 +563,13 @@ export function GanttView({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [detailsOverlayTodo, selectedTaskIndex, scheduledTasks, activeTasks, completedCollapsed, onToggle]);
+  }, [detailsOverlayTodo, selectedTaskIndex, scheduledTasks, activeTasks, completedCollapsed, onToggle, navigateDate]);
 
   // Reset selection when date changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: reset selection when navigating dates
     setSelectedTaskIndex(-1);
   }, [selectedDate]);
-
-  const navigateDate = (delta: number) => {
-    setSelectedDate((prev) => {
-      const newDate = new Date(prev);
-      newDate.setDate(newDate.getDate() + delta);
-      return newDate;
-    });
-  };
 
   const formatTime = (date: Date): string => {
     return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -592,12 +588,12 @@ export function GanttView({
     return `${mins}m`;
   };
 
-  const getTimePosition = (time: Date): number => {
+  const getTimePosition = useCallback((time: Date): number => {
     const minutes = (time.getTime() - dayStartTime.getTime()) / 60000;
     return (minutes / totalDayMinutes) * 100;
-  };
+  }, [dayStartTime, totalDayMinutes]);
 
-  const getPriorityColor = useCallback((priority?: string) => {
+  const _getPriorityColor = useCallback((priority?: string) => {
     if (!priority) return "bg-zinc-400";
     const p = priority.toLowerCase();
     if (["0", "urgent", "asap", "critical"].includes(p)) return "bg-red-500";
@@ -709,7 +705,7 @@ export function GanttView({
     }
 
     return markers;
-  }, [dayStartTime, dayEndTime, settings.gantt.zoomLevel]);
+  }, [dayStartTime, dayEndTime, settings.gantt.zoomLevel, getTimePosition]);
 
   // Get week's dates based on selected date (Monday to Sunday)
   const currentWeekDates = useMemo(() => {
@@ -747,7 +743,7 @@ export function GanttView({
       settings.gantt,
       getProjectColor,
     );
-  }, [currentWeekDates, allActiveTodos, taskSchedulingMap, workHours, settings.gantt]);
+  }, [currentWeekDates, allActiveTodos, taskSchedulingMap, workHours, settings.gantt, getProjectColor]);
 
   const navigateWeek = (direction: number) => {
     const newDate = new Date(selectedDate);
@@ -982,7 +978,7 @@ export function GanttView({
           </div>
         </div>
         <div className="grid grid-cols-7 gap-1 sm:gap-2">
-          {weekTasks.map(({ date, tasks }, index) => {
+          {weekTasks.map(({ date, tasks: _tasks }, index) => {
             const isToday = date.toDateString() === new Date().toDateString();
             const isSelected = date.toDateString() === selectedDate.toDateString();
             const dayName = date.toLocaleDateString("en-US", { weekday: "narrow" });
@@ -1358,7 +1354,7 @@ export function GanttView({
                       const isCompletedTask = task.todo.isCompleted || task.todo.isArchived;
                       const startPos = getTimePosition(task.startTime);
                       const endPos = getTimePosition(task.endTime);
-                      const width = endPos - startPos;
+                      const _width = endPos - startPos;
                       const targetPos = getTimePosition(task.targetDate);
                       const isSelected = selectedTaskIndex === index;
                       const hasConflict = taskConflicts.has(task.todo.id);
@@ -1981,6 +1977,10 @@ export function GanttView({
               onAddManualTimeEntry={onAddManualTimeEntry}
               onDeleteTimeEntry={onDeleteTimeEntry}
               onCreateTemplate={onCreateTemplate}
+              onSelectTodo={(todoId) => {
+                const foundTodo = todos.find((t) => t.id === todoId);
+                if (foundTodo) setDetailsOverlayTodo(foundTodo);
+              }}
             />
           );
         })()}

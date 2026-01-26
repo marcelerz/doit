@@ -9,7 +9,7 @@ import { TodoModel } from "@/models/TodoModel";
 import { WorkHoursSettings, DaySchedule } from "@/types/settings";
 import { Priority } from "@/types/priority";
 import { TodoId } from "@/types/todo";
-import { Gantt, SchedulingTechnique } from "@/types/gantt";
+import { Gantt } from "@/types/gantt";
 import { DEFAULT_BLOCK_TYPES } from "@/types/timeBlock";
 
 import { DurationMin, getDurationMin } from "@/types/time";
@@ -343,7 +343,7 @@ export function createTaskSchedulingMap(todos: TodoModel[], config: SchedulingCo
       if (remainingMinutes > 0) {
         // Find the next available work day starting from today
         const scheduleDate = new Date(today);
-        const todayStr = today.toISOString().split("T")[0];
+        const _todayStr = today.toISOString().split("T")[0];
 
         // Check if we can still schedule today (if there's time left in work hours)
         const todaySchedule = getScheduleForDate(today, workHours);
@@ -929,7 +929,7 @@ export function scheduleDayTasks(
     const sortedSegments = [...allSegments].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
     const overallStartTime = sortedSegments[0].startTime;
     const overallEndTime = sortedSegments[sortedSegments.length - 1].endTime;
-    const totalMinutes = allSegments.reduce((sum, s) => sum + s.durationMinutes, 0);
+    const _totalMinutes = allSegments.reduce((sum, s) => sum + s.durationMinutes, 0);
     const scheduledMinutes = scheduledSegments.reduce((sum, s) => sum + s.durationMinutes, 0);
 
     let targetDate: Date;
@@ -1013,7 +1013,7 @@ export function scheduleDayTasks(
 
   // Clear nextBreak for the last task (no break after final task)
   if (tasks.length > 0) {
-    const lastActiveIndex = tasks.length - 1;
+    const _lastActiveIndex = tasks.length - 1;
     // Find the last active (non-completed) task
     for (let i = tasks.length - 1; i >= 0; i--) {
       if (!tasks[i].todo.isCompleted && !tasks[i].todo.isArchived) {

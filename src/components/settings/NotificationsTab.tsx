@@ -33,10 +33,13 @@ export function NotificationsTab() {
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isSupported, setIsSupported] = useState(true);
 
+  // Check notification support and permission on mount
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setIsSupported(isNotificationSupported());
     setPermission(getNotificationPermission());
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!isLoaded) {
     return <SettingsLoading />;

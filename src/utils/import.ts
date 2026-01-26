@@ -200,7 +200,7 @@ export function parseTodoist(content: string): ImportResult {
 
         // Handle subtasks (Todoist calls them sub-items in some exports)
         if (Array.isArray(item.items)) {
-          todo.subtasks = item.items.map((sub: any) => sub.content || sub.text || "").filter(Boolean);
+          todo.subtasks = item.items.map((sub: Record<string, unknown>) => (sub.content as string) || (sub.text as string) || "").filter(Boolean);
         }
 
         if (todo.title) {
@@ -269,7 +269,7 @@ export function parseThings(content: string): ImportResult {
           dueDate: item.dueDate || item.deadline || undefined,
           priority: undefined, // Things doesn't have priority, uses Today/Anytime
           project: item.project || item.area || undefined,
-          tags: Array.isArray(item.tags) ? item.tags.map((t: any) => t.title || t) : [],
+          tags: Array.isArray(item.tags) ? item.tags.map((t: unknown) => (typeof t === 'object' && t !== null && 'title' in t ? (t as Record<string, unknown>).title : t) as string) : [],
           subtasks: [],
           assignedPeople: [],
           source: "things",
@@ -278,7 +278,7 @@ export function parseThings(content: string): ImportResult {
 
         // Handle checklist items as subtasks
         if (Array.isArray(item.checklistItems)) {
-          todo.subtasks = item.checklistItems.map((sub: any) => sub.title || "").filter(Boolean);
+          todo.subtasks = item.checklistItems.map((sub: Record<string, unknown>) => (sub.title as string) || "").filter(Boolean);
         }
 
         if (todo.title) {
@@ -327,7 +327,7 @@ export function parseReminders(content: string): ImportResult {
 
         // Handle subtasks if present
         if (Array.isArray(item.subtasks)) {
-          todo.subtasks = item.subtasks.map((sub: any) => sub.title || sub).filter(Boolean);
+          todo.subtasks = item.subtasks.map((sub: unknown) => (typeof sub === 'object' && sub !== null && 'title' in sub ? (sub as Record<string, unknown>).title : sub) as string).filter(Boolean);
         }
 
         if (todo.title) {
@@ -618,7 +618,7 @@ export function parseJSON(content: string): ImportResult {
           project: item.project || item.list || item.category,
           tags: Array.isArray(item.tags) ? item.tags : item.labels || [],
           subtasks: Array.isArray(item.subtasks)
-            ? item.subtasks.map((s: any) => (typeof s === "string" ? s : s.title || s.text || "")).filter(Boolean)
+            ? item.subtasks.map((s: unknown) => (typeof s === "string" ? s : ((s as Record<string, unknown>).title as string) || ((s as Record<string, unknown>).text as string) || "")).filter(Boolean)
             : [],
           assignedPeople: Array.isArray(item.assigned)
             ? item.assigned

@@ -59,7 +59,7 @@ export function useSettings() {
         // This ensures theme persistence works even when using IndexedDB
         try {
           localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-        } catch (e) {
+        } catch (_e) {
           // Ignore localStorage errors (e.g., in private browsing)
         }
       })

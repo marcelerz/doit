@@ -533,7 +533,7 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
   }, [state.sessionCount, technique, pomodoroLongBreakInterval, getBreakDuration, soundEnabled]);
 
   // Reset session
-  const resetSession = useCallback(() => {
+  const _resetSession = useCallback(() => {
     setState({
       phase: "work",
       workTimeRemaining: getWorkDuration(),

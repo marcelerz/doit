@@ -1,7 +1,5 @@
 import React, { useRef, forwardRef, useImperativeHandle, useState, useEffect } from "react";
 import { DateTimeSettings, WorkHoursSettings } from "@/types/settings";
-import { Person } from "@/types/person";
-import { Project } from "@/types/project";
 import { Priority } from "@/types/priority";
 import {
   detectDatesInText,
@@ -1084,13 +1082,11 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
       // Find the last marker position (same markers as autocomplete triggers, excluding # for tags)
       const allMarkers = ["@", "$", "%", "!!"];
       let lastMarkerPos = -1;
-      let lastMarker = "";
 
       for (const marker of allMarkers) {
         const pos = fullText.lastIndexOf(marker);
         if (pos > lastMarkerPos) {
           lastMarkerPos = pos;
-          lastMarker = marker;
         }
       }
 

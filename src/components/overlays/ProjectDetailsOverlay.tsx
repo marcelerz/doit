@@ -33,8 +33,8 @@ export function ProjectDetailsOverlay({
   onArchive,
   onUnarchive,
   onAddComment,
-  onEditComment,
-  onDeleteComment,
+  onEditComment: _onEditComment,
+  onDeleteComment: _onDeleteComment,
   categories = [],
 }: ProjectDetailsOverlayProps) {
   const [editingName, setEditingName] = useState(project.name);
@@ -45,6 +45,8 @@ export function ProjectDetailsOverlay({
   const [newComment, setNewComment] = useState("");
 
   // Sync local state when project changes (after updates)
+  // Legitimate prop sync pattern for editable form fields
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setEditingName(project.name);
     setEditingAlternatives(project.alternatives);
@@ -52,6 +54,7 @@ export function ProjectDetailsOverlay({
     setEditingContext(project.context || "");
     setEditingCategory(project.category || "");
   }, [project]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Auto-save when fields change (except context - saved on blur)
   useEffect(() => {

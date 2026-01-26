@@ -141,7 +141,7 @@ test.describe("Performance", () => {
     await todoApp.waitForAppLoad();
   });
 
-  test("should handle many todos without significant slowdown", async ({ page, todoApp }) => {
+  test("should handle many todos without significant slowdown", async ({ page: _page, todoApp }) => {
     const startTime = Date.now();
 
     // Add 10 todos

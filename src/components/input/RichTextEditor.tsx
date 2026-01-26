@@ -151,7 +151,7 @@ export default function RichTextEditor({
           contentEditable
           suppressContentEditableWarning
           data-testid="rich-text-editor"
-          onInput={(e) => {
+          onInput={(_e) => {
             // Call onChange immediately when content changes
             if (editorRef.current) {
               const html = editorRef.current.innerHTML;
@@ -159,7 +159,7 @@ export default function RichTextEditor({
               onChange(html || "");
             }
           }}
-          onBlur={(e) => {
+          onBlur={(_e) => {
             // If alwaysEditable, don't exit edit mode
             if (alwaysEditable) {
               // Still call onBlur callback if provided
@@ -193,7 +193,7 @@ export default function RichTextEditor({
               setShowLinkInput(false);
             }, 100);
           }}
-          onMouseUp={(e) => {
+          onMouseUp={(_e) => {
             const selection = window.getSelection();
             if (selection && selection.toString().length > 0) {
               const range = selection.getRangeAt(0);

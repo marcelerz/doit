@@ -5,12 +5,6 @@
 import { parseTokensToMetadata } from "@/utils/tokenParser";
 import { TokenMatch } from "@/components/input/SmartInput";
 
-// Minimal TokenMatch interface for testing
-interface TestTokenMatch {
-  type: string;
-  value: string;
-}
-
 describe("tokenParser", () => {
   describe("parseTokensToMetadata", () => {
     it("should return empty metadata for empty tokens array", () => {

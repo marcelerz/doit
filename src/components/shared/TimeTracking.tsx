@@ -34,6 +34,7 @@ export function TimeTracking({
   const [elapsedTime, setElapsedTime] = useState(0);
 
   // Update elapsed time every second when tracking
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isTracking && activeEntry) {
       const interval = setInterval(() => {
@@ -44,6 +45,7 @@ export function TimeTracking({
       setElapsedTime(0);
     }
   }, [isTracking, activeEntry]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const formatDuration = (minutes: number): string => {
     if (minutes === 0) return "0m";

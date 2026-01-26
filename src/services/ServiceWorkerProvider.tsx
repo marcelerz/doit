@@ -2,7 +2,7 @@
 
 import { useServiceWorker } from "@/hooks/useServiceWorker";
 import { useEffect, useState } from "react";
-import { OfflineIcon, RefreshIcon, WifiOffIcon } from "@/components/shared/Icons";
+import { RefreshIcon, WifiOffIcon } from "@/components/shared/Icons";
 
 /**
  * ServiceWorkerProvider - Registers the service worker and provides
@@ -20,7 +20,8 @@ export default function ServiceWorkerProvider() {
   // Show offline toast when going offline
   useEffect(() => {
     if (isOffline) {
-      setShowOfflineToast(true);
+      // Intentional: sync toast state with offline status
+      setShowOfflineToast(true); // eslint-disable-line react-hooks/set-state-in-effect
       setWasOffline(true);
     } else if (wasOffline) {
       // Coming back online
@@ -32,7 +33,8 @@ export default function ServiceWorkerProvider() {
   // Show update toast when update is available
   useEffect(() => {
     if (isUpdateAvailable) {
-      setShowUpdateToast(true);
+      // Intentional: show toast when update available
+      setShowUpdateToast(true); // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, [isUpdateAvailable]);
 

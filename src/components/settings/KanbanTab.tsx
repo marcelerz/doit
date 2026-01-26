@@ -17,7 +17,7 @@ const kanbanStatesTooltip = (
     <p>Workflow columns for the Kanban board.</p>
     <ul className="space-y-1">
       <li>• Drag tasks between states</li>
-      <li>• "Backlog", "Completed", and "Archived" are system states</li>
+      <li>• &quot;Backlog&quot;, &quot;Completed&quot;, and &quot;Archived&quot; are system states</li>
       <li>• Set WIP (Work-In-Progress) limits on non-system states</li>
       <li>• Columns turn red when over WIP limit</li>
       <li>• Configure allowed transitions</li>
@@ -41,7 +41,7 @@ const kanbanViewsTooltip = (
     <p>Create filtered views of your Kanban board.</p>
     <ul className="space-y-1">
       <li>• Show only selected states</li>
-      <li>• Create views like "Active Work" or "Done"</li>
+      <li>• Create views like &quot;Active Work&quot; or &quot;Done&quot;</li>
       <li>• Set a default view</li>
     </ul>
   </div>

@@ -5,7 +5,7 @@
 import { TodoModel, createTodoModel, createTodoModels } from "@/models/TodoModel";
 import { generateUUID } from "@/utils/idGenerator";
 import { SettingsModel, createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
-import { Todo, TodoState, getTodoId, getSubtaskId, getTimeEntryId, getTag, Tag } from "@/types/todo";
+import { Todo, getTodoId, getSubtaskId, getTag } from "@/types/todo";
 import { Settings } from "@/types/settings";
 import { getPriorityId } from "@/types/priority";
 import { getPersonId } from "@/types/person";

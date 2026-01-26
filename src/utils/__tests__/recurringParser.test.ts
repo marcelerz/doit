@@ -684,6 +684,7 @@ describe("recurringParser", () => {
 
     it("should return raw for unknown types", () => {
       const pattern: RecurringPattern = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Testing unknown type handling
         type: "unknown" as any,
         raw: "custom pattern",
       };

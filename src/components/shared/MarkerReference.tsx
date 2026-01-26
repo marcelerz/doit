@@ -20,7 +20,7 @@ export function MarkerReference() {
         </div>
       </div>
       <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
-        💡 Dates and recurring patterns are automatically detected (e.g., "tomorrow", "next Friday", "every monday").
+        💡 Dates and recurring patterns are automatically detected (e.g., &quot;tomorrow&quot;, &quot;next Friday&quot;, &quot;every monday&quot;).
         Click highlighted dates to deactivate. Use the detail view fields to set duration and dependencies.
       </p>
     </div>

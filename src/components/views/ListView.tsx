@@ -256,7 +256,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
   // Drag and drop reordering
   const {
     isDragMode,
-    draggedTodoId,
+    draggedTodoId: _draggedTodoId,
     dragOverTodoId,
     toggleDragMode,
     handleDragStart,
@@ -308,7 +308,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
     });
   }, []);
 
-  const selectAllInSection = useCallback((todoIds: string[]) => {
+  const _selectAllInSection = useCallback((todoIds: string[]) => {
     setSelectedTodoIds((prev) => {
       const next = new Set(prev);
       todoIds.forEach((id) => next.add(id));
@@ -316,7 +316,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
     });
   }, []);
 
-  const deselectAllInSection = useCallback((todoIds: string[]) => {
+  const _deselectAllInSection = useCallback((todoIds: string[]) => {
     setSelectedTodoIds((prev) => {
       const next = new Set(prev);
       todoIds.forEach((id) => next.delete(id));
@@ -446,6 +446,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
 
   // Calculate archive threshold
   const archiveThresholdMs = settings.general.archiveDays * 24 * 60 * 60 * 1000;
+  // eslint-disable-next-line react-hooks/purity -- Need current time for archive calculations
   const now = Date.now();
 
   // Categorize todos and apply filters (exclude deleted todos)

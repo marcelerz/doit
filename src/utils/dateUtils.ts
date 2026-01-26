@@ -454,7 +454,7 @@ export const parseDate = (
 };
 
 // Get due date suggestions for autocomplete
-export const getDueDateSuggestions = (search: string, dateTimeSettings: DateTimeSettings): string[] => {
+export const getDueDateSuggestions = (search: string, _dateTimeSettings: DateTimeSettings): string[] => {
   const suggestions = [
     { value: "today", label: "today - Today" },
     { value: "tomorrow", label: "tomorrow - Tomorrow" },

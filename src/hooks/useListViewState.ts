@@ -259,6 +259,7 @@ export function useListViewState({ todos, projects, settings }: UseListViewState
       );
     });
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: sync active preset with current filter state
     setActivePreset(matchingPreset ? matchingPreset.name : "custom");
   }, [
     viewOptionsLoaded,

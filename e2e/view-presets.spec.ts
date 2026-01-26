@@ -57,7 +57,7 @@ test.describe("View Options Persistence", () => {
     expect(count).toBe(1);
   });
 
-  test("should persist kanban view options", async ({ page, todoApp }) => {
+  test("should persist kanban view options", async ({ page, todoApp: _todoApp }) => {
     const kanbanTab = page.getByTestId("view-tab-kanban");
     if (await kanbanTab.isVisible()) {
       await kanbanTab.click();

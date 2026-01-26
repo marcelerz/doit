@@ -64,7 +64,7 @@ export function DateTimeTab() {
                 className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                Used when interpreting "morning" in due dates
+                Used when interpreting &quot;morning&quot; in due dates
               </p>
             </div>
 
@@ -78,7 +78,7 @@ export function DateTimeTab() {
                 className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                Used when interpreting "noon" in due dates (typically 12:00)
+                Used when interpreting &quot;noon&quot; in due dates (typically 12:00)
               </p>
             </div>
 
@@ -92,7 +92,7 @@ export function DateTimeTab() {
                 className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                Used when interpreting "afternoon" in due dates
+                Used when interpreting &quot;afternoon&quot; in due dates
               </p>
             </div>
 
@@ -106,7 +106,7 @@ export function DateTimeTab() {
                 className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                Used when interpreting "evening" in due dates
+                Used when interpreting &quot;evening&quot; in due dates
               </p>
             </div>
 
@@ -129,7 +129,7 @@ export function DateTimeTab() {
                 <option value="6">Saturday</option>
               </select>
               <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                Used when calculating "bow" (beginning of week)
+                Used when calculating &quot;bow&quot; (beginning of week)
               </p>
             </div>
 
@@ -151,7 +151,7 @@ export function DateTimeTab() {
                 <option value="5">Friday</option>
                 <option value="6">Saturday</option>
               </select>
-              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">Used when calculating "eow" (end of week)</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">Used when calculating &quot;eow&quot; (end of week)</p>
             </div>
 
             {/* Fiscal Year Start */}

@@ -39,6 +39,8 @@ export function InfoTooltip({
     lg: "w-6 h-6 text-base",
   };
 
+  // Calculate tooltip position when visibility changes
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isVisible && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
@@ -96,6 +98,7 @@ export function InfoTooltip({
       setTooltipPosition({ x, y, placement });
     }
   }, [isVisible, position, maxWidth]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const triggerClassName = `${sizeClasses[size]} inline-flex items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-help flex-shrink-0`;
 

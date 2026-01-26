@@ -13,7 +13,7 @@ const tooltip = (
   <div className="space-y-2">
     <p>Auto-link text patterns to URLs.</p>
     <ul className="space-y-1">
-      <li>• Define patterns like "JIRA-123"</li>
+      <li>• Define patterns like &quot;JIRA-123&quot;</li>
       <li>• Automatically creates clickable links</li>
       <li>• Use $1, $2 for captured groups</li>
     </ul>
@@ -191,7 +191,7 @@ export function LinksTab() {
       <div className="space-y-2">
         {linkPatterns.length === 0 ? (
           <p className="text-center py-8 text-zinc-500 dark:text-zinc-400">
-            No link patterns added yet. Click "Add Link Pattern" to get started.
+            No link patterns added yet. Click &quot;Add Link Pattern&quot; to get started.
           </p>
         ) : (
           linkPatterns.map((pattern) => (

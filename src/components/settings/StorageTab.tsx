@@ -55,39 +55,6 @@ export function StorageTab() {
   const [persistentStorage, setPersistentStorage] = useState<PersistentStorageInfo>({ isPersisted: false, supported: false });
   const [isRequestingPersistence, setIsRequestingPersistence] = useState(false);
 
-  const refreshStorageInfo = async (type?: StorageType) => {
-    const currentType = type || getStorageType();
-    setStorageType(currentType);
-
-    // Get quota info
-    const quotaInfo = await estimateStorageQuota(currentType);
-    setTotalAvailable(quotaInfo.available);
-    setDetectionMethod(quotaInfo.detectionMethod);
-
-    // Check persistent storage status
-    const persistenceInfo = await checkPersistentStorage();
-    setPersistentStorage(persistenceInfo);
-
-    // Calculate detailed usage
-    await calculateStorageUsage(currentType);
-  };
-
-  const handleRequestPersistence = async () => {
-    setIsRequestingPersistence(true);
-    const result = await requestPersistentStorage();
-    setPersistentStorage(result);
-    setIsRequestingPersistence(false);
-  };
-
-  useEffect(() => {
-    const init = async () => {
-      const isIDBAvailable = await isIndexedDBAvailable();
-      setIndexedDBAvailable(isIDBAvailable);
-      await refreshStorageInfo();
-    };
-    init();
-  }, []);
-
   const calculateStorageUsage = async (currentType: StorageType) => {
     const items: StorageItem[] = [];
     let total = 0;
@@ -161,6 +128,40 @@ export function StorageTab() {
     setTotalUsed(total);
   };
 
+  const refreshStorageInfo = async (type?: StorageType) => {
+    const currentType = type || getStorageType();
+    setStorageType(currentType);
+
+    // Get quota info
+    const quotaInfo = await estimateStorageQuota(currentType);
+    setTotalAvailable(quotaInfo.available);
+    setDetectionMethod(quotaInfo.detectionMethod);
+
+    // Check persistent storage status
+    const persistenceInfo = await checkPersistentStorage();
+    setPersistentStorage(persistenceInfo);
+
+    // Calculate detailed usage
+    await calculateStorageUsage(currentType);
+  };
+
+  const handleRequestPersistence = async () => {
+    setIsRequestingPersistence(true);
+    const result = await requestPersistentStorage();
+    setPersistentStorage(result);
+    setIsRequestingPersistence(false);
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      const isIDBAvailable = await isIndexedDBAvailable();
+      setIndexedDBAvailable(isIDBAvailable);
+      await refreshStorageInfo();
+    };
+    init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run on mount
+  }, []);
+
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -175,7 +176,7 @@ export function StorageTab() {
   };
 
   const usedPercentage = (totalUsed / totalAvailable) * 100;
-  const availablePercentage = 100 - usedPercentage;
+  const _availablePercentage = 100 - usedPercentage;
 
   const getDetectionMethodLabel = () => {
     switch (detectionMethod) {
@@ -303,7 +304,7 @@ export function StorageTab() {
               {/* Storage Bar */}
               <div className="relative">
                 <div className="h-12 w-full bg-zinc-100 dark:bg-zinc-800 rounded-lg overflow-hidden flex">
-                  {storageItems.map((item, index) => {
+                  {storageItems.map((item, _index) => {
                     const percentage = getPercentage(item.size);
                     if (percentage < 0.5) return null; // Don't show items less than 0.5%
                     return (

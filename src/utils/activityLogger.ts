@@ -19,7 +19,7 @@ function generateActivityId(): ActivityId {
 export function createActivity(
   type: TodoActivityType,
   description: string,
-  metadata?: any,
+  metadata?: Record<string, unknown>,
 ): ActivityEntry<TodoActivityType> {
   return {
     id: generateActivityId(),

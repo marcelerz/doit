@@ -24,6 +24,7 @@ export function useServiceWorker() {
     if (typeof window === "undefined") return;
 
     const isSupported = "serviceWorker" in navigator;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: sync support status on mount
     setState((prev) => ({ ...prev, isSupported }));
 
     if (!isSupported) {

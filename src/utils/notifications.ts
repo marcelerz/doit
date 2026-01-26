@@ -13,8 +13,8 @@ function getBasePath(): string {
   return pathname.startsWith("/doit") ? "/doit" : "";
 }
 
-const SOUND_TYPES = ["short-break", "long-break", "task-complete", "task-start", "break-end", "pause"] as const;
-export type SoundType = (typeof SOUND_TYPES)[number];
+const _SOUND_TYPES = ["short-break", "long-break", "task-complete", "task-start", "break-end", "pause"] as const;
+export type SoundType = (typeof _SOUND_TYPES)[number];
 
 // Audio context for playing sounds (cached)
 let audioContext: AudioContext | null = null;
@@ -522,7 +522,7 @@ export function checkAndNotifyDueTasks(
  * Parse a due date string into a Date object
  * @deprecated Use TodoModel.dueDateObject instead
  */
-function parseDueDate(dueDate: string): Date | null {
+function _parseDueDate(dueDate: string): Date | null {
   // Try parsing as ISO date
   const date = new Date(dueDate);
   if (!isNaN(date.getTime())) {

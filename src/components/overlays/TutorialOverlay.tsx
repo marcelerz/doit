@@ -306,6 +306,8 @@ export function TutorialOverlay({
   }, [spotlightRect, step.position]);
 
   // Update spotlight position on step change
+  // Animation state driven by step transitions
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!isOpen) return;
 
@@ -319,6 +321,7 @@ export function TutorialOverlay({
       clearTimeout(timer);
     };
   }, [isOpen, currentStep, updateSpotlight]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Update tooltip position when spotlight rect changes (separate effect to ensure correct timing)
   useEffect(() => {
@@ -379,11 +382,14 @@ export function TutorialOverlay({
   }, [isOpen, isLastStep, isFirstStep, onClose]);
 
   // Reset step when opening
+  // Intentional reset on overlay open
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isOpen) {
       setCurrentStep(0);
     }
   }, [isOpen]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!isOpen) return null;
 

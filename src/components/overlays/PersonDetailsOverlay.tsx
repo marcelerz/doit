@@ -32,8 +32,8 @@ export function PersonDetailsOverlay({
   onArchive,
   onUnarchive,
   onAddComment,
-  onEditComment,
-  onDeleteComment,
+  onEditComment: _onEditComment,
+  onDeleteComment: _onDeleteComment,
 }: PersonDetailsOverlayProps) {
   const [editingName, setEditingName] = useState(person.name);
   const [editingAlternatives, setEditingAlternatives] = useState(person.alternatives);
@@ -42,12 +42,15 @@ export function PersonDetailsOverlay({
   const [newComment, setNewComment] = useState("");
 
   // Sync local state when person changes (after updates)
+  // Legitimate prop sync pattern for editable form fields
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setEditingName(person.name);
     setEditingAlternatives(person.alternatives);
     setEditingColor(person.color);
     setEditingContext(person.context || "");
   }, [person]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Auto-save when fields change (except context - saved on blur)
   useEffect(() => {

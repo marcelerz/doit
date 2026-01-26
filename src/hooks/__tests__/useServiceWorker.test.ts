@@ -261,7 +261,7 @@ describe("useServiceWorker", () => {
       });
 
       // Start the clearCache call
-      const clearPromise = result.current.clearCache();
+      const _clearPromise = result.current.clearCache();
 
       // The postMessage should have been called with message and transfer
       await waitFor(() => {

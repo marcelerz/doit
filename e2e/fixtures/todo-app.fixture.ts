@@ -1,4 +1,4 @@
-import { test as base, expect, Page } from "@playwright/test";
+import { test as base, expect } from "@playwright/test";
 
 /**
  * Custom fixture for Todo app E2E tests
@@ -198,6 +198,7 @@ export const test = base.extend<{ todoApp: TodoAppFixture }>({
       },
     };
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(fixture);
   },
 });

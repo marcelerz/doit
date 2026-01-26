@@ -18,7 +18,7 @@ import { getShortTime, getWeekday, getMonth } from "@/types/time";
 
 // Mock the current date for consistent testing
 const mockDate = new Date("2025-12-09T14:30:00");
-const originalDate = global.Date;
+const _originalDate = global.Date;
 
 const createDateTimeSettings = (): DateTimeSettings => ({
   morning: getShortTime("09:00"),

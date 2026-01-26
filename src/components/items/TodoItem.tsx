@@ -341,8 +341,8 @@ export function TodoItem({
             onTokensChange={handleTokensChange}
             placeholder="Edit your task..."
             onEnterPress={() => {
-              const event = new Event("submit", { bubbles: true, cancelable: true });
-              handleSubmit(event as any);
+              const event = new Event("submit", { bubbles: true, cancelable: true }) as unknown as React.FormEvent;
+              handleSubmit(event);
             }}
           />
           <div className="flex gap-2">

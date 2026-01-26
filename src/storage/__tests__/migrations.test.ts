@@ -130,7 +130,9 @@ describe("migrations", () => {
       const result = migrateSettings(oldSettings);
 
       expect(result.dateTime.morning).toBe("09:00");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Testing legacy field removal
       expect((result.dateTime as any).startOfDay).toBeUndefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Testing legacy field removal
       expect((result.dateTime as any).endOfDay).toBeUndefined();
     });
   });
@@ -149,11 +151,13 @@ describe("migrations", () => {
     };
 
     it("should return empty array for non-array input", () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Testing invalid input handling
       const result = migrateTodos(null as any, defaultTestSettings);
       expect(result).toEqual([]);
     });
 
     it("should return empty array for undefined input", () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Testing invalid input handling
       const result = migrateTodos(undefined as any, defaultTestSettings);
       expect(result).toEqual([]);
     });

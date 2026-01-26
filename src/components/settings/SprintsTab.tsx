@@ -77,7 +77,7 @@ export function SprintsTab() {
               Show backlog items in sprint view
             </label>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              When enabled, tasks without a sprint assigned will appear in the Kanban "Backlog" filter
+              When enabled, tasks without a sprint assigned will appear in the Kanban &quot;Backlog&quot; filter
             </p>
           </div>
         </div>

@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback } from "react";
 import { importTodos, ImportResult, ImportedTodo, ImportFormat, convertAllToTodos } from "@/utils/import";
-import { Todo } from "@/types/todo";
 import { usePeople } from "@/hooks/usePeople";
 import { useProjects } from "@/hooks/useProjects";
 import { useSettings } from "@/hooks/useSettings";

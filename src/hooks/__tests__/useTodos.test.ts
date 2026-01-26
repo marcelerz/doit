@@ -27,7 +27,7 @@ jest.mock("@/storage/migrations", () => ({
 // Import mocks after setup
 import { loadFromStorage, saveToStorage } from "@/storage/storage";
 import { defaultSettings } from "@/types/settings";
-import { getTodoId, getSubtaskId, TodoMetadata, getTag } from "@/types/todo";
+import { getTodoId, getSubtaskId, TodoMetadata } from "@/types/todo";
 import { getCommentId } from "@/types/types";
 import { getTimestamp } from "@/types/time";
 

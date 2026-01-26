@@ -120,7 +120,6 @@ interface CreateTemplateModalProps {
 }
 
 export function CreateTemplateModal({
-  initialText,
   initialPlainText,
   initialMetadata,
   subtasks,

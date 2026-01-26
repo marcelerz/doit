@@ -102,7 +102,7 @@ test.describe("Duplicate Todo", () => {
     await todoApp.waitForAppLoad();
   });
 
-  test("should duplicate a todo", async ({ page, todoApp }) => {
+  test("should duplicate a todo", async ({ page: _page, todoApp }) => {
     await todoApp.addTodo("Original task");
 
     // Get initial count

@@ -1,4 +1,4 @@
-import { DurationMin, getDurationMin, ShortTime } from "./time";
+import { DurationMin, getDurationMin } from "./time";
 
 // Unique branded type for GanttPreset IDs
 export type GanttPresetId = string & { readonly __brand: unique symbol };
@@ -8,8 +8,8 @@ export function getGanttPresetId(id: string): GanttPresetId {
   return id as GanttPresetId;
 }
 
-const SCHEDULING_TECHNIQUES = ["sequential", "pomodoro", "flow"] as const;
-export type SchedulingTechnique = (typeof SCHEDULING_TECHNIQUES)[number];
+const _SCHEDULING_TECHNIQUES = ["sequential", "pomodoro", "flow"] as const;
+export type SchedulingTechnique = (typeof _SCHEDULING_TECHNIQUES)[number];
 
 export interface GanttPreset {
   id: GanttPresetId;

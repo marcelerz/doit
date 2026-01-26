@@ -6,7 +6,7 @@ import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { Settings } from "@/types/settings";
 import { ProjectCategory } from "@/types/project";
-import { Sprint, SprintId } from "@/types/sprint";
+import { SprintId } from "@/types/sprint";
 import { TodoId } from "@/types/todo";
 import { SprintModel } from "@/hooks/useSprints";
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
@@ -513,7 +513,7 @@ export default function TimeReportsView({ todos, people, projects, settings, spr
               <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
                 <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">📊 Daily Activity</h3>
                 <div className="flex items-end gap-2 h-32">
-                  {dailyTrend.map((day, i) => (
+                  {dailyTrend.map((day, _i) => (
                     <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
                       <div className="w-full flex items-end justify-center" style={{ height: "100px" }}>
                         <div

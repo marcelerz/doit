@@ -50,7 +50,7 @@ export interface ActivityEntry<AT> {
   timestamp: Timestamp;
   type: AT;
   description: string;
-  metadata?: any; // Optional metadata for the activity
+  metadata?: Record<string, unknown>; // Optional metadata for the activity
 }
 
 // Search history

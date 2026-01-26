@@ -19,7 +19,7 @@ test.describe("View Navigation", () => {
     await expect(listTab).toBeVisible();
   });
 
-  test("should switch to kanban view", async ({ page, todoApp }) => {
+  test("should switch to kanban view", async ({ page, todoApp: _todoApp }) => {
     // Click on Kanban tab
     const kanbanTab = page.getByTestId("view-tab-kanban");
 

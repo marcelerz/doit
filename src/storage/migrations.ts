@@ -47,6 +47,7 @@ function shouldDelete(todo: Todo, autoDeleteEnabled: boolean, deleteDays: number
 /**
  * Migrate a todo to the current format
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Migration handles legacy data with unknown shape
 function migrateTodo(todo: any): Todo {
   // If todo already has a state field (v4+), use it
   let state: TodoState = todo.state || "active";
@@ -106,8 +107,9 @@ function migrateTodo(todo: any): Todo {
 /**
  * Migrate a person to the current format
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Migration handles legacy data with unknown shape
 function migratePerson(person: any): Person {
-  const { imageUrl, ...personWithoutImageUrl } = person;
+  const { imageUrl: _imageUrl, ...personWithoutImageUrl } = person;
   return {
     ...personWithoutImageUrl,
     alternatives: person.alternatives || [],
@@ -118,8 +120,9 @@ function migratePerson(person: any): Person {
 /**
  * Migrate a project to the current format
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Migration handles legacy data with unknown shape
 function migrateProject(project: any): Project {
-  const { imageUrl, ...projectWithoutImageUrl } = project;
+  const { imageUrl: _imageUrl, ...projectWithoutImageUrl } = project;
   return {
     ...projectWithoutImageUrl,
     alternatives: project.alternatives || [],
@@ -130,6 +133,7 @@ function migrateProject(project: any): Project {
 /**
  * Migrate a priority to the current format
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Migration handles legacy data with unknown shape
 function migratePriority(priority: any): Priority {
   return {
     ...priority,
@@ -142,6 +146,7 @@ function migratePriority(priority: any): Priority {
 /**
  * Migrate settings to the current format
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Migration handles legacy data with unknown shape
 export function migrateSettings(loadedSettings: any): Settings {
   // Migrate people and projects to separate storage if they exist in settings
   if (loadedSettings.people && Array.isArray(loadedSettings.people)) {
@@ -164,7 +169,7 @@ export function migrateSettings(loadedSettings: any): Settings {
   const gantt = loadedSettings.gantt || loadedSettings.ganttSettings || {};
 
   // Remove startOfDay/endOfDay from dateTime if present (v5 migration)
-  const { startOfDay, endOfDay, ...cleanedDateTime } = dateTime;
+  const { startOfDay: _startOfDay, endOfDay: _endOfDay, ...cleanedDateTime } = dateTime;
 
   return {
     ...defaultSettings,
@@ -230,6 +235,7 @@ export function migrateSettings(loadedSettings: any): Settings {
 /**
  * Migrate todos to the current format and apply archive/delete rules
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Migration handles legacy data with unknown shape
 export function migrateTodos(loadedTodos: any[], settings: Settings): Todo[] {
   if (!Array.isArray(loadedTodos)) {
     return [];

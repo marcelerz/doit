@@ -12,7 +12,7 @@ test.describe("Dependencies Creation", () => {
     await todoApp.addTodo("Task B - depends on A");
   });
 
-  test("should allow creating multiple tasks for dependencies", async ({ page, todoApp }) => {
+  test("should allow creating multiple tasks for dependencies", async ({ page: _page, todoApp }) => {
     const count = await todoApp.getTodoCount();
     expect(count).toBe(2);
   });

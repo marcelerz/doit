@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { renderHook, act } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { usePeople } from "../usePeople";
 
 // Mock the entity manager

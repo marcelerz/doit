@@ -156,7 +156,7 @@ test.describe("Focus Management", () => {
     await expect(overlay).toBeVisible();
   });
 
-  test("should return focus when closing overlay", async ({ page, todoApp }) => {
+  test("should return focus when closing overlay", async ({ page, todoApp: _todoApp }) => {
     // Focus on a todo item first
     const todoItem = page.locator('[data-testid="todo-item"]').first();
     await todoItem.focus();

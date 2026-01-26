@@ -31,7 +31,6 @@ import { MockBrowserApis, setBrowserApis, resetBrowserApis } from "@/utils/brows
 import { TodoModel } from "@/models/TodoModel";
 import { createSettingsModel, SettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { Todo, getTodoId } from "@/types/todo";
-import { Settings } from "@/types/settings";
 import { getColor } from "@/types/types";
 import { getPriorityId } from "@/types/priority";
 import {
@@ -644,7 +643,6 @@ describe("notifications with MockBrowserApis", () => {
       clearSoundQueue();
 
       // Clear timeouts and run any pending
-      const timeoutCount = mockApis.timeouts.length;
       mockApis.runAllTimeouts();
 
       // AudioContext should only have been created once (for first sound)

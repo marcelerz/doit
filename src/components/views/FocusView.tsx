@@ -20,7 +20,7 @@ import {
   stopAmbientSound,
   getAmbientSoundFile,
 } from "@/utils/notifications";
-import { ScheduledTask, BreakInfo, parseDuration } from "@/utils/ganttScheduler";
+import { ScheduledTask, BreakInfo } from "@/utils/ganttScheduler";
 import { CloseIcon, VolumeOnIcon, VolumeOffIcon, BellIcon } from "@/components/shared/Icons";
 
 interface FocusViewProps {
@@ -156,7 +156,9 @@ export function FocusView({
 
   // Keep schedule in a ref so it's always fresh in timer callback
   const scheduleRef = useRef(schedule);
-  scheduleRef.current = schedule;
+  useEffect(() => {
+    scheduleRef.current = schedule;
+  }, [schedule]);
 
   // Get current item (for use outside timer)
   const getCurrentItem = useCallback(
@@ -196,7 +198,9 @@ export function FocusView({
   const confirmationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const timeTrackingActiveRef = useRef<TodoId | null>(null);
   const onStopTimeTrackingRef = useRef(onStopTimeTracking);
-  onStopTimeTrackingRef.current = onStopTimeTracking;
+  useEffect(() => {
+    onStopTimeTrackingRef.current = onStopTimeTracking;
+  }, [onStopTimeTracking]);
 
   // Current item helpers
   const currentItem = getCurrentItem(state.currentItemIndex);
@@ -219,6 +223,9 @@ export function FocusView({
   }, []);
 
   // Handle auto-completion when last segment finishes
+  // Note: We intentionally call setState within this effect to clear the pending state
+  // after processing. This is a controlled cascading render that's necessary for the
+  // auto-completion flow to work correctly.
   useEffect(() => {
     if (pendingAutoComplete) {
       console.log("[FocusView] Auto-completing todo:", pendingAutoComplete);
@@ -229,6 +236,7 @@ export function FocusView({
       }
       // Mark the task as complete
       onToggle(pendingAutoComplete);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: clearing pending state after processing
       setPendingAutoComplete(null);
     }
   }, [pendingAutoComplete, onToggle, onStopTimeTracking]);
@@ -819,7 +827,7 @@ export function FocusView({
       // If on a break, find the previous task
       for (let i = state.currentItemIndex - 1; i >= 0; i--) {
         if (schedule[i]?.type === "task") {
-          const taskTodoId = schedule[i].task?.todo.id;
+          const _taskTodoId = schedule[i].task?.todo.id;
           // Count unique tasks up to this one
           const seenTasks = new Set<string>();
           for (let j = 0; j <= i; j++) {

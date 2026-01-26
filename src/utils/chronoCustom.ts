@@ -466,7 +466,7 @@ function getNextSeason(ref: Date, month: number, day: number): Date {
 function getNextPayday(ref: Date): Date {
   const year = ref.getFullYear();
   const month = ref.getMonth();
-  const day = ref.getDate();
+  const _day = ref.getDate();
 
   // Check 15th of current month
   const fifteenth = new Date(year, month, 15);
@@ -734,7 +734,7 @@ function createDurationFilterRefiner(): Refiner {
         // Check if this result overlaps with a duration pattern
         const beforeText = text.slice(Math.max(0, result.index - 5), result.index);
         const matchText = text.slice(result.index, result.index + result.text.length);
-        const afterText = text.slice(result.index + result.text.length, result.index + result.text.length + 5);
+        const _afterText = text.slice(result.index + result.text.length, result.index + result.text.length + 5);
 
         // Duration patterns: number + m/h/d/w (standalone)
         const durationPattern = /^\d+(?:\.\d+)?\s*(m|min|h|hr|d|w)\b/i;

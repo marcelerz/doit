@@ -1,14 +1,13 @@
-import { EntityRegistry, createEntityRegistry } from "../EntityRegistry";
-import { SettingsModel, createSettingsModel } from "../SettingsModel";
+import { createEntityRegistry } from "../EntityRegistry";
+import { createSettingsModel, SettingsModel } from "../SettingsModel";
 import type { Todo } from "@/types/todo";
 import type { Person } from "@/types/person";
 import type { Project } from "@/types/project";
-import type { Settings } from "@/types/settings";
-import { getTodoId, getTag } from "@/types/todo";
+import { getTodoId } from "@/types/todo";
 import { getPersonId } from "@/types/person";
 import { getProjectId } from "@/types/project";
 import { getPriorityId } from "@/types/priority";
-import { getTimestamp, getDurationSec } from "@/types/time";
+import { getTimestamp } from "@/types/time";
 import { defaultSettings } from "@/types/settings";
 
 // Helper to create a minimal valid Todo

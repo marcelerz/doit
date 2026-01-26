@@ -87,6 +87,8 @@ interface TodoDetailsOverlayProps {
   // Sprints data (for displaying sprint selector)
   sprints?: Sprint[];
   runningSprint?: Sprint;
+  // Navigation to another task (for recurring chain links)
+  onSelectTodo?: (todoId: TodoId) => void;
 }
 
 export function TodoDetailsOverlay({
@@ -123,6 +125,7 @@ export function TodoDetailsOverlay({
   availableTags = [],
   sprints = [],
   runningSprint,
+  onSelectTodo,
 }: TodoDetailsOverlayProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTokens, setEditTokens] = useState<TokenMatch[]>([]);
@@ -154,6 +157,8 @@ export function TodoDetailsOverlay({
   });
 
   // Initialize metadata when overlay opens
+  // Legitimate prop sync pattern for editable form fields
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     // Normalize dueDate if it's a shorthand value
     const normalizedDueDate = normalizeDateValue(todo.metadata.dueDate, settings.dateTime, settings.workHours);
@@ -173,6 +178,7 @@ export function TodoDetailsOverlay({
       sprint: todo.metadata.sprint,
     });
   }, [todo, settings.dateTime, settings.workHours]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (isEditing && smartInputRef.current) {
@@ -1276,7 +1282,11 @@ export function TodoDetailsOverlay({
             </div>
           )}
 
-          <Activity activities={todo.activity} comments={todo.comments} />
+          <Activity
+            activities={todo.activity}
+            comments={todo.comments}
+            onNavigateToTask={onSelectTodo ? (taskId) => onSelectTodo(taskId as TodoId) : undefined}
+          />
         </div>
       </div>
     </Modal>

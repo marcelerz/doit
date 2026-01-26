@@ -66,7 +66,7 @@ test.describe("Calendar View", () => {
       await page.waitForTimeout(300);
 
       const calendarView = page.getByTestId("calendar-view");
-      const currentMonth = new Date().toLocaleString("default", { month: "long" });
+      const _currentMonth = new Date().toLocaleString("default", { month: "long" });
 
       // Click previous month
       const prevButton = calendarView.locator('button[aria-label="Previous month"]');

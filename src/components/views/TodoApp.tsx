@@ -35,7 +35,7 @@ import { SprintsView, sprintsViewTutorialSteps } from "@/components/views/Sprint
 import { useSelectionHistory, sortByUsage, sortStringsByUsage } from "@/hooks/useSelectionHistory";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { normalizeDateValue } from "@/utils/dateUtils";
-import { TemplatesManager, CreateTemplateModal, TemplateDropdown } from "@/components/shared/Templates";
+import { TemplatesManager, CreateTemplateModal } from "@/components/shared/Templates";
 import { TodoTemplate, TodoTemplateId } from "@/types/todoTemplate";
 import { TodoId } from "@/types/todo";
 import { getColor } from "@/types/types";
@@ -167,6 +167,7 @@ export function TodoApp() {
     };
 
     if (activeView in viewFeatureMap && viewFeatureMap[activeView] === false) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: redirect to list if current view is disabled
       setActiveView("list");
     }
   }, [activeView, features]);
@@ -438,15 +439,7 @@ export function TodoApp() {
       showOnStartup: showAgain,
       lastCompletedAt: new Date().toISOString(),
     });
-  }, []);
-
-  // Restart tutorial (called from HelpOverlay)
-  const handleRestartTutorial = useCallback(() => {
-    setIsHelpOverlayOpen(false);
-    setTimeout(() => {
-      setIsTutorialOpen(true);
-    }, 300);
-  }, []);
+  }, [setIsTutorialOpen]);
 
   // Get tutorial steps for a specific view
   const getViewTutorialSteps = useCallback((view: string): TutorialStep[] => {
@@ -473,7 +466,7 @@ export function TodoApp() {
   // Handle view tutorial completion
   const handleViewTutorialComplete = useCallback(() => {
     setViewTutorialOpen(null);
-  }, []);
+  }, [setViewTutorialOpen]);
 
   // Details overlay state
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<(typeof todos)[0] | null>(null);
@@ -488,8 +481,16 @@ export function TodoApp() {
   const [isAddSprintOverlayOpen, setIsAddSprintOverlayOpen] = useState(false);
   const [isHelpOverlayOpen, setIsHelpOverlayOpen] = useState(false);
 
+  // Restart tutorial (called from HelpOverlay)
+  const handleRestartTutorial = useCallback(() => {
+    setIsHelpOverlayOpen(false);
+    setTimeout(() => {
+      setIsTutorialOpen(true);
+    }, 300);
+  }, [setIsHelpOverlayOpen, setIsTutorialOpen]);
+
   // Confirm dialog hook
-  const { showConfirmDialog, hideConfirmDialog, ConfirmDialogComponent } = useConfirmDialog();
+  const { showConfirmDialog, hideConfirmDialog: _hideConfirmDialog, ConfirmDialogComponent } = useConfirmDialog();
 
   // Auto-focus the input when the overlay opens
   useEffect(() => {
@@ -1056,6 +1057,10 @@ export function TodoApp() {
                 onCreateTemplate={handleCreateTemplate}
                 sprints={sprints.map((s) => s.raw)}
                 runningSprint={runningSprint?.raw}
+                onSelectTodo={(todoId) => {
+                  const foundTodo = todos.find((t) => t.id === todoId);
+                  if (foundTodo) setDetailsOverlayTodo(foundTodo);
+                }}
               />
             );
           })()}
@@ -1261,8 +1266,7 @@ export function TodoApp() {
                       onAddPriority={handleAddPriority}
                       onTokensChange={handleTokensChange}
                       onEnterPress={() => {
-                        const event = new Event("submit", { bubbles: true, cancelable: true });
-                        handleSubmit(event as any);
+                        handleSubmit({ preventDefault: () => {} } as React.FormEvent);
                         setIsAddOverlayOpen(false);
                       }}
                     />

@@ -120,7 +120,7 @@ test.describe("Multiple Todo Operations", () => {
     // This test just verifies the operations don't throw errors
   });
 
-  test("should duplicate multiple todos individually", async ({ page, todoApp }) => {
+  test("should duplicate multiple todos individually", async ({ page: _page, todoApp }) => {
     await todoApp.addTodo("Duplicate source 1");
     await todoApp.addTodo("Duplicate source 2");
 

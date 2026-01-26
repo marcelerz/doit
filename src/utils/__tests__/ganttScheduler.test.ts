@@ -14,14 +14,11 @@ import {
   scheduleWeekTasks,
   SchedulingConfig,
   BreakBlock,
-  TaskSegment,
-  ScheduledTask,
 } from "@/utils/ganttScheduler";
 import {
   WorkHoursSettings,
   DaySchedule,
   Settings,
-  defaultSettings,
   defaultWorkHoursSettings,
   defaultGeneralSettings,
   defaultDateTimeSettings,
@@ -34,13 +31,13 @@ import {
 } from "@/types/settings";
 import { Gantt, defaultGantt } from "@/types/gantt";
 import { Priority, getPriorityId } from "@/types/priority";
-import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
+import { defaultMarkerColors } from "@/types/markerColors";
 import { defaultCalendar } from "@/types/calendar";
 import { defaultCategories } from "@/types/project";
 import { defaultBackupSettings } from "@/storage/backup";
 import { TodoModel } from "@/models/TodoModel";
 import { generateUUID } from "@/utils/idGenerator";
-import { createSettingsModel, SettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
+import { createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { Todo, getTodoId, getTimeEntryId } from "@/types/todo";
 import { getTimestamp, getShortTime, getDurationMin, getDurationSec } from "@/types/time";
 import { getBreakPeriodId } from "@/types/breakPeriod";
@@ -118,7 +115,7 @@ const createTodo = (overrides: Partial<Todo> = {}): Todo => ({
 });
 
 // Helper to create TodoModel from Todo
-const createTodoModel = (overrides: Partial<Todo> = {}): TodoModel => {
+const _createTodoModel = (overrides: Partial<Todo> = {}): TodoModel => {
   return new TodoModel(createTodo(overrides), createSettingsModel(createMinimalSettings()));
 };
 

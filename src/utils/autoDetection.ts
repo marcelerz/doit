@@ -11,7 +11,7 @@
  * - Priorities (direct match or "high priority" patterns)
  */
 
-import * as chrono from "chrono-node";
+import * as _chrono from "chrono-node";
 import { DateTimeSettings, WorkHoursSettings } from "@/types/settings";
 import { Priority } from "@/types/priority";
 import { parseRecurringPattern, calculateNextOccurrence, RecurringPattern } from "./recurringParser";

@@ -17,7 +17,7 @@ const tooltip = (
       <li>
         • Use <code className="bg-zinc-700 dark:bg-zinc-300 px-1 rounded">!!priority</code> in task text
       </li>
-      <li>• Auto-detected: "urgent", "high", "low"</li>
+      <li>• Auto-detected: &quot;urgent&quot;, &quot;high&quot;, &quot;low&quot;</li>
       <li>• Customize priorities in Settings</li>
     </ul>
     <p className="text-zinc-400 dark:text-zinc-600 pt-1">Priority colors show on task checkboxes.</p>

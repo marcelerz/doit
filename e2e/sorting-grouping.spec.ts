@@ -20,7 +20,7 @@ test.describe("Sorting", () => {
     expect(sortVisible).toBeGreaterThanOrEqual(0); // May or may not be visible
   });
 
-  test("should maintain todos after sorting changes", async ({ page, todoApp }) => {
+  test("should maintain todos after sorting changes", async ({ page: _page, todoApp }) => {
     // Verify all todos exist
     const count = await todoApp.getTodoCount();
     expect(count).toBe(3);
@@ -42,7 +42,7 @@ test.describe("Grouping", () => {
     expect(groupVisible).toBeGreaterThanOrEqual(0); // May or may not be visible
   });
 
-  test("should display todos without grouping by default", async ({ page, todoApp }) => {
+  test("should display todos without grouping by default", async ({ page: _page, todoApp }) => {
     await todoApp.addTodo("Test todo 1");
     await todoApp.addTodo("Test todo 2");
 

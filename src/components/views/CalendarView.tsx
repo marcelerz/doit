@@ -8,10 +8,11 @@ import { MarkerColors } from "@/types/markerColors";
 import { CalendarView as CalendarViewType, Calendar } from "@/types/calendar";
 import { CommentId } from "@/types/types";
 import { TodoId, SubtaskId, TimeEntryId, TodoMetadata } from "@/types/todo";
-import { useState, useMemo, useEffect, useRef, Fragment } from "react";
+import { useState, useMemo, useEffect, useRef, Fragment, useCallback } from "react";
 import { TodoItem } from "@/components/items/TodoItem";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { Priority } from "@/types/priority";
+import { LinkPattern } from "@/types/linkPattern";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
@@ -74,7 +75,7 @@ interface CalendarViewProps {
   todos: TodoModel[];
   markerColors: MarkerColors;
   settings: Settings;
-  linkPatterns: any[];
+  linkPatterns: LinkPattern[];
   availablePeople: PersonModel[];
   availableProjects: ProjectModel[];
   availablePriorities: Priority[];
@@ -368,15 +369,15 @@ export function CalendarView({
     });
   };
 
-  const goToToday = () => {
+  const goToToday = useCallback(() => {
     const today = new Date();
     setCurrentMonth(today);
     setSelectedDate(today);
-  };
+  }, []);
 
-  const handleDateClick = (date: Date) => {
-    setSelectedDate(date.toDateString() === selectedDate?.toDateString() ? null : date);
-  };
+  const handleDateClick = useCallback((date: Date) => {
+    setSelectedDate((prev) => (date.toDateString() === prev?.toDateString() ? null : date));
+  }, []);
 
   const handleQuickAdd = (date: Date) => {
     if (onQuickAdd) {
@@ -433,7 +434,7 @@ export function CalendarView({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [focusedDateIndex, viewMode, calendarDays, weekDays]);
+  }, [focusedDateIndex, viewMode, calendarDays, weekDays, handleDateClick, goToToday]);
 
   // Get todos for selected date
   const selectedDateTodos = useMemo(() => {
@@ -526,6 +527,7 @@ export function CalendarView({
         onClick={() => handleDateClick(day.date)}
         onDoubleClick={() => day.todos.length === 0 && handleQuickAdd(day.date)}
         tabIndex={isFocused ? 0 : -1}
+        role="gridcell"
         aria-label={`${day.date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}, ${
           day.todos.length
         } tasks`}
@@ -784,7 +786,7 @@ export function CalendarView({
           <div className="space-y-4">
             {/* Week header */}
             <div className="grid grid-cols-7 gap-1 sm:gap-2 overflow-x-auto">
-              {weekDays.map((day, i) => (
+              {weekDays.map((day, _i) => (
                 <button
                   key={day.dateKey}
                   onClick={() => handleDateClick(day.date)}
@@ -1043,6 +1045,10 @@ export function CalendarView({
               onAddManualTimeEntry={onAddManualTimeEntry}
               onDeleteTimeEntry={onDeleteTimeEntry}
               onCreateTemplate={onCreateTemplate}
+              onSelectTodo={(todoId) => {
+                const foundTodo = todos.find((t) => t.id === todoId);
+                if (foundTodo) setDetailsOverlayTodo(foundTodo);
+              }}
             />
           );
         })()}

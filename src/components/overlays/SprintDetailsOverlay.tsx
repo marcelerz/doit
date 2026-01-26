@@ -49,8 +49,8 @@ export function SprintDetailsOverlay({
   onArchive,
   onUnarchive,
   onAddComment,
-  onEditComment,
-  onDeleteComment,
+  onEditComment: _onEditComment,
+  onDeleteComment: _onDeleteComment,
   onTodoClick,
   onRemoveTodoFromSprint,
 }: SprintDetailsOverlayProps) {
@@ -71,6 +71,8 @@ export function SprintDetailsOverlay({
   const activeTodos = sprintTodos.filter((t) => t.state === "active");
 
   // Sync local state when sprint changes
+  // Legitimate prop sync pattern for editable form fields
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setEditingName(sprint.name);
     setEditingGoal(sprint.goal || "");
@@ -78,6 +80,7 @@ export function SprintDetailsOverlay({
     setEditingStartDate(sprint.plannedStartDate || "");
     setEditingColor(sprint.color || "");
   }, [sprint]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Auto-save when fields change (only for planning sprints)
   useEffect(() => {

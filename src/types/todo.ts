@@ -72,6 +72,8 @@ export interface Todo {
   dueDate?: Timestamp; // Actual due date timestamp
   duration?: DurationSec; // Actual duration used
   recurring?: string; // auto-detected or via field (~ pattern)
+  recurringOriginId?: TodoId; // ID of the first task in the recurring chain
+  recurringPreviousId?: TodoId; // ID of the task this one was created from
 
   comments: Comment[]; // Comments for todos
   activity: ActivityEntry<TodoActivityType>[]; // Activity log for the todo
@@ -80,8 +82,8 @@ export interface Todo {
 }
 
 // Main state of a todo item
-const TODO_STATES = ["active", "completed", "archived", "deleted"] as const;
-export type TodoState = (typeof TODO_STATES)[number];
+const _TODO_STATES = ["active", "completed", "archived", "deleted"] as const;
+export type TodoState = (typeof _TODO_STATES)[number];
 
 /**
  * TodoMetadata - String-based editing interface for todos.

@@ -1,6 +1,6 @@
 "use client";
 
-import { Comment, CommentHistoryEntry } from "@/types/types";
+import { Comment } from "@/types/types";
 import { formatActivityTime, formatActivityDateTime } from "@/utils/activityLogger";
 
 // Generic activity entry that works for todos, people, projects, and sprints
@@ -12,15 +12,22 @@ interface GenericActivityEntry {
   metadata?: unknown;
 }
 
+// Metadata for recurring task activities
+interface RecurringActivityMetadata {
+  recurringOriginId?: string;
+  recurringPreviousId?: string;
+}
+
 interface ActivityProps {
   activities: GenericActivityEntry[];
   comments: Comment[];
+  onNavigateToTask?: (taskId: string) => void;
 }
 
 // Union type for combined timeline items
 type TimelineItem = { type: "activity"; data: GenericActivityEntry } | { type: "comment"; data: Comment };
 
-export function Activity({ activities, comments }: ActivityProps) {
+export function Activity({ activities, comments, onNavigateToTask }: ActivityProps) {
   // Combine activities and comments into a single timeline
   const timelineItems: TimelineItem[] = [
     ...activities.map((activity): TimelineItem => ({ type: "activity", data: activity })),
@@ -134,6 +141,12 @@ export function Activity({ activities, comments }: ActivityProps) {
               {items.map((item) => {
                 if (item.type === "activity") {
                   const activity = item.data as GenericActivityEntry;
+                  const recurringMeta = activity.metadata as RecurringActivityMetadata | undefined;
+                  const hasRecurringLinks =
+                    recurringMeta &&
+                    (recurringMeta.recurringOriginId || recurringMeta.recurringPreviousId) &&
+                    onNavigateToTask;
+
                   return (
                     <div
                       key={activity.id}
@@ -144,13 +157,38 @@ export function Activity({ activities, comments }: ActivityProps) {
                       </span>
                       <div className="flex-1 min-w-0">
                         <span className="text-zinc-700 dark:text-zinc-300">{activity.description}</span>
-                        {activity.metadata !== undefined && activity.metadata !== null && (
-                          <span className="ml-1 text-zinc-500 dark:text-zinc-500">
-                            {typeof activity.metadata === "string"
-                              ? activity.metadata
-                              : String(JSON.stringify(activity.metadata))}
-                          </span>
+                        {hasRecurringLinks && (
+                          <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 flex flex-wrap gap-2">
+                            {recurringMeta.recurringPreviousId && (
+                              <button
+                                type="button"
+                                onClick={() => onNavigateToTask(recurringMeta.recurringPreviousId!)}
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                View previous task
+                              </button>
+                            )}
+                            {recurringMeta.recurringOriginId &&
+                              recurringMeta.recurringOriginId !== recurringMeta.recurringPreviousId && (
+                                <button
+                                  type="button"
+                                  onClick={() => onNavigateToTask(recurringMeta.recurringOriginId!)}
+                                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                  View first task
+                                </button>
+                              )}
+                          </div>
                         )}
+                        {activity.metadata !== undefined &&
+                          activity.metadata !== null &&
+                          !hasRecurringLinks && (
+                            <span className="ml-1 text-zinc-500 dark:text-zinc-500">
+                              {typeof activity.metadata === "string"
+                                ? activity.metadata
+                                : String(JSON.stringify(activity.metadata))}
+                            </span>
+                          )}
                       </div>
                       <span
                         className="flex-shrink-0 text-xs text-zinc-500 dark:text-zinc-500 ml-2"

@@ -2,11 +2,7 @@
  * Tests for Dependency Validator
  */
 
-import {
-  areDependenciesSatisfied,
-  getDependencyBlockMessage,
-  DependencyValidationResult,
-} from "@/utils/dependencyValidator";
+import { areDependenciesSatisfied, getDependencyBlockMessage } from "@/utils/dependencyValidator";
 import { generateUUID } from "@/utils/idGenerator";
 import { Todo, getTodoId } from "@/types/todo";
 import { getTimestamp } from "@/types/time";

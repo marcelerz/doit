@@ -1,11 +1,8 @@
-import { SettingsModel, createSettingsModel, resetSettingsModel_DONOTUSE } from "../SettingsModel";
-import { Settings, defaultSettings, DaySchedule, defaultWorkHoursSettings } from "@/types/settings";
-import { Priority, getPriorityId, defaultPriorities } from "@/types/priority";
-import { defaultKanbanStates, getKanbanStateId } from "@/types/kanbanState";
+import { createSettingsModel, resetSettingsModel_DONOTUSE } from "../SettingsModel";
+import { Settings, defaultSettings, defaultWorkHoursSettings } from "@/types/settings";
+import { getPriorityId } from "@/types/priority";
+import { getKanbanStateId } from "@/types/kanbanState";
 import { getShortTime, getWeekday, getMonth } from "@/types/time";
-import { getColor } from "@/types/types";
-import { getBreakPeriodId } from "@/types/breakPeriod";
-import { getTimeBlockId } from "@/types/timeBlock";
 
 describe("SettingsModel", () => {
   // Reset singleton before each test to ensure isolation

@@ -59,11 +59,14 @@ export function SearchableDropdown({
 }: SearchableDropdownProps) {
   const [search, setSearch] = useState(externalSearchValue || "");
 
+  // Sync search state with external value
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (externalSearchValue !== undefined) {
       setSearch(externalSearchValue);
     }
   }, [externalSearchValue]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const filteredItems = items
     .filter((item) => !excludeIds.includes(item.id))

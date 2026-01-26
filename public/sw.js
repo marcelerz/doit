@@ -173,7 +173,7 @@ async function networkFirst(request, cacheName) {
     }
 
     return networkResponse;
-  } catch (error) {
+  } catch (_error) {
     // Network failed, try cache
     const cachedResponse = await caches.match(request);
 
@@ -216,7 +216,7 @@ async function cacheFirst(request, cacheName) {
     }
 
     return networkResponse;
-  } catch (error) {
+  } catch (_error) {
     // Return a basic error response
     return new Response("Resource not available offline", {
       status: 503,

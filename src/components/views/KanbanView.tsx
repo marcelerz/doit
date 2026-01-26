@@ -5,19 +5,18 @@ import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { KanbanSettings, Settings } from "@/types/settings";
-import { KanbanState, KanbanStateId } from "@/types/kanbanState";
+import { KanbanStateId } from "@/types/kanbanState";
 import { MarkerColors } from "@/types/markerColors";
 import { Priority } from "@/types/priority";
 import { LinkPattern } from "@/types/linkPattern";
 import { Sprint } from "@/types/sprint";
-import { CommentId } from "@/types/types";
-import { useMemo, useState, useRef, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { createViewPresetId } from "@/utils/idGenerator";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
-import { getTextColor, findPersonColor, findProjectColor, findPriorityColor } from "@/utils/colors";
+import { findPersonColor, findProjectColor, findPriorityColor } from "@/utils/colors";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { FilterIcon } from "@/components/shared/Icons";
 
@@ -204,7 +203,7 @@ export function KanbanView({
   onAddProject,
   onAddPriority,
   onAddComment,
-  onUpdateKanbanSettings,
+  onUpdateKanbanSettings: _onUpdateKanbanSettings,
   onAddSubtask,
   onToggleSubtask,
   onEditSubtask,
@@ -410,18 +409,18 @@ export function KanbanView({
       }
 
       // Determine which state the todo belongs to
-      let stateId = todo.workflowState;
-
-      if (!stateId) {
-        // Derive from TodoState if no workflow state is set
-        if (todo.state === "completed") {
-          stateId = "completed";
-        } else if (todo.state === "archived") {
-          stateId = "archived";
-        } else {
-          // Default to first non-system state or "backlog"
-          stateId = "backlog";
-        }
+      // Always check todo.state first - completed/archived todos should go to those columns
+      // regardless of their workflowState value (which may not have been updated)
+      let stateId: string;
+      if (todo.state === "completed") {
+        stateId = "completed";
+      } else if (todo.state === "archived") {
+        stateId = "archived";
+      } else if (todo.workflowState) {
+        stateId = todo.workflowState;
+      } else {
+        // Default to backlog for active todos without a workflow state
+        stateId = "backlog";
       }
 
       if (grouped[stateId]) {
@@ -546,13 +545,13 @@ export function KanbanView({
       return { ...prev, [filterType]: newSet };
     });
     setActivePresetId(null); // Clear active preset when manually changing filters
-  }, []);
+  }, [setFilters, setActivePresetId]);
 
   // Clear all filters
   const clearAllFilters = useCallback(() => {
     setFilters(defaultKanbanFilters);
     setActivePresetId(null);
-  }, []);
+  }, [setFilters, setActivePresetId]);
 
   // Save current filters as preset
   const saveAsPreset = useCallback(() => {
@@ -574,7 +573,7 @@ export function KanbanView({
     setFilterPresets((prev) => [...prev, newPreset]);
     setNewPresetName("");
     setShowSavePresetModal(false);
-  }, [newPresetName, filters, viewOptions.sortField, viewOptions.sortDirection]);
+  }, [newPresetName, filters, viewOptions.sortField, viewOptions.sortDirection, setFilterPresets, setNewPresetName, setShowSavePresetModal]);
 
   // Load a preset
   const loadPreset = useCallback((preset: KanbanFilterPreset) => {
@@ -592,16 +591,16 @@ export function KanbanView({
       sortDirection: preset.sortDirection,
     }));
     setActivePresetId(preset.id);
-  }, []);
+  }, [setFilters, setViewOptions, setActivePresetId]);
 
   // Delete a preset
   const deletePreset = useCallback((presetId: string) => {
     setFilterPresets((prev) => prev.filter((p) => p.id !== presetId));
     setActivePresetId((current) => (current === presetId ? null : current));
-  }, []);
+  }, [setFilterPresets, setActivePresetId]);
 
   // Get allowed target states for a todo
-  const getAllowedTargets = useCallback(
+  const _getAllowedTargets = useCallback(
     (todoId: TodoId): KanbanStateId[] => {
       const todo = todos.find((t) => t.id === todoId);
       if (!todo) return [];
@@ -1371,6 +1370,7 @@ export function KanbanView({
           onAddManualTimeEntry={onAddManualTimeEntry}
           onDeleteTimeEntry={onDeleteTimeEntry}
           onCreateTemplate={onCreateTemplate}
+          onSelectTodo={setSelectedTodoId}
         />
       )}
     </div>

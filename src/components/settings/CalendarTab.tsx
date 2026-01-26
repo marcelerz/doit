@@ -128,7 +128,7 @@ export function CalendarTab() {
             <div>
               <label className="font-medium text-zinc-900 dark:text-zinc-100">Maximum Dots Per Day</label>
               <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                How many task dots to show before showing "+X more"
+                How many task dots to show before showing &quot;+X more&quot;
               </p>
             </div>
             <div className="flex items-center gap-2">

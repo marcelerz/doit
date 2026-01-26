@@ -72,7 +72,7 @@ test.describe("Kanban View", () => {
     }
   });
 
-  test("should open todo details from kanban card", async ({ page, todoApp }) => {
+  test("should open todo details from kanban card", async ({ page, todoApp: _todoApp }) => {
     const kanbanTab = page.getByTestId("view-tab-kanban");
 
     if (await kanbanTab.isVisible()) {

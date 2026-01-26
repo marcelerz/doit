@@ -9,11 +9,11 @@ export function getSprintId(id: string): SprintId {
 }
 
 // Sprint Settings for Scrum planning
-const SPRINT_STATUSES = ["planning", "active", "completed", "cancelled"] as const;
-export type SprintStatus = (typeof SPRINT_STATUSES)[number];
+const _SPRINT_STATUSES = ["planning", "active", "completed", "cancelled"] as const;
+export type SprintStatus = (typeof _SPRINT_STATUSES)[number];
 
-const SPRINT_STATES = ["active", "archived"] as const;
-export type SprintState = (typeof SPRINT_STATES)[number];
+const _SPRINT_STATES = ["active", "archived"] as const;
+export type SprintState = (typeof _SPRINT_STATES)[number];
 
 export interface Sprint {
   id: SprintId;

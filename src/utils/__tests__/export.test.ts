@@ -12,6 +12,7 @@ import {
 } from "@/utils/export";
 import { generateUUID } from "@/utils/idGenerator";
 import { TodoModel } from "@/models/TodoModel";
+import { Comment, getCommentId } from "@/types/types";
 import { createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { Todo, TodoState, getTodoId, getTag } from "@/types/todo";
 import { Settings } from "@/types/settings";
@@ -53,7 +54,7 @@ describe("export", () => {
       tags: string[]; // Tag strings
       createdAt: number;
       completedAt: number;
-      comments: any[];
+      comments: Comment[];
     }> = {},
   ): TodoModel => {
     const rawTodo: Todo = {
@@ -478,8 +479,8 @@ describe("export", () => {
           plainText: "Task",
           state: "active",
           comments: [
-            { commentId: 1, history: [{ date: Date.now(), content: "Comment" }] },
-            { commentId: 2, history: [{ date: Date.now(), content: "Another" }] },
+            { commentId: getCommentId("1"), history: [{ timestamp: getTimestamp(Date.now()), content: "Comment" }] },
+            { commentId: getCommentId("2"), history: [{ timestamp: getTimestamp(Date.now()), content: "Another" }] },
           ],
         }),
       ];

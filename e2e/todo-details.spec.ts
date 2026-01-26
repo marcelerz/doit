@@ -11,7 +11,7 @@ test.describe("Todo Details Overlay", () => {
     await todoApp.addTodo("Task with details");
   });
 
-  test("should open todo details overlay on double-click", async ({ page, todoApp }) => {
+  test("should open todo details overlay on double-click", async ({ page, todoApp: _todoApp }) => {
     const todoItem = page.locator('[data-testid="todo-item"]').filter({ hasText: "Task with details" });
     await todoItem.dblclick();
 

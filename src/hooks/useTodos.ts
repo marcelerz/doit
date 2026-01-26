@@ -22,16 +22,16 @@ import { getPriorityId } from "@/types/priority";
 import { getSprintId } from "@/types/sprint";
 import { KanbanStateId } from "@/types/kanbanState";
 import { parseDuration } from "@/utils/ganttScheduler";
-import { getActivityId, getCommentId, ActivityEntry, CommentId } from "@/types/types";
+import { getCommentId, ActivityEntry, CommentId } from "@/types/types";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/storage/migrations";
 import { defaultSettings, Settings } from "@/types/settings";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
 import { createActivity, generateMetadataActivities } from "@/utils/activityLogger";
-import { createActivityId, createCommentId, createSubtaskId } from "@/utils/idGenerator";
+import { createCommentId, createSubtaskId } from "@/utils/idGenerator";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { TodoModel, createTodoModels } from "@/models/TodoModel";
-import { SettingsModel, createSettingsModel } from "@/models/SettingsModel";
+import { createSettingsModel } from "@/models/SettingsModel";
 import { parseDate } from "@/utils/dateUtils";
 
 /**
@@ -414,6 +414,30 @@ export function useTodos() {
         // Convert nextDate to timestamp
         const nextDueDate = getTimestamp(nextDate.getTime());
 
+        // Determine the origin ID for the recurring chain
+        // If the completed task has an origin, use that; otherwise, the completed task is the origin
+        const originId = todoToToggle.recurringOriginId || todoToToggle.id;
+        const previousId = todoToToggle.id;
+
+        // Copy subtasks but reset their completed state
+        const resetSubtasks = todoToToggle.subtasks.map((subtask) => ({
+          ...subtask,
+          id: getSubtaskId(createSubtaskId()), // New ID for the new task's subtask
+          completed: false,
+          completedAt: undefined,
+          createdAt: now,
+        }));
+
+        // Create activity with metadata for task navigation
+        const recurringActivity = createActivity(
+          "created",
+          `Task created from recurring pattern: ${todoToToggle.recurring}`,
+          {
+            recurringOriginId: originId,
+            recurringPreviousId: previousId,
+          },
+        );
+
         // Create new todo with updated due date
         const newRecurringTodo: Todo = {
           ...todoToToggle,
@@ -435,9 +459,12 @@ export function useTodos() {
           dueDate: nextDueDate,
           duration: todoToToggle.duration,
           recurring: todoToToggle.recurring,
+          recurringOriginId: originId,
+          recurringPreviousId: previousId,
           comments: [], // New instance starts with no comments
-          activity: [createActivity("created", `Task created from recurring pattern: ${todoToToggle.recurring}`)],
-          subtasks: [], // New instance starts with no subtasks
+          activity: [recurringActivity],
+          subtasks: resetSubtasks, // Copy subtasks with reset state
+          timeTracking: undefined, // New instance starts with no time tracking
         };
 
         // For recurring tasks, the text is copied as-is since markers will be re-parsed

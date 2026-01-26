@@ -1,6 +1,6 @@
 "use client";
 
-import { WorkHoursSettings, DaySchedule, defaultWorkHoursSettings } from "@/types/settings";
+import { DaySchedule, defaultWorkHoursSettings } from "@/types/settings";
 import { BreakPeriod, getBreakPeriodId } from "@/types/breakPeriod";
 import { DEFAULT_BLOCK_TYPES, TimeBlockType, getTimeBlockId } from "@/types/timeBlock";
 import { getShortTime } from "@/types/time";
@@ -19,7 +19,7 @@ const workHoursTooltip = (
     <p>Define when you&apos;re available to work.</p>
     <ul className="space-y-1">
       <li>• Sets Beginning/End of Day times</li>
-      <li>• Used for "eod", "bod" shortcuts</li>
+      <li>• Used for &quot;eod&quot;, &quot;bod&quot; shortcuts</li>
       <li>• Affects Gantt chart scheduling</li>
       <li>• Configure per-day or weekday/weekend</li>
     </ul>
