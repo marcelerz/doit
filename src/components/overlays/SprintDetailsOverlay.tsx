@@ -495,6 +495,12 @@ export function SprintDetailsOverlay({
                     <RichTextEditor
                       value={newComment}
                       onChange={setNewComment}
+                      onSubmit={(html) => {
+                        if (html.trim()) {
+                          onAddComment(sprint.id, html);
+                          setNewComment("");
+                        }
+                      }}
                       placeholder="Add a comment..."
                       minHeight="60px"
                       maxHeight="200px"

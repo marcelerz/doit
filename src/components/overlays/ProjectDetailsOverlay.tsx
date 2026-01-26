@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ProjectModel } from "@/models/ProjectModel";
 import { Project, ProjectCategory, ProjectId, getProjectCategoryId } from "@/types/project";
+import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
 import { getColor, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
@@ -23,6 +24,7 @@ interface ProjectDetailsOverlayProps {
   onEditComment: (projectId: ProjectId, commentId: CommentId, content: string) => void;
   onDeleteComment: (projectId: ProjectId, commentId: CommentId) => void;
   categories?: ProjectCategory[];
+  markerColors?: MarkerColors;
 }
 
 export function ProjectDetailsOverlay({
@@ -36,6 +38,7 @@ export function ProjectDetailsOverlay({
   onEditComment: _onEditComment,
   onDeleteComment: _onDeleteComment,
   categories = [],
+  markerColors = defaultMarkerColors,
 }: ProjectDetailsOverlayProps) {
   const [editingName, setEditingName] = useState(project.name);
   const [editingAlternatives, setEditingAlternatives] = useState(project.alternatives);
@@ -108,7 +111,7 @@ export function ProjectDetailsOverlay({
           <div className="flex items-center gap-4">
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-md"
-              style={{ backgroundColor: editingColor || "#e2ccff" }}
+              style={{ backgroundColor: editingColor || markerColors.project }}
             >
               {editingName.charAt(0).toUpperCase()}
             </div>
@@ -153,7 +156,7 @@ export function ProjectDetailsOverlay({
             />
 
             {/* Color Field */}
-            <ColorPicker value={editingColor} onChange={setEditingColor} defaultColor="#e2ccff" />
+            <ColorPicker value={editingColor} onChange={setEditingColor} defaultColor={markerColors.project} />
 
             {/* Category Field */}
             {categories.length > 0 && (
@@ -254,6 +257,12 @@ export function ProjectDetailsOverlay({
               <RichTextEditor
                 value={newComment}
                 onChange={setNewComment}
+                onSubmit={(html) => {
+                  if (html.trim()) {
+                    onAddComment(project.id, html);
+                    setNewComment("");
+                  }
+                }}
                 placeholder="Add a comment..."
                 minHeight="60px"
                 maxHeight="200px"

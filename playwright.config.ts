@@ -2,13 +2,22 @@ import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Playwright configuration for Doit E2E tests
+ *
+ * Test structure:
+ * - e2e/smoke/ - Sequential smoke tests (workflow-based)
+ * - e2e/visual.spec.ts - Visual regression tests
+ * - e2e/archive/ - Deprecated granular tests (excluded)
+ *
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
   testDir: "./e2e",
 
-  /* Run tests in files in parallel */
-  fullyParallel: true,
+  /* Ignore archived tests */
+  testIgnore: ["**/archive/**"],
+
+  /* Run test files in parallel, but tests within smoke files are sequential */
+  fullyParallel: false,
 
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
@@ -16,14 +25,14 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 1,
 
-  /* Opt out of parallel tests on CI */
-  workers: process.env.CI ? 1 : undefined,
+  /* Workers configuration - smoke tests run faster with more workers */
+  workers: process.env.CI ? 2 : 4,
 
   /* Reporter to use */
   reporter: [["html", { outputFolder: "playwright-report" }], ["list"]],
 
-  /* Global timeout */
-  timeout: 60000,
+  /* Global timeout - increased for sequential workflow tests */
+  timeout: 90000,
 
   /* Expect timeout */
   expect: {
@@ -59,32 +68,36 @@ export default defineConfig({
     navigationTimeout: 30000,
   },
 
-  /* Configure projects for major browsers */
+  /* Configure projects */
   projects: [
+    /* Smoke tests - run on desktop Chrome */
     {
-      name: "chromium",
+      name: "smoke-tests",
+      testDir: "./e2e/smoke",
       use: { ...devices["Desktop Chrome"] },
     },
 
-    // Uncomment to test on more browsers
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
-
-    /* Test against mobile viewports */
+    /* Visual tests - run on desktop Chrome */
     {
-      name: "Mobile Chrome",
+      name: "visual-tests",
+      testMatch: "**/visual.spec.ts",
+      use: { ...devices["Desktop Chrome"] },
+    },
+
+    /* Mobile smoke tests - run on mobile viewport */
+    {
+      name: "smoke-mobile",
+      testDir: "./e2e/smoke",
+      testMatch: "**/edge-cases-mobile.spec.ts",
       use: { ...devices["Pixel 5"] },
     },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
+
+    // Legacy project for running any remaining tests on chromium
+    {
+      name: "chromium",
+      testIgnore: ["**/smoke/**", "**/archive/**", "**/visual.spec.ts"],
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
 
   /* Run your local dev server before starting the tests */

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { PersonModel } from "@/models/PersonModel";
 import { Person, PersonId } from "@/types/person";
+import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
 import { getColor, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
@@ -22,6 +23,7 @@ interface PersonDetailsOverlayProps {
   onAddComment: (personId: PersonId, content: string) => void;
   onEditComment: (personId: PersonId, commentId: CommentId, content: string) => void;
   onDeleteComment: (personId: PersonId, commentId: CommentId) => void;
+  markerColors?: MarkerColors;
 }
 
 export function PersonDetailsOverlay({
@@ -34,6 +36,7 @@ export function PersonDetailsOverlay({
   onAddComment,
   onEditComment: _onEditComment,
   onDeleteComment: _onDeleteComment,
+  markerColors = defaultMarkerColors,
 }: PersonDetailsOverlayProps) {
   const [editingName, setEditingName] = useState(person.name);
   const [editingAlternatives, setEditingAlternatives] = useState(person.alternatives);
@@ -102,7 +105,7 @@ export function PersonDetailsOverlay({
           <div className="flex items-center gap-4">
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-md"
-              style={{ backgroundColor: editingColor || "#cce5ff" }}
+              style={{ backgroundColor: editingColor || markerColors.assigned }}
             >
               {editingName.charAt(0).toUpperCase()}
             </div>
@@ -153,7 +156,7 @@ export function PersonDetailsOverlay({
             />
 
             {/* Color Field */}
-            <ColorPicker value={editingColor} onChange={setEditingColor} defaultColor="#cce5ff" />
+            <ColorPicker value={editingColor} onChange={setEditingColor} defaultColor={markerColors.assigned} />
           </div>
 
           {/* Context */}
@@ -218,6 +221,12 @@ export function PersonDetailsOverlay({
               <RichTextEditor
                 value={newComment}
                 onChange={setNewComment}
+                onSubmit={(html) => {
+                  if (html.trim()) {
+                    onAddComment(person.id, html);
+                    setNewComment("");
+                  }
+                }}
                 placeholder="Add a comment..."
                 minHeight="60px"
                 maxHeight="200px"

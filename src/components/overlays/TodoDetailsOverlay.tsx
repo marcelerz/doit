@@ -1050,8 +1050,12 @@ export function TodoDetailsOverlay({
                 });
               }}
               availableItems={[
-                // Active sprint first with emoji
-                ...(runningSprint ? [{ id: runningSprint.id, label: `🏃 ${runningSprint.name} (Active)` }] : []),
+                // Active sprint first with emoji (use runningSprint or find from sprints)
+                ...(runningSprint
+                  ? [{ id: runningSprint.id, label: `🏃 ${runningSprint.name} (Active)` }]
+                  : sprints
+                      .filter((s) => s.status === "active")
+                      .map((s) => ({ id: s.id, label: `🏃 ${s.name} (Active)` }))),
                 // Planning sprints
                 ...sprints
                   .filter((s) => s.id !== runningSprint?.id && s.status === "planning")
@@ -1260,6 +1264,12 @@ export function TodoDetailsOverlay({
                 <RichTextEditor
                   value={newComment}
                   onChange={setNewComment}
+                  onSubmit={(html) => {
+                    if (html.trim()) {
+                      onAddComment(todo.id, html);
+                      setNewComment("");
+                    }
+                  }}
                   placeholder="Add a comment..."
                   minHeight="60px"
                   maxHeight="200px"

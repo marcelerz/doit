@@ -18,10 +18,14 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
-    "test:visual": "playwright test visual.spec.ts",
-    "test:visual:update": "playwright test visual.spec.ts --update-snapshots",
-    "test:all": "npm run typecheck && npm run lint && npm run test && npm run test:e2e && npm run test:visual",
-    "validate": "npm run typecheck && npm run lint && npm run test:coverage && npm run test:e2e && npm run test:visual"
+    "test:smoke": "playwright test --project=smoke-tests",
+    "test:smoke:quick": "playwright test --project=smoke-tests --workers=4",
+    "test:smoke:headed": "playwright test --project=smoke-tests --headed",
+    "test:visual": "playwright test --project=visual-tests",
+    "test:visual:update": "playwright test --project=visual-tests --update-snapshots",
+    "test:all": "npm run typecheck && npm run lint && npm run test && npm run test:smoke && npm run test:visual",
+    "test:full": "npm run test && npm run test:smoke && npm run test:visual",
+    "validate": "npm run typecheck && npm run lint && npm run test:coverage && npm run test:smoke && npm run test:visual"
   },
   "dependencies": {
     "chrono-node": "^2.9.0",

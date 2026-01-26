@@ -1080,6 +1080,7 @@ export function TodoApp() {
                 onAddComment={addPersonComment}
                 onEditComment={editPersonComment}
                 onDeleteComment={deletePersonComment}
+                markerColors={settings.markerColors}
               />
             ) : null;
           })()}
@@ -1100,6 +1101,7 @@ export function TodoApp() {
                 onEditComment={editProjectComment}
                 onDeleteComment={deleteProjectComment}
                 categories={settings.categories}
+                markerColors={settings.markerColors}
               />
             ) : null;
           })()}
@@ -1364,7 +1366,7 @@ export function TodoApp() {
                     <input
                       type="color"
                       name="color"
-                      defaultValue="#3b82f6"
+                      defaultValue={settings.markerColors.assigned}
                       className="w-full h-10 rounded-lg cursor-pointer"
                     />
                   </div>
@@ -1462,7 +1464,7 @@ export function TodoApp() {
                     <input
                       type="color"
                       name="color"
-                      defaultValue="#8b5cf6"
+                      defaultValue={settings.markerColors.project}
                       className="w-full h-10 rounded-lg cursor-pointer"
                     />
                   </div>

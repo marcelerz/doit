@@ -16,6 +16,7 @@ interface RichTextEditorProps {
   value?: string;
   onChange: (html: string) => void;
   onBlur?: (html: string) => void; // Called when editor loses focus, useful for committing changes
+  onSubmit?: (html: string) => void; // Called when Enter is pressed without modifiers (for comment submission)
   placeholder?: string;
   minHeight?: string;
   maxHeight?: string;
@@ -29,6 +30,7 @@ export default function RichTextEditor({
   value,
   onChange,
   onBlur,
+  onSubmit,
   placeholder = "Start typing...",
   minHeight = "100px",
   maxHeight = "300px",
@@ -262,6 +264,18 @@ export default function RichTextEditor({
             } else if (e.key === "Escape") {
               if (!alwaysEditable) {
                 e.currentTarget.blur();
+              }
+            } else if (e.key === "Enter" && onSubmit) {
+              // If Shift, Ctrl, or Meta is pressed, allow newline insertion
+              if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                // Let browser handle the newline naturally
+                return;
+              }
+              // Plain Enter submits the content
+              e.preventDefault();
+              if (editorRef.current) {
+                const html = editorRef.current.innerHTML;
+                onSubmit(html || "");
               }
             }
           }}

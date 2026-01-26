@@ -97,6 +97,12 @@ export function Comments({ comments, onAddComment, onEditComment, onDeleteCommen
           <RichTextEditor
             value={newComment}
             onChange={setNewComment}
+            onSubmit={(html) => {
+              if (!isHtmlEmpty(html)) {
+                onAddComment(html);
+                setNewComment("");
+              }
+            }}
             placeholder="Add a comment..."
             minHeight="60px"
             maxHeight="200px"

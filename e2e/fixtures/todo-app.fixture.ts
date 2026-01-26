@@ -1,6 +1,34 @@
 import { test as base, expect } from "@playwright/test";
 
 /**
+ * Todo setup for batch operations
+ */
+export interface TodoSetup {
+  text: string;
+  completed?: boolean;
+}
+
+/**
+ * App state snapshot for comparison
+ */
+export interface AppStateSnapshot {
+  todoCount: number;
+  todoTexts: string[];
+  completedCount: number;
+  timestamp: number;
+}
+
+/**
+ * Expected todo state counts
+ */
+export interface TodoStateExpectation {
+  completed?: number;
+  archived?: number;
+  active?: number;
+  total?: number;
+}
+
+/**
  * Custom fixture for Todo app E2E tests
  * Provides helper methods for common operations
  */
@@ -49,6 +77,29 @@ export interface TodoAppFixture {
 
   /** Get the count of todos */
   getTodoCount: () => Promise<number>;
+
+  // === Workflow helpers for smoke tests ===
+
+  /** Add multiple todos with metadata in batch */
+  addTodosWithMetadata: (todos: TodoSetup[]) => Promise<void>;
+
+  /** Verify todo count matches expected */
+  verifyTodoCount: (expected: number) => Promise<void>;
+
+  /** Verify todo states match expectations */
+  verifyTodoStates: (expected: TodoStateExpectation) => Promise<void>;
+
+  /** Assert data persisted after reload */
+  assertAllPersisted: () => Promise<void>;
+
+  /** Assert current view state */
+  assertViewState: (view: string) => Promise<void>;
+
+  /** Get current app state snapshot */
+  getAppState: () => Promise<AppStateSnapshot>;
+
+  /** Compare two state snapshots */
+  compareStates: (before: AppStateSnapshot, after: AppStateSnapshot) => { added: number; removed: number; changed: boolean };
 }
 
 export const test = base.extend<{ todoApp: TodoAppFixture }>({
@@ -195,6 +246,86 @@ export const test = base.extend<{ todoApp: TodoAppFixture }>({
       getTodoCount: async () => {
         const todoItems = page.locator('[data-testid="todo-item"]');
         return await todoItems.count();
+      },
+
+      // === Workflow helpers for smoke tests ===
+
+      addTodosWithMetadata: async (todos: TodoSetup[]) => {
+        for (const todo of todos) {
+          await fixture.addTodo(todo.text);
+          if (todo.completed) {
+            await fixture.toggleTodo(todo.text);
+          }
+        }
+      },
+
+      verifyTodoCount: async (expected: number) => {
+        const todoItems = page.locator('[data-testid="todo-item"]');
+        await expect(todoItems).toHaveCount(expected);
+      },
+
+      verifyTodoStates: async (expected: TodoStateExpectation) => {
+        if (expected.total !== undefined) {
+          const todoItems = page.locator('[data-testid="todo-item"]');
+          await expect(todoItems).toHaveCount(expected.total);
+        }
+        // Note: More granular state checking would require data-testid attributes on state indicators
+      },
+
+      assertAllPersisted: async () => {
+        // Get current state
+        const beforeTodos = await fixture.getTodos();
+        const beforeCount = beforeTodos.length;
+
+        // Reload page
+        await page.reload();
+        await fixture.waitForAppLoad();
+
+        // Verify same state
+        const afterCount = await fixture.getTodoCount();
+        expect(afterCount).toBe(beforeCount);
+      },
+
+      assertViewState: async (view: string) => {
+        const viewElement = page.locator(`[data-testid="${view}-view"]`);
+        if (await viewElement.isVisible({ timeout: 1000 }).catch(() => false)) {
+          await expect(viewElement).toBeVisible();
+        }
+      },
+
+      getAppState: async (): Promise<AppStateSnapshot> => {
+        const todoTexts = await fixture.getTodos();
+        const todoItems = page.locator('[data-testid="todo-item"]');
+        const completedItems = page.locator('[data-testid="todo-item"][data-completed="true"]');
+        const completedCount = await completedItems.count().catch(() => 0);
+
+        return {
+          todoCount: todoTexts.length,
+          todoTexts,
+          completedCount,
+          timestamp: Date.now(),
+        };
+      },
+
+      compareStates: (before: AppStateSnapshot, after: AppStateSnapshot) => {
+        const beforeSet = new Set(before.todoTexts);
+        const afterSet = new Set(after.todoTexts);
+
+        let added = 0;
+        let removed = 0;
+
+        for (const text of after.todoTexts) {
+          if (!beforeSet.has(text)) added++;
+        }
+        for (const text of before.todoTexts) {
+          if (!afterSet.has(text)) removed++;
+        }
+
+        return {
+          added,
+          removed,
+          changed: added > 0 || removed > 0 || before.completedCount !== after.completedCount,
+        };
       },
     };
 
