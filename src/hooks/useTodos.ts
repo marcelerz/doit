@@ -20,7 +20,7 @@ import { getPersonId } from "@/types/person";
 import { getProjectId } from "@/types/project";
 import { getPriorityId } from "@/types/priority";
 import { getSprintId } from "@/types/sprint";
-import { KanbanStateId } from "@/types/kanbanState";
+import { KanbanStateId, getKanbanStateId } from "@/types/kanbanState";
 import { parseDuration } from "@/utils/ganttScheduler";
 import { getCommentId, ActivityEntry, CommentId } from "@/types/types";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/storage/migrations";
@@ -814,6 +814,45 @@ export function useTodos() {
     );
   };
 
+  // Helper to transition a todo to "in-progress" if allowed
+  const maybeTransitionToInProgress = (
+    todo: Todo,
+    now: ReturnType<typeof getTimestamp>,
+  ): Partial<Todo> | null => {
+    const inProgressStateId = getKanbanStateId("in-progress");
+    const currentStateId = (todo.workflowState as KanbanStateId) || getKanbanStateId("backlog");
+
+    // Already in progress - no transition needed
+    if (currentStateId === inProgressStateId) {
+      return null;
+    }
+
+    // Check if transition is allowed
+    const { states, allowedTransitions } = settings.kanban;
+    const isAllowed = allowedTransitions.some(
+      (t) => t.fromStateId === currentStateId && t.toStateId === inProgressStateId,
+    );
+
+    if (!isAllowed) {
+      return null;
+    }
+
+    // Get state names for activity description
+    const oldStateName = states.find((s) => s.id === currentStateId)?.name || currentStateId;
+    const newStateName = states.find((s) => s.id === inProgressStateId)?.name || inProgressStateId;
+
+    const workflowActivity = createActivity(
+      "workflow_state_changed",
+      `Moved from "${oldStateName}" to "${newStateName}"`,
+      { from: currentStateId, to: inProgressStateId },
+    );
+
+    return {
+      workflowState: inProgressStateId,
+      activity: [...(todo.activity || []), workflowActivity],
+    };
+  };
+
   // Time tracking functions
   const startTimeTracking = (todoId: TodoId, note?: string) => {
     const now = getTimestamp(Date.now());
@@ -826,8 +865,13 @@ export function useTodos() {
             note,
           };
           const currentTracking = todo.timeTracking || { entries: [], totalMinutes: getDurationMin(0) };
+
+          // Also transition to "in-progress" if allowed
+          const workflowUpdates = maybeTransitionToInProgress(todo, now);
+
           return {
             ...todo,
+            ...workflowUpdates,
             timeTracking: {
               ...currentTracking,
               entries: [...currentTracking.entries, newEntry],
@@ -853,8 +897,13 @@ export function useTodos() {
             return entry;
           });
           const totalMinutes = getDurationMin(entries.reduce((sum, e) => sum + (e.duration || 0), 0));
+
+          // Also transition to "in-progress" if allowed
+          const workflowUpdates = maybeTransitionToInProgress(todo, now);
+
           return {
             ...todo,
+            ...workflowUpdates,
             timeTracking: { entries, totalMinutes },
             updatedAt: now,
           };
