@@ -98,8 +98,9 @@ export default function RootLayout({
           <ServiceWorkerProvider />
           <main className="flex-1">{children}</main>
           <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 py-4">
-            <div className="container mx-auto px-4 text-center text-sm text-zinc-600 dark:text-zinc-400">
-              <p>Created by Marcel Erz © {new Date().getFullYear()}</p>
+            <div className="container mx-auto px-4 flex justify-between items-center text-sm text-zinc-600 dark:text-zinc-400">
+              <span>Created by Marcel Erz © {new Date().getFullYear()}</span>
+              <span className="text-xs">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
             </div>
           </footer>
         </ThemeProvider>

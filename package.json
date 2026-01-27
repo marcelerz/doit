@@ -4,6 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "setup:hooks": "node scripts/setup-hooks.js",
+    "postinstall": "node scripts/setup-hooks.js",
+    "bump:major": "node scripts/bump-version.js major",
+    "bump:minor": "node scripts/bump-version.js minor",
     "build": "next build",
     "build:gh-pages": "node scripts/build-gh-pages.js",
     "start": "next start",

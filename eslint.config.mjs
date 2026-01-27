@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     // Generated files:
     "playwright-report/**",
     "test-results/**",
+    // Build/utility scripts (plain Node.js, not TypeScript):
+    "scripts/**",
   ]),
   // Custom rules
   {
