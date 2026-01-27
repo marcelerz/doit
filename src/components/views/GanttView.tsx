@@ -30,6 +30,7 @@ import {
   ClockSolidIcon,
   RecurringSolidIcon,
   LinkSolidIcon,
+  RecordingDotIcon,
 } from "@/components/shared/Icons";
 import {
   ScheduledTask,
@@ -1541,12 +1542,26 @@ export function GanttView({
                                           </span>
                                           <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                                             {/* Time tracking indicator */}
-                                            {task.trackedMinutes && task.trackedMinutes > 0 && (
+                                            {(task.todo.isTrackingTime ||
+                                              (task.trackedMinutes && task.trackedMinutes > 0)) && (
                                               <span
-                                                className="text-[10px] opacity-70"
-                                                title={`${formatDuration(task.trackedMinutes)} tracked`}
+                                                className={`text-[10px] flex items-center gap-0.5 px-1 py-0.5 rounded ${
+                                                  task.todo.isTrackingTime
+                                                    ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                                    : "opacity-70"
+                                                }`}
+                                                title={
+                                                  task.todo.isTrackingTime
+                                                    ? `Currently tracking (${formatDuration(task.trackedMinutes || 0)} tracked)`
+                                                    : `${formatDuration(task.trackedMinutes || 0)} tracked`
+                                                }
                                               >
-                                                ⏱{formatDuration(task.trackedMinutes)}
+                                                {task.todo.isTrackingTime ? (
+                                                  <RecordingDotIcon className="w-2.5 h-2.5 animate-pulse" />
+                                                ) : (
+                                                  <span>⏱</span>
+                                                )}
+                                                {formatDuration(task.trackedMinutes || 0)}
                                               </span>
                                             )}
                                             {/* Comment/activity indicators */}
