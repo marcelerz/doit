@@ -49,6 +49,7 @@ import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage"
 import { waitForStorageInit } from "@/storage/storage";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { CloseIcon, SettingsIcon, HelpIcon, DocumentIcon, CheckCircleIcon } from "@/components/shared/Icons";
+import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { exportNotes } from "@/utils/export";
 
 export function TodoApp() {
@@ -568,6 +569,9 @@ export function TodoApp() {
   const [isAddProjectOverlayOpen, setIsAddProjectOverlayOpen] = useState(false);
   const [isAddSprintOverlayOpen, setIsAddSprintOverlayOpen] = useState(false);
   const [isAddNoteOverlayOpen, setIsAddNoteOverlayOpen] = useState(false);
+  // Alternatives state for add overlays (using AlternativesInput component)
+  const [addPersonAlternatives, setAddPersonAlternatives] = useState<string[]>([]);
+  const [addProjectAlternatives, setAddProjectAlternatives] = useState<string[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<NoteId | null>(null);
   const [focusNoteContentOnOpen, setFocusNoteContentOnOpen] = useState(false);
   const notesSearchInputRef = useRef<HTMLInputElement>(null);
@@ -1692,7 +1696,10 @@ export function TodoApp() {
         {isAddPersonOverlayOpen && (
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-            onClick={() => setIsAddPersonOverlayOpen(false)}
+            onClick={() => {
+              setIsAddPersonOverlayOpen(false);
+              setAddPersonAlternatives([]);
+            }}
           >
             <div
               className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-md w-full"
@@ -1702,7 +1709,10 @@ export function TodoApp() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Add Person</h2>
                   <button
-                    onClick={() => setIsAddPersonOverlayOpen(false)}
+                    onClick={() => {
+                      setIsAddPersonOverlayOpen(false);
+                      setAddPersonAlternatives([]);
+                    }}
                     className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
                   >
                     <CloseIcon className="w-6 h-6" />
@@ -1714,19 +1724,16 @@ export function TodoApp() {
                     e.preventDefault();
                     const formData = new FormData(e.currentTarget);
                     const name = formData.get("name") as string;
-                    const alternatives = (formData.get("alternatives") as string)
-                      .split(",")
-                      .map((a) => a.trim())
-                      .filter((a) => a);
                     const color = formData.get("color") as string;
 
                     if (name.trim()) {
                       addPerson({
                         name: name.trim(),
-                        alternatives,
+                        alternatives: addPersonAlternatives,
                         color: getColor(color),
                       });
                       setIsAddPersonOverlayOpen(false);
+                      setAddPersonAlternatives([]);
                       e.currentTarget.reset();
                     }
                   }}
@@ -1743,17 +1750,11 @@ export function TodoApp() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                      Alternatives (comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      name="alternatives"
-                      placeholder="Johnny, JD, John D."
-                      className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                  <AlternativesInput
+                    value={addPersonAlternatives}
+                    onChange={setAddPersonAlternatives}
+                    placeholder="e.g., Johnny, JD, John D."
+                  />
 
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Color</label>
@@ -1768,7 +1769,10 @@ export function TodoApp() {
                   <div className="flex gap-3 justify-end pt-4">
                     <button
                       type="button"
-                      onClick={() => setIsAddPersonOverlayOpen(false)}
+                      onClick={() => {
+                        setIsAddPersonOverlayOpen(false);
+                        setAddPersonAlternatives([]);
+                      }}
                       className="px-6 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
                     >
                       Cancel
@@ -1790,7 +1794,10 @@ export function TodoApp() {
         {isAddProjectOverlayOpen && (
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-            onClick={() => setIsAddProjectOverlayOpen(false)}
+            onClick={() => {
+              setIsAddProjectOverlayOpen(false);
+              setAddProjectAlternatives([]);
+            }}
           >
             <div
               className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-md w-full"
@@ -1800,7 +1807,10 @@ export function TodoApp() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Add Project</h2>
                   <button
-                    onClick={() => setIsAddProjectOverlayOpen(false)}
+                    onClick={() => {
+                      setIsAddProjectOverlayOpen(false);
+                      setAddProjectAlternatives([]);
+                    }}
                     className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
                   >
                     <CloseIcon className="w-6 h-6" />
@@ -1812,19 +1822,16 @@ export function TodoApp() {
                     e.preventDefault();
                     const formData = new FormData(e.currentTarget);
                     const name = formData.get("name") as string;
-                    const alternatives = (formData.get("alternatives") as string)
-                      .split(",")
-                      .map((a) => a.trim())
-                      .filter((a) => a);
                     const color = formData.get("color") as string;
 
                     if (name.trim()) {
                       addProject({
                         name: name.trim(),
-                        alternatives,
+                        alternatives: addProjectAlternatives,
                         color: getColor(color),
                       });
                       setIsAddProjectOverlayOpen(false);
+                      setAddProjectAlternatives([]);
                       e.currentTarget.reset();
                     }
                   }}
@@ -1841,17 +1848,11 @@ export function TodoApp() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                      Alternatives (comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      name="alternatives"
-                      placeholder="Web Redesign, Site Refresh"
-                      className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                  <AlternativesInput
+                    value={addProjectAlternatives}
+                    onChange={setAddProjectAlternatives}
+                    placeholder="e.g., Web Redesign, Site Refresh"
+                  />
 
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Color</label>
@@ -1866,7 +1867,10 @@ export function TodoApp() {
                   <div className="flex gap-3 justify-end pt-4">
                     <button
                       type="button"
-                      onClick={() => setIsAddProjectOverlayOpen(false)}
+                      onClick={() => {
+                        setIsAddProjectOverlayOpen(false);
+                        setAddProjectAlternatives([]);
+                      }}
                       className="px-6 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
                     >
                       Cancel
