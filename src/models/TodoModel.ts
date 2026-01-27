@@ -381,18 +381,77 @@ export class TodoModel {
   /**
    * Get metadata for UI editing purposes.
    * Converts typed ID fields to string-based TodoMetadata.
-   * Uses the string getters which resolve IDs to names via registry
-   * and include auto-assign fallbacks.
+   * Returns the ACTUAL stored values, NOT auto-assign fallbacks.
+   * This allows users to edit metadata without auto-assign constantly overriding their changes.
    */
   get metadata(): TodoMetadata {
+    // Get raw priority name (without auto-assign fallback)
+    let rawPriorityName: string | undefined;
+    if (this._raw.priority) {
+      const found = this._settingsModel.findPriorityById(this._raw.priority);
+      rawPriorityName = found?.name || (this._raw.priority as string);
+    }
+
+    // Get raw due date ISO (without auto-assign fallback)
+    let rawDueDateISO: string | undefined;
+    if (this._raw.dueDate) {
+      const date = new Date(this._raw.dueDate);
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, "0");
+      const day = date.getDate().toString().padStart(2, "0");
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      if (hours === 0 && minutes === 0) {
+        rawDueDateISO = `${year}-${month}-${day}`;
+      } else {
+        const hoursStr = hours.toString().padStart(2, "0");
+        const minutesStr = minutes.toString().padStart(2, "0");
+        rawDueDateISO = `${year}-${month}-${day}T${hoursStr}:${minutesStr}`;
+      }
+    }
+
+    // Get raw duration display (without auto-assign fallback)
+    let rawDurationDisplay: string | undefined;
+    if (this._raw.duration) {
+      const minutes = Math.round(this._raw.duration / 60);
+      if (minutes < 60) {
+        rawDurationDisplay = `${minutes}m`;
+      } else {
+        const hours = minutes / 60;
+        if (hours === Math.floor(hours)) {
+          rawDurationDisplay = `${hours}h`;
+        } else {
+          rawDurationDisplay = `${hours.toFixed(1)}h`;
+        }
+      }
+    }
+
+    // Get raw assigned people (without auto-assign fallback)
+    const rawAssignedPeople = this._raw.assignedPeople.map((id) => {
+      const person = this._registry?.getPerson(id);
+      return person?.name || (id as string);
+    });
+
+    // Get raw source people (without auto-assign fallback)
+    const rawSourcePeople = this._raw.sourcePeople.map((id) => {
+      const person = this._registry?.getPerson(id);
+      return person?.name || (id as string);
+    });
+
+    // Get raw projects (without auto-assign fallback)
+    const rawProjects = this._raw.projects.map((id) => {
+      const project = this._registry?.getProject(id);
+      return project?.name || (id as string);
+    });
+
     return {
-      assignedPeople: this.assignedPeople,
-      sourcePeople: this.sourcePeople,
-      mentionedPeople: this.mentionedPeople,
-      projects: this.projects,
-      priority: this.priorityName,
-      dueDate: this.dueDateISO,
-      duration: this.durationDisplay,
+      assignedPeople: rawAssignedPeople,
+      sourcePeople: rawSourcePeople,
+      mentionedPeople: this.mentionedPeople, // No auto-assign for mentioned
+      projects: rawProjects,
+      priority: rawPriorityName,
+      dueDate: rawDueDateISO,
+      duration: rawDurationDisplay,
       recurring: this.recurring,
       tags: this.tags,
       dependencies: this.dependencies,

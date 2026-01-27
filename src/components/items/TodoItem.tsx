@@ -222,6 +222,11 @@ export function TodoItem({
     e.preventDefault();
     if (currentPlainText.trim() === "") return;
 
+    // Filter to only use EXPLICIT tokens (not auto-detected) for metadata extraction
+    // Auto-detection should only apply on creation, not during editing
+    // This allows users to have text like "urgent" or "2h" without overriding metadata
+    const explicitTokens = currentTokens.filter((t) => !t.isAutoDetected);
+
     // Start with existing metadata as the source of truth (additive approach - never remove, only add from tokens)
     const metadata: TodoMetadata = {
       assignedPeople: [...(todo.metadata.assignedPeople ?? [])],
@@ -236,8 +241,9 @@ export function TodoItem({
       recurring: todo.metadata.recurring,
     };
 
-    // Parse tokens from the edited text and ADD/UPDATE items (only update when found, never clear)
-    currentTokens.forEach((token) => {
+    // Parse EXPLICIT tokens from the edited text and ADD/UPDATE items (only update when found, never clear)
+    // Auto-detected tokens are ignored - only explicit markers like @, $, %, !!, # affect metadata during editing
+    explicitTokens.forEach((token) => {
       switch (token.type) {
         case "assigned":
           if (!metadata.assignedPeople.includes(token.value)) {
@@ -292,26 +298,8 @@ export function TodoItem({
       }
     });
 
-    // Apply auto-assignment defaults only for empty fields (never overwrite existing values)
-    if (settings.autoAssign.enabled) {
-      const autoAssign = settings.autoAssign;
-
-      if (metadata.assignedPeople.length === 0 && autoAssign.assignedPerson) {
-        metadata.assignedPeople.push(autoAssign.assignedPerson);
-      }
-
-      if (metadata.sourcePeople.length === 0 && autoAssign.sourcePerson) {
-        metadata.sourcePeople.push(autoAssign.sourcePerson);
-      }
-
-      if (metadata.projects.length === 0 && autoAssign.project) {
-        metadata.projects.push(autoAssign.project);
-      }
-
-      if (!metadata.priority && autoAssign.priority) {
-        metadata.priority = autoAssign.priority;
-      }
-    }
+    // NOTE: Auto-assignment defaults are intentionally NOT applied during editing
+    // Auto-assign should only happen once during task creation, not on every edit
     onEdit(todo.id, currentFullText, currentPlainText, metadata);
     setIsEditing(false);
   };

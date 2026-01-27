@@ -198,20 +198,34 @@ export function TodoDetailsOverlay({
   const handleSaveEdit = () => {
     if (editPlainText.trim() === "") return;
 
-    // Start with existing metadata (additive approach - preserve what's not in tokens)
+    // Filter to only use EXPLICIT tokens (not auto-detected) for metadata extraction
+    // Auto-detection should only apply on creation, not during editing
+    // This allows users to have text like "urgent" or "2h" without overriding metadata
+    const explicitTokens = editTokens.filter((t) => !t.isAutoDetected);
+
+    // Extract explicit token values
+    const explicitAssigned = explicitTokens.filter((t) => t.type === "assigned").map((t) => t.value);
+    const explicitSource = explicitTokens.filter((t) => t.type === "source").map((t) => t.value);
+    const explicitMentioned = explicitTokens.filter((t) => t.type === "mentioned").map((t) => t.value);
+    const explicitProjects = explicitTokens.filter((t) => t.type === "project").map((t) => t.value);
+    const explicitDependencies = explicitTokens.filter((t) => t.type === "dependency").map((t) => t.value);
+    const explicitTags = explicitTokens.filter((t) => t.type === "tag").map((t) => t.value);
+
+    // Start with existing metadata and merge with explicit tokens (additive approach)
+    // During editing, preserve existing metadata and only ADD explicit markers
     const metadata: TodoMetadata = {
-      // Arrays: merge existing with tokens (additive)
-      assignedPeople: editTokens.filter((t) => t.type === "assigned").map((t) => t.value),
-      sourcePeople: editTokens.filter((t) => t.type === "source").map((t) => t.value),
-      mentionedPeople: editTokens.filter((t) => t.type === "mentioned").map((t) => t.value),
-      projects: editTokens.filter((t) => t.type === "project").map((t) => t.value),
-      dependencies: editTokens.filter((t) => t.type === "dependency").map((t) => t.value),
-      tags: editTokens.filter((t) => t.type === "tag").map((t) => t.value),
-      // Singular fields: use token value if found, otherwise preserve existing
-      priority: editTokens.find((t) => t.type === "priority")?.value || editingMetadata.priority,
-      dueDate: editTokens.find((t) => t.type === "dueDate")?.value || editingMetadata.dueDate,
-      duration: editTokens.find((t) => t.type === "duration")?.value || editingMetadata.duration,
-      recurring: editTokens.find((t) => t.type === "recurring")?.value || editingMetadata.recurring,
+      // Arrays: preserve existing metadata, only add NEW explicit tokens (no duplicates)
+      assignedPeople: [...new Set([...editingMetadata.assignedPeople, ...explicitAssigned])],
+      sourcePeople: [...new Set([...editingMetadata.sourcePeople, ...explicitSource])],
+      mentionedPeople: [...new Set([...editingMetadata.mentionedPeople, ...explicitMentioned])],
+      projects: [...new Set([...editingMetadata.projects, ...explicitProjects])],
+      dependencies: [...new Set([...(editingMetadata.dependencies ?? []), ...explicitDependencies])],
+      tags: [...new Set([...(editingMetadata.tags ?? []), ...explicitTags])],
+      // Singular fields: use explicit token value if found, otherwise preserve existing
+      priority: explicitTokens.find((t) => t.type === "priority")?.value || editingMetadata.priority,
+      dueDate: explicitTokens.find((t) => t.type === "dueDate")?.value || editingMetadata.dueDate,
+      duration: explicitTokens.find((t) => t.type === "duration")?.value || editingMetadata.duration,
+      recurring: explicitTokens.find((t) => t.type === "recurring")?.value || editingMetadata.recurring,
       // Preserve sprint from editingMetadata (not in tokens)
       sprint: editingMetadata.sprint,
       // Preserve context from editingMetadata (not in tokens)
@@ -732,7 +746,7 @@ export function TodoDetailsOverlay({
                   onClick={() => dropdown.toggleDropdown("priority")}
                   className="text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-bold"
                 >
-                  !!{settings.autoAssign.priority || "None"}
+                  +
                 </button>
               )}
             </div>

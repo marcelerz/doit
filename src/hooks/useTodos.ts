@@ -815,10 +815,7 @@ export function useTodos() {
   };
 
   // Helper to transition a todo to "in-progress" if allowed
-  const maybeTransitionToInProgress = (
-    todo: Todo,
-    now: ReturnType<typeof getTimestamp>,
-  ): Partial<Todo> | null => {
+  const maybeTransitionToInProgress = (todo: Todo): Partial<Todo> | null => {
     const inProgressStateId = getKanbanStateId("in-progress");
     const currentStateId = (todo.workflowState as KanbanStateId) || getKanbanStateId("backlog");
 
@@ -867,7 +864,7 @@ export function useTodos() {
           const currentTracking = todo.timeTracking || { entries: [], totalMinutes: getDurationMin(0) };
 
           // Also transition to "in-progress" if allowed
-          const workflowUpdates = maybeTransitionToInProgress(todo, now);
+          const workflowUpdates = maybeTransitionToInProgress(todo);
 
           return {
             ...todo,
@@ -899,7 +896,7 @@ export function useTodos() {
           const totalMinutes = getDurationMin(entries.reduce((sum, e) => sum + (e.duration || 0), 0));
 
           // Also transition to "in-progress" if allowed
-          const workflowUpdates = maybeTransitionToInProgress(todo, now);
+          const workflowUpdates = maybeTransitionToInProgress(todo);
 
           return {
             ...todo,
