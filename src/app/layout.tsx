@@ -4,6 +4,7 @@ import "./globals.css";
 import StorageInitializer from "@/services/StorageInitializer";
 import ServiceWorkerProvider from "@/services/ServiceWorkerProvider";
 import { ThemeProvider } from "@/services/ThemeProvider";
+import versionData from "../../version.json";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -99,8 +100,9 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 py-4">
             <div className="container mx-auto px-4 flex justify-between items-center text-sm text-zinc-600 dark:text-zinc-400">
+              <span>&nbsp;</span>
               <span>Created by Marcel Erz © {new Date().getFullYear()}</span>
-              <span className="text-xs">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
+              <span className="text-xs">v{versionData.major}.{versionData.minor}.{versionData.revision}</span>
             </div>
           </footer>
         </ThemeProvider>
