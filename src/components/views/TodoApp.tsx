@@ -3,6 +3,7 @@
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useTodos } from "@/hooks/useTodos";
+import { useNotes } from "@/hooks/useNotes";
 import { useSettings } from "@/hooks/useSettings";
 import { usePeople } from "@/hooks/usePeople";
 import { useProjects } from "@/hooks/useProjects";
@@ -32,6 +33,10 @@ import { ViewTabs, ViewTab } from "@/components/shared/ViewTabs";
 import { PeopleView, peopleViewTutorialSteps } from "@/components/views/PeopleView";
 import { ProjectsView, projectsViewTutorialSteps } from "@/components/views/ProjectsView";
 import { SprintsView, sprintsViewTutorialSteps } from "@/components/views/SprintsView";
+import { NotesView, notesViewTutorialSteps } from "@/components/views/NotesView";
+import { NoteDetailView } from "@/components/views/NoteDetailView";
+import { NoteAddModal } from "@/components/overlays/NoteAddModal";
+import { NoteId } from "@/types/note";
 import { useSelectionHistory, sortByUsage, sortStringsByUsage } from "@/hooks/useSelectionHistory";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { normalizeDateValue } from "@/utils/dateUtils";
@@ -43,7 +48,8 @@ import { parseTokensToMetadata } from "@/utils/tokenParser";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
-import { PlusIcon, CloseIcon, SettingsIcon, HelpIcon, DocumentIcon } from "@/components/shared/Icons";
+import { CloseIcon, SettingsIcon, HelpIcon, DocumentIcon, CheckCircleIcon } from "@/components/shared/Icons";
+import { exportNotes } from "@/utils/export";
 
 export function TodoApp() {
   const {
@@ -124,6 +130,33 @@ export function TodoApp() {
     deleteSprintComment,
   } = useSprints();
 
+  // Notes hook
+  const {
+    notes,
+    find: findNote,
+    addNote,
+    editNote,
+    deleteNote,
+    archiveNote,
+    unarchiveNote,
+    togglePinned: toggleNotePinned,
+    reorderNotes,
+    addNoteComment,
+    editNoteComment,
+    deleteNoteComment,
+    addActionItem,
+    editActionItem,
+    deleteActionItem,
+    convertActionItemsToTodos,
+    convertToTodo: convertNoteToTodo,
+    duplicateNote,
+    isLoaded: _notesLoaded,
+    undoActions: noteUndoActions,
+    fadingOutIds: noteFadingOutIds,
+    undo: undoNote,
+    dismissUndo: dismissNoteUndo,
+  } = useNotes();
+
   // Templates and search history hooks
   const { templates, addTemplate, deleteTemplate, incrementUsage } = useTemplates();
 
@@ -142,6 +175,7 @@ export function TodoApp() {
   const projectsSearchInputRef = useRef<HTMLInputElement>(null);
   const sprintsSearchInputRef = useRef<HTMLInputElement>(null);
   const listViewRef = useRef<ListViewHandle>(null);
+  const notesViewRef = useRef<import("@/components/views/NotesView").NotesViewHandle>(null);
 
   // Active view state - initialized with default, loaded from UI_OPTIONS in useEffect
   const [activeView, setActiveView] = useState<ViewTab>("list");
@@ -162,6 +196,7 @@ export function TodoApp() {
       kanban: features?.kanbanView,
       gantt: features?.ganttView,
       calendar: features?.calendarView,
+      notes: features?.notesView,
       sprints: features?.sprintsView,
       stats: features?.statsView,
     };
@@ -234,40 +269,91 @@ export function TodoApp() {
     return sortByUsage(projects, usageStats.projects);
   }, [projects, usageStats.projects]);
 
-  // Calculate task counts for people and projects (only active todos)
-  const taskCountsByPerson = useMemo(() => {
-    const counts = new Map<string, number>();
-    todos
-      .filter((t) => t.isActive)
-      .forEach((todo) => {
-        // Count assigned people - use TodoModel.assignedPeople
-        todo.assignedPeople.forEach((personName) => {
-          // Find matching person by name or alternatives
-          const person = people.find((p) => p.matchesAnyName([personName]));
-          if (person) {
-            counts.set(person.id, (counts.get(person.id) || 0) + 1);
-          }
-        });
-      });
-    return counts;
-  }, [todos, people]);
+  // Calculate todo and note counts for people and projects
+  // Count all relationship types: assigned, sourced, and mentioned
+  // Returns: { activeTodos, closedTodos, activeNotes, archivedNotes }
+  type EntityCounts = { activeTodos: number; closedTodos: number; activeNotes: number; archivedNotes: number };
 
-  const taskCountsByProject = useMemo(() => {
-    const counts = new Map<string, number>();
-    todos
-      .filter((t) => t.isActive)
-      .forEach((todo) => {
-        // Count projects - use TodoModel.projects
-        todo.projects.forEach((projectName) => {
-          // Find matching project by name or alternatives
-          const project = projects.find((p) => p.matchesAnyName([projectName]));
-          if (project) {
-            counts.set(project.id, (counts.get(project.id) || 0) + 1);
-          }
-        });
+  const countsByPerson = useMemo(() => {
+    const counts = new Map<string, EntityCounts>();
+
+    const getOrCreate = (personId: string): EntityCounts => {
+      if (!counts.has(personId)) {
+        counts.set(personId, { activeTodos: 0, closedTodos: 0, activeNotes: 0, archivedNotes: 0 });
+      }
+      return counts.get(personId)!;
+    };
+
+    const countPersonNames = (personNames: string[], field: keyof EntityCounts) => {
+      personNames.forEach((personName) => {
+        const person = people.find((p) => p.matchesAnyName([personName]));
+        if (person) {
+          getOrCreate(person.id)[field]++;
+        }
       });
+    };
+
+    // Count todos
+    todos.forEach((todo) => {
+      const field: keyof EntityCounts = todo.isActive ? "activeTodos" : "closedTodos";
+      countPersonNames(todo.assignedPeople, field);
+      countPersonNames(todo.sourcePeople, field);
+      countPersonNames(todo.mentionedPeople, field);
+    });
+
+    // Count notes
+    notes.forEach((note) => {
+      const field: keyof EntityCounts = note.isArchived ? "archivedNotes" : "activeNotes";
+      const personNames = [
+        ...note.assignedPeopleIds.map((id) => id as string),
+        ...note.sourcePeopleIds.map((id) => id as string),
+        ...note.mentionedPeopleIds.map((id) => id as string),
+      ];
+      personNames.forEach((personName) => {
+        const person = people.find((p) => p.matchesAnyName([personName]));
+        if (person) {
+          getOrCreate(person.id)[field]++;
+        }
+      });
+    });
+
     return counts;
-  }, [todos, projects]);
+  }, [todos, notes, people]);
+
+  const countsByProject = useMemo(() => {
+    const counts = new Map<string, EntityCounts>();
+
+    const getOrCreate = (projectId: string): EntityCounts => {
+      if (!counts.has(projectId)) {
+        counts.set(projectId, { activeTodos: 0, closedTodos: 0, activeNotes: 0, archivedNotes: 0 });
+      }
+      return counts.get(projectId)!;
+    };
+
+    // Count todos
+    todos.forEach((todo) => {
+      const field: keyof EntityCounts = todo.isActive ? "activeTodos" : "closedTodos";
+      todo.projects.forEach((projectName) => {
+        const project = projects.find((p) => p.matchesAnyName([projectName]));
+        if (project) {
+          getOrCreate(project.id)[field]++;
+        }
+      });
+    });
+
+    // Count notes
+    notes.forEach((note) => {
+      const field: keyof EntityCounts = note.isArchived ? "archivedNotes" : "activeNotes";
+      note.projectIds.forEach((projectId) => {
+        const project = projects.find((p) => p.matchesAnyName([projectId as string]));
+        if (project) {
+          getOrCreate(project.id)[field]++;
+        }
+      });
+    });
+
+    return counts;
+  }, [todos, notes, projects]);
 
   // Wrapper functions to convert name string to object format
   const handleAddPerson = (name: string) => {
@@ -452,6 +538,8 @@ export function TodoApp() {
         return ganttViewTutorialSteps;
       case "calendar":
         return calendarViewTutorialSteps;
+      case "notes":
+        return notesViewTutorialSteps;
       case "people":
         return peopleViewTutorialSteps;
       case "projects":
@@ -479,6 +567,10 @@ export function TodoApp() {
   const [isAddPersonOverlayOpen, setIsAddPersonOverlayOpen] = useState(false);
   const [isAddProjectOverlayOpen, setIsAddProjectOverlayOpen] = useState(false);
   const [isAddSprintOverlayOpen, setIsAddSprintOverlayOpen] = useState(false);
+  const [isAddNoteOverlayOpen, setIsAddNoteOverlayOpen] = useState(false);
+  const [selectedNoteId, setSelectedNoteId] = useState<NoteId | null>(null);
+  const [focusNoteContentOnOpen, setFocusNoteContentOnOpen] = useState(false);
+  const notesSearchInputRef = useRef<HTMLInputElement>(null);
   const [isHelpOverlayOpen, setIsHelpOverlayOpen] = useState(false);
 
   // Restart tutorial (called from HelpOverlay)
@@ -548,15 +640,32 @@ export function TodoApp() {
           setIsAddSprintOverlayOpen(false);
           return;
         }
+        if (isAddNoteOverlayOpen) {
+          setIsAddNoteOverlayOpen(false);
+          return;
+        }
+        if (selectedNoteId) {
+          setSelectedNoteId(null);
+          return;
+        }
         if (listViewRef.current?.isSelectionMode) {
           listViewRef.current.toggleSelectionMode();
+          return;
+        }
+        if (notesViewRef.current?.isSelectionMode) {
+          notesViewRef.current.toggleSelectionMode();
+          return;
+        }
+        if (notesViewRef.current?.isDragMode) {
+          notesViewRef.current.toggleDragMode();
           return;
         }
         // Blur search input if focused
         if (
           document.activeElement === peopleSearchInputRef.current ||
           document.activeElement === projectsSearchInputRef.current ||
-          document.activeElement === sprintsSearchInputRef.current
+          document.activeElement === sprintsSearchInputRef.current ||
+          document.activeElement === notesSearchInputRef.current
         ) {
           (document.activeElement as HTMLElement).blur();
           return;
@@ -577,6 +686,8 @@ export function TodoApp() {
         e.preventDefault();
         if (activeView === "list" || activeView === "gantt" || activeView === "calendar") {
           setIsAddOverlayOpen(true);
+        } else if (activeView === "notes") {
+          setIsAddNoteOverlayOpen(true);
         } else if (activeView === "people") {
           setIsAddPersonOverlayOpen(true);
         } else if (activeView === "projects") {
@@ -590,6 +701,8 @@ export function TodoApp() {
         e.preventDefault();
         if (activeView === "list") {
           listViewRef.current?.focusSearch();
+        } else if (activeView === "notes") {
+          notesViewRef.current?.focusSearch();
         } else if (activeView === "people") {
           peopleSearchInputRef.current?.focus();
         } else if (activeView === "projects") {
@@ -600,20 +713,33 @@ export function TodoApp() {
         return;
       }
 
-      // 'f' - Toggle filters (list view only)
+      // 'f' - Toggle filters (list and notes views)
       if (e.key === "f" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         if (activeView === "list") {
           listViewRef.current?.toggleFilters();
+        } else if (activeView === "notes") {
+          notesViewRef.current?.toggleFilters();
         }
         return;
       }
 
-      // 's' - Toggle selection mode (list view only)
+      // 's' - Toggle selection mode (list and notes views)
       if (e.key === "s" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         if (activeView === "list") {
           listViewRef.current?.toggleSelectionMode();
+        } else if (activeView === "notes") {
+          notesViewRef.current?.toggleSelectionMode();
+        }
+        return;
+      }
+
+      // 'd' - Toggle drag mode (notes view only)
+      if (e.key === "d" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        if (activeView === "notes") {
+          notesViewRef.current?.toggleDragMode();
         }
         return;
       }
@@ -659,6 +785,8 @@ export function TodoApp() {
     isAddPersonOverlayOpen,
     isAddProjectOverlayOpen,
     isAddSprintOverlayOpen,
+    isAddNoteOverlayOpen,
+    selectedNoteId,
     features,
   ]);
 
@@ -755,12 +883,23 @@ export function TodoApp() {
               <button
                 onClick={() => setIsAddOverlayOpen(true)}
                 className="px-2 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
-                title="Add new todo"
+                title="Add new todo (A)"
                 data-tutorial="add-button"
               >
-                <PlusIcon className="w-5 h-5" />
-                <span className="hidden sm:inline">Add</span>
+                <CheckCircleIcon className="w-5 h-5" />
+                <span className="hidden sm:inline">Todo</span>
               </button>
+              {features?.notesView && (
+                <button
+                  onClick={() => setIsAddNoteOverlayOpen(true)}
+                  className="px-2 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
+                  title="Add new note (Shift+N)"
+                  data-tutorial="add-note-button"
+                >
+                  <DocumentIcon className="w-5 h-5" />
+                  <span className="hidden sm:inline">Note</span>
+                </button>
+              )}
               <button
                 onClick={() => setIsHelpOverlayOpen(true)}
                 className="px-2 sm:px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
@@ -910,7 +1049,7 @@ export function TodoApp() {
         {activeView === "people" && (
           <PeopleView
             people={allPeople}
-            taskCountsByPerson={taskCountsByPerson}
+            countsByPerson={countsByPerson}
             onOpenPerson={(personId) => setDetailsOverlayPersonId(personId)}
             onAddPerson={() => setIsAddPersonOverlayOpen(true)}
             onArchivePerson={archivePerson}
@@ -935,7 +1074,7 @@ export function TodoApp() {
         {activeView === "projects" && (
           <ProjectsView
             projects={allProjects}
-            taskCountsByProject={taskCountsByProject}
+            countsByProject={countsByProject}
             onOpenProject={(projectId) => setDetailsOverlayProjectId(projectId)}
             onAddProject={() => setIsAddProjectOverlayOpen(true)}
             onArchiveProject={archiveProject}
@@ -953,6 +1092,196 @@ export function TodoApp() {
               });
             }}
             searchInputRef={projectsSearchInputRef}
+          />
+        )}
+
+        {/* Notes View */}
+        {activeView === "notes" && !selectedNoteId && (
+          <NotesView
+            ref={notesViewRef}
+            notes={notes}
+            todos={todos}
+            onOpenNote={(noteId) => {
+              setSelectedNoteId(noteId);
+              setFocusNoteContentOnOpen(false);
+            }}
+            onDeleteNote={(noteId) => {
+              showConfirmDialog({
+                title: "Delete Note",
+                message: "Are you sure you want to delete this note? This action cannot be undone.",
+                confirmText: "Delete",
+                confirmVariant: "danger",
+                onConfirm: () => {
+                  deleteNote(noteId);
+                },
+              });
+            }}
+            onArchiveNote={archiveNote}
+            onUnarchiveNote={unarchiveNote}
+            onTogglePinned={toggleNotePinned}
+            onConvertToTodo={(noteId) => {
+              showConfirmDialog({
+                title: "Convert to Todo",
+                message: "This will convert the note to a todo and archive the original note. Continue?",
+                confirmText: "Convert",
+                confirmVariant: "primary",
+                onConfirm: () => {
+                  const newTodoId = convertNoteToTodo(noteId, (text, plainText, metadata) => {
+                    const todoMetadata = {
+                      assignedPeople: metadata.assignedPeople,
+                      sourcePeople: metadata.sourcePeople,
+                      mentionedPeople: metadata.mentionedPeople,
+                      projects: metadata.projects,
+                      tags: metadata.tags,
+                      context: metadata.context,
+                    };
+                    return addTodo(text, plainText, todoMetadata);
+                  });
+                  // Navigate to the new todo
+                  if (newTodoId) {
+                    setActiveView("list");
+                    const newTodo = todos.find((t) => t.id === newTodoId);
+                    if (newTodo) {
+                      setDetailsOverlayTodo(newTodo);
+                    }
+                  }
+                },
+              });
+            }}
+            notesSettings={settings.notes}
+            markerColors={settings.markerColors}
+            people={people}
+            projects={projects}
+            features={features}
+            searchInputRef={notesSearchInputRef}
+            searchHistory={searchHistory}
+            addToSearchHistory={addToSearchHistory}
+            removeFromSearchHistory={removeFromSearchHistory}
+            clearSearchHistory={clearSearchHistory}
+            undoActions={noteUndoActions}
+            fadingOutIds={noteFadingOutIds}
+            undo={undoNote}
+            dismissUndo={dismissNoteUndo}
+            onReorderNotes={reorderNotes}
+            onExport={(format) => {
+              // Build lookup maps for display names
+              const peopleMap = new Map(people.map((p) => [p.id, p.name]));
+              const projectsMap = new Map(projects.map((p) => [p.id, p.name]));
+              // Export all non-deleted notes (filtered notes handled internally)
+              exportNotes(notes, format, peopleMap, projectsMap);
+            }}
+          />
+        )}
+
+        {/* Note Detail View (inline, replaces list) */}
+        {activeView === "notes" && selectedNoteId && findNote(selectedNoteId) && (
+          <NoteDetailView
+            note={findNote(selectedNoteId)!}
+            onBack={() => setSelectedNoteId(null)}
+            onEdit={editNote}
+            onDelete={(noteId) => {
+              showConfirmDialog({
+                title: "Delete Note",
+                message: "Are you sure you want to delete this note? This action cannot be undone.",
+                confirmText: "Delete",
+                confirmVariant: "danger",
+                onConfirm: () => {
+                  deleteNote(noteId);
+                  setSelectedNoteId(null);
+                },
+              });
+            }}
+            onArchive={(noteId) => {
+              archiveNote(noteId);
+              setSelectedNoteId(null);
+            }}
+            onUnarchive={unarchiveNote}
+            onTogglePinned={toggleNotePinned}
+            onConvertToTodo={(noteId) => {
+              showConfirmDialog({
+                title: "Convert to Todo",
+                message: "This will convert the note to a todo and archive the original note. Continue?",
+                confirmText: "Convert",
+                confirmVariant: "primary",
+                onConfirm: () => {
+                  const newTodoId = convertNoteToTodo(noteId, (text, plainText, metadata) => {
+                    const todoMetadata = {
+                      assignedPeople: metadata.assignedPeople,
+                      sourcePeople: metadata.sourcePeople,
+                      mentionedPeople: metadata.mentionedPeople,
+                      projects: metadata.projects,
+                      tags: metadata.tags,
+                      context: metadata.context,
+                    };
+                    return addTodo(text, plainText, todoMetadata);
+                  });
+                  setSelectedNoteId(null);
+                  // Navigate to the new todo
+                  if (newTodoId) {
+                    setActiveView("list");
+                    const newTodo = todos.find((t) => t.id === newTodoId);
+                    if (newTodo) {
+                      setDetailsOverlayTodo(newTodo);
+                    }
+                  }
+                },
+              });
+            }}
+            onAddComment={addNoteComment}
+            onEditComment={editNoteComment}
+            onDeleteComment={deleteNoteComment}
+            onAddActionItem={addActionItem}
+            onEditActionItem={editActionItem}
+            onDeleteActionItem={deleteActionItem}
+            onConvertActionItems={(noteId) => {
+              convertActionItemsToTodos(noteId, (text, plainText, metadata) => {
+                const todoMetadata = {
+                  assignedPeople: [],
+                  sourcePeople: [],
+                  mentionedPeople: [],
+                  projects: [],
+                  sourceNoteId: metadata.sourceNoteId as string,
+                  sourceActionItemId: metadata.sourceActionItemId as string,
+                };
+                // Return the new todo ID from addTodo (not the first existing todo)
+                return addTodo(text, plainText, todoMetadata);
+              });
+            }}
+            onOpenTodo={(todoId) => {
+              const todo = todos.find((t) => t.id === todoId);
+              if (todo) {
+                setDetailsOverlayTodo(todo);
+              }
+            }}
+            onToggleTodo={(todoId) => {
+              toggleTodo(todoId);
+            }}
+            todos={todos}
+            availablePeople={sortedPeople}
+            availableProjects={sortedProjects}
+            markerColors={settings.markerColors}
+            linkPatterns={settings.linkPatterns}
+            autoFocusContent={focusNoteContentOnOpen}
+            onAddPerson={(name) => {
+              addPerson({
+                name,
+                alternatives: [],
+              });
+            }}
+            onAddProject={(name) => {
+              addProject({
+                name,
+                alternatives: [],
+              });
+            }}
+            onDuplicate={(noteId) => {
+              const newNoteId = duplicateNote(noteId);
+              if (newNoteId) {
+                setSelectedNoteId(newNoteId);
+              }
+              return newNoteId;
+            }}
+            onRecordSelections={recordSelections}
           />
         )}
 
@@ -1061,6 +1390,12 @@ export function TodoApp() {
                   const foundTodo = todos.find((t) => t.id === todoId);
                   if (foundTodo) setDetailsOverlayTodo(foundTodo);
                 }}
+                onOpenNote={(noteId) => {
+                  // Close the todo overlay and navigate to the note
+                  setDetailsOverlayTodo(null);
+                  setActiveView("notes");
+                  setSelectedNoteId(noteId as NoteId);
+                }}
               />
             );
           })()}
@@ -1069,7 +1404,23 @@ export function TodoApp() {
         {detailsOverlayPersonId &&
           (() => {
             const person = people.find((p) => p.id === detailsOverlayPersonId);
-            return person ? (
+            if (!person) return null;
+
+            // Get all names that could match this person (name + alternatives)
+            const personNames = [person.name.toLowerCase(), ...person.alternatives.map((a) => a.toLowerCase())];
+
+            // Filter notes by name matching (since IDs are stored as names)
+            const personNotes = notes.filter((note) => {
+              const matchesNames = (ids: string[]) =>
+                ids.some((id) => personNames.includes(id.toLowerCase()));
+              return (
+                matchesNames(note.assignedPeopleIds.map((id) => id as string)) ||
+                matchesNames(note.sourcePeopleIds.map((id) => id as string)) ||
+                matchesNames(note.mentionedPeopleIds.map((id) => id as string))
+              );
+            });
+
+            return (
               <PersonDetailsOverlay
                 person={person}
                 onClose={() => setDetailsOverlayPersonId(null)}
@@ -1082,15 +1433,40 @@ export function TodoApp() {
                 onDeleteComment={deletePersonComment}
                 markerColors={settings.markerColors}
                 linkPatterns={settings.linkPatterns}
+                notes={personNotes}
+                onOpenNote={(noteId) => {
+                  setDetailsOverlayPersonId(null);
+                  setActiveView("notes");
+                  setSelectedNoteId(noteId);
+                }}
+                todos={todos}
+                onOpenTodo={(todoId) => {
+                  setDetailsOverlayPersonId(null);
+                  const todo = todos.find((t) => t.id === todoId);
+                  if (todo) {
+                    setDetailsOverlayTodo(todo);
+                  }
+                }}
+                availablePriorities={settings.priorities}
               />
-            ) : null;
+            );
           })()}
 
         {/* Project Details Overlay */}
         {detailsOverlayProjectId &&
           (() => {
             const project = projects.find((p) => p.id === detailsOverlayProjectId);
-            return project ? (
+            if (!project) return null;
+
+            // Get all names that could match this project (name + alternatives)
+            const projectNames = [project.name.toLowerCase(), ...project.alternatives.map((a) => a.toLowerCase())];
+
+            // Filter notes by name matching (since IDs are stored as names)
+            const projectNotes = notes.filter((note) =>
+              note.projectIds.some((id) => projectNames.includes((id as string).toLowerCase()))
+            );
+
+            return (
               <ProjectDetailsOverlay
                 project={project}
                 onClose={() => setDetailsOverlayProjectId(null)}
@@ -1104,8 +1480,23 @@ export function TodoApp() {
                 categories={settings.categories}
                 markerColors={settings.markerColors}
                 linkPatterns={settings.linkPatterns}
+                notes={projectNotes}
+                onOpenNote={(noteId) => {
+                  setDetailsOverlayProjectId(null);
+                  setActiveView("notes");
+                  setSelectedNoteId(noteId);
+                }}
+                todos={todos}
+                onOpenTodo={(todoId) => {
+                  setDetailsOverlayProjectId(null);
+                  const todo = todos.find((t) => t.id === todoId);
+                  if (todo) {
+                    setDetailsOverlayTodo(todo);
+                  }
+                }}
+                availablePriorities={settings.priorities}
               />
-            ) : null;
+            );
           })()}
 
         {/* Sprint Details Overlay */}
@@ -1607,6 +1998,20 @@ export function TodoApp() {
             </div>
           </div>
         )}
+
+        {/* Add Note Modal */}
+        <NoteAddModal
+          isOpen={isAddNoteOverlayOpen}
+          onClose={() => setIsAddNoteOverlayOpen(false)}
+          onAdd={addNote}
+          onNoteCreated={(noteId) => {
+            setSelectedNoteId(noteId);
+            setFocusNoteContentOnOpen(true);
+          }}
+          availablePeople={sortedPeople}
+          availableProjects={sortedProjects}
+          markerColors={settings.markerColors}
+        />
       </div>
 
       {/* Confirm Dialog */}

@@ -13,6 +13,7 @@ import { GanttTab } from "@/components/settings/GanttTab";
 import { CalendarTab } from "@/components/settings/CalendarTab";
 import { KanbanTab } from "@/components/settings/KanbanTab";
 import { SprintsTab } from "@/components/settings/SprintsTab";
+import { NotesTab } from "@/components/settings/NotesTab";
 import { FocusTab } from "@/components/settings/FocusTab";
 import { AutoAssignTab } from "@/components/settings/AutoAssignTab";
 import { BackupTab } from "@/components/settings/BackupTab";
@@ -29,6 +30,7 @@ type Tab =
   | "gantt"
   | "kanban"
   | "sprints"
+  | "notes"
   | "focus"
   | "calendar"
   | "categories"
@@ -46,6 +48,7 @@ type Feature =
   | "kanbanView"
   | "calendarView"
   | "sprintsView"
+  | "notesView"
   | "statsView"
   | "focusMode"
   | "templates"
@@ -77,6 +80,7 @@ const tabGroups = [
       { key: "kanban", label: "Kanban", feature: "kanbanView" },
       { key: "calendar", label: "Calendar", feature: "calendarView" },
       { key: "sprints", label: "Sprints", feature: "sprintsView" },
+      { key: "notes", label: "Notes", feature: "notesView" },
       { key: "focus", label: "Focus", feature: "focusMode" },
     ],
   },
@@ -247,6 +251,8 @@ export default function SettingsPage() {
                   return <KanbanTab />;
                 case "sprints":
                   return <SprintsTab />;
+                case "notes":
+                  return <NotesTab />;
                 case "focus":
                   return <FocusTab />;
                 case "calendar":

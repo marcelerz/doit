@@ -389,6 +389,14 @@ export function useSettings() {
     }));
   };
 
+  // Notes settings methods
+  const updateNotesSettings = (notes: Settings["notes"]) => {
+    setSettings((prev) => ({
+      ...prev,
+      notes,
+    }));
+  };
+
   // Focus settings methods
   const updateFocusSettings = (focus: Settings["focus"]) => {
     setSettings((prev) => ({
@@ -454,6 +462,8 @@ export function useSettings() {
     deleteCategory,
     // Sprint methods
     updateSprintSettings,
+    // Notes methods
+    updateNotesSettings,
     // Focus methods
     updateFocusSettings,
     // Feature methods

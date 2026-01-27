@@ -13,6 +13,13 @@ import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { ActionButtons } from "@/components/shared/ActionButtons";
 import { Modal } from "@/components/shared/Modal";
 import { CloseIcon } from "@/components/shared/Icons";
+import { NoteListItem } from "@/components/items/NoteListItem";
+import { TodoListItem } from "@/components/items/TodoListItem";
+import { NoteModel } from "@/models/NoteModel";
+import { TodoModel } from "@/models/TodoModel";
+import { NoteId } from "@/types/note";
+import { TodoId } from "@/types/todo";
+import { Priority } from "@/types/priority";
 
 interface PersonDetailsOverlayProps {
   person: PersonModel;
@@ -26,6 +33,13 @@ interface PersonDetailsOverlayProps {
   onDeleteComment: (personId: PersonId, commentId: CommentId) => void;
   markerColors?: MarkerColors;
   linkPatterns?: LinkPattern[];
+  // Notes section
+  notes?: NoteModel[];
+  onOpenNote?: (noteId: NoteId) => void;
+  // Todos section
+  todos?: TodoModel[];
+  onOpenTodo?: (todoId: TodoId) => void;
+  availablePriorities?: Priority[];
 }
 
 export function PersonDetailsOverlay({
@@ -40,12 +54,20 @@ export function PersonDetailsOverlay({
   onDeleteComment: _onDeleteComment,
   markerColors = defaultMarkerColors,
   linkPatterns = [],
+  notes = [],
+  onOpenNote,
+  todos = [],
+  onOpenTodo,
+  availablePriorities = [],
 }: PersonDetailsOverlayProps) {
   const [editingName, setEditingName] = useState(person.name);
   const [editingAlternatives, setEditingAlternatives] = useState(person.alternatives);
   const [editingColor, setEditingColor] = useState(person.color);
   const [editingContext, setEditingContext] = useState(person.context || "");
   const [newComment, setNewComment] = useState("");
+
+  // Get all names that could match this person (name + alternatives)
+  const personNames = [person.name.toLowerCase(), ...person.alternatives.map((a) => a.toLowerCase())];
 
   // Sync local state when person changes (after updates)
   // Legitimate prop sync pattern for editable form fields
@@ -214,6 +236,123 @@ export function PersonDetailsOverlay({
             />
           </div>
         </div>
+
+        {/* Todos Section */}
+        {todos.length > 0 && onOpenTodo && (() => {
+          // Helper to check if a todo's person IDs match this person (by name, since IDs are stored as names)
+          const matchesPerson = (ids: string[]) =>
+            ids.some((id) => personNames.includes(id.toLowerCase()));
+
+          // Filter todos by relationship type
+          const assignedTodos = todos.filter((t) => matchesPerson(t.assignedPeopleIds.map((id) => id as string)));
+          const sourcedTodos = todos.filter((t) => matchesPerson(t.sourcePeopleIds.map((id) => id as string)));
+          const mentionedTodos = todos.filter((t) => matchesPerson(t.mentionedPeopleIds.map((id) => id as string)));
+          const hasTodos = assignedTodos.length > 0 || sourcedTodos.length > 0 || mentionedTodos.length > 0;
+
+          if (!hasTodos) return null;
+
+          return (
+            <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
+              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">
+                ✅ Todos ({assignedTodos.length + sourcedTodos.length + mentionedTodos.length})
+              </h4>
+              <div className="space-y-4 max-h-64 overflow-y-auto">
+                {/* Assigned Todos */}
+                {assignedTodos.length > 0 && (
+                  <div>
+                    <h5 className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-2">
+                      Assigned ({assignedTodos.length})
+                    </h5>
+                    <div className="space-y-2">
+                      {assignedTodos.map((todo) => (
+                        <TodoListItem
+                          key={todo.id}
+                          todo={todo}
+                          onClick={() => {
+                            onOpenTodo(todo.id);
+                            onClose();
+                          }}
+                          markerColors={markerColors}
+                          linkPatterns={linkPatterns}
+                          availablePriorities={availablePriorities}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sourced Todos */}
+                {sourcedTodos.length > 0 && (
+                  <div>
+                    <h5 className="text-[10px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">
+                      Sourced ({sourcedTodos.length})
+                    </h5>
+                    <div className="space-y-2">
+                      {sourcedTodos.map((todo) => (
+                        <TodoListItem
+                          key={todo.id}
+                          todo={todo}
+                          onClick={() => {
+                            onOpenTodo(todo.id);
+                            onClose();
+                          }}
+                          markerColors={markerColors}
+                          linkPatterns={linkPatterns}
+                          availablePriorities={availablePriorities}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Mentioned Todos */}
+                {mentionedTodos.length > 0 && (
+                  <div>
+                    <h5 className="text-[10px] font-semibold text-yellow-600 dark:text-yellow-400 uppercase tracking-wide mb-2">
+                      Mentioned ({mentionedTodos.length})
+                    </h5>
+                    <div className="space-y-2">
+                      {mentionedTodos.map((todo) => (
+                        <TodoListItem
+                          key={todo.id}
+                          todo={todo}
+                          onClick={() => {
+                            onOpenTodo(todo.id);
+                            onClose();
+                          }}
+                          markerColors={markerColors}
+                          linkPatterns={linkPatterns}
+                          availablePriorities={availablePriorities}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Notes Section */}
+        {notes.length > 0 && onOpenNote && (
+          <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
+            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">
+              📝 Notes ({notes.length})
+            </h4>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {notes.map((note) => (
+                <NoteListItem
+                  key={note.id}
+                  note={note}
+                  onClick={() => {
+                    onOpenNote(note.id);
+                    onClose();
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Activity Section */}
         <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">

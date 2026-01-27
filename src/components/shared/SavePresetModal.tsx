@@ -1,20 +1,24 @@
 "use client";
 
-import { ViewPreset } from "@/hooks/useListViewState";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { CloseIcon, TrashIcon } from "@/components/shared/Icons";
 
-export interface SavePresetModalProps {
+// Generic preset interface - any preset must have a name
+export interface BasePreset {
+  name: string;
+}
+
+export interface SavePresetModalProps<T extends BasePreset = BasePreset> {
   isOpen: boolean;
   onClose: () => void;
   presetName: string;
   onPresetNameChange: (name: string) => void;
   onSave: (name: string) => void;
   onDelete: (name: string) => void;
-  viewPresets: ViewPreset[];
+  viewPresets: T[];
 }
 
-export function SavePresetModal({
+export function SavePresetModal<T extends BasePreset>({
   isOpen,
   onClose,
   presetName,
@@ -22,7 +26,7 @@ export function SavePresetModal({
   onSave,
   onDelete,
   viewPresets,
-}: SavePresetModalProps) {
+}: SavePresetModalProps<T>) {
   if (!isOpen) return null;
 
   return (

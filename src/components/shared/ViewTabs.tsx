@@ -13,6 +13,7 @@ import {
   FolderIcon,
   ChartBarIcon,
   AcademicCapIcon,
+  DocumentIcon,
 } from "@/components/shared/Icons";
 
 export type ViewTab =
@@ -20,6 +21,7 @@ export type ViewTab =
   | "kanban"
   | "gantt"
   | "calendar"
+  | "notes"
   | "people"
   | "projects"
   | "sprints"
@@ -85,6 +87,8 @@ const GanttIcon = () => <GanttIconComponent className="w-5 h-5" />;
 
 const CalendarViewIcon = () => <CalendarIcon className="w-5 h-5" />;
 
+const NotesIcon = () => <DocumentIcon className="w-5 h-5" />;
+
 const PeopleIcon = () => <UsersIcon className="w-5 h-5" />;
 
 const ProjectsIcon = () => <FolderIcon className="w-5 h-5" />;
@@ -113,6 +117,13 @@ export function ViewTabs({ activeView, onViewChange, features, runningSprint, on
       icon: <CalendarViewIcon />,
       testId: "view-tab-calendar",
       featureFlag: "calendarView",
+    },
+    {
+      id: "notes",
+      label: "Notes",
+      icon: <NotesIcon />,
+      testId: "view-tab-notes",
+      featureFlag: "notesView",
     },
     { id: "people", label: "People", icon: <PeopleIcon />, testId: "view-tab-people" },
     { id: "projects", label: "Projects", icon: <ProjectsIcon />, testId: "view-tab-projects" },

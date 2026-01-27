@@ -229,6 +229,7 @@ export function createLocalStorageAdapter(): StorageAdapter {
 // Storage keys - centralized registry of all storage keys
 export const STORAGE_KEYS = {
   TODOS: "doit-todos",
+  NOTES: "doit-notes",
   PEOPLE: "doit-people",
   PROJECTS: "doit-projects",
   SPRINTS: "doit-sprints",
@@ -239,6 +240,7 @@ export const STORAGE_KEYS = {
   GANTT_VIEW_OPTIONS: "doit-gantt-view-options",
   CALENDAR_VIEW_OPTIONS: "doit-calendar-view-options",
   KANBAN_VIEW_OPTIONS: "doit-kanban-view-options",
+  NOTES_VIEW_OPTIONS: "doit-notes-view-options",
   TIME_REPORT_OPTIONS: "doit-time-report-options",
   PEOPLE_VIEW_OPTIONS: "doit-people-view-options",
   PROJECTS_VIEW_OPTIONS: "doit-projects-view-options",

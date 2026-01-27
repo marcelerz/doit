@@ -1457,3 +1457,27 @@ export function RecordingDotIcon({ className = "w-3 h-3", ...props }: Omit<IconP
     </svg>
   );
 }
+
+/**
+ * Pin/Pushpin icon - classic thumbtack design, more visible than the abstract pin
+ * Supports filled prop for active/pinned state
+ */
+interface PinIconProps extends Omit<IconProps, "strokeWidth"> {
+  filled?: boolean;
+}
+
+export function PinIcon({ className = "w-4 h-4", filled = false, ...props }: PinIconProps) {
+  if (filled) {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <path d="M16 4a1 1 0 011 1v2.586l1.707 1.707a1 1 0 010 1.414l-1.414 1.414a1 1 0 01-1.414 0L14 10.414V14a1 1 0 01-.293.707l-2 2A1 1 0 0110 16v-3.586l-3.293 3.293a1 1 0 01-1.414-1.414L8.586 11H5a1 1 0 01-.707-1.707l2-2A1 1 0 017 7h3.586L8.879 5.121a1 1 0 010-1.414l1.414-1.414a1 1 0 011.414 0L13.414 4H16z" />
+      </svg>
+    );
+  }
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16 4v3l2 2-2 2v3l-3 3v-4L9 9H6l3-3h3L10 4l2-2 2 2h2z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 15l-4 4" />
+    </svg>
+  );
+}

@@ -75,6 +75,10 @@ export interface Todo {
   recurringOriginId?: TodoId; // ID of the first task in the recurring chain
   recurringPreviousId?: TodoId; // ID of the task this one was created from
 
+  // Source note tracking (for todos created from notes)
+  sourceNoteId?: string; // Note ID this todo was created from (stored as string, cast to NoteId when needed)
+  sourceActionItemId?: string; // Action item ID this todo was created from (stored as string, cast to ActionItemId when needed)
+
   comments: Comment[]; // Comments for todos
   activity: ActivityEntry<TodoActivityType>[]; // Activity log for the todo
   subtasks: Subtask[]; // Optional nested subtasks
@@ -108,6 +112,9 @@ export interface TodoMetadata {
   dependencies?: string[]; // via field (no marker) - todo IDs as strings
   sprint?: string; // Sprint ID for scrum planning
   context?: string; // Rich text context
+  // Source note tracking (for todos created from notes)
+  sourceNoteId?: string; // Note ID this todo was created from
+  sourceActionItemId?: string; // Action item ID this todo was created from
 }
 
 // Activity types for entries

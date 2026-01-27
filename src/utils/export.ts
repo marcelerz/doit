@@ -1,4 +1,5 @@
 import { TodoModel } from "@/models/TodoModel";
+import { NoteModel } from "@/models/NoteModel";
 
 export type ExportFormat = "markdown" | "csv" | "json";
 
@@ -218,6 +219,240 @@ export function exportTodos(todos: TodoModel[], format: ExportFormat, filename =
       break;
     default:
       content = exportToMarkdown(todos);
+  }
+
+  const mimeType = getMimeType(format);
+  const extension = getFileExtension(format);
+  const fullFilename = `${filename}.${extension}`;
+
+  downloadFile(content, fullFilename, mimeType);
+}
+
+// ============================================================================
+// Notes Export Functions
+// ============================================================================
+
+/**
+ * Export notes to Markdown format
+ */
+export function exportNotesToMarkdown(
+  notes: NoteModel[],
+  peopleMap: Map<string, string> = new Map(),
+  projectsMap: Map<string, string> = new Map(),
+  title = "Notes",
+): string {
+  const lines: string[] = [];
+
+  lines.push(`# ${title}`);
+  lines.push("");
+  lines.push(`*Exported on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}*`);
+  lines.push("");
+
+  // Group notes by state
+  const activeNotes = notes.filter((n) => n.isActive);
+  const archivedNotes = notes.filter((n) => n.isArchived);
+
+  if (activeNotes.length > 0) {
+    lines.push("## Active Notes");
+    lines.push("");
+    activeNotes.forEach((note) => {
+      lines.push(formatNoteMarkdown(note, peopleMap, projectsMap));
+      lines.push("");
+    });
+  }
+
+  if (archivedNotes.length > 0) {
+    lines.push("## Archived Notes");
+    lines.push("");
+    archivedNotes.forEach((note) => {
+      lines.push(formatNoteMarkdown(note, peopleMap, projectsMap));
+      lines.push("");
+    });
+  }
+
+  return lines.join("\n");
+}
+
+function formatNoteMarkdown(
+  note: NoteModel,
+  peopleMap: Map<string, string>,
+  projectsMap: Map<string, string>,
+): string {
+  const lines: string[] = [];
+
+  // Title with pin indicator
+  const pinPrefix = note.isPinned ? "📌 " : "";
+  lines.push(`### ${pinPrefix}${note.plainText || "Untitled Note"}`);
+
+  // Metadata
+  const metadata: string[] = [];
+
+  if (note.assignedPeople.length > 0) {
+    const names = note.assignedPeople.map((id) => `@${peopleMap.get(id) || id}`);
+    metadata.push(`Assigned: ${names.join(", ")}`);
+  }
+
+  if (note.projects.length > 0) {
+    const names = note.projects.map((id) => `%${projectsMap.get(id) || id}`);
+    metadata.push(`Projects: ${names.join(", ")}`);
+  }
+
+  if (note.tags.length > 0) {
+    metadata.push(`Tags: ${note.tags.map((t) => `#${t}`).join(", ")}`);
+  }
+
+  if (note.ageDisplay) {
+    metadata.push(`Updated: ${note.ageDisplay}`);
+  }
+
+  if (metadata.length > 0) {
+    lines.push(`*${metadata.join(" | ")}*`);
+  }
+
+  // Content
+  if (note.content) {
+    lines.push("");
+    lines.push(note.content);
+  }
+
+  // Action items
+  if (note.pendingActionItemCount > 0) {
+    lines.push("");
+    lines.push("**Action Items:**");
+    note.actionItems.forEach((item) => {
+      lines.push(`- [ ] ${item.plainText}`);
+    });
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Export notes to CSV format
+ */
+export function exportNotesToCSV(
+  notes: NoteModel[],
+  peopleMap: Map<string, string> = new Map(),
+  projectsMap: Map<string, string> = new Map(),
+): string {
+  const headers = [
+    "Title",
+    "Status",
+    "Pinned",
+    "Assigned",
+    "Source",
+    "Mentioned",
+    "Projects",
+    "Tags",
+    "Content Preview",
+    "Action Items",
+    "Comments",
+    "Created",
+    "Updated",
+  ];
+
+  const rows: string[][] = [headers];
+
+  notes.forEach((note) => {
+    const assignedNames = note.assignedPeople.map((id) => peopleMap.get(id) || id);
+    const sourceNames = note.sourcePeople.map((id) => peopleMap.get(id) || id);
+    const mentionedNames = note.mentionedPeople.map((id) => peopleMap.get(id) || id);
+    const projectNames = note.projects.map((id) => projectsMap.get(id) || id);
+
+    rows.push([
+      escapeCSV(note.plainText || "Untitled"),
+      note.state,
+      note.isPinned ? "Yes" : "No",
+      assignedNames.join("; "),
+      sourceNames.join("; "),
+      mentionedNames.join("; "),
+      projectNames.join("; "),
+      note.tags.join("; "),
+      escapeCSV(note.getContentPreview(100)),
+      String(note.pendingActionItemCount),
+      String(note.commentCount),
+      note.createdAt ? new Date(note.createdAt).toISOString() : "",
+      note.updatedAt ? new Date(note.updatedAt).toISOString() : "",
+    ]);
+  });
+
+  return rows.map((row) => row.join(",")).join("\n");
+}
+
+/**
+ * Export notes to JSON format
+ */
+export function exportNotesToJSON(
+  notes: NoteModel[],
+  peopleMap: Map<string, string> = new Map(),
+  projectsMap: Map<string, string> = new Map(),
+): string {
+  const data = notes.map((note) => ({
+    id: note.id,
+    title: note.plainText,
+    fullText: note.text,
+    state: note.state,
+    pinned: note.isPinned,
+    content: note.content,
+    metadata: {
+      assignedPeople: note.assignedPeople.map((id) => ({
+        id,
+        name: peopleMap.get(id) || id,
+      })),
+      sourcePeople: note.sourcePeople.map((id) => ({
+        id,
+        name: peopleMap.get(id) || id,
+      })),
+      mentionedPeople: note.mentionedPeople.map((id) => ({
+        id,
+        name: peopleMap.get(id) || id,
+      })),
+      projects: note.projects.map((id) => ({
+        id,
+        name: projectsMap.get(id) || id,
+      })),
+      tags: note.tags,
+    },
+    actionItems: note.actionItems.map((item) => ({
+      id: item.id,
+      text: item.plainText,
+      createdAt: item.createdAt,
+    })),
+    timestamps: {
+      created: note.createdAt,
+      updated: note.updatedAt,
+      archived: note.archivedAt,
+    },
+    commentsCount: note.commentCount,
+  }));
+
+  return JSON.stringify({ notes: data, exportedAt: new Date().toISOString() }, null, 2);
+}
+
+/**
+ * Export notes in the specified format
+ */
+export function exportNotes(
+  notes: NoteModel[],
+  format: ExportFormat,
+  peopleMap: Map<string, string> = new Map(),
+  projectsMap: Map<string, string> = new Map(),
+  filename = "notes",
+): void {
+  let content: string;
+
+  switch (format) {
+    case "markdown":
+      content = exportNotesToMarkdown(notes, peopleMap, projectsMap);
+      break;
+    case "csv":
+      content = exportNotesToCSV(notes, peopleMap, projectsMap);
+      break;
+    case "json":
+      content = exportNotesToJSON(notes, peopleMap, projectsMap);
+      break;
+    default:
+      content = exportNotesToMarkdown(notes, peopleMap, projectsMap);
   }
 
   const mimeType = getMimeType(format);

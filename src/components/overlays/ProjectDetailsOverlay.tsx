@@ -13,6 +13,13 @@ import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { ActionButtons } from "@/components/shared/ActionButtons";
 import { Modal } from "@/components/shared/Modal";
 import { CloseIcon } from "@/components/shared/Icons";
+import { NoteListItem } from "@/components/items/NoteListItem";
+import { TodoListItem } from "@/components/items/TodoListItem";
+import { NoteModel } from "@/models/NoteModel";
+import { TodoModel } from "@/models/TodoModel";
+import { NoteId } from "@/types/note";
+import { TodoId } from "@/types/todo";
+import { Priority } from "@/types/priority";
 
 interface ProjectDetailsOverlayProps {
   project: ProjectModel;
@@ -27,6 +34,13 @@ interface ProjectDetailsOverlayProps {
   categories?: ProjectCategory[];
   markerColors?: MarkerColors;
   linkPatterns?: LinkPattern[];
+  // Notes section
+  notes?: NoteModel[];
+  onOpenNote?: (noteId: NoteId) => void;
+  // Todos section
+  todos?: TodoModel[];
+  onOpenTodo?: (todoId: TodoId) => void;
+  availablePriorities?: Priority[];
 }
 
 export function ProjectDetailsOverlay({
@@ -42,12 +56,20 @@ export function ProjectDetailsOverlay({
   categories = [],
   markerColors = defaultMarkerColors,
   linkPatterns = [],
+  notes = [],
+  onOpenNote,
+  todos = [],
+  onOpenTodo,
+  availablePriorities = [],
 }: ProjectDetailsOverlayProps) {
   const [editingName, setEditingName] = useState(project.name);
   const [editingAlternatives, setEditingAlternatives] = useState(project.alternatives);
   const [editingColor, setEditingColor] = useState(project.color);
   const [editingContext, setEditingContext] = useState(project.context || "");
   const [editingCategory, setEditingCategory] = useState(project.category || "");
+
+  // Get all names that could match this project (name + alternatives)
+  const projectNames = [project.name.toLowerCase(), ...project.alternatives.map((a) => a.toLowerCase())];
   const [newComment, setNewComment] = useState("");
 
   // Sync local state when project changes (after updates)
@@ -250,6 +272,123 @@ export function ProjectDetailsOverlay({
             />
           </div>
         </div>
+
+        {/* Todos Section */}
+        {todos.length > 0 && onOpenTodo && (() => {
+          // Filter todos that have this project (by name, since IDs are stored as names)
+          const projectTodos = todos.filter((t) =>
+            t.projectIds.some((id) => projectNames.includes((id as string).toLowerCase()))
+          );
+
+          if (projectTodos.length === 0) return null;
+
+          // Split into active and completed
+          const activeTodos = projectTodos.filter((t) => !t.isCompleted && !t.isArchived);
+          const completedTodos = projectTodos.filter((t) => t.isCompleted && !t.isArchived);
+          const archivedTodos = projectTodos.filter((t) => t.isArchived);
+
+          return (
+            <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
+              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">
+                ✅ Todos ({projectTodos.length})
+              </h4>
+              <div className="space-y-4 max-h-64 overflow-y-auto">
+                {/* Active Todos */}
+                {activeTodos.length > 0 && (
+                  <div>
+                    <h5 className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-2">
+                      Active ({activeTodos.length})
+                    </h5>
+                    <div className="space-y-2">
+                      {activeTodos.map((todo) => (
+                        <TodoListItem
+                          key={todo.id}
+                          todo={todo}
+                          onClick={() => {
+                            onOpenTodo(todo.id);
+                            onClose();
+                          }}
+                          markerColors={markerColors}
+                          linkPatterns={linkPatterns}
+                          availablePriorities={availablePriorities}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Completed Todos */}
+                {completedTodos.length > 0 && (
+                  <div>
+                    <h5 className="text-[10px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">
+                      Completed ({completedTodos.length})
+                    </h5>
+                    <div className="space-y-2">
+                      {completedTodos.map((todo) => (
+                        <TodoListItem
+                          key={todo.id}
+                          todo={todo}
+                          onClick={() => {
+                            onOpenTodo(todo.id);
+                            onClose();
+                          }}
+                          markerColors={markerColors}
+                          linkPatterns={linkPatterns}
+                          availablePriorities={availablePriorities}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Archived Todos */}
+                {archivedTodos.length > 0 && (
+                  <div>
+                    <h5 className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">
+                      Archived ({archivedTodos.length})
+                    </h5>
+                    <div className="space-y-2">
+                      {archivedTodos.map((todo) => (
+                        <TodoListItem
+                          key={todo.id}
+                          todo={todo}
+                          onClick={() => {
+                            onOpenTodo(todo.id);
+                            onClose();
+                          }}
+                          markerColors={markerColors}
+                          linkPatterns={linkPatterns}
+                          availablePriorities={availablePriorities}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Notes Section */}
+        {notes.length > 0 && onOpenNote && (
+          <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
+            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">
+              📝 Notes ({notes.length})
+            </h4>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {notes.map((note) => (
+                <NoteListItem
+                  key={note.id}
+                  note={note}
+                  onClick={() => {
+                    onOpenNote(note.id);
+                    onClose();
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Activity Section */}
         <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">

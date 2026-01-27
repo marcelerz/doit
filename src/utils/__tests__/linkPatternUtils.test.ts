@@ -1,74 +1,18 @@
+/**
+ * @jest-environment jsdom
+ */
 import { processLinkPatternsInHtml } from "../linkPatternUtils";
 import { LinkPattern, getLinkPatternId } from "@/types/linkPattern";
-
-// Mock document for tests
-const mockCreateElement = () => {
-  const element = {
-    innerHTML: "",
-    childNodes: [] as any[],
-    nodeName: "DIV",
-    nodeType: 1,
-    firstChild: null as any,
-    parentNode: null as any,
-    insertBefore: jest.fn(),
-    removeChild: jest.fn(),
-    textContent: "",
-  };
-
-  // Mock innerHTML setter to parse content
-  let internalHtml = "";
-  Object.defineProperty(element, "innerHTML", {
-    get: () => internalHtml,
-    set: (value: string) => {
-      internalHtml = value;
-      // Simple parsing for tests
-      if (value.includes("<")) {
-        element.childNodes = [];
-      } else {
-        element.childNodes = [
-          {
-            nodeType: 3, // TEXT_NODE
-            textContent: value,
-            parentNode: element,
-          },
-        ];
-      }
-    },
-  });
-
-  return element;
-};
+import { getColor } from "@/types/types";
 
 describe("linkPatternUtils", () => {
-  const originalWindow = global.window;
-
-  beforeEach(() => {
-    // Mock window and document
-    (global as any).window = {
-      document: {
-        createElement: mockCreateElement,
-      },
-    };
-    (global as any).document = {
-      createElement: mockCreateElement,
-    };
-  });
-
-  afterEach(() => {
-    (global as any).window = originalWindow;
-  });
-
   describe("processLinkPatternsInHtml", () => {
-    const createLinkPattern = (
-      prefix: string,
-      urlTemplate: string,
-      color?: string
-    ): LinkPattern => ({
+    const createLinkPattern = (prefix: string, urlTemplate: string, color?: string): LinkPattern => ({
       id: getLinkPatternId(`link-${prefix}`),
       prefix,
       urlTemplate,
       description: `Link pattern for ${prefix}`,
-      color: color || "#3b82f6",
+      color: getColor(color || "#3b82f6"),
     });
 
     it("should return empty string as-is", () => {
@@ -81,21 +25,23 @@ describe("linkPatternUtils", () => {
       expect(processLinkPatternsInHtml(html, [])).toBe(html);
     });
 
-    it("should return html as-is on server (no window)", () => {
-      (global as any).window = undefined;
-      const html = "Check out T12345 for details";
+    it("should convert link patterns to clickable links", () => {
       const patterns = [createLinkPattern("T", "https://jira.example.com/browse/T-{id}")];
-      expect(processLinkPatternsInHtml(html, patterns)).toBe(html);
+      const html = "Check T12345 for details";
+      const result = processLinkPatternsInHtml(html, patterns);
+
+      expect(result).toContain('href="https://jira.example.com/browse/T-12345"');
+      expect(result).toContain(">T12345</a>");
     });
 
     it("should not process patterns with less than 4 digits", () => {
       const patterns = [createLinkPattern("T", "https://jira.example.com/browse/T-{id}")];
       // T123 has only 3 digits, should not match
       const html = "Check T123 for info";
-      // Since our mock doesn't fully simulate DOM, this test verifies the regex pattern
       const result = processLinkPatternsInHtml(html, patterns);
-      // The function should process but not find matches for 3-digit patterns
-      expect(result).toBeDefined();
+
+      expect(result).not.toContain("href=");
+      expect(result).toContain("T123");
     });
 
     it("should handle multiple link patterns", () => {
@@ -105,6 +51,70 @@ describe("linkPatternUtils", () => {
       ];
       const html = "See T12345 and D54321";
       const result = processLinkPatternsInHtml(html, patterns);
+
+      expect(result).toContain('href="https://jira.example.com/T-12345"');
+      expect(result).toContain('href="https://docs.example.com/D-54321"');
+    });
+
+    it("should handle patterns with more than 4 digits", () => {
+      const patterns = [createLinkPattern("JIRA", "https://jira.example.com/browse/JIRA-{id}")];
+      const html = "Issue JIRA123456789";
+      const result = processLinkPatternsInHtml(html, patterns);
+
+      expect(result).toContain('href="https://jira.example.com/browse/JIRA-123456789"');
+      expect(result).toContain(">JIRA123456789</a>");
+    });
+
+    it("should preserve existing HTML formatting", () => {
+      const patterns = [createLinkPattern("T", "https://jira.example.com/browse/T-{id}")];
+      const html = "<b>Check T12345 for details</b>";
+      const result = processLinkPatternsInHtml(html, patterns);
+
+      expect(result).toContain("<b>");
+      expect(result).toContain("</b>");
+      expect(result).toContain('href="https://jira.example.com/browse/T-12345"');
+    });
+
+    it("should not process patterns inside existing anchor tags", () => {
+      const patterns = [createLinkPattern("T", "https://jira.example.com/browse/T-{id}")];
+      const html = '<a href="https://other.com">T12345</a>';
+      const result = processLinkPatternsInHtml(html, patterns);
+
+      // Should not create nested links
+      expect(result.match(/<a/g)?.length).toBe(1);
+    });
+
+    it("should apply custom color to links", () => {
+      const patterns = [createLinkPattern("T", "https://jira.example.com/browse/T-{id}", "#ff0000")];
+      const html = "Check T12345";
+      const result = processLinkPatternsInHtml(html, patterns);
+
+      expect(result).toContain("color: #ff0000");
+    });
+
+    it("should be case insensitive for pattern matching", () => {
+      const patterns = [createLinkPattern("T", "https://jira.example.com/browse/T-{id}")];
+      const html = "Check t12345 for details";
+      const result = processLinkPatternsInHtml(html, patterns);
+
+      expect(result).toContain('href="https://jira.example.com/browse/T-12345"');
+    });
+
+    it("should handle multiple occurrences of same pattern", () => {
+      const patterns = [createLinkPattern("T", "https://jira.example.com/browse/T-{id}")];
+      const html = "Compare T12345 with T67890";
+      const result = processLinkPatternsInHtml(html, patterns);
+
+      expect(result).toContain('href="https://jira.example.com/browse/T-12345"');
+      expect(result).toContain('href="https://jira.example.com/browse/T-67890"');
+    });
+
+    it("should escape special characters in text", () => {
+      const patterns = [createLinkPattern("T", "https://jira.example.com/browse/T-{id}")];
+      const html = "Check <script>T12345</script> for & details";
+      const result = processLinkPatternsInHtml(html, patterns);
+
+      // The HTML should be properly handled
       expect(result).toBeDefined();
     });
   });

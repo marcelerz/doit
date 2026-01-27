@@ -89,6 +89,8 @@ interface TodoDetailsOverlayProps {
   runningSprint?: Sprint;
   // Navigation to another task (for recurring chain links)
   onSelectTodo?: (todoId: TodoId) => void;
+  // Navigation to source note (for tasks created from notes)
+  onOpenNote?: (noteId: string) => void;
 }
 
 export function TodoDetailsOverlay({
@@ -126,6 +128,7 @@ export function TodoDetailsOverlay({
   sprints = [],
   runningSprint,
   onSelectTodo,
+  onOpenNote,
 }: TodoDetailsOverlayProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTokens, setEditTokens] = useState<TokenMatch[]>([]);
@@ -1298,6 +1301,7 @@ export function TodoDetailsOverlay({
             activities={todo.activity}
             comments={todo.comments}
             onNavigateToTask={onSelectTodo ? (taskId) => onSelectTodo(taskId as TodoId) : undefined}
+            onNavigateToNote={onOpenNote}
             linkPatterns={linkPatterns}
           />
         </div>

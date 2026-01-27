@@ -55,9 +55,12 @@ export const peopleViewTutorialSteps: TutorialStep[] = [
   },
 ];
 
+// Counts for todos and notes per entity
+type EntityCounts = { activeTodos: number; closedTodos: number; activeNotes: number; archivedNotes: number };
+
 interface PeopleViewProps {
   people: PersonModel[];
-  taskCountsByPerson: Map<string, number>;
+  countsByPerson: Map<string, EntityCounts>;
   onOpenPerson: (personId: PersonId) => void;
   onDeletePerson: (id: PersonId) => void;
   onArchivePerson: (id: PersonId) => void;
@@ -70,7 +73,7 @@ interface PeopleViewProps {
 
 export function PeopleView({
   people,
-  taskCountsByPerson,
+  countsByPerson,
   onOpenPerson,
   onDeletePerson,
   onArchivePerson,
@@ -193,7 +196,7 @@ export function PeopleView({
                 onArchive={onArchivePerson}
                 onUnarchive={onUnarchivePerson}
                 onRequestDeleteConfirm={onRequestDeleteConfirm}
-                taskCount={taskCountsByPerson.get(person.id) || 0}
+                counts={countsByPerson.get(person.id)}
               />
             </li>
           ))}

@@ -287,9 +287,22 @@ export function useTodos() {
     [undoActions, executePendingAction],
   );
 
-  const addTodo = (text: string, plainText: string, metadata: TodoMetadata) => {
+  const addTodo = (text: string, plainText: string, metadata: TodoMetadata): TodoId => {
     const now = getTimestamp(Date.now());
     const fields = metadataToTodoFields(metadata, settings);
+
+    // Create appropriate activity based on source
+    let createdActivity;
+    if (metadata.sourceNoteId) {
+      // Todo created from a note's action item
+      createdActivity = createActivity("created", "Task created from note", {
+        sourceNoteId: metadata.sourceNoteId,
+        sourceActionItemId: metadata.sourceActionItemId,
+      });
+    } else {
+      createdActivity = createActivity("created", "Task created");
+    }
+
     const newTodo: Todo = {
       id: TodoModel.createId(),
       text,
@@ -309,11 +322,15 @@ export function useTodos() {
       duration: fields.duration,
       recurring: fields.recurring,
       sprint: fields.sprint,
+      // Source note tracking
+      sourceNoteId: metadata.sourceNoteId,
+      sourceActionItemId: metadata.sourceActionItemId,
       comments: [],
-      activity: [createActivity("created", "Task created")],
+      activity: [createdActivity],
       subtasks: [],
     };
     setRawTodos((prev) => [newTodo, ...prev]);
+    return newTodo.id;
   };
 
   const duplicateTodo = (id: string) => {

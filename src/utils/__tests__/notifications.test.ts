@@ -172,6 +172,7 @@ const createTestSettings = (): SettingsModel =>
       ganttView: true,
       calendarView: true,
       kanbanView: true,
+      notesView: true,
       sprintsView: true,
       statsView: true,
       templates: true,
@@ -180,6 +181,11 @@ const createTestSettings = (): SettingsModel =>
       exports: true,
       focusMode: true,
       timeTracking: true,
+    },
+    notes: {
+      defaultPinNewNotes: false,
+      showArchivedByDefault: false,
+      sortOrder: "modified",
     },
     backup: {
       autoBackupEnabled: true,

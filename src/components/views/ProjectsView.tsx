@@ -55,9 +55,12 @@ export const projectsViewTutorialSteps: TutorialStep[] = [
   },
 ];
 
+// Counts for todos and notes per entity
+type EntityCounts = { activeTodos: number; closedTodos: number; activeNotes: number; archivedNotes: number };
+
 interface ProjectsViewProps {
   projects: ProjectModel[];
-  taskCountsByProject: Map<string, number>;
+  countsByProject: Map<string, EntityCounts>;
   onOpenProject: (projectId: ProjectId) => void;
   onDeleteProject: (id: ProjectId) => void;
   onArchiveProject: (id: ProjectId) => void;
@@ -70,7 +73,7 @@ interface ProjectsViewProps {
 
 export function ProjectsView({
   projects,
-  taskCountsByProject,
+  countsByProject,
   onOpenProject,
   onDeleteProject,
   onArchiveProject,
@@ -193,7 +196,7 @@ export function ProjectsView({
                 onArchive={onArchiveProject}
                 onUnarchive={onUnarchiveProject}
                 onRequestDeleteConfirm={onRequestDeleteConfirm}
-                taskCount={taskCountsByProject.get(project.id) || 0}
+                counts={countsByProject.get(project.id)}
               />
             </li>
           ))}

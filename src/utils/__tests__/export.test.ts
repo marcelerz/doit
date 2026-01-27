@@ -203,6 +203,7 @@ describe("export", () => {
         ganttView: true,
         calendarView: true,
         kanbanView: true,
+        notesView: true,
         sprintsView: true,
         statsView: true,
         templates: true,
@@ -211,6 +212,11 @@ describe("export", () => {
         exports: true,
         focusMode: true,
         timeTracking: true,
+      },
+      notes: {
+        defaultPinNewNotes: false,
+        showArchivedByDefault: false,
+        sortOrder: "modified",
       },
       backup: {
         autoBackupEnabled: true,

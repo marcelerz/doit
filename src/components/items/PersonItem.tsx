@@ -2,7 +2,10 @@
 
 import { PersonModel } from "@/models/PersonModel";
 import { PersonId } from "@/types/person";
-import { ArchiveIcon, TrashIcon, UndoIcon, ClipboardIcon } from "@/components/shared/Icons";
+import { ArchiveIcon, TrashIcon, UndoIcon, ClipboardIcon, DocumentIcon } from "@/components/shared/Icons";
+
+// Counts for todos and notes
+type EntityCounts = { activeTodos: number; closedTodos: number; activeNotes: number; archivedNotes: number };
 
 interface PersonItemProps {
   person: PersonModel;
@@ -11,7 +14,7 @@ interface PersonItemProps {
   onArchive?: (id: PersonId) => void;
   onUnarchive?: (id: PersonId) => void;
   onRequestDeleteConfirm: (id: PersonId, name: string) => void;
-  taskCount?: number; // Number of tasks assigned to this person
+  counts?: EntityCounts; // Counts of todos and notes related to this person
 }
 
 export function PersonItem({
@@ -20,7 +23,7 @@ export function PersonItem({
   onArchive,
   onUnarchive,
   onRequestDeleteConfirm,
-  taskCount,
+  counts,
 }: PersonItemProps) {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -61,12 +64,23 @@ export function PersonItem({
           )}
 
           {/* Metadata */}
-          {(person.hasComments || (taskCount !== undefined && taskCount > 0)) && (
+          {(person.hasComments ||
+            (counts &&
+              (counts.activeTodos > 0 ||
+                counts.closedTodos > 0 ||
+                counts.activeNotes > 0 ||
+                counts.archivedNotes > 0))) && (
             <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-              {taskCount !== undefined && taskCount > 0 && (
-                <span className="flex items-center gap-1">
+              {counts && (counts.activeTodos > 0 || counts.closedTodos > 0) && (
+                <span className="flex items-center gap-1" title="Todos: active / completed+archived">
                   <ClipboardIcon className="w-3.5 h-3.5" />
-                  {taskCount} task{taskCount !== 1 ? "s" : ""}
+                  {counts.activeTodos} / {counts.closedTodos}
+                </span>
+              )}
+              {counts && (counts.activeNotes > 0 || counts.archivedNotes > 0) && (
+                <span className="flex items-center gap-1" title="Notes: active / archived">
+                  <DocumentIcon className="w-3.5 h-3.5" />
+                  {counts.activeNotes} / {counts.archivedNotes}
                 </span>
               )}
               {person.hasComments && <span className="flex items-center gap-1">💬 {person.commentCount}</span>}

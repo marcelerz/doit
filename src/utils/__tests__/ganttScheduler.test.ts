@@ -64,6 +64,11 @@ const createMinimalSettings = (): Settings => ({
   focus: defaultFocusSettings,
   categories: defaultCategories,
   notifications: defaultNotificationSettings,
+  notes: {
+    defaultPinNewNotes: false,
+    showArchivedByDefault: false,
+    sortOrder: "modified",
+  },
   features: defaultFeatureSettings,
   backup: defaultBackupSettings,
 });

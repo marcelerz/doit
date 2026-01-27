@@ -154,6 +154,7 @@ const createSettings = (overrides: Partial<Settings> = {}): SettingsModel =>
       ganttView: true,
       calendarView: true,
       kanbanView: true,
+      notesView: true,
       sprintsView: true,
       statsView: true,
       templates: true,
@@ -162,6 +163,11 @@ const createSettings = (overrides: Partial<Settings> = {}): SettingsModel =>
       exports: true,
       focusMode: true,
       timeTracking: true,
+    },
+    notes: {
+      defaultPinNewNotes: false,
+      showArchivedByDefault: false,
+      sortOrder: "modified",
     },
     backup: {
       autoBackupEnabled: true,

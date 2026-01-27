@@ -275,6 +275,7 @@ export interface FeatureSettings {
   ganttView: boolean;
   calendarView: boolean;
   kanbanView: boolean;
+  notesView: boolean;
   sprintsView: boolean;
   statsView: boolean;
   // Features
@@ -291,6 +292,7 @@ export const defaultFeatureSettings: FeatureSettings = {
   ganttView: true,
   calendarView: true,
   kanbanView: true,
+  notesView: true,
   sprintsView: true,
   statsView: true,
   templates: true,
@@ -299,6 +301,19 @@ export const defaultFeatureSettings: FeatureSettings = {
   exports: true,
   focusMode: true,
   timeTracking: true,
+};
+
+// Notes Settings
+export interface NotesSettings {
+  defaultPinNewNotes: boolean;
+  showArchivedByDefault: boolean;
+  sortOrder: "modified" | "created" | "title";
+}
+
+export const defaultNotesSettings: NotesSettings = {
+  defaultPinNewNotes: false,
+  showArchivedByDefault: false,
+  sortOrder: "modified",
 };
 
 export interface Settings {
@@ -330,6 +345,8 @@ export interface Settings {
   categories: ProjectCategory[];
   // Focus Tab - Focus mode timer and tracking settings
   focus: FocusSettings;
+  // Notes Tab - Notes view settings
+  notes: NotesSettings;
   // Feature Toggles - Enable/disable features to simplify interface
   features: FeatureSettings;
   // Backup Tab - Backup settings
@@ -351,6 +368,7 @@ export const defaultSettings: Settings = {
   sprints: defaultSprintSettings,
   categories: defaultCategories,
   focus: defaultFocusSettings,
+  notes: defaultNotesSettings,
   features: defaultFeatureSettings,
   backup: defaultBackupSettings,
 };
