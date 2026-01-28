@@ -62,8 +62,10 @@ export function StorageTab() {
     // Calculate size of each storage item
     const storageMap = {
       [STORAGE_KEYS.TODOS]: { label: "Todos", color: "#3b82f6" }, // blue
+      [STORAGE_KEYS.NOTES]: { label: "Notes", color: "#06b6d4" }, // cyan
       [STORAGE_KEYS.PEOPLE]: { label: "People", color: "#10b981" }, // green
       [STORAGE_KEYS.PROJECTS]: { label: "Projects", color: "#8b5cf6" }, // purple
+      [STORAGE_KEYS.SPRINTS]: { label: "Sprints", color: "#f97316" }, // orange
       [STORAGE_KEYS.SETTINGS]: { label: "Settings", color: "#f59e0b" }, // amber
       [STORAGE_KEYS.VERSION]: { label: "Version", color: "#6b7280" }, // gray
     };
@@ -438,7 +440,7 @@ export function StorageTab() {
                 </h4>
                 <p className="text-sm text-zinc-700 dark:text-zinc-300">
                   All your data is stored <strong>locally in your browser</strong>. There is no server or cloud
-                  database - your todos, projects, and settings never leave your device. This means:
+                  database - your todos, notes, projects, and settings never leave your device. This means:
                 </p>
                 <ul className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 space-y-1">
                   <li>• Your data is private and never sent to any server</li>
@@ -626,7 +628,8 @@ export function StorageTab() {
                     <p className="text-sm text-red-800 dark:text-red-200">This will permanently delete:</p>
                     <ul className="text-sm text-red-800 dark:text-red-200 list-disc list-inside space-y-1">
                       <li>All your todos (active, completed, and archived)</li>
-                      <li>All people and projects</li>
+                      <li>All your notes</li>
+                      <li>All people, projects, and sprints</li>
                       <li>All settings and preferences</li>
                       <li>All backups stored in the browser</li>
                       <li>All view presets and saved filters</li>
