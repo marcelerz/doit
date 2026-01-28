@@ -28,8 +28,6 @@ export function NoteListItem({
   availablePeople = [],
   availableProjects = [],
 }: NoteListItemProps) {
-  const contentPreview = note.getContentPreview(80);
-
   return (
     <button
       onClick={onClick}
@@ -62,13 +60,6 @@ export function NoteListItem({
               </span>
             )}
           </div>
-
-          {/* Content preview */}
-          {contentPreview && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 line-clamp-1">
-              {contentPreview}
-            </p>
-          )}
 
           {/* Metadata */}
           <div className="flex items-center gap-2 mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">

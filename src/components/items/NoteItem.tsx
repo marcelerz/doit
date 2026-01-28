@@ -177,9 +177,6 @@ export function NoteItem({
     }
   };
 
-  // Get content preview (strip HTML, truncate)
-  const contentPreview = note.getContentPreview(100);
-
   // Get display names for metadata
   const firstAssigned = note.assignedPeople[0];
   const firstAssignedName = firstAssigned ? peopleMap.get(firstAssigned) || firstAssigned : null;
@@ -290,13 +287,6 @@ export function NoteItem({
                 </span>
               )}
             </div>
-
-            {/* Content preview */}
-            {contentPreview && (
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2 mb-2">
-                {contentPreview}
-              </p>
-            )}
 
             {/* Metadata row - Rich display with colors */}
             <div className="flex flex-wrap items-center gap-2 text-xs">
