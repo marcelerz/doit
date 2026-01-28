@@ -63,6 +63,7 @@ export function StorageTab() {
     const storageMap = {
       [STORAGE_KEYS.TODOS]: { label: "Todos", color: "#3b82f6" }, // blue
       [STORAGE_KEYS.NOTES]: { label: "Notes", color: "#06b6d4" }, // cyan
+      [STORAGE_KEYS.REVIEWS]: { label: "Reviews", color: "#6366f1" }, // indigo
       [STORAGE_KEYS.PEOPLE]: { label: "People", color: "#10b981" }, // green
       [STORAGE_KEYS.PROJECTS]: { label: "Projects", color: "#8b5cf6" }, // purple
       [STORAGE_KEYS.SPRINTS]: { label: "Sprints", color: "#f97316" }, // orange
@@ -628,7 +629,7 @@ export function StorageTab() {
                     <p className="text-sm text-red-800 dark:text-red-200">This will permanently delete:</p>
                     <ul className="text-sm text-red-800 dark:text-red-200 list-disc list-inside space-y-1">
                       <li>All your todos (active, completed, and archived)</li>
-                      <li>All your notes</li>
+                      <li>All your notes and reviews</li>
                       <li>All people, projects, and sprints</li>
                       <li>All settings and preferences</li>
                       <li>All backups stored in the browser</li>
