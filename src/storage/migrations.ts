@@ -4,7 +4,7 @@
  */
 
 import { Todo, TodoState } from "@/types/todo";
-import { Settings, defaultSettings } from "@/types/settings";
+import { Settings, defaultSettings, defaultOneOnOneTemplate, defaultMeetingNoteTemplate } from "@/types/settings";
 import { Person } from "@/types/person";
 import { Project } from "@/types/project";
 import { Priority } from "@/types/priority";
@@ -228,6 +228,13 @@ export function migrateSettings(loadedSettings: any): Settings {
     focus: {
       ...defaultSettings.focus,
       ...(loadedSettings.focus || {}),
+    },
+    notes: {
+      ...defaultSettings.notes,
+      ...(loadedSettings.notes || {}),
+      // Ensure templates have defaults if not present (migration for existing users)
+      oneOnOneTemplate: loadedSettings.notes?.oneOnOneTemplate || defaultOneOnOneTemplate,
+      meetingNoteTemplate: loadedSettings.notes?.meetingNoteTemplate || defaultMeetingNoteTemplate,
     },
   };
 }

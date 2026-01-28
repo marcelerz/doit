@@ -2,7 +2,7 @@
 
 import { ProjectModel } from "@/models/ProjectModel";
 import { ProjectId } from "@/types/project";
-import { ArchiveIcon, TrashIcon, UndoIcon, ClipboardIcon, DocumentIcon } from "@/components/shared/Icons";
+import { ArchiveIcon, TrashIcon, UndoIcon, ClipboardIcon, DocumentIcon, NoteAddIcon } from "@/components/shared/Icons";
 
 // Counts for todos and notes
 type EntityCounts = { activeTodos: number; closedTodos: number; activeNotes: number; archivedNotes: number };
@@ -14,6 +14,7 @@ interface ProjectItemProps {
   onArchive?: (id: ProjectId) => void;
   onUnarchive?: (id: ProjectId) => void;
   onRequestDeleteConfirm: (id: ProjectId, name: string) => void;
+  onCreateNote?: (id: ProjectId) => void;
   counts?: EntityCounts; // Counts of todos and notes in this project
 }
 
@@ -23,6 +24,7 @@ export function ProjectItem({
   onArchive,
   onUnarchive,
   onRequestDeleteConfirm,
+  onCreateNote,
   counts,
 }: ProjectItemProps) {
   const handleDelete = (e: React.MouseEvent) => {
@@ -90,6 +92,21 @@ export function ProjectItem({
 
         {/* Actions */}
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          {/* Create Meeting Note button */}
+          {onCreateNote && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateNote(project.id);
+              }}
+              className="p-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-400 rounded-md transition-colors"
+              aria-label="Create Meeting Note"
+              title="Create Meeting Note"
+            >
+              <NoteAddIcon className="w-4 h-4" />
+            </button>
+          )}
+
           {/* Archive button - for non-archived projects */}
           {project.isActive && onArchive && (
             <button

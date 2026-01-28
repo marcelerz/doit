@@ -31,6 +31,7 @@ interface ProjectDetailsOverlayProps {
   onAddComment: (projectId: ProjectId, content: string) => void;
   onEditComment: (projectId: ProjectId, commentId: CommentId, content: string) => void;
   onDeleteComment: (projectId: ProjectId, commentId: CommentId) => void;
+  onCreateNote?: (projectId: ProjectId) => void;
   categories?: ProjectCategory[];
   markerColors?: MarkerColors;
   linkPatterns?: LinkPattern[];
@@ -53,6 +54,7 @@ export function ProjectDetailsOverlay({
   onAddComment,
   onEditComment: _onEditComment,
   onDeleteComment: _onDeleteComment,
+  onCreateNote,
   categories = [],
   markerColors = defaultMarkerColors,
   linkPatterns = [],
@@ -249,6 +251,14 @@ export function ProjectDetailsOverlay({
           <div className="pt-4">
             <ActionButtons
               isArchived={project.archived || false}
+              onCreateNote={
+                onCreateNote
+                  ? () => {
+                      onCreateNote(project.id);
+                      onClose();
+                    }
+                  : undefined
+              }
               onArchive={
                 onArchive
                   ? () => {
@@ -266,6 +276,7 @@ export function ProjectDetailsOverlay({
                   : undefined
               }
               onDelete={handleDelete}
+              createNoteLabel="Create Meeting Note"
               archiveLabel="Archive project"
               unarchiveLabel="Unarchive project"
               deleteLabel="Delete project"

@@ -168,6 +168,8 @@ const createSettings = (overrides: Partial<Settings> = {}): SettingsModel =>
       defaultPinNewNotes: false,
       showArchivedByDefault: false,
       sortOrder: "modified",
+      oneOnOneTemplate: [],
+      meetingNoteTemplate: [],
     },
     backup: {
       autoBackupEnabled: true,

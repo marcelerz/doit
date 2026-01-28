@@ -67,6 +67,7 @@ interface ProjectsViewProps {
   onUnarchiveProject: (id: ProjectId) => void;
   onRequestDeleteConfirm: (id: ProjectId, name: string) => void;
   onAddProject: () => void;
+  onCreateProjectNote?: (projectId: ProjectId) => void;
   /** Ref for focus management from parent (keyboard shortcut "/") */
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
 }
@@ -80,6 +81,7 @@ export function ProjectsView({
   onUnarchiveProject,
   onRequestDeleteConfirm,
   onAddProject,
+  onCreateProjectNote,
   searchInputRef,
 }: ProjectsViewProps) {
   // Internal state for search and show archived
@@ -196,6 +198,7 @@ export function ProjectsView({
                 onArchive={onArchiveProject}
                 onUnarchive={onUnarchiveProject}
                 onRequestDeleteConfirm={onRequestDeleteConfirm}
+                onCreateNote={onCreateProjectNote}
                 counts={countsByProject.get(project.id)}
               />
             </li>

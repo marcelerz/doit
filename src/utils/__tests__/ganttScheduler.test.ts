@@ -68,6 +68,8 @@ const createMinimalSettings = (): Settings => ({
     defaultPinNewNotes: false,
     showArchivedByDefault: false,
     sortOrder: "modified",
+    oneOnOneTemplate: [],
+    meetingNoteTemplate: [],
   },
   features: defaultFeatureSettings,
   backup: defaultBackupSettings,

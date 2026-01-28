@@ -51,6 +51,12 @@ import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { CloseIcon, SettingsIcon, HelpIcon, DocumentIcon, CheckCircleIcon } from "@/components/shared/Icons";
 import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { exportNotes } from "@/utils/export";
+import {
+  generateOneOnOneNoteTitle,
+  generateMeetingNoteTitle,
+  generateOneOnOneNoteContent,
+  generateMeetingNoteContent,
+} from "@/utils/noteTemplates";
 
 export function TodoApp() {
   const {
@@ -577,6 +583,62 @@ export function TodoApp() {
   const notesSearchInputRef = useRef<HTMLInputElement>(null);
   const [isHelpOverlayOpen, setIsHelpOverlayOpen] = useState(false);
 
+  // Handler for creating a 1:1 note from a person
+  const handleCreatePersonNote = useCallback(
+    (personId: string) => {
+      const person = people.find((p) => p.id === personId);
+      if (!person) return;
+
+      // Generate title and content from settings templates
+      const title = generateOneOnOneNoteTitle(person.name);
+      const content = generateOneOnOneNoteContent(settings.notes.oneOnOneTemplate);
+
+      // Create the note with the person pre-selected
+      const noteId = addNote(title, title, {
+        assignedPeople: [person.name],
+        sourcePeople: [],
+        mentionedPeople: [],
+        projects: [],
+        tags: [],
+        content,
+      });
+
+      // Navigate to the Notes view and select the new note
+      setActiveView("notes");
+      setSelectedNoteId(noteId);
+      setFocusNoteContentOnOpen(true);
+    },
+    [people, settings.notes.oneOnOneTemplate, addNote, setSelectedNoteId, setFocusNoteContentOnOpen],
+  );
+
+  // Handler for creating a meeting note from a project
+  const handleCreateProjectNote = useCallback(
+    (projectId: string) => {
+      const project = projects.find((p) => p.id === projectId);
+      if (!project) return;
+
+      // Generate title and content from settings templates
+      const title = generateMeetingNoteTitle(project.name);
+      const content = generateMeetingNoteContent(settings.notes.meetingNoteTemplate);
+
+      // Create the note with the project pre-selected
+      const noteId = addNote(title, title, {
+        assignedPeople: [],
+        sourcePeople: [],
+        mentionedPeople: [],
+        projects: [project.name],
+        tags: [],
+        content,
+      });
+
+      // Navigate to the Notes view and select the new note
+      setActiveView("notes");
+      setSelectedNoteId(noteId);
+      setFocusNoteContentOnOpen(true);
+    },
+    [projects, settings.notes.meetingNoteTemplate, addNote, setSelectedNoteId, setFocusNoteContentOnOpen],
+  );
+
   // Restart tutorial (called from HelpOverlay)
   const handleRestartTutorial = useCallback(() => {
     setIsHelpOverlayOpen(false);
@@ -1070,6 +1132,7 @@ export function TodoApp() {
                 },
               });
             }}
+            onCreatePersonNote={handleCreatePersonNote}
             searchInputRef={peopleSearchInputRef}
           />
         )}
@@ -1095,6 +1158,7 @@ export function TodoApp() {
                 },
               });
             }}
+            onCreateProjectNote={handleCreateProjectNote}
             searchInputRef={projectsSearchInputRef}
           />
         )}
@@ -1435,6 +1499,7 @@ export function TodoApp() {
                 onAddComment={addPersonComment}
                 onEditComment={editPersonComment}
                 onDeleteComment={deletePersonComment}
+                onCreateNote={handleCreatePersonNote}
                 markerColors={settings.markerColors}
                 linkPatterns={settings.linkPatterns}
                 notes={personNotes}
@@ -1481,6 +1546,7 @@ export function TodoApp() {
                 onAddComment={addProjectComment}
                 onEditComment={editProjectComment}
                 onDeleteComment={deleteProjectComment}
+                onCreateNote={handleCreateProjectNote}
                 categories={settings.categories}
                 markerColors={settings.markerColors}
                 linkPatterns={settings.linkPatterns}

@@ -31,6 +31,7 @@ interface PersonDetailsOverlayProps {
   onAddComment: (personId: PersonId, content: string) => void;
   onEditComment: (personId: PersonId, commentId: CommentId, content: string) => void;
   onDeleteComment: (personId: PersonId, commentId: CommentId) => void;
+  onCreateNote?: (personId: PersonId) => void;
   markerColors?: MarkerColors;
   linkPatterns?: LinkPattern[];
   // Notes section
@@ -52,6 +53,7 @@ export function PersonDetailsOverlay({
   onAddComment,
   onEditComment: _onEditComment,
   onDeleteComment: _onDeleteComment,
+  onCreateNote,
   markerColors = defaultMarkerColors,
   linkPatterns = [],
   notes = [],
@@ -213,6 +215,14 @@ export function PersonDetailsOverlay({
           <div className="pt-4">
             <ActionButtons
               isArchived={person.archived || false}
+              onCreateNote={
+                onCreateNote
+                  ? () => {
+                      onCreateNote(person.id);
+                      onClose();
+                    }
+                  : undefined
+              }
               onArchive={
                 onArchive
                   ? () => {
@@ -230,6 +240,7 @@ export function PersonDetailsOverlay({
                   : undefined
               }
               onDelete={handleDelete}
+              createNoteLabel="Create 1:1 Note"
               archiveLabel="Archive person"
               unarchiveLabel="Unarchive person"
               deleteLabel="Delete person"

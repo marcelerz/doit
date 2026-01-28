@@ -67,6 +67,7 @@ interface PeopleViewProps {
   onUnarchivePerson: (id: PersonId) => void;
   onRequestDeleteConfirm: (id: PersonId, name: string) => void;
   onAddPerson: () => void;
+  onCreatePersonNote?: (personId: PersonId) => void;
   /** Ref for focus management from parent (keyboard shortcut "/") */
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
 }
@@ -80,6 +81,7 @@ export function PeopleView({
   onUnarchivePerson,
   onRequestDeleteConfirm,
   onAddPerson,
+  onCreatePersonNote,
   searchInputRef,
 }: PeopleViewProps) {
   // Internal state for search and show archived
@@ -196,6 +198,7 @@ export function PeopleView({
                 onArchive={onArchivePerson}
                 onUnarchive={onUnarchivePerson}
                 onRequestDeleteConfirm={onRequestDeleteConfirm}
+                onCreateNote={onCreatePersonNote}
                 counts={countsByPerson.get(person.id)}
               />
             </li>

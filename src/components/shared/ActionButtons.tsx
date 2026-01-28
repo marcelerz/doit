@@ -1,6 +1,6 @@
 "use client";
 
-import { DuplicateIcon, UndoIcon, ArchiveIcon, TrashIcon } from "@/components/shared/Icons";
+import { DuplicateIcon, UndoIcon, ArchiveIcon, TrashIcon, NoteAddIcon } from "@/components/shared/Icons";
 
 interface ActionButtonsProps {
   isArchived: boolean;
@@ -8,10 +8,12 @@ interface ActionButtonsProps {
   onUnarchive?: () => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
+  onCreateNote?: () => void;
   archiveLabel?: string;
   unarchiveLabel?: string;
   duplicateLabel?: string;
   deleteLabel?: string;
+  createNoteLabel?: string;
 }
 
 export function ActionButtons({
@@ -20,13 +22,28 @@ export function ActionButtons({
   onUnarchive,
   onDuplicate,
   onDelete,
+  onCreateNote,
   archiveLabel = "Archive",
   unarchiveLabel = "Unarchive",
   duplicateLabel = "Duplicate",
   deleteLabel = "Delete",
+  createNoteLabel = "Create Note",
 }: ActionButtonsProps) {
   return (
     <div className="flex items-center justify-end gap-2" data-testid="action-buttons">
+      {/* Create Note button */}
+      {onCreateNote && (
+        <button
+          onClick={onCreateNote}
+          className="p-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-400 rounded-md transition-colors"
+          aria-label={createNoteLabel}
+          title={createNoteLabel}
+          data-testid="action-create-note"
+        >
+          <NoteAddIcon className="w-4 h-4" />
+        </button>
+      )}
+
       {/* Duplicate button */}
       {onDuplicate && (
         <button

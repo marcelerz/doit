@@ -2,7 +2,7 @@
 
 import { PersonModel } from "@/models/PersonModel";
 import { PersonId } from "@/types/person";
-import { ArchiveIcon, TrashIcon, UndoIcon, ClipboardIcon, DocumentIcon } from "@/components/shared/Icons";
+import { ArchiveIcon, TrashIcon, UndoIcon, ClipboardIcon, DocumentIcon, NoteAddIcon } from "@/components/shared/Icons";
 
 // Counts for todos and notes
 type EntityCounts = { activeTodos: number; closedTodos: number; activeNotes: number; archivedNotes: number };
@@ -14,6 +14,7 @@ interface PersonItemProps {
   onArchive?: (id: PersonId) => void;
   onUnarchive?: (id: PersonId) => void;
   onRequestDeleteConfirm: (id: PersonId, name: string) => void;
+  onCreateNote?: (id: PersonId) => void;
   counts?: EntityCounts; // Counts of todos and notes related to this person
 }
 
@@ -23,6 +24,7 @@ export function PersonItem({
   onArchive,
   onUnarchive,
   onRequestDeleteConfirm,
+  onCreateNote,
   counts,
 }: PersonItemProps) {
   const handleDelete = (e: React.MouseEvent) => {
@@ -90,6 +92,21 @@ export function PersonItem({
 
         {/* Actions */}
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          {/* Create 1:1 Note button */}
+          {onCreateNote && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateNote(person.id);
+              }}
+              className="p-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-400 rounded-md transition-colors"
+              aria-label="Create 1:1 Note"
+              title="Create 1:1 Note"
+            >
+              <NoteAddIcon className="w-4 h-4" />
+            </button>
+          )}
+
           {/* Archive button - for non-archived people */}
           {person.isActive && onArchive && (
             <button

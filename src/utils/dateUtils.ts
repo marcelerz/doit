@@ -19,7 +19,7 @@ export interface ParsedDate {
 }
 
 // Helper to get ordinal suffix
-const getOrdinalSuffix = (day: number): string => {
+export const getOrdinalSuffix = (day: number): string => {
   if (day > 3 && day < 21) return "th";
   switch (day % 10) {
     case 1:
@@ -31,6 +31,13 @@ const getOrdinalSuffix = (day: number): string => {
     default:
       return "th";
   }
+};
+
+// Format date to "Jan 23rd 2025" format for note titles
+export const formatOrdinalDate = (date: Date): string => {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const day = date.getDate();
+  return `${months[date.getMonth()]} ${day}${getOrdinalSuffix(day)} ${date.getFullYear()}`;
 };
 
 // Format date to "Wed, 5th Jan 2025 10:23am" or "Wed, 5th Jan 2025 14:23" (24hr)

@@ -214,6 +214,8 @@ export function createTestSettings(overrides: Partial<Settings> = {}): SettingsM
       defaultPinNewNotes: false,
       showArchivedByDefault: false,
       sortOrder: "modified",
+      oneOnOneTemplate: [],
+      meetingNoteTemplate: [],
     },
     backup: {
       autoBackupEnabled: true,

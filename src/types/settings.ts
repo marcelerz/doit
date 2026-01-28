@@ -304,16 +304,57 @@ export const defaultFeatureSettings: FeatureSettings = {
 };
 
 // Notes Settings
+export interface NoteTemplateItem {
+  id: string; // Unique ID (e.g., "priorities", "custom_1704067200000")
+  label: string; // Display label (editable by user)
+  enabled: boolean; // Whether to include in generated content
+}
+
+// Helper for generating IDs for custom items
+export const generateTemplateItemId = (): string => `custom_${Date.now()}`;
+
 export interface NotesSettings {
   defaultPinNewNotes: boolean;
   showArchivedByDefault: boolean;
   sortOrder: "modified" | "created" | "title";
+  // Template configuration for quick note creation
+  oneOnOneTemplate: NoteTemplateItem[];
+  meetingNoteTemplate: NoteTemplateItem[];
 }
+
+// Default 1:1 Note template sections
+export const defaultOneOnOneTemplate: NoteTemplateItem[] = [
+  { id: "priorities", label: "Priorities", enabled: true },
+  { id: "wins", label: "Wins", enabled: true },
+  { id: "challenges", label: "Challenges", enabled: true },
+  { id: "blockers", label: "Blockers", enabled: true },
+  { id: "support_needed", label: "Support Needed", enabled: true },
+  { id: "career_growth", label: "Career Growth", enabled: true },
+  { id: "follow_ups", label: "Follow-Ups", enabled: true },
+];
+
+// Default Meeting Note template sections
+export const defaultMeetingNoteTemplate: NoteTemplateItem[] = [
+  { id: "meeting_type", label: "Meeting Type", enabled: true },
+  { id: "facilitator", label: "Facilitator", enabled: true },
+  { id: "attendees", label: "Attendees", enabled: true },
+  { id: "purpose", label: "Purpose of this Meeting", enabled: true },
+  { id: "project_status", label: "Project Status", enabled: true },
+  { id: "progress", label: "Progress", enabled: true },
+  { id: "risks", label: "Risks", enabled: true },
+  { id: "decisions", label: "Decisions Made", enabled: true },
+  { id: "changes", label: "Changes", enabled: true },
+  { id: "follow_ups", label: "Follow-Ups", enabled: true },
+  { id: "next_steps", label: "Next Steps", enabled: true },
+  { id: "appendix", label: "Appendix", enabled: true },
+];
 
 export const defaultNotesSettings: NotesSettings = {
   defaultPinNewNotes: false,
   showArchivedByDefault: false,
   sortOrder: "modified",
+  oneOnOneTemplate: defaultOneOnOneTemplate,
+  meetingNoteTemplate: defaultMeetingNoteTemplate,
 };
 
 export interface Settings {
