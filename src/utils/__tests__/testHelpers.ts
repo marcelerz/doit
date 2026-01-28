@@ -202,6 +202,7 @@ export function createTestSettings(overrides: Partial<Settings> = {}): SettingsM
       kanbanView: true,
       notesView: true,
       sprintsView: true,
+      reviewsView: true,
       statsView: true,
       templates: true,
       batchProcessing: true,

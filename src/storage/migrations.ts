@@ -12,7 +12,7 @@ import { getTimestamp } from "@/types/time";
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
 import { STORAGE_KEYS, saveToStorage, getStorageAdapter } from "./storage";
 
-const CURRENT_VERSION = 5; // Increment when adding new migrations
+const CURRENT_VERSION = 6; // Increment when adding new migrations
 
 /**
  * Check if a todo should be archived based on settings

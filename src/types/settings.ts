@@ -277,6 +277,7 @@ export interface FeatureSettings {
   kanbanView: boolean;
   notesView: boolean;
   sprintsView: boolean;
+  reviewsView: boolean;
   statsView: boolean;
   // Features
   templates: boolean;
@@ -294,6 +295,7 @@ export const defaultFeatureSettings: FeatureSettings = {
   kanbanView: true,
   notesView: true,
   sprintsView: true,
+  reviewsView: true,
   statsView: true,
   templates: true,
   batchProcessing: true,

@@ -174,6 +174,7 @@ const createTestSettings = (): SettingsModel =>
       kanbanView: true,
       notesView: true,
       sprintsView: true,
+      reviewsView: true,
       statsView: true,
       templates: true,
       batchProcessing: true,

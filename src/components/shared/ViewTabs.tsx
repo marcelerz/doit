@@ -14,6 +14,7 @@ import {
   ChartBarIcon,
   AcademicCapIcon,
   DocumentIcon,
+  ClipboardDocumentCheckIcon,
 } from "@/components/shared/Icons";
 
 export type ViewTab =
@@ -25,6 +26,7 @@ export type ViewTab =
   | "people"
   | "projects"
   | "sprints"
+  | "reviews"
   | "stats"
   | "timereports";
 
@@ -89,6 +91,8 @@ const CalendarViewIcon = () => <CalendarIcon className="w-5 h-5" />;
 
 const NotesIcon = () => <DocumentIcon className="w-5 h-5" />;
 
+const ReviewsIcon = () => <ClipboardDocumentCheckIcon className="w-5 h-5" />;
+
 const PeopleIcon = () => <UsersIcon className="w-5 h-5" />;
 
 const ProjectsIcon = () => <FolderIcon className="w-5 h-5" />;
@@ -133,6 +137,13 @@ export function ViewTabs({ activeView, onViewChange, features, runningSprint, on
       icon: <SprintsIcon />,
       featureFlag: "sprintsView",
       showIndicator: !!runningSprint,
+    },
+    {
+      id: "reviews",
+      label: "Reviews",
+      icon: <ReviewsIcon />,
+      testId: "view-tab-reviews",
+      featureFlag: "reviewsView",
     },
     { id: "stats", label: "Stats", icon: <StatsIcon />, featureFlag: "statsView" },
     { id: "timereports", label: "Time", icon: <TimeIcon />, featureFlag: "timeTracking" },

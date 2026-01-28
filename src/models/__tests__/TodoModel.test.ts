@@ -156,6 +156,7 @@ const createSettings = (overrides: Partial<Settings> = {}): SettingsModel =>
       kanbanView: true,
       notesView: true,
       sprintsView: true,
+      reviewsView: true,
       statsView: true,
       templates: true,
       batchProcessing: true,

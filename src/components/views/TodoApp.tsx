@@ -4,6 +4,7 @@ import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useTodos } from "@/hooks/useTodos";
 import { useNotes } from "@/hooks/useNotes";
+import { useReviews } from "@/hooks/useReviews";
 import { useSettings } from "@/hooks/useSettings";
 import { usePeople } from "@/hooks/usePeople";
 import { useProjects } from "@/hooks/useProjects";
@@ -34,9 +35,13 @@ import { PeopleView, peopleViewTutorialSteps } from "@/components/views/PeopleVi
 import { ProjectsView, projectsViewTutorialSteps } from "@/components/views/ProjectsView";
 import { SprintsView, sprintsViewTutorialSteps } from "@/components/views/SprintsView";
 import { NotesView, notesViewTutorialSteps } from "@/components/views/NotesView";
+import { ReviewsView, reviewsViewTutorialSteps } from "@/components/views/ReviewsView";
+import { ReviewEditView } from "@/components/views/ReviewEditView";
+import { ReviewDetailView } from "@/components/views/ReviewDetailView";
 import { NoteDetailView } from "@/components/views/NoteDetailView";
 import { NoteAddModal } from "@/components/overlays/NoteAddModal";
 import { NoteId } from "@/types/note";
+import { ReviewId, ReviewLevel } from "@/types/review";
 import { useSelectionHistory, sortByUsage, sortStringsByUsage } from "@/hooks/useSelectionHistory";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { normalizeDateValue } from "@/utils/dateUtils";
@@ -164,6 +169,27 @@ export function TodoApp() {
     dismissUndo: dismissNoteUndo,
   } = useNotes();
 
+  // Reviews hook
+  const {
+    reviews,
+    rawReviews,
+    find: findReview,
+    addReview,
+    editReview,
+    completeReview,
+    deleteReview,
+    archiveReview,
+    unarchiveReview,
+    addEntry: addReviewEntry,
+    updateEntry: updateReviewEntry,
+    removeEntry: removeReviewEntry,
+    toggleEntryCollapsed: toggleReviewEntryCollapsed,
+    undoActions: reviewUndoActions,
+    fadingOutIds: reviewFadingOutIds,
+    undo: undoReview,
+    dismissUndo: dismissReviewUndo,
+  } = useReviews();
+
   // Templates and search history hooks
   const { templates, addTemplate, deleteTemplate, incrementUsage } = useTemplates();
 
@@ -205,6 +231,7 @@ export function TodoApp() {
       calendar: features?.calendarView,
       notes: features?.notesView,
       sprints: features?.sprintsView,
+      reviews: features?.reviewsView,
       stats: features?.statsView,
     };
 
@@ -547,6 +574,8 @@ export function TodoApp() {
         return calendarViewTutorialSteps;
       case "notes":
         return notesViewTutorialSteps;
+      case "reviews":
+        return reviewsViewTutorialSteps;
       case "people":
         return peopleViewTutorialSteps;
       case "projects":
@@ -581,6 +610,7 @@ export function TodoApp() {
   const [selectedNoteId, setSelectedNoteId] = useState<NoteId | null>(null);
   const [focusNoteContentOnOpen, setFocusNoteContentOnOpen] = useState(false);
   const notesSearchInputRef = useRef<HTMLInputElement>(null);
+  const [selectedReviewId, setSelectedReviewId] = useState<ReviewId | null>(null);
   const [isHelpOverlayOpen, setIsHelpOverlayOpen] = useState(false);
 
   // Handler for creating a 1:1 note from a person
@@ -712,6 +742,10 @@ export function TodoApp() {
         }
         if (selectedNoteId) {
           setSelectedNoteId(null);
+          return;
+        }
+        if (selectedReviewId) {
+          setSelectedReviewId(null);
           return;
         }
         if (listViewRef.current?.isSelectionMode) {
@@ -853,6 +887,7 @@ export function TodoApp() {
     isAddSprintOverlayOpen,
     isAddNoteOverlayOpen,
     selectedNoteId,
+    selectedReviewId,
     features,
   ]);
 
@@ -1371,6 +1406,94 @@ export function TodoApp() {
             onOpenSprint={(sprintId) => setDetailsOverlaySprintId(sprintId)}
             onAddSprint={() => setIsAddSprintOverlayOpen(true)}
             searchInputRef={sprintsSearchInputRef}
+          />
+        )}
+
+        {/* Reviews View - List */}
+        {activeView === "reviews" && !selectedReviewId && (
+          <ReviewsView
+            reviews={reviews}
+            rawReviews={rawReviews}
+            todos={todos.map((t) => t.raw)}
+            workWeekStart={settings.dateTime.workWeekStart}
+            fiscalYearStart={settings.dateTime.fiscalYearStart}
+            onOpenReview={(reviewId) => setSelectedReviewId(reviewId)}
+            onCreateReview={(level: ReviewLevel, periodStart: string, periodEnd: string, periodLabel: string) => {
+              const newId = addReview(level, periodStart, periodEnd, periodLabel);
+              setSelectedReviewId(newId);
+            }}
+            onDeleteReview={(id) => {
+              showConfirmDialog({
+                title: "Delete Review",
+                message: "Are you sure you want to delete this review? This action cannot be undone.",
+                confirmText: "Delete",
+                confirmVariant: "danger",
+                onConfirm: () => deleteReview(id),
+              });
+            }}
+            onArchiveReview={archiveReview}
+            onUnarchiveReview={unarchiveReview}
+            onCompleteReview={completeReview}
+            undoActions={reviewUndoActions}
+            fadingOutIds={reviewFadingOutIds}
+            undo={undoReview}
+            dismissUndo={dismissReviewUndo}
+          />
+        )}
+
+        {/* Reviews View - Edit (pending review) */}
+        {activeView === "reviews" && selectedReviewId && findReview(selectedReviewId)?.isPending && (
+          <ReviewEditView
+            review={findReview(selectedReviewId)!}
+            rawReviews={rawReviews}
+            todos={todos}
+            rawTodos={todos.map((t) => t.raw)}
+            onBack={() => setSelectedReviewId(null)}
+            onSave={editReview}
+            onComplete={(id) => {
+              completeReview(id);
+              setSelectedReviewId(null);
+            }}
+            onAddEntry={addReviewEntry}
+            onUpdateEntry={updateReviewEntry}
+            onRemoveEntry={removeReviewEntry}
+            onToggleEntryCollapsed={toggleReviewEntryCollapsed}
+          />
+        )}
+
+        {/* Reviews View - Detail (completed/archived review) */}
+        {activeView === "reviews" && selectedReviewId && findReview(selectedReviewId) && !findReview(selectedReviewId)?.isPending && (
+          <ReviewDetailView
+            review={findReview(selectedReviewId)!}
+            onBack={() => setSelectedReviewId(null)}
+            onDelete={(id) => {
+              showConfirmDialog({
+                title: "Delete Review",
+                message: "Are you sure you want to delete this review? This action cannot be undone.",
+                confirmText: "Delete",
+                confirmVariant: "danger",
+                onConfirm: () => {
+                  deleteReview(id);
+                  setSelectedReviewId(null);
+                },
+              });
+            }}
+            onArchive={(id) => {
+              archiveReview(id);
+            }}
+            onUnarchive={(id) => {
+              unarchiveReview(id);
+            }}
+            onOpenTodo={(todoId) => {
+              const todo = todos.find((t) => t.id === todoId);
+              if (todo) {
+                setDetailsOverlayTodo(todo);
+              }
+            }}
+            onOpenChildReview={(reviewId) => {
+              setSelectedReviewId(reviewId as ReviewId);
+            }}
+            onToggleEntryCollapsed={toggleReviewEntryCollapsed}
           />
         )}
 
