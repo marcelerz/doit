@@ -178,7 +178,27 @@ export function ListIcon({
 }
 
 /**
- * Kanban icon - varied horizontal lines representing columns
+ * Todo list icon - checklist with checkmarks
+ */
+export function TodoListIcon({
+  className = defaultProps.className,
+  strokeWidth = defaultProps.strokeWidth,
+  ...props
+}: IconProps) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={strokeWidth}
+        d="M4 7l2 2 4-4M4 14l2 2 4-4M14 6h6M14 13h6M14 20h6M4 21l2 2 4-4"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Kanban icon - vertical columns representing a kanban board
  */
 export function KanbanIcon({
   className = defaultProps.className,
@@ -187,7 +207,12 @@ export function KanbanIcon({
 }: IconProps) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M4 6h10M4 12h16M4 18h12" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={strokeWidth}
+        d="M4 4v16M4 4h4v12h-4M10 4v16M10 4h4v8h-4M16 4v16M16 4h4v14h-4"
+      />
     </svg>
   );
 }
@@ -1198,7 +1223,7 @@ export function ChartBarIcon({
 }
 
 /**
- * Gantt chart icon - horizontal bars for timeline view
+ * Gantt chart icon - staggered horizontal bars for timeline view
  */
 export function GanttIcon({
   className = defaultProps.className,
@@ -1207,7 +1232,7 @@ export function GanttIcon({
 }: IconProps) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M4 6h10M4 12h16M4 18h12" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M4 6h12M8 12h6M12 18h8" />
     </svg>
   );
 }

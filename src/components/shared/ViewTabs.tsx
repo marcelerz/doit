@@ -3,7 +3,7 @@
 import { FeatureSettings } from "@/types/settings";
 import { SprintModel } from "@/hooks/useSprints";
 import {
-  ListIcon as ListIconComponent,
+  TodoListIcon as TodoListIconComponent,
   KanbanIcon as KanbanIconComponent,
   CalendarIcon,
   LightningIcon,
@@ -79,7 +79,7 @@ function ViewTutorialButton({
 }
 
 // Icons for each view
-const ListIcon = () => <ListIconComponent className="w-5 h-5" />;
+const TodosIcon = () => <TodoListIconComponent className="w-5 h-5" />;
 
 const KanbanIcon = () => <KanbanIconComponent className="w-5 h-5" />;
 
@@ -108,7 +108,7 @@ export function ViewTabs({ activeView, onViewChange, features, runningSprint, on
     }`;
 
   const tabs: ViewTabConfig[] = [
-    { id: "list", label: "List", icon: <ListIcon />, testId: "view-tab-list" },
+    { id: "list", label: "Todos", icon: <TodosIcon />, testId: "view-tab-list" },
     { id: "kanban", label: "Kanban", icon: <KanbanIcon />, testId: "view-tab-kanban", featureFlag: "kanbanView" },
     { id: "gantt", label: "Gantt", icon: <GanttIcon />, testId: "view-tab-gantt", featureFlag: "ganttView" },
     {
