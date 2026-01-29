@@ -1,8 +1,97 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import DOMPurify from "dompurify";
 import { LinkPattern } from "@/types/linkPattern";
 import { processLinkPatternsInHtml } from "@/utils/linkPatternUtils";
 import { LinkIcon } from "@/components/shared/Icons";
+
+// ========================================
+// Selection Validation Utilities
+// ========================================
+
+interface ValidatedSelection {
+  selection: Selection;
+  range: Range;
+}
+
+function getValidatedSelection(): ValidatedSelection | null {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return null;
+
+  try {
+    const range = selection.getRangeAt(0);
+    if (!range.startContainer.isConnected || !range.endContainer.isConnected) {
+      return null;
+    }
+    return { selection, range };
+  } catch {
+    return null;
+  }
+}
+
+function isRangeValid(range: Range | null): boolean {
+  if (!range) return false;
+  try {
+    return range.startContainer.isConnected && range.endContainer.isConnected;
+  } catch {
+    return false;
+  }
+}
+
+// ========================================
+// Security - URL Validation
+// ========================================
+
+function sanitizeUrl(url: string): string | null {
+  if (!url?.trim()) return null;
+  const lower = url.trim().toLowerCase();
+
+  const dangerous = ["javascript:", "data:", "vbscript:", "file:"];
+  if (dangerous.some((p) => lower.startsWith(p))) return null;
+
+  if (!url.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:/)) {
+    return `https://${url.trim()}`;
+  }
+
+  const allowed = ["http:", "https:", "mailto:", "tel:"];
+  if (!allowed.some((p) => lower.startsWith(p))) return null;
+
+  return url.trim();
+}
+
+// ========================================
+// Checkbox State Synchronization
+// ========================================
+
+function synchronizeCheckboxState(
+  checked: boolean,
+  checkbox: HTMLInputElement,
+  li: HTMLLIElement,
+  span: HTMLSpanElement | null
+): boolean {
+  try {
+    checkbox.checked = checked;
+    if (checked) {
+      checkbox.setAttribute("checked", "checked");
+    } else {
+      checkbox.removeAttribute("checked");
+    }
+    li.setAttribute("data-checked", String(checked));
+    if (span) span.classList.toggle("checkbox-checked", checked);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ========================================
+// Empty Element Handling
+// ========================================
+
+function ensureEditable(element: HTMLElement): void {
+  if (!element.firstChild) {
+    element.appendChild(document.createElement("br"));
+  }
+}
 
 // Sanitize HTML content to prevent XSS attacks
 function sanitizeHtml(html: string): string {
@@ -25,10 +114,10 @@ function sanitizeHtml(html: string): string {
 
 // Get the current block element containing the cursor
 function getCurrentBlock(editor: HTMLDivElement): HTMLElement | null {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return null;
+  const validated = getValidatedSelection();
+  if (!validated) return null;
 
-  let node: Node | null = selection.anchorNode;
+  let node: Node | null = validated.selection.anchorNode;
   if (!node) return null;
 
   // Walk up to find the block-level element
@@ -47,10 +136,10 @@ function getCurrentBlock(editor: HTMLDivElement): HTMLElement | null {
 
 // Get the text content before cursor on the current line
 function getLineTextBeforeCursor(): string {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return "";
+  const validated = getValidatedSelection();
+  if (!validated) return "";
 
-  const range = selection.getRangeAt(0);
+  const { range } = validated;
   const node = range.startContainer;
 
   if (node.nodeType === Node.TEXT_NODE) {
@@ -61,10 +150,10 @@ function getLineTextBeforeCursor(): string {
 
 // Check if cursor is at the start of a block element
 function isCursorAtBlockStart(editor: HTMLDivElement): boolean {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return false;
+  const validated = getValidatedSelection();
+  if (!validated) return false;
 
-  const range = selection.getRangeAt(0);
+  const { range } = validated;
   if (range.startOffset !== 0) return false;
 
   // Check if we're at the very beginning of a block
@@ -108,7 +197,9 @@ function getListNestingLevel(li: HTMLElement): number {
     }
     parent = parent.parentElement;
   }
-  return level - 1; // Subtract 1 because the immediate parent list counts as level 0
+  // Subtract 1 because the immediate parent list counts as level 0
+  // Use Math.max to ensure non-negative return value (returns 0 for non-list items)
+  return Math.max(0, level - 1);
 }
 
 // Create a bullet list item
@@ -141,12 +232,12 @@ function createCheckboxListItem(text: string = "", checked: boolean = false): HT
 
 // Get text content of current line and calculate remaining text after trigger removal
 function getTextAfterTrigger(triggerLength: number): { remainingText: string; textNode: Text | null; block: HTMLElement | null } {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) {
+  const validated = getValidatedSelection();
+  if (!validated) {
     return { remainingText: "", textNode: null, block: null };
   }
 
-  const range = selection.getRangeAt(0);
+  const { range } = validated;
   const node = range.startContainer;
 
   if (node.nodeType === Node.TEXT_NODE) {
@@ -171,8 +262,10 @@ function clearCurrentLine(textNode: Text | null): void {
 
 // Convert current line to a bullet list
 function convertToBulletList(editor: HTMLDivElement, initialText: string = "", triggerLength: number = 0): void {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return;
+  const validated = getValidatedSelection();
+  if (!validated) return;
+
+  const { range } = validated;
 
   // Get remaining text BEFORE modifying the DOM
   const { remainingText, textNode } = triggerLength > 0
@@ -189,26 +282,32 @@ function convertToBulletList(editor: HTMLDivElement, initialText: string = "", t
   } else {
     // Clear the text node content
     clearCurrentLine(textNode);
-    const range = selection.getRangeAt(0);
     range.insertNode(ul);
   }
 
-  // Position cursor inside the li
+  // Position cursor inside the li - re-acquire selection after DOM mutation
+  ensureEditable(li);
+  const freshSelection = window.getSelection();
+  if (!freshSelection) return;
+
   const newRange = document.createRange();
-  if (!li.firstChild) {
-    const newTextNode = document.createTextNode("");
-    li.appendChild(newTextNode);
+  const targetNode = li.firstChild;
+  if (targetNode) {
+    newRange.setStart(targetNode, targetNode.textContent?.length || 0);
+  } else {
+    newRange.setStart(li, 0);
   }
-  newRange.setStart(li.firstChild!, li.firstChild!.textContent?.length || 0);
   newRange.collapse(true);
-  selection.removeAllRanges();
-  selection.addRange(newRange);
+  freshSelection.removeAllRanges();
+  freshSelection.addRange(newRange);
 }
 
 // Convert current line to an ordered list
 function convertToOrderedList(editor: HTMLDivElement, initialText: string = "", triggerLength: number = 0): void {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return;
+  const validated = getValidatedSelection();
+  if (!validated) return;
+
+  const { range } = validated;
 
   // Get remaining text BEFORE modifying the DOM
   const { remainingText, textNode } = triggerLength > 0
@@ -225,26 +324,32 @@ function convertToOrderedList(editor: HTMLDivElement, initialText: string = "", 
   } else {
     // Clear the text node content
     clearCurrentLine(textNode);
-    const range = selection.getRangeAt(0);
     range.insertNode(ol);
   }
 
-  // Position cursor inside the li
+  // Position cursor inside the li - re-acquire selection after DOM mutation
+  ensureEditable(li);
+  const freshSelection = window.getSelection();
+  if (!freshSelection) return;
+
   const newRange = document.createRange();
-  if (!li.firstChild) {
-    const newTextNode = document.createTextNode("");
-    li.appendChild(newTextNode);
+  const targetNode = li.firstChild;
+  if (targetNode) {
+    newRange.setStart(targetNode, targetNode.textContent?.length || 0);
+  } else {
+    newRange.setStart(li, 0);
   }
-  newRange.setStart(li.firstChild!, li.firstChild!.textContent?.length || 0);
   newRange.collapse(true);
-  selection.removeAllRanges();
-  selection.addRange(newRange);
+  freshSelection.removeAllRanges();
+  freshSelection.addRange(newRange);
 }
 
 // Convert current line to a checkbox list
 function convertToCheckboxList(editor: HTMLDivElement, checked: boolean = false, initialText: string = "", triggerLength: number = 0): void {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return;
+  const validated = getValidatedSelection();
+  if (!validated) return;
+
+  const { range } = validated;
 
   // Get remaining text BEFORE modifying the DOM
   const { remainingText, textNode } = triggerLength > 0
@@ -263,32 +368,37 @@ function convertToCheckboxList(editor: HTMLDivElement, checked: boolean = false,
   } else {
     // Clear the text node content
     clearCurrentLine(textNode);
-    const range = selection.getRangeAt(0);
     range.insertNode(ul);
   }
 
-  // Position cursor inside the span - ensure there's a text node to place cursor
+  // Position cursor inside the span - re-acquire selection after DOM mutation
+  const freshSelection = window.getSelection();
+  if (!freshSelection) return;
+
   const span = li.querySelector("span");
   const newRange = document.createRange();
   if (span) {
-    if (!span.firstChild) {
-      // Create empty text node for cursor placement
-      const newTextNode = document.createTextNode("");
-      span.appendChild(newTextNode);
+    ensureEditable(span);
+    const targetNode = span.firstChild;
+    if (targetNode) {
+      newRange.setStart(targetNode, targetNode.textContent?.length || 0);
+    } else {
+      newRange.setStart(span, 0);
     }
-    newRange.setStart(span.firstChild!, span.firstChild!.textContent?.length || 0);
   } else {
     newRange.setStart(li, li.childNodes.length);
   }
   newRange.collapse(true);
-  selection.removeAllRanges();
-  selection.addRange(newRange);
+  freshSelection.removeAllRanges();
+  freshSelection.addRange(newRange);
 }
 
 // Convert current line to a blockquote
 function convertToBlockquote(editor: HTMLDivElement, initialText: string = "", triggerLength: number = 0): void {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return;
+  const validated = getValidatedSelection();
+  if (!validated) return;
+
+  const { selection, range } = validated;
 
   // Get remaining text BEFORE modifying the DOM
   const { remainingText, textNode } = triggerLength > 0
@@ -302,8 +412,7 @@ function convertToBlockquote(editor: HTMLDivElement, initialText: string = "", t
   if (remainingText) {
     blockquote.textContent = remainingText;
   } else {
-    const br = document.createElement("br");
-    blockquote.appendChild(br);
+    ensureEditable(blockquote);
   }
 
   if (block && block !== editor) {
@@ -311,7 +420,6 @@ function convertToBlockquote(editor: HTMLDivElement, initialText: string = "", t
   } else {
     // Clear the text node content
     clearCurrentLine(textNode);
-    const range = selection.getRangeAt(0);
     range.insertNode(blockquote);
   }
 
@@ -325,8 +433,10 @@ function convertToBlockquote(editor: HTMLDivElement, initialText: string = "", t
 
 // Convert current line to a header
 function convertToHeader(editor: HTMLDivElement, level: number, initialText: string = "", triggerLength: number = 0): void {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return;
+  const validated = getValidatedSelection();
+  if (!validated) return;
+
+  const { selection, range } = validated;
 
   // Get remaining text BEFORE modifying the DOM
   const { remainingText, textNode } = triggerLength > 0
@@ -340,8 +450,7 @@ function convertToHeader(editor: HTMLDivElement, level: number, initialText: str
   if (remainingText) {
     header.textContent = remainingText;
   } else {
-    const br = document.createElement("br");
-    header.appendChild(br);
+    ensureEditable(header);
   }
 
   if (block && block !== editor) {
@@ -349,7 +458,6 @@ function convertToHeader(editor: HTMLDivElement, level: number, initialText: str
   } else {
     // Clear the text node content
     clearCurrentLine(textNode);
-    const range = selection.getRangeAt(0);
     range.insertNode(header);
   }
 
@@ -373,9 +481,10 @@ function handleListEnter(editor: HTMLDivElement): boolean {
   const list = li.parentElement;
   if (!list || (list.tagName !== "UL" && list.tagName !== "OL")) return false;
 
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return false;
+  const validated = getValidatedSelection();
+  if (!validated) return false;
 
+  const { selection } = validated;
   const isChecklist = list.classList.contains("checklist");
   const isEmpty = isListItemEmpty(li as HTMLLIElement);
 
@@ -446,12 +555,12 @@ function handleBlockquoteEnter(editor: HTMLDivElement): boolean {
 
   // If empty, exit blockquote
   if (blockquote.textContent?.trim() === "") {
-    const selection = window.getSelection();
-    if (!selection) return false;
+    const validated = getValidatedSelection();
+    if (!validated) return false;
 
+    const { selection } = validated;
     const p = document.createElement("div");
-    const br = document.createElement("br");
-    p.appendChild(br);
+    ensureEditable(p);
     blockquote.replaceWith(p);
 
     const newRange = document.createRange();
@@ -475,12 +584,12 @@ function handleHeaderEnter(editor: HTMLDivElement): boolean {
   if (!headerTags.includes(block.tagName)) return false;
 
   // Create a new paragraph after the header
-  const selection = window.getSelection();
-  if (!selection) return false;
+  const validated = getValidatedSelection();
+  if (!validated) return false;
 
+  const { selection } = validated;
   const p = document.createElement("div");
-  const br = document.createElement("br");
-  p.appendChild(br);
+  ensureEditable(p);
   block.insertAdjacentElement("afterend", p);
 
   const newRange = document.createRange();
@@ -504,8 +613,10 @@ function handleListBackspace(editor: HTMLDivElement): boolean {
   const list = li.parentElement;
   if (!list || (list.tagName !== "UL" && list.tagName !== "OL")) return false;
 
-  const selection = window.getSelection();
-  if (!selection) return false;
+  const validated = getValidatedSelection();
+  if (!validated) return false;
+
+  const { selection } = validated;
 
   // Get the text content
   let textContent = "";
@@ -520,8 +631,7 @@ function handleListBackspace(editor: HTMLDivElement): boolean {
   const p = document.createElement("div");
   p.textContent = textContent || "";
   if (!p.textContent) {
-    const br = document.createElement("br");
-    p.appendChild(br);
+    ensureEditable(p);
   }
 
   // If this is the only item, replace the list
@@ -556,15 +666,15 @@ function handleBlockquoteBackspace(editor: HTMLDivElement): boolean {
   const blockquote = block.tagName === "BLOCKQUOTE" ? block : block.closest("blockquote");
   if (!blockquote) return false;
 
-  const selection = window.getSelection();
-  if (!selection) return false;
+  const validated = getValidatedSelection();
+  if (!validated) return false;
 
+  const { selection } = validated;
   const textContent = blockquote.textContent || "";
   const p = document.createElement("div");
   p.textContent = textContent;
   if (!p.textContent) {
-    const br = document.createElement("br");
-    p.appendChild(br);
+    ensureEditable(p);
   }
 
   blockquote.replaceWith(p);
@@ -591,15 +701,15 @@ function handleHeaderBackspace(editor: HTMLDivElement): boolean {
   const headerTags = ["H1", "H2", "H3", "H4"];
   if (!headerTags.includes(block.tagName)) return false;
 
-  const selection = window.getSelection();
-  if (!selection) return false;
+  const validated = getValidatedSelection();
+  if (!validated) return false;
 
+  const { selection } = validated;
   const textContent = block.textContent || "";
   const p = document.createElement("div");
   p.textContent = textContent;
   if (!p.textContent) {
-    const br = document.createElement("br");
-    p.appendChild(br);
+    ensureEditable(p);
   }
 
   block.replaceWith(p);
@@ -627,8 +737,8 @@ function handleListIndent(editor: HTMLDivElement, indent: boolean): boolean {
   const list = li.parentElement;
   if (!list || (list.tagName !== "UL" && list.tagName !== "OL")) return false;
 
-  const selection = window.getSelection();
-  if (!selection) return false;
+  const validated = getValidatedSelection();
+  if (!validated) return false;
 
   if (indent) {
     // Check nesting level (max 3 levels)
@@ -671,11 +781,14 @@ function handleListIndent(editor: HTMLDivElement, indent: boolean): boolean {
     }
   }
 
-  // Restore cursor position
+  // Restore cursor position - re-acquire selection after DOM mutation
+  const freshSelection = window.getSelection();
+  if (!freshSelection) return true;
+
   const newRange = document.createRange();
   if (li.classList.contains("checkbox-item")) {
     const span = li.querySelector("span");
-    if (span && span.firstChild) {
+    if (span?.firstChild) {
       newRange.setStart(span.firstChild, 0);
     } else if (span) {
       newRange.setStart(span, 0);
@@ -688,17 +801,17 @@ function handleListIndent(editor: HTMLDivElement, indent: boolean): boolean {
     newRange.setStart(li, 0);
   }
   newRange.collapse(true);
-  selection.removeAllRanges();
-  selection.addRange(newRange);
+  freshSelection.removeAllRanges();
+  freshSelection.addRange(newRange);
   return true;
 }
 
 // Convert inline code with backticks (`) - standard markdown style
 function convertInlineCode(_editor: HTMLDivElement): boolean {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return false;
+  const validated = getValidatedSelection();
+  if (!validated) return false;
 
-  const range = selection.getRangeAt(0);
+  const { selection, range } = validated;
   const node = range.startContainer;
   if (node.nodeType !== Node.TEXT_NODE) return false;
 
@@ -725,10 +838,15 @@ function convertInlineCode(_editor: HTMLDivElement): boolean {
   const parent = node.parentNode;
   if (!parent) return false;
 
-  parent.insertBefore(beforeText, node);
-  parent.insertBefore(code, node);
-  parent.insertBefore(afterText, node);
-  parent.removeChild(node);
+  try {
+    parent.insertBefore(beforeText, node);
+    parent.insertBefore(code, node);
+    parent.insertBefore(afterText, node);
+    parent.removeChild(node);
+  } catch {
+    // DOM operation failed, likely due to node being detached
+    return false;
+  }
 
   // Position cursor after the code element
   const newRange = document.createRange();
@@ -748,25 +866,18 @@ function toggleCheckbox(
   container?: HTMLElement | null
 ): void {
   const newChecked = !checkbox.checked;
+  const li = checkbox.closest("li") as HTMLLIElement | null;
 
-  // Set both the property AND the attribute for proper HTML persistence
-  checkbox.checked = newChecked;
-  if (newChecked) {
-    checkbox.setAttribute("checked", "checked");
-  } else {
-    checkbox.removeAttribute("checked");
-  }
-
-  const li = checkbox.closest("li");
   if (li) {
-    li.setAttribute("data-checked", String(newChecked));
-    const span = li.querySelector("span");
-    if (span) {
-      if (newChecked) {
-        span.classList.add("checkbox-checked");
-      } else {
-        span.classList.remove("checkbox-checked");
-      }
+    const span = li.querySelector("span") as HTMLSpanElement | null;
+    synchronizeCheckboxState(newChecked, checkbox, li, span);
+  } else {
+    // Fallback if no li found
+    checkbox.checked = newChecked;
+    if (newChecked) {
+      checkbox.setAttribute("checked", "checked");
+    } else {
+      checkbox.removeAttribute("checked");
     }
   }
 
@@ -813,7 +924,28 @@ export default function RichTextEditor({
   const editorRef = useRef<HTMLDivElement>(null);
   const displayRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef<string | undefined>(value);
-  const savedSelectionRef = useRef<Range | null>(null);
+
+  // Selection with timestamp for staleness detection
+  const savedSelectionRef = useRef<{ range: Range; timestamp: number } | null>(null);
+  const SELECTION_STALE_MS = 30000;
+
+  // Refs for race condition fixes
+  const pendingInlineCodeRef = useRef<number | null>(null);
+  const onChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isToolbarInteractionRef = useRef(false);
+  const DEBOUNCE_MS = 150;
+
+  // Debounced onChange handler - captures latest onChange via ref to avoid stale callback issues
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  const debouncedOnChange = useCallback((html: string) => {
+    if (onChangeTimeoutRef.current) clearTimeout(onChangeTimeoutRef.current);
+    onChangeTimeoutRef.current = setTimeout(() => {
+      onChangeTimeoutRef.current = null;
+      onChangeRef.current(html);
+    }, DEBOUNCE_MS);
+  }, []);
 
   // Update content when value prop changes (e.g., when todo is loaded)
   useEffect(() => {
@@ -822,62 +954,117 @@ export default function RichTextEditor({
       lastValueRef.current = value;
     }
 
-    // Update editor content when switching to edit mode
+    // Update editor content when value prop changes externally (e.g., loading a different todo)
+    // Skip if editor has focus - user is actively typing and we don't want to reset cursor
     if (isEditing && editorRef.current) {
-      if (editorRef.current.innerHTML !== value) {
-        editorRef.current.innerHTML = value || "";
+      const hasFocus = document.activeElement === editorRef.current;
+      if (!hasFocus && editorRef.current.innerHTML !== value) {
+        // Sanitize only when actually setting content from external source
+        editorRef.current.innerHTML = sanitizeHtml(value || "");
         lastValueRef.current = value;
       }
     }
   }, [value, isEditing]);
 
-  const applyLink = () => {
-    if (linkUrl && editorRef.current && savedSelectionRef.current) {
-      // Restore the selection
-      const selection = window.getSelection();
-      if (selection) {
-        selection.removeAllRanges();
-        selection.addRange(savedSelectionRef.current);
+  // Track lastValueRef properly
+  useEffect(() => {
+    lastValueRef.current = value;
+  }, [value]);
 
-        // Get the selected content with HTML formatting preserved
-        const range = savedSelectionRef.current;
-        const fragment = range.cloneContents();
-        const div = document.createElement("div");
-        div.appendChild(fragment);
-        const selectedHtml = div.innerHTML;
-        const selectedText = selection.toString();
-
-        if (selectedText) {
-          // Create the HTML for the link, preserving inner HTML formatting
-          const fullUrl = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
-          const linkHtml = `<a href="${fullUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; cursor: pointer;">${selectedHtml}</a>`;
-
-          // Insert the link HTML without extra space
-          document.execCommand("insertHTML", false, linkHtml);
-
-          // Trigger change
-          const html = editorRef.current.innerHTML;
-          lastValueRef.current = html;
-          onChange(html);
-
-          // Force re-style links after insertion
-          setTimeout(() => {
-            if (editorRef.current) {
-              const links = editorRef.current.querySelectorAll("a");
-              links.forEach((link) => {
-                const anchor = link as HTMLAnchorElement;
-                anchor.style.color = "#2563eb";
-                anchor.style.textDecoration = "underline";
-                anchor.style.cursor = "pointer";
-              });
-            }
-          }, 0);
-        }
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      savedSelectionRef.current = null;
+      if (pendingInlineCodeRef.current !== null) {
+        cancelAnimationFrame(pendingInlineCodeRef.current);
       }
+      if (onChangeTimeoutRef.current) {
+        clearTimeout(onChangeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const applyLink = () => {
+    if (!linkUrl || !editorRef.current || !savedSelectionRef.current) return;
+
+    const { range, timestamp } = savedSelectionRef.current;
+
+    // Check for staleness
+    if (Date.now() - timestamp > SELECTION_STALE_MS) {
       setShowLinkInput(false);
       setLinkUrl("");
       savedSelectionRef.current = null;
+      return;
     }
+
+    // Validate range is still valid
+    if (!isRangeValid(range)) {
+      setShowLinkInput(false);
+      setLinkUrl("");
+      savedSelectionRef.current = null;
+      return;
+    }
+
+    // Ensure range is within editor
+    if (!editorRef.current.contains(range.commonAncestorContainer)) {
+      setShowLinkInput(false);
+      setLinkUrl("");
+      savedSelectionRef.current = null;
+      return;
+    }
+
+    // Sanitize the URL
+    const sanitizedUrl = sanitizeUrl(linkUrl);
+    if (!sanitizedUrl) {
+      setShowLinkInput(false);
+      setLinkUrl("");
+      savedSelectionRef.current = null;
+      return;
+    }
+
+    // Restore the selection
+    const selection = window.getSelection();
+    if (selection) {
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      // Get the selected content with HTML formatting preserved
+      const fragment = range.cloneContents();
+      const div = document.createElement("div");
+      div.appendChild(fragment);
+      const selectedHtml = div.innerHTML;
+      const selectedText = selection.toString();
+
+      if (selectedText) {
+        // Sanitize selectedHtml to prevent XSS, then create the link
+        const sanitizedSelectedHtml = sanitizeHtml(selectedHtml);
+        const linkHtml = `<a href="${sanitizedUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; cursor: pointer;">${sanitizedSelectedHtml}</a>`;
+
+        // Insert the link HTML without extra space
+        document.execCommand("insertHTML", false, linkHtml);
+
+        // Trigger change
+        const html = editorRef.current.innerHTML;
+        lastValueRef.current = html;
+        onChange(html);
+
+        // Force re-style links after insertion
+        requestAnimationFrame(() => {
+          if (editorRef.current) {
+            const links = editorRef.current.querySelectorAll("a");
+            links.forEach((link) => {
+              const anchor = link as HTMLAnchorElement;
+              anchor.style.color = "#2563eb";
+              anchor.style.textDecoration = "underline";
+              anchor.style.cursor = "pointer";
+            });
+          }
+        });
+      }
+    }
+    setShowLinkInput(false);
+    setLinkUrl("");
+    savedSelectionRef.current = null;
   };
 
   // Handle link button click from toolbar
@@ -885,7 +1072,7 @@ export default function RichTextEditor({
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      savedSelectionRef.current = range.cloneRange();
+      savedSelectionRef.current = { range: range.cloneRange(), timestamp: Date.now() };
 
       let linkElement: HTMLAnchorElement | null = null;
       const fragment = range.cloneContents();
@@ -1043,10 +1230,9 @@ export default function RichTextEditor({
             // Otherwise, switch to edit mode (unless alwaysEditable)
             if (!alwaysEditable) {
               setIsEditing(true);
+              // Focus after React renders the editor element
               setTimeout(() => {
-                if (editorRef.current) {
-                  editorRef.current.focus();
-                }
+                editorRef.current?.focus();
               }, 0);
             }
           }}
@@ -1069,7 +1255,13 @@ export default function RichTextEditor({
           {/* Formatting Toolbar */}
           <div
             className="rich-text-toolbar flex flex-wrap items-center gap-0.5 px-1.5 py-1 bg-zinc-100 dark:bg-zinc-700 border-b border-zinc-300 dark:border-zinc-600"
-            onMouseDown={(e) => e.preventDefault()}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              isToolbarInteractionRef.current = true;
+              requestAnimationFrame(() => {
+                isToolbarInteractionRef.current = false;
+              });
+            }}
           >
             {/* Text formatting */}
             <button
@@ -1214,6 +1406,7 @@ export default function RichTextEditor({
                       e.preventDefault();
                       setShowLinkInput(false);
                       setLinkUrl("");
+                      savedSelectionRef.current = null; // Clear stale selection on cancel
                       editorRef.current?.focus();
                     }
                   }}
@@ -1232,6 +1425,7 @@ export default function RichTextEditor({
                   onClick={() => {
                     setShowLinkInput(false);
                     setLinkUrl("");
+                    savedSelectionRef.current = null; // Clear stale selection on cancel
                     editorRef.current?.focus();
                   }}
                   className="p-1.5 text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 rounded transition-colors"
@@ -1254,10 +1448,14 @@ export default function RichTextEditor({
               if (e.target instanceof HTMLInputElement && e.target.type === "checkbox") {
                 e.preventDefault();
                 e.stopPropagation();
-                // Toggle the checkbox after a microtask to ensure DOM is ready
-                setTimeout(() => {
-                  toggleCheckbox(e.target as HTMLInputElement, onChange, onBlur, editorRef.current);
-                }, 0);
+                // Capture reference to checkbox element
+                const checkbox = e.target as HTMLInputElement;
+                // Use requestAnimationFrame and validate element is still connected
+                requestAnimationFrame(() => {
+                  if (checkbox.isConnected) {
+                    toggleCheckbox(checkbox, onChange, onBlur, editorRef.current);
+                  }
+                });
                 return;
               }
 
@@ -1284,19 +1482,29 @@ export default function RichTextEditor({
               }
             }}
             onInput={(_e) => {
-              // Call onChange immediately when content changes
+              // Call debounced onChange when content changes
+              if (editorRef.current) {
+                const html = editorRef.current.innerHTML;
+                lastValueRef.current = html || "";
+                debouncedOnChange(html || "");
+              }
+            }}
+            onBlur={(e) => {
+              // Flush any pending debounced changes on blur
+              if (onChangeTimeoutRef.current) {
+                clearTimeout(onChangeTimeoutRef.current);
+                onChangeTimeoutRef.current = null;
+              }
+
+              // Always call onBlur callback immediately to save content
+              // (important for modal close - content must be saved before unmount)
               if (editorRef.current) {
                 const html = editorRef.current.innerHTML;
                 lastValueRef.current = html || "";
                 onChange(html || "");
-              }
-            }}
-            onBlur={(_e) => {
-              // Always call onBlur callback immediately to save content
-              // (important for modal close - content must be saved before unmount)
-              if (onBlur && editorRef.current) {
-                const html = editorRef.current.innerHTML;
-                onBlur(html || "");
+                if (onBlur) {
+                  onBlur(html || "");
+                }
               }
 
               // If alwaysEditable, don't exit edit mode
@@ -1304,24 +1512,20 @@ export default function RichTextEditor({
                 return;
               }
 
-              // Use setTimeout to allow clicking on toolbar/link input
-              // This only affects the UI state, not the content saving
-              setTimeout(() => {
-                // Check if focus moved to link input or toolbar
-                const activeEl = document.activeElement;
-                if (activeEl && activeEl.closest(".rich-text-toolbar")) {
-                  return;
-                }
+              // Check if focus moved to toolbar using relatedTarget (immediate, no race)
+              const relatedTarget = e.relatedTarget as HTMLElement | null;
+              if (relatedTarget?.closest(".rich-text-toolbar")) {
+                return;
+              }
 
-                // Update state and exit edit mode
-                if (editorRef.current) {
-                  const html = editorRef.current.innerHTML;
-                  lastValueRef.current = html || "";
-                  onChange(html || "");
-                }
-                setIsEditing(false);
-                setShowLinkInput(false);
-              }, 100);
+              // Also check toolbar interaction flag for additional safety
+              if (isToolbarInteractionRef.current) {
+                return;
+              }
+
+              // Exit edit mode
+              setIsEditing(false);
+              setShowLinkInput(false);
             }}
           onKeyDown={(e) => {
             // Handle formatting shortcuts
@@ -1490,17 +1694,27 @@ export default function RichTextEditor({
 
             // Handle backtick key - check for inline code completion
             if (e.key === "`" && editorRef.current) {
+              // Cancel any pending inline code conversion
+              if (pendingInlineCodeRef.current !== null) {
+                cancelAnimationFrame(pendingInlineCodeRef.current);
+              }
+
               // Let the character be inserted first, then check for pattern
-              setTimeout(() => {
-                if (editorRef.current) {
-                  const converted = convertInlineCode(editorRef.current);
-                  if (converted) {
-                    const html = editorRef.current.innerHTML;
-                    lastValueRef.current = html;
-                    onChange(html);
+              pendingInlineCodeRef.current = requestAnimationFrame(() => {
+                pendingInlineCodeRef.current = null;
+                try {
+                  if (editorRef.current) {
+                    const converted = convertInlineCode(editorRef.current);
+                    if (converted) {
+                      const html = editorRef.current.innerHTML;
+                      lastValueRef.current = html;
+                      onChange(html);
+                    }
                   }
+                } catch (error) {
+                  console.error("Failed to convert inline code:", error);
                 }
-              }, 0);
+              });
             }
           }}
           style={{ minHeight, maxHeight }}
