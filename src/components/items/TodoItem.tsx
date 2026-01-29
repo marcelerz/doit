@@ -354,7 +354,7 @@ export function TodoItem({
   }
 
   return (
-    <div ref={containerRef} className="relative rounded-lg" data-testid="todo-item">
+    <div ref={containerRef} className={`relative rounded-lg ${showDelayedDropdown ? "z-30" : ""}`} data-testid="todo-item">
       {/* Swipe action backgrounds (mobile only) */}
       {swipeOffset !== 0 && (
         <>
@@ -910,7 +910,7 @@ export function TodoItem({
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
             {/* Delayed button - only for active todos */}
             {todo.isActive && (
-              <div className="relative">
+              <div className={`relative ${showDelayedDropdown ? "z-30" : ""}`}>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
