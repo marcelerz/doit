@@ -12,7 +12,7 @@ import { getTimestamp } from "@/types/time";
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
 import { STORAGE_KEYS, saveToStorage, getStorageAdapter } from "./storage";
 
-const CURRENT_VERSION = 6; // Increment when adding new migrations
+const CURRENT_VERSION = 7; // Increment when adding new migrations
 
 /**
  * Check if a todo should be archived based on settings
@@ -240,6 +240,36 @@ export function migrateSettings(loadedSettings: any): Settings {
 }
 
 /**
+ * Fix priority IDs that were incorrectly stored as priority names.
+ * This happens when a todo was created with priority "high" and it was stored
+ * as the ID instead of looking up the actual priority ID (e.g., "2").
+ */
+function fixPriorityId(todo: Todo, settings: Settings): Todo {
+  if (!todo.priority) {
+    return todo;
+  }
+
+  // Check if the priority is already a valid ID
+  const isValidId = settings.priorities.some((p) => p.id === todo.priority);
+  if (isValidId) {
+    return todo;
+  }
+
+  // Priority looks like a name, try to find the matching priority by name or alternative
+  const priorityName = (todo.priority as string).toLowerCase();
+  const found = settings.priorities.find(
+    (p) => p.name.toLowerCase() === priorityName || p.alternatives.some((alt) => alt.toLowerCase() === priorityName),
+  );
+
+  if (found) {
+    return { ...todo, priority: found.id };
+  }
+
+  // No matching priority found, clear the invalid priority
+  return { ...todo, priority: undefined };
+}
+
+/**
  * Migrate todos to the current format and apply archive/delete rules
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Migration handles legacy data with unknown shape
@@ -264,15 +294,18 @@ export function migrateTodos(loadedTodos: any[], settings: Settings): Todo[] {
       return true;
     })
     .map((todo) => {
+      // Fix priority IDs that were stored as names (v7 migration)
+      let migratedTodo = fixPriorityId(todo, settings);
+
       // Apply archive state to completed todos that should be archived
-      if (shouldArchive(todo, archiveDays) && todo.state === "completed") {
-        return {
-          ...todo,
+      if (shouldArchive(migratedTodo, archiveDays) && migratedTodo.state === "completed") {
+        migratedTodo = {
+          ...migratedTodo,
           state: "archived" as TodoState,
           archivedAt: getTimestamp(Date.now()),
         };
       }
-      return todo;
+      return migratedTodo;
     });
 }
 

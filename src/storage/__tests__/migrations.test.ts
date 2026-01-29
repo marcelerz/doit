@@ -233,7 +233,7 @@ describe("migrations", () => {
       expect(result[0].tags).toEqual([]);
     });
 
-    it("should migrate legacy priorities array to single priority", () => {
+    it("should migrate legacy priorities array to single priority and convert name to ID", () => {
       const todos = [
         {
           id: "1",
@@ -244,7 +244,8 @@ describe("migrations", () => {
       ];
       const result = migrateTodos(todos, defaultTestSettings);
 
-      expect(result[0].priority).toBe("high");
+      // "high" priority name should be converted to its ID "2"
+      expect(result[0].priority).toBe("2");
     });
 
     it("should migrate legacy dueDates array to single dueDate", () => {

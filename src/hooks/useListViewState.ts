@@ -496,27 +496,39 @@ export function useListViewState({ todos, projects, settings }: UseListViewState
             break;
           }
           case "assigned": {
-            const aAssigned = a.assignedPeople[0] || "";
-            const bAssigned = b.assignedPeople[0] || "";
-            comparison = aAssigned.localeCompare(bAssigned);
+            const aAssigned = [...a.assignedPeople].sort().join(", ");
+            const bAssigned = [...b.assignedPeople].sort().join(", ");
+            if (aAssigned === "" && bAssigned === "") comparison = 0;
+            else if (aAssigned === "") comparison = 1;
+            else if (bAssigned === "") comparison = -1;
+            else comparison = aAssigned.localeCompare(bAssigned);
             break;
           }
           case "source": {
-            const aSource = a.sourcePeople[0] || "";
-            const bSource = b.sourcePeople[0] || "";
-            comparison = aSource.localeCompare(bSource);
+            const aSource = [...a.sourcePeople].sort().join(", ");
+            const bSource = [...b.sourcePeople].sort().join(", ");
+            if (aSource === "" && bSource === "") comparison = 0;
+            else if (aSource === "") comparison = 1;
+            else if (bSource === "") comparison = -1;
+            else comparison = aSource.localeCompare(bSource);
             break;
           }
           case "mentioned": {
-            const aMentioned = a.mentionedPeople[0] || "";
-            const bMentioned = b.mentionedPeople[0] || "";
-            comparison = aMentioned.localeCompare(bMentioned);
+            const aMentioned = [...a.mentionedPeople].sort().join(", ");
+            const bMentioned = [...b.mentionedPeople].sort().join(", ");
+            if (aMentioned === "" && bMentioned === "") comparison = 0;
+            else if (aMentioned === "") comparison = 1;
+            else if (bMentioned === "") comparison = -1;
+            else comparison = aMentioned.localeCompare(bMentioned);
             break;
           }
           case "project": {
-            const aProject = a.projects[0] || "";
-            const bProject = b.projects[0] || "";
-            comparison = aProject.localeCompare(bProject);
+            const aProject = [...a.projects].sort().join(", ");
+            const bProject = [...b.projects].sort().join(", ");
+            if (aProject === "" && bProject === "") comparison = 0;
+            else if (aProject === "") comparison = 1;
+            else if (bProject === "") comparison = -1;
+            else comparison = aProject.localeCompare(bProject);
             break;
           }
           case "priority": {

@@ -18,13 +18,13 @@ import {
 import { getTimestamp, getDurationSec, getDurationMin } from "@/types/time";
 import { getPersonId } from "@/types/person";
 import { getProjectId } from "@/types/project";
-import { getPriorityId } from "@/types/priority";
 import { getSprintId } from "@/types/sprint";
 import { KanbanStateId, getKanbanStateId } from "@/types/kanbanState";
 import { parseDuration } from "@/utils/ganttScheduler";
 import { getCommentId, ActivityEntry, CommentId } from "@/types/types";
 import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/storage/migrations";
 import { defaultSettings, Settings } from "@/types/settings";
+import { PriorityId } from "@/types/priority";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
 import { createActivity, generateMetadataActivities } from "@/utils/activityLogger";
 import { createCommentId, createSubtaskId } from "@/utils/idGenerator";
@@ -33,6 +33,18 @@ import { waitForStorageInit } from "@/storage/storage";
 import { TodoModel, createTodoModels } from "@/models/TodoModel";
 import { createSettingsModel } from "@/models/SettingsModel";
 import { parseDate } from "@/utils/dateUtils";
+
+/**
+ * Find a priority ID by its name or alternatives.
+ * Returns undefined if no matching priority is found.
+ */
+function findPriorityIdByName(name: string, settings: Settings): PriorityId | undefined {
+  const lowerName = name.toLowerCase();
+  const found = settings.priorities.find(
+    (p) => p.name.toLowerCase() === lowerName || p.alternatives.some((alt) => alt.toLowerCase() === lowerName),
+  );
+  return found?.id;
+}
 
 /**
  * Convert TodoMetadata string values to typed Todo fields.
@@ -65,7 +77,7 @@ function metadataToTodoFields(metadata: TodoMetadata, settings: Settings) {
     tags: (metadata.tags || []).map((tag) => getTag(tag)),
     dependencies: (metadata.dependencies || []).map((id) => getTodoId(id)),
     // Singular fields
-    priority: metadata.priority ? getPriorityId(metadata.priority) : undefined,
+    priority: metadata.priority ? findPriorityIdByName(metadata.priority, settings) : undefined,
     dueDate: dueTimestamp ? getTimestamp(dueTimestamp) : undefined,
     duration: durationSec ? getDurationSec(durationSec) : undefined,
     recurring: metadata.recurring,
