@@ -13,20 +13,14 @@ import {
 import { getTag } from "@/types/todo";
 import { getTimestamp } from "@/types/time";
 import { getProjectId } from "@/types/project";
-import { getCommentId, ActivityEntry, CommentId, getActivityId, ActivityId } from "@/types/types";
+import { getCommentId, ActivityEntry, CommentId } from "@/types/types";
 import { defaultSettings, Settings } from "@/types/settings";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { ReviewModel, createReviewModels } from "@/models/ReviewModel";
 import { createSettingsModel } from "@/models/SettingsModel";
 import { createCommentId } from "@/utils/idGenerator";
-
-/**
- * Generate a unique ID for an activity entry
- */
-function generateActivityId(): ActivityId {
-  return getActivityId(`activity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-}
+import { createActivityEntry } from "@/utils/activityUtils";
 
 /**
  * Create a new activity entry for reviews
@@ -36,13 +30,7 @@ function createReviewActivity(
   description: string,
   metadata?: Record<string, unknown>
 ): ActivityEntry<ReviewActivityType> {
-  return {
-    id: generateActivityId(),
-    timestamp: getTimestamp(Date.now()),
-    type,
-    description,
-    metadata,
-  };
+  return createActivityEntry(type, description, metadata);
 }
 
 export type ReviewUndoAction = {

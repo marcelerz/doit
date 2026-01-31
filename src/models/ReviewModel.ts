@@ -13,6 +13,7 @@ import type { ProjectId } from "@/types/project";
 import type { Tag } from "@/types/todo";
 import { ActivityEntry } from "@/types/types";
 import { generatePrefixedUUID } from "@/utils/idGenerator";
+import { formatDateWithTime, formatAgeDisplay, pluralize } from "@/utils/formatters";
 import { SettingsModel } from "./SettingsModel";
 import type { EntityRegistry } from "./EntityRegistry";
 
@@ -379,18 +380,10 @@ export class ReviewModel {
   }
 
   /**
-   * Format a date with time
-   */
-  private formatDateWithTime(timestamp: number): string {
-    const date = new Date(timestamp);
-    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  }
-
-  /**
    * Get formatted created date with time
    */
   get createdDateDisplay(): string {
-    return this.formatDateWithTime(this.createdAt);
+    return formatDateWithTime(this.createdAt);
   }
 
   /**
@@ -398,7 +391,7 @@ export class ReviewModel {
    */
   get updatedDateDisplay(): string | undefined {
     if (!this.updatedAt) return undefined;
-    return this.formatDateWithTime(this.updatedAt);
+    return formatDateWithTime(this.updatedAt);
   }
 
   /**
@@ -406,7 +399,7 @@ export class ReviewModel {
    */
   get completedDateDisplay(): string | undefined {
     if (!this.completedAt) return undefined;
-    return this.formatDateWithTime(this.completedAt);
+    return formatDateWithTime(this.completedAt);
   }
 
   /**
@@ -414,23 +407,14 @@ export class ReviewModel {
    */
   get archivedDateDisplay(): string | undefined {
     if (!this.archivedAt) return undefined;
-    return this.formatDateWithTime(this.archivedAt);
+    return formatDateWithTime(this.archivedAt);
   }
 
   /**
    * Get time since creation in human-readable format
    */
   get ageDisplay(): string {
-    const now = Date.now();
-    const diff = now - this.createdAt;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days} ${days === 1 ? "day" : "days"} ago`;
-    if (hours > 0) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
-    if (minutes > 0) return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
-    return "just now";
+    return formatAgeDisplay(this.createdAt);
   }
 
   /**
@@ -457,22 +441,22 @@ export class ReviewModel {
 
     const taskCount = this.taskCount;
     if (taskCount > 0) {
-      parts.push(`${taskCount} ${taskCount === 1 ? "task" : "tasks"}`);
+      parts.push(`${taskCount} ${pluralize(taskCount, "task")}`);
     }
 
     const childCount = this.childReviewCount;
     if (childCount > 0) {
-      parts.push(`${childCount} ${childCount === 1 ? "review" : "reviews"}`);
+      parts.push(`${childCount} ${pluralize(childCount, "review")}`);
     }
 
     const projectCount = this.projectIds.length;
     if (projectCount > 0) {
-      parts.push(`${projectCount} ${projectCount === 1 ? "project" : "projects"}`);
+      parts.push(`${projectCount} ${pluralize(projectCount, "project")}`);
     }
 
     const tagCount = this.tagIds.length;
     if (tagCount > 0) {
-      parts.push(`${tagCount} ${tagCount === 1 ? "tag" : "tags"}`);
+      parts.push(`${tagCount} ${pluralize(tagCount, "tag")}`);
     }
 
     return parts.length > 0 ? parts.join(", ") : "No entries";

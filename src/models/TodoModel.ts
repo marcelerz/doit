@@ -10,6 +10,7 @@ import { parseRecurringPattern } from "@/utils/recurringParser";
 import { parseDate } from "@/utils/dateUtils";
 import { parseDuration } from "@/utils/ganttScheduler";
 import { generatePrefixedUUID } from "@/utils/idGenerator";
+import { formatDateWithTime, formatAgeDisplay, pluralize } from "@/utils/formatters";
 import { SettingsModel } from "./SettingsModel";
 import type { EntityRegistry } from "./EntityRegistry";
 
@@ -495,7 +496,7 @@ export class TodoModel {
    */
   get durationMinutes(): number | undefined {
     const seconds = this.durationSeconds;
-    if (!seconds) return undefined;
+    if (seconds == null) return undefined;
     return Math.round(seconds / 60);
   }
 
@@ -1093,18 +1094,10 @@ export class TodoModel {
   }
 
   /**
-   * Format a date with time
-   */
-  private formatDateWithTime(timestamp: number): string {
-    const date = new Date(timestamp);
-    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  }
-
-  /**
    * Get formatted created date with time
    */
   get createdDateDisplay(): string {
-    return this.formatDateWithTime(this.createdAt);
+    return formatDateWithTime(this.createdAt);
   }
 
   /**
@@ -1112,7 +1105,7 @@ export class TodoModel {
    */
   get updatedDateDisplay(): string | undefined {
     if (!this.updatedAt) return undefined;
-    return this.formatDateWithTime(this.updatedAt);
+    return formatDateWithTime(this.updatedAt);
   }
 
   /**
@@ -1120,7 +1113,7 @@ export class TodoModel {
    */
   get completedDateDisplay(): string | undefined {
     if (!this.completedAt) return undefined;
-    return this.formatDateWithTime(this.completedAt);
+    return formatDateWithTime(this.completedAt);
   }
 
   /**
@@ -1128,23 +1121,14 @@ export class TodoModel {
    */
   get archivedDateDisplay(): string | undefined {
     if (!this.archivedAt) return undefined;
-    return this.formatDateWithTime(this.archivedAt);
+    return formatDateWithTime(this.archivedAt);
   }
 
   /**
    * Get time since creation in human-readable format
    */
   get ageDisplay(): string {
-    const now = Date.now();
-    const diff = now - this.createdAt;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days} ${days === 1 ? "day" : "days"} ago`;
-    if (hours > 0) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
-    if (minutes > 0) return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
-    return "just now";
+    return formatAgeDisplay(this.createdAt);
   }
 
   // ===== Display/Formatting Methods =====
@@ -1190,12 +1174,12 @@ export class TodoModel {
 
     const assignedCount = this.assignedPeopleIds.length;
     if (assignedCount > 0) {
-      parts.push(`${assignedCount} ${assignedCount === 1 ? "person" : "people"}`);
+      parts.push(`${assignedCount} ${pluralize(assignedCount, "person", "people")}`);
     }
 
     const projectCount = this.projectIds.length;
     if (projectCount > 0) {
-      parts.push(`${projectCount} ${projectCount === 1 ? "project" : "projects"}`);
+      parts.push(`${projectCount} ${pluralize(projectCount, "project")}`);
     }
 
     const priorityName = this.priorityName;
@@ -1217,7 +1201,7 @@ export class TodoModel {
 
     const tagCount = this.tagIds.length;
     if (tagCount > 0) {
-      parts.push(`${tagCount} ${tagCount === 1 ? "tag" : "tags"}`);
+      parts.push(`${tagCount} ${pluralize(tagCount, "tag")}`);
     }
 
     return parts.length > 0 ? parts.join(", ") : "No metadata";
@@ -1276,7 +1260,7 @@ export class TodoModel {
    */
   get durationDisplay(): string | undefined {
     const minutes = this.durationMinutes;
-    if (!minutes) return undefined;
+    if (minutes == null) return undefined;
 
     if (minutes < 60) {
       return `${minutes}m`;

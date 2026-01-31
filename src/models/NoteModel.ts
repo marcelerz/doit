@@ -12,6 +12,7 @@ import type { ProjectId } from "@/types/project";
 import type { Tag } from "@/types/todo";
 import { ActivityEntry } from "@/types/types";
 import { generatePrefixedUUID } from "@/utils/idGenerator";
+import { formatDateWithTime, formatAgeDisplay, pluralize } from "@/utils/formatters";
 import { SettingsModel } from "./SettingsModel";
 import type { EntityRegistry } from "./EntityRegistry";
 
@@ -373,18 +374,10 @@ export class NoteModel {
   }
 
   /**
-   * Format a date with time
-   */
-  private formatDateWithTime(timestamp: number): string {
-    const date = new Date(timestamp);
-    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  }
-
-  /**
    * Get formatted created date with time
    */
   get createdDateDisplay(): string {
-    return this.formatDateWithTime(this.createdAt);
+    return formatDateWithTime(this.createdAt);
   }
 
   /**
@@ -392,7 +385,7 @@ export class NoteModel {
    */
   get updatedDateDisplay(): string | undefined {
     if (!this.updatedAt) return undefined;
-    return this.formatDateWithTime(this.updatedAt);
+    return formatDateWithTime(this.updatedAt);
   }
 
   /**
@@ -400,23 +393,14 @@ export class NoteModel {
    */
   get archivedDateDisplay(): string | undefined {
     if (!this.archivedAt) return undefined;
-    return this.formatDateWithTime(this.archivedAt);
+    return formatDateWithTime(this.archivedAt);
   }
 
   /**
    * Get time since creation in human-readable format
    */
   get ageDisplay(): string {
-    const now = Date.now();
-    const diff = now - this.createdAt;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days} ${days === 1 ? "day" : "days"} ago`;
-    if (hours > 0) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
-    if (minutes > 0) return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
-    return "just now";
+    return formatAgeDisplay(this.createdAt);
   }
 
   // ===== Display/Formatting Methods =====
@@ -466,22 +450,22 @@ export class NoteModel {
 
     const assignedCount = this.assignedPeopleIds.length;
     if (assignedCount > 0) {
-      parts.push(`${assignedCount} ${assignedCount === 1 ? "person" : "people"}`);
+      parts.push(`${assignedCount} ${pluralize(assignedCount, "person", "people")}`);
     }
 
     const projectCount = this.projectIds.length;
     if (projectCount > 0) {
-      parts.push(`${projectCount} ${projectCount === 1 ? "project" : "projects"}`);
+      parts.push(`${projectCount} ${pluralize(projectCount, "project")}`);
     }
 
     const tagCount = this.tagIds.length;
     if (tagCount > 0) {
-      parts.push(`${tagCount} ${tagCount === 1 ? "tag" : "tags"}`);
+      parts.push(`${tagCount} ${pluralize(tagCount, "tag")}`);
     }
 
     const actionItemCount = this.pendingActionItemCount;
     if (actionItemCount > 0) {
-      parts.push(`${actionItemCount} action ${actionItemCount === 1 ? "item" : "items"}`);
+      parts.push(`${actionItemCount} action ${pluralize(actionItemCount, "item")}`);
     }
 
     return parts.length > 0 ? parts.join(", ") : "No metadata";

@@ -3,15 +3,9 @@
  */
 
 import { TodoActivityType, TodoMetadata } from "@/types/todo";
-import { ActivityEntry, getActivityId, ActivityId } from "@/types/types";
+import { ActivityEntry } from "@/types/types";
 import { getTimestamp } from "@/types/time";
-
-/**
- * Generate a unique ID for an activity entry
- */
-function generateActivityId(): ActivityId {
-  return getActivityId(`activity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-}
+import { generateActivityId } from "@/utils/activityUtils";
 
 /**
  * Create a new activity entry
@@ -166,33 +160,5 @@ export function generateMetadataActivities(
   return activities;
 }
 
-/**
- * Format activity timestamp as relative time
- */
-export function formatActivityTime(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (seconds < 60) {
-    return "just now";
-  } else if (minutes < 60) {
-    return `${minutes}m ago`;
-  } else if (hours < 24) {
-    return `${hours}h ago`;
-  } else if (days < 7) {
-    return `${days}d ago`;
-  } else {
-    return new Date(timestamp).toLocaleDateString();
-  }
-}
-
-/**
- * Format activity timestamp as full date/time
- */
-export function formatActivityDateTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleString();
-}
+// Re-export formatting functions from formatters.ts for backward compatibility
+export { formatActivityTime, formatActivityDateTime } from "@/utils/formatters";

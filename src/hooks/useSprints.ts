@@ -182,7 +182,7 @@ export function useSprints() {
       id: getSprintId(createSprintId()),
       status: "planning",
       state: "active",
-      createdAt: now,
+      createdAt: getTimestamp(now),
       comments: [],
       activity: [
         {
@@ -236,7 +236,7 @@ export function useSprints() {
             ...s,
             status: "active" as SprintStatus,
             actualStartDate: today,
-            startedAt: now,
+            startedAt: getTimestamp(now),
             activity: [
               ...(s.activity || []),
               {
@@ -264,7 +264,7 @@ export function useSprints() {
             ...s,
             status: "completed" as SprintStatus,
             actualEndDate: today,
-            completedAt: now,
+            completedAt: getTimestamp(now),
             activity: [
               ...(s.activity || []),
               {
@@ -292,7 +292,7 @@ export function useSprints() {
             ...s,
             status: "cancelled" as SprintStatus,
             actualEndDate: today,
-            cancelledAt: now,
+            cancelledAt: getTimestamp(now),
             activity: [
               ...(s.activity || []),
               {
@@ -318,7 +318,7 @@ export function useSprints() {
           return {
             ...s,
             state: "archived",
-            archivedAt: now,
+            archivedAt: getTimestamp(now),
             activity: [
               ...(s.activity || []),
               {
