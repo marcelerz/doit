@@ -228,7 +228,6 @@ export function FocusView({
   // auto-completion flow to work correctly.
   useEffect(() => {
     if (pendingAutoComplete) {
-      console.log("[FocusView] Auto-completing todo:", pendingAutoComplete);
       // Stop time tracking if active
       if (timeTrackingActiveRef.current && onStopTimeTracking) {
         onStopTimeTracking(timeTrackingActiveRef.current);
@@ -443,23 +442,8 @@ export function FocusView({
           const completingTask = completingWorkSegment && isLastSegmentOfTask;
           const todoToComplete = completingTask ? currentScheduleItem?.task?.todo.id : null;
 
-          console.log("[FocusView] Timer hit zero:", {
-            completingWorkSegment,
-            isLastSegmentOfTask,
-            completingTask,
-            todoToComplete,
-            currentScheduleItem: currentScheduleItem
-              ? {
-                  type: currentScheduleItem.type,
-                  isLastSegment: currentScheduleItem.isLastSegment,
-                  taskId: currentScheduleItem.task?.todo.id,
-                }
-              : null,
-          });
-
           // Schedule auto-completion for last segment (use setTimeout to ensure it runs after state update)
           if (todoToComplete) {
-            console.log("[FocusView] Scheduling auto-complete for:", todoToComplete);
             setTimeout(() => setPendingAutoComplete(todoToComplete), 0);
           }
 

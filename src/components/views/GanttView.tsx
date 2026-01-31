@@ -1436,7 +1436,7 @@ export function GanttView({
                                 const isFirstSegment = segIdx === 0;
                                 const isLastSegment = segIdx === task.segments.length - 1;
                                 const hasMultipleSegments = task.segments.length > 1;
-                                const isTrackedSegment = segment.isTrackedTime === true;
+                                const isTrackedSegment = !!segment.isTrackedTime;
 
                                 // For tracked segments, use gray; for scheduled, use task color
                                 const segmentColor = isTrackedSegment ? "#9ca3af" : taskColor;
