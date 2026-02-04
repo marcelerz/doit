@@ -13,6 +13,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
 } from "@/components/shared/Icons";
+import { sanitizeHtml } from "@/utils/sanitize";
 
 interface ReviewDetailViewProps {
   review: ReviewModel;
@@ -73,11 +74,6 @@ export function ReviewDetailView({
     if (onOpenChildReview) {
       onOpenChildReview(entry.reviewId);
     }
-  };
-
-  // Strip HTML tags for safe display
-  const stripHtml = (html: string): string => {
-    return html.replace(/<[^>]*>/g, "").trim();
   };
 
   return (
@@ -155,9 +151,10 @@ export function ReviewDetailView({
           <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
             Summary
           </h2>
-          <div className="text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">
-            {stripHtml(review.summary)}
-          </div>
+          <div
+            className="text-zinc-600 dark:text-zinc-400 prose prose-sm dark:prose-invert max-w-none [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(review.summary) }}
+          />
         </div>
       )}
 
@@ -227,9 +224,10 @@ export function ReviewDetailView({
                 {/* Entry content (when expanded) */}
                 {!entry.collapsed && entry.content && (
                   <div className="px-3 pb-3 pt-0 border-t border-zinc-200 dark:border-zinc-800">
-                    <div className="ml-8 mt-2 text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">
-                      {entry.type === "review" ? stripHtml(entry.content) : entry.content}
-                    </div>
+                    <div
+                      className="ml-8 mt-2 text-sm text-zinc-600 dark:text-zinc-400 prose prose-sm dark:prose-invert max-w-none [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(entry.content) }}
+                    />
                   </div>
                 )}
               </div>

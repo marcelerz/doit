@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import { ReviewItem } from "@/components/items/ReviewItem";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { UndoNotificationStack } from "@/components/shared/UndoNotificationStack";
-import { PlusIcon } from "@/components/shared/Icons";
+import { PlusIcon, CalendarIcon } from "@/components/shared/Icons";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { ReviewModel } from "@/models/ReviewModel";
 import { ReviewId, ReviewLevel, Review } from "@/types/review";
@@ -22,6 +22,10 @@ import {
   getHalfPeriod,
   hasReviewForPeriod,
   getPeriodKey,
+  getDayPeriod,
+  getWeekPeriod,
+  getMonthPeriod,
+  toISODateString,
 } from "@/utils/reviewUtils";
 
 // Reviews View Tutorial Steps
@@ -104,6 +108,42 @@ export function ReviewsView({
   const [monthsExpanded, setMonthsExpanded] = useState(true);
   const [halvesExpanded, setHalvesExpanded] = useState(true);
 
+  // Custom date picker states
+  const [customDatePickerOpen, setCustomDatePickerOpen] = useState<"day" | "week" | "month" | null>(null);
+  const datePickerRef = useRef<HTMLDivElement>(null);
+
+  // Close date picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+        setCustomDatePickerOpen(null);
+      }
+    };
+
+    if (customDatePickerOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [customDatePickerOpen]);
+
+  // Handle custom date selection
+  const handleCustomDateSelect = (dateStr: string) => {
+    const date = new Date(dateStr + "T12:00:00"); // Use noon to avoid timezone issues
+
+    if (customDatePickerOpen === "day") {
+      const period = getDayPeriod(date);
+      onCreateReview("day", period.start, period.end, period.label);
+    } else if (customDatePickerOpen === "week") {
+      const period = getWeekPeriod(date, workWeekStart);
+      onCreateReview("week", period.start, period.end, period.label);
+    } else if (customDatePickerOpen === "month") {
+      const period = getMonthPeriod(date);
+      onCreateReview("month", period.start, period.end, period.label);
+    }
+
+    setCustomDatePickerOpen(null);
+  };
+
   // Get periods for suggestions
   const dayPeriods = useMemo(() => getLastNDays(7), []);
   const weekPeriods = useMemo(() => getLastNWeeks(8, workWeekStart), [workWeekStart]);
@@ -174,6 +214,48 @@ export function ReviewsView({
     </button>
   );
 
+  // Render custom date picker button
+  const renderCustomDateButton = (type: "day" | "week" | "month") => {
+    const isOpen = customDatePickerOpen === type;
+    const today = toISODateString(new Date());
+
+    const getHelpText = () => {
+      if (type === "day") return "Select a date:";
+      if (type === "week") return "Select any date in the week:";
+      return "Select any date in the month:";
+    };
+
+    return (
+      <div className="relative" ref={isOpen ? datePickerRef : undefined}>
+        <button
+          onClick={() => setCustomDatePickerOpen(isOpen ? null : type)}
+          className="flex items-center gap-2 px-3 py-2 text-sm bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors border border-zinc-300 dark:border-zinc-600"
+        >
+          <CalendarIcon className="w-4 h-4" />
+          Other {type}...
+        </button>
+        {isOpen && (
+          <div className="absolute top-full left-0 mt-2 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg p-3">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
+              {getHelpText()}
+            </p>
+            <input
+              type="date"
+              max={today}
+              autoFocus
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleCustomDateSelect(e.target.value);
+                }
+              }}
+              className="block w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Render review item
   const renderReviewItem = (review: ReviewModel) => (
     <ReviewItem
@@ -237,13 +319,12 @@ export function ReviewsView({
           >
             <div className="space-y-3">
               {/* Add buttons for missing periods */}
-              {getMissingPeriods(dayPeriods.slice(0, 3), "day").length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {getMissingPeriods(dayPeriods.slice(0, 3), "day").map((period) =>
-                    renderAddPeriodButton(period, "day")
-                  )}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2 mb-3">
+                {getMissingPeriods(dayPeriods.slice(0, 3), "day").map((period) =>
+                  renderAddPeriodButton(period, "day")
+                )}
+                {renderCustomDateButton("day")}
+              </div>
               {/* Existing reviews */}
               {getReviewsForLevel("day").length > 0 ? (
                 <div className="space-y-2">
@@ -266,13 +347,12 @@ export function ReviewsView({
           >
             <div className="space-y-3">
               {/* Add buttons for missing periods */}
-              {getMissingPeriods(weekPeriods.slice(0, 4), "week").length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {getMissingPeriods(weekPeriods.slice(0, 4), "week").map((period) =>
-                    renderAddPeriodButton(period, "week")
-                  )}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2 mb-3">
+                {getMissingPeriods(weekPeriods.slice(0, 4), "week").map((period) =>
+                  renderAddPeriodButton(period, "week")
+                )}
+                {renderCustomDateButton("week")}
+              </div>
               {/* Existing reviews */}
               {getReviewsForLevel("week").length > 0 ? (
                 <div className="space-y-2">
@@ -295,13 +375,12 @@ export function ReviewsView({
           >
             <div className="space-y-3">
               {/* Add buttons for missing periods */}
-              {getMissingPeriods(monthPeriods.slice(0, 3), "month").length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {getMissingPeriods(monthPeriods.slice(0, 3), "month").map((period) =>
-                    renderAddPeriodButton(period, "month")
-                  )}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2 mb-3">
+                {getMissingPeriods(monthPeriods.slice(0, 3), "month").map((period) =>
+                  renderAddPeriodButton(period, "month")
+                )}
+                {renderCustomDateButton("month")}
+              </div>
               {/* Existing reviews */}
               {getReviewsForLevel("month").length > 0 ? (
                 <div className="space-y-2">
