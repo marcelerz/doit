@@ -25,3 +25,58 @@ export function arrayHasAnyFromSet<T>(array: T[], set: Set<T>): boolean {
 export function setHasValue<T>(set: Set<T>, value: T | undefined): boolean {
   return value !== undefined && set.has(value);
 }
+
+/**
+ * Interface for entities with name and alternatives (Person, Project, Priority)
+ */
+interface NamedWithAlternatives {
+  name: string;
+  alternatives: string[];
+}
+
+/**
+ * Find an entity by exact match on name or any alternative (case-insensitive)
+ *
+ * @param items - Array of items to search
+ * @param input - Input string to match
+ * @returns The first matching item, or undefined
+ *
+ * @example
+ * const person = findByNameOrAlternatives(availablePeople, "john");
+ * const project = findByNameOrAlternatives(availableProjects, "acme");
+ */
+export function findByNameOrAlternatives<T extends NamedWithAlternatives>(
+  items: T[],
+  input: string
+): T | undefined {
+  const lowerInput = input.toLowerCase();
+  return items.find(
+    (item) =>
+      item.name.toLowerCase() === lowerInput ||
+      item.alternatives.some((alt) => alt.toLowerCase() === lowerInput)
+  );
+}
+
+/**
+ * Filter entities by partial match on name or any alternative (case-insensitive)
+ *
+ * @param items - Array of items to search
+ * @param search - Search string for partial matching
+ * @returns Array of matching items
+ *
+ * @example
+ * const filteredPeople = filterByNameOrAlternatives(availablePeople, "jo");
+ * const filteredProjects = filterByNameOrAlternatives(availableProjects, "ac");
+ */
+export function filterByNameOrAlternatives<T extends NamedWithAlternatives>(
+  items: T[],
+  search: string
+): T[] {
+  if (search === "") return items;
+  const lowerSearch = search.toLowerCase();
+  return items.filter(
+    (item) =>
+      item.name.toLowerCase().includes(lowerSearch) ||
+      item.alternatives.some((alt) => alt.toLowerCase().includes(lowerSearch))
+  );
+}

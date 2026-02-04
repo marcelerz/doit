@@ -7,7 +7,7 @@ import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
 import { LinkPattern } from "@/types/linkPattern";
 import { getColor, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
-import { Activity } from "@/components/shared/Activity";
+import { ActivitySection } from "@/components/shared/ActivitySection";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { ActionButtons } from "@/components/shared/ActionButtons";
@@ -52,8 +52,8 @@ export function ProjectDetailsOverlay({
   onArchive,
   onUnarchive,
   onAddComment,
-  onEditComment: _onEditComment,
-  onDeleteComment: _onDeleteComment,
+  onEditComment,
+  onDeleteComment,
   onCreateNote,
   categories = [],
   markerColors = defaultMarkerColors,
@@ -72,7 +72,6 @@ export function ProjectDetailsOverlay({
 
   // Get all names that could match this project (name + alternatives)
   const projectNames = [project.name.toLowerCase(), ...project.alternatives.map((a) => a.toLowerCase())];
-  const [newComment, setNewComment] = useState("");
 
   // Sync local state when project changes (after updates)
   // Legitimate prop sync pattern for editable form fields
@@ -117,13 +116,6 @@ export function ProjectDetailsOverlay({
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [onClose]);
-
-  const handleAddComment = () => {
-    if (newComment.trim()) {
-      onAddComment(project.id, newComment);
-      setNewComment("");
-    }
-  };
 
   const handleDelete = () => {
     onDelete(project.id);
@@ -402,39 +394,14 @@ export function ProjectDetailsOverlay({
         )}
 
         {/* Activity Section */}
-        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
-          <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">📋 Activity</h4>
-
-          {/* Add comment input */}
-          <div className="mb-4 flex gap-2 items-start">
-            <div className="flex-1">
-              <RichTextEditor
-                value={newComment}
-                onChange={setNewComment}
-                onSubmit={(html) => {
-                  if (html.trim()) {
-                    onAddComment(project.id, html);
-                    setNewComment("");
-                  }
-                }}
-                placeholder="Add a comment..."
-                minHeight="60px"
-                maxHeight="200px"
-                alwaysEditable={true}
-                linkPatterns={linkPatterns}
-              />
-            </div>
-            <button
-              onClick={handleAddComment}
-              disabled={!newComment.trim()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed dark:disabled:bg-zinc-700 text-white rounded-md font-medium transition-colors"
-            >
-              Add
-            </button>
-          </div>
-
-          <Activity activities={project.activity || []} comments={project.comments} linkPatterns={linkPatterns} />
-        </div>
+        <ActivitySection
+          activities={project.activity || []}
+          comments={project.comments}
+          linkPatterns={linkPatterns}
+          onAddComment={(content) => onAddComment(project.id, content)}
+          onEditComment={(commentId, content) => onEditComment(project.id, commentId, content)}
+          onDeleteComment={(commentId) => onDeleteComment(project.id, commentId)}
+        />
       </div>
     </Modal>
   );

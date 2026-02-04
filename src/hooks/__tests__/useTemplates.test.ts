@@ -280,12 +280,7 @@ describe("useTemplates", () => {
 
       const { result } = renderHook(() => useTemplates());
 
-      // Try to add a template before loading
-      act(() => {
-        result.current.addTemplate({ name: "Test", text: "Text", plainText: "Text", metadata: {} });
-      });
-
-      // Wait a bit
+      // Wait a bit - save should not be called before loading
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 10));
       });
@@ -293,10 +288,15 @@ describe("useTemplates", () => {
       // Save should not have been called yet
       expect(saveToStorage).not.toHaveBeenCalled();
 
-      // Now complete loading
+      // Complete loading
       await act(async () => {
         resolveLoad!([]);
         await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      // Add a template AFTER loading completes
+      act(() => {
+        result.current.addTemplate({ name: "Test", text: "Text", plainText: "Text", metadata: {} });
       });
 
       // Now saving should happen

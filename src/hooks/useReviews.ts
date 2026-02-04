@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Review,
   ReviewId,
@@ -21,6 +21,7 @@ import { ReviewModel, createReviewModels } from "@/models/ReviewModel";
 import { createSettingsModel } from "@/models/SettingsModel";
 import { createCommentId } from "@/utils/idGenerator";
 import { createActivityEntry } from "@/utils/activityUtils";
+import { useUndoableActions, UndoableAction } from "./useUndoableActions";
 
 /**
  * Create a new activity entry for reviews
@@ -33,38 +34,56 @@ function createReviewActivity(
   return createActivityEntry(type, description, metadata);
 }
 
-export type ReviewUndoAction = {
-  id: string;
-  type: "delete" | "archive";
-  review: Review;
-  previousState?: Review;
-  timestamp: number;
-  timeoutId: NodeJS.Timeout;
-};
+export type ReviewUndoAction = UndoableAction<"delete" | "archive", Review>;
 
 export function useReviews() {
   const [rawReviews, setRawReviews] = useState<Review[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [undoActions, setUndoActions] = useState<ReviewUndoAction[]>([]);
-  const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
-  // Refs for timeout cleanup
-  const undoActionsRef = useRef<ReviewUndoAction[]>([]);
-
-  // Keep ref in sync with state for cleanup purposes
-  useEffect(() => {
-    undoActionsRef.current = undoActions;
-  }, [undoActions]);
-
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      undoActionsRef.current.forEach((action) => {
-        clearTimeout(action.timeoutId);
-      });
-    };
+  // Finalize handler for undo actions (called when timeout expires or dismissed)
+  const handleFinalize = useCallback((action: ReviewUndoAction) => {
+    if (action.type === "delete") {
+      // Actually remove the deleted review from storage
+      setRawReviews((prev) => prev.filter((review) => review.id !== action.entity.id));
+    }
+    // Archive actions don't need any finalization - the state is already updated
   }, []);
+
+  // Undo handler for restoring previous state
+  const handleUndo = useCallback((action: ReviewUndoAction) => {
+    if (action.type === "delete") {
+      // Restore the deleted review with its previous state and add undelete activity
+      if (action.previousState) {
+        const restoredReview: Review = {
+          ...action.previousState,
+          activity: [...action.previousState.activity, createReviewActivity("undeleted", "Review undeleted")],
+        };
+        setRawReviews((prev) => [restoredReview, ...prev]);
+      }
+    } else if (action.type === "archive" && action.previousState) {
+      // Restore previous state for archive with appropriate activity
+      setRawReviews((prev) =>
+        prev.map((review) => {
+          if (review.id === action.entity.id) {
+            return {
+              ...action.previousState!,
+              activity: [...action.previousState!.activity, createReviewActivity("unarchived", "Archive undone")],
+            };
+          }
+          return review;
+        })
+      );
+    }
+  }, []);
+
+  const { undoActions, fadingOutIds, createUndoAction, undo, dismissUndo } = useUndoableActions<
+    "delete" | "archive",
+    Review
+  >({
+    onFinalize: handleFinalize,
+    onUndo: handleUndo,
+  });
 
   // Create a SettingsModel from settings for use with ReviewModel
   const settingsModel = useMemo(() => createSettingsModel(settings), [settings]);
@@ -104,78 +123,6 @@ export function useReviews() {
       });
     }
   }, [rawReviews, isLoaded]);
-
-  // Execute the pending action (actually delete after timeout)
-  const executePendingAction = useCallback((action: ReviewUndoAction) => {
-    if (action.type === "delete") {
-      setRawReviews((prev) => prev.filter((review) => review.id !== action.review.id));
-    }
-    // Start fade out animation
-    setFadingOutIds((prev) => new Set(prev).add(action.id));
-    // Wait for fade animation to complete before removing
-    setTimeout(() => {
-      setUndoActions((prev) => prev.filter((a) => a.id !== action.id));
-      setFadingOutIds((prev) => {
-        const next = new Set(prev);
-        next.delete(action.id);
-        return next;
-      });
-    }, 3000);
-  }, []);
-
-  // Undo a specific action
-  const undo = useCallback(
-    (actionId: string) => {
-      const action = undoActions.find((a) => a.id === actionId);
-      if (!action) return;
-
-      // Clear the timeout for this action
-      clearTimeout(action.timeoutId);
-
-      if (action.type === "delete") {
-        // Restore the deleted review with its previous state and add undelete activity
-        if (action.previousState) {
-          const restoredReview: Review = {
-            ...action.previousState,
-            activity: [...action.previousState.activity, createReviewActivity("undeleted", "Review undeleted")],
-          };
-          setRawReviews((prev) => [restoredReview, ...prev]);
-        }
-      } else if (action.previousState) {
-        // Restore previous state for archive with appropriate activity
-        setRawReviews((prev) =>
-          prev.map((review) => {
-            if (review.id === action.review.id) {
-              return {
-                ...action.previousState!,
-                activity: [...action.previousState!.activity, createReviewActivity("unarchived", "Archive undone")],
-              };
-            }
-            return review;
-          })
-        );
-      }
-
-      // Remove this action from the queue
-      setUndoActions((prev) => prev.filter((a) => a.id !== actionId));
-    },
-    [undoActions]
-  );
-
-  // Dismiss notification without undoing
-  const dismissUndo = useCallback(
-    (actionId: string) => {
-      const action = undoActions.find((a) => a.id === actionId);
-      if (!action) return;
-
-      // Clear the timeout for this action
-      clearTimeout(action.timeoutId);
-
-      // Execute the action immediately with fade out
-      executePendingAction(action);
-    },
-    [undoActions, executePendingAction]
-  );
 
   // Find a review by ID
   const find = useCallback(
@@ -297,29 +244,9 @@ export function useReviews() {
       setRawReviews((prev) => prev.map((review) => (review.id === id ? deletedReview : review)));
 
       // Create undo action
-      const actionId = `${now}-delete-${id}`;
-      const timeoutId = setTimeout(() => {
-        setUndoActions((prev) => {
-          const action = prev.find((a) => a.id === actionId);
-          if (action) {
-            executePendingAction(action);
-          }
-          return prev;
-        });
-      }, 10000);
-
-      const action: ReviewUndoAction = {
-        id: actionId,
-        type: "delete",
-        review: deletedReview,
-        previousState,
-        timestamp: now,
-        timeoutId,
-      };
-
-      setUndoActions((prev) => [...prev, action]);
+      createUndoAction("delete", deletedReview, previousState, id);
     },
-    [rawReviews, executePendingAction]
+    [rawReviews, createUndoAction]
   );
 
   // Archive a review
@@ -342,23 +269,9 @@ export function useReviews() {
       setRawReviews((prev) => prev.map((review) => (review.id === id ? updatedReview : review)));
 
       // Create undo action
-      const actionId = `${now}-archive-${id}`;
-      const timeoutId = setTimeout(() => {
-        setUndoActions((prev) => prev.filter((a) => a.id !== actionId));
-      }, 10000);
-
-      const action: ReviewUndoAction = {
-        id: actionId,
-        type: "archive",
-        review: updatedReview,
-        previousState,
-        timestamp: now,
-        timeoutId,
-      };
-
-      setUndoActions((prev) => [...prev, action]);
+      createUndoAction("archive", updatedReview, previousState, id);
     },
-    [rawReviews]
+    [rawReviews, createUndoAction]
   );
 
   // Unarchive a review

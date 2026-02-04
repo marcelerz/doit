@@ -3,7 +3,9 @@
 import React, { useMemo, useState } from "react";
 import { ReviewItem } from "@/components/items/ReviewItem";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { ChevronDownIcon, PlusIcon, CloseIcon } from "@/components/shared/Icons";
+import { UndoNotificationStack } from "@/components/shared/UndoNotificationStack";
+import { PlusIcon } from "@/components/shared/Icons";
+import { SectionHeader } from "@/components/shared/SectionHeader";
 import { ReviewModel } from "@/models/ReviewModel";
 import { ReviewId, ReviewLevel, Review } from "@/types/review";
 import { Todo } from "@/types/todo";
@@ -213,227 +215,155 @@ export function ReviewsView({
         <div className="space-y-6">
           {/* Incomplete Reviews Section */}
           {incompleteReviews.length > 0 && (
-            <section className="bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800 p-4">
-              <button
-                onClick={() => setIncompleteExpanded(!incompleteExpanded)}
-                className="w-full flex items-center justify-between text-left mb-3 group"
-              >
-                <h2 className="text-sm font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                  Drafts ({incompleteReviews.length})
-                </h2>
-                <ChevronDownIcon
-                  className={`w-5 h-5 text-amber-600 dark:text-amber-500 transition-transform ${
-                    incompleteExpanded ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-              {incompleteExpanded && (
-                <div className="space-y-2">
-                  {incompleteReviews.map(renderReviewItem)}
-                </div>
-              )}
-            </section>
+            <SectionHeader
+              title="Drafts"
+              count={incompleteReviews.length}
+              expanded={incompleteExpanded}
+              onToggle={() => setIncompleteExpanded(!incompleteExpanded)}
+              variant="highlight"
+            >
+              <div className="space-y-2">
+                {incompleteReviews.map(renderReviewItem)}
+              </div>
+            </SectionHeader>
           )}
 
           {/* Days Section */}
-          <section>
-            <button
-              onClick={() => setDaysExpanded(!daysExpanded)}
-              className="w-full flex items-center justify-between text-left mb-3 group"
-            >
-              <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                Days ({getReviewsForLevel("day").length})
-              </h2>
-              <ChevronDownIcon
-                className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
-                  daysExpanded ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-            {daysExpanded && (
-              <div className="space-y-3">
-                {/* Add buttons for missing periods */}
-                {getMissingPeriods(dayPeriods.slice(0, 3), "day").length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {getMissingPeriods(dayPeriods.slice(0, 3), "day").map((period) =>
-                      renderAddPeriodButton(period, "day")
-                    )}
-                  </div>
-                )}
-                {/* Existing reviews */}
-                {getReviewsForLevel("day").length > 0 ? (
-                  <div className="space-y-2">
-                    {getReviewsForLevel("day").map(renderReviewItem)}
-                  </div>
-                ) : (
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
-                    No daily reviews yet
-                  </p>
-                )}
-              </div>
-            )}
-          </section>
-
-          {/* Weeks Section */}
-          <section>
-            <button
-              onClick={() => setWeeksExpanded(!weeksExpanded)}
-              className="w-full flex items-center justify-between text-left mb-3 group"
-            >
-              <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                Weeks ({getReviewsForLevel("week").length})
-              </h2>
-              <ChevronDownIcon
-                className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
-                  weeksExpanded ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-            {weeksExpanded && (
-              <div className="space-y-3">
-                {/* Add buttons for missing periods */}
-                {getMissingPeriods(weekPeriods.slice(0, 4), "week").length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {getMissingPeriods(weekPeriods.slice(0, 4), "week").map((period) =>
-                      renderAddPeriodButton(period, "week")
-                    )}
-                  </div>
-                )}
-                {/* Existing reviews */}
-                {getReviewsForLevel("week").length > 0 ? (
-                  <div className="space-y-2">
-                    {getReviewsForLevel("week").map(renderReviewItem)}
-                  </div>
-                ) : (
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
-                    No weekly reviews yet
-                  </p>
-                )}
-              </div>
-            )}
-          </section>
-
-          {/* Months Section */}
-          <section>
-            <button
-              onClick={() => setMonthsExpanded(!monthsExpanded)}
-              className="w-full flex items-center justify-between text-left mb-3 group"
-            >
-              <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                Months ({getReviewsForLevel("month").length})
-              </h2>
-              <ChevronDownIcon
-                className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
-                  monthsExpanded ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-            {monthsExpanded && (
-              <div className="space-y-3">
-                {/* Add buttons for missing periods */}
-                {getMissingPeriods(monthPeriods.slice(0, 3), "month").length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {getMissingPeriods(monthPeriods.slice(0, 3), "month").map((period) =>
-                      renderAddPeriodButton(period, "month")
-                    )}
-                  </div>
-                )}
-                {/* Existing reviews */}
-                {getReviewsForLevel("month").length > 0 ? (
-                  <div className="space-y-2">
-                    {getReviewsForLevel("month").map(renderReviewItem)}
-                  </div>
-                ) : (
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
-                    No monthly reviews yet
-                  </p>
-                )}
-              </div>
-            )}
-          </section>
-
-          {/* Halves & Years Section */}
-          <section>
-            <button
-              onClick={() => setHalvesExpanded(!halvesExpanded)}
-              className="w-full flex items-center justify-between text-left mb-3 group"
-            >
-              <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                Halves & Years ({getReviewsForLevel("half").length + getReviewsForLevel("year").length})
-              </h2>
-              <ChevronDownIcon
-                className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
-                  halvesExpanded ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-            {halvesExpanded && (
-              <div className="space-y-3">
-                {/* Add buttons for missing periods */}
+          <SectionHeader
+            title="Days"
+            count={getReviewsForLevel("day").length}
+            expanded={daysExpanded}
+            onToggle={() => setDaysExpanded(!daysExpanded)}
+          >
+            <div className="space-y-3">
+              {/* Add buttons for missing periods */}
+              {getMissingPeriods(dayPeriods.slice(0, 3), "day").length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {getMissingPeriods(halfPeriods.slice(0, 2), "half").map((period) =>
-                    renderAddPeriodButton(period, "half")
-                  )}
-                  {getMissingPeriods(yearPeriods.slice(0, 2), "year").map((period) =>
-                    renderAddPeriodButton(period, "year")
+                  {getMissingPeriods(dayPeriods.slice(0, 3), "day").map((period) =>
+                    renderAddPeriodButton(period, "day")
                   )}
                 </div>
-                {/* Existing reviews */}
-                {getReviewsForLevel("half").length + getReviewsForLevel("year").length > 0 ? (
-                  <div className="space-y-2">
-                    {getReviewsForLevel("half").map(renderReviewItem)}
-                    {getReviewsForLevel("year").map(renderReviewItem)}
-                  </div>
-                ) : (
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
-                    No half-year or yearly reviews yet
-                  </p>
+              )}
+              {/* Existing reviews */}
+              {getReviewsForLevel("day").length > 0 ? (
+                <div className="space-y-2">
+                  {getReviewsForLevel("day").map(renderReviewItem)}
+                </div>
+              ) : (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
+                  No daily reviews yet
+                </p>
+              )}
+            </div>
+          </SectionHeader>
+
+          {/* Weeks Section */}
+          <SectionHeader
+            title="Weeks"
+            count={getReviewsForLevel("week").length}
+            expanded={weeksExpanded}
+            onToggle={() => setWeeksExpanded(!weeksExpanded)}
+          >
+            <div className="space-y-3">
+              {/* Add buttons for missing periods */}
+              {getMissingPeriods(weekPeriods.slice(0, 4), "week").length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {getMissingPeriods(weekPeriods.slice(0, 4), "week").map((period) =>
+                    renderAddPeriodButton(period, "week")
+                  )}
+                </div>
+              )}
+              {/* Existing reviews */}
+              {getReviewsForLevel("week").length > 0 ? (
+                <div className="space-y-2">
+                  {getReviewsForLevel("week").map(renderReviewItem)}
+                </div>
+              ) : (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
+                  No weekly reviews yet
+                </p>
+              )}
+            </div>
+          </SectionHeader>
+
+          {/* Months Section */}
+          <SectionHeader
+            title="Months"
+            count={getReviewsForLevel("month").length}
+            expanded={monthsExpanded}
+            onToggle={() => setMonthsExpanded(!monthsExpanded)}
+          >
+            <div className="space-y-3">
+              {/* Add buttons for missing periods */}
+              {getMissingPeriods(monthPeriods.slice(0, 3), "month").length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {getMissingPeriods(monthPeriods.slice(0, 3), "month").map((period) =>
+                    renderAddPeriodButton(period, "month")
+                  )}
+                </div>
+              )}
+              {/* Existing reviews */}
+              {getReviewsForLevel("month").length > 0 ? (
+                <div className="space-y-2">
+                  {getReviewsForLevel("month").map(renderReviewItem)}
+                </div>
+              ) : (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
+                  No monthly reviews yet
+                </p>
+              )}
+            </div>
+          </SectionHeader>
+
+          {/* Halves & Years Section */}
+          <SectionHeader
+            title="Halves & Years"
+            count={getReviewsForLevel("half").length + getReviewsForLevel("year").length}
+            expanded={halvesExpanded}
+            onToggle={() => setHalvesExpanded(!halvesExpanded)}
+          >
+            <div className="space-y-3">
+              {/* Add buttons for missing periods */}
+              <div className="flex flex-wrap gap-2 mb-3">
+                {getMissingPeriods(halfPeriods.slice(0, 2), "half").map((period) =>
+                  renderAddPeriodButton(period, "half")
+                )}
+                {getMissingPeriods(yearPeriods.slice(0, 2), "year").map((period) =>
+                  renderAddPeriodButton(period, "year")
                 )}
               </div>
-            )}
-          </section>
+              {/* Existing reviews */}
+              {getReviewsForLevel("half").length + getReviewsForLevel("year").length > 0 ? (
+                <div className="space-y-2">
+                  {getReviewsForLevel("half").map(renderReviewItem)}
+                  {getReviewsForLevel("year").map(renderReviewItem)}
+                </div>
+              ) : (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
+                  No half-year or yearly reviews yet
+                </p>
+              )}
+            </div>
+          </SectionHeader>
         </div>
       )}
 
       {/* Undo Notifications */}
-      {undoActions.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col-reverse gap-2">
-          {undoActions.map((action) => (
-            <div
-              key={action.id}
-              className={`transition-opacity duration-3000 ${
-                fadingOutIds.has(action.id) ? "opacity-0" : "opacity-100 animate-slide-up"
-              }`}
-            >
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-100 rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 min-w-[280px]">
-                <div className="flex-1">
-                  <p className="font-medium text-sm">
-                    {action.type === "delete" && "Review deleted"}
-                    {action.type === "archive" && "Review archived"}
-                  </p>
-                  <p className="text-xs text-red-700 dark:text-red-300 mt-0.5 truncate max-w-[180px]">
-                    {action.review.title}
-                  </p>
-                </div>
-                <button
-                  onClick={() => undo(action.id)}
-                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded-md font-medium transition-colors flex-shrink-0"
-                >
-                  Undo
-                </button>
-                <button
-                  onClick={() => dismissUndo(action.id)}
-                  className="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors flex-shrink-0"
-                  aria-label="Dismiss"
-                >
-                  <CloseIcon className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <UndoNotificationStack
+        actions={undoActions.map((a) => ({
+          id: a.id,
+          type: a.type,
+          displayText: a.entity.title,
+        }))}
+        fadingOutIds={fadingOutIds}
+        onUndo={undo}
+        onDismiss={dismissUndo}
+        getMessage={(type) => {
+          if (type === "delete") return "Review deleted";
+          if (type === "archive") return "Review archived";
+          return "Action completed";
+        }}
+      />
     </>
   );
 }

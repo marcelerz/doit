@@ -109,3 +109,87 @@ export function formatActivityTime(timestamp: number): string {
 export function formatActivityDateTime(timestamp: number): string {
   return new Date(timestamp).toLocaleString();
 }
+
+/**
+ * Format duration in minutes to a readable string (e.g., "2h 30m", "45m")
+ * Used by: SprintProgress, TimeTracking, TodoModel, ganttViewUtils
+ *
+ * @param minutes - Duration in minutes
+ * @returns Formatted duration string
+ */
+export function formatDuration(minutes: number): string {
+  if (minutes === 0) return "0m";
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (mins === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${mins}m`;
+}
+
+/**
+ * Format seconds to MM:SS or HH:MM:SS display
+ * Used by: FocusView, OpenFocusView for timer display
+ *
+ * @param seconds - Time in seconds
+ * @returns Formatted time string (e.g., "5:23" or "1:05:23")
+ */
+export function formatTime(seconds: number): string {
+  const isNegative = seconds < 0;
+  const absSeconds = Math.abs(seconds);
+  const hrs = Math.floor(absSeconds / 3600);
+  const mins = Math.floor((absSeconds % 3600) / 60);
+  const secs = absSeconds % 60;
+
+  const timeStr =
+    hrs > 0
+      ? `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+      : `${mins}:${secs.toString().padStart(2, "0")}`;
+
+  return isNegative ? `-${timeStr}` : timeStr;
+}
+
+/**
+ * Format elapsed time in seconds to HH:MM:SS (always includes hours if > 0)
+ * Used by: TimeTracking for active timer display
+ *
+ * @param seconds - Elapsed time in seconds
+ * @returns Formatted elapsed time string
+ */
+export function formatElapsed(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  if (hours > 0) {
+    return `${hours}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  }
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Format Date to clock time (e.g., "9:53 AM")
+ * Used by: FocusView, OpenFocusView for break end times
+ *
+ * @param date - Date to format
+ * @returns Formatted clock time string
+ */
+export function formatClockTime(date: Date): string {
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+/**
+ * Format time display for timeline views (e.g., "9:00 AM")
+ * Used by: ganttViewUtils for timeline markers
+ *
+ * @param date - Date to format
+ * @returns Formatted time string
+ */
+export function formatTimeDisplay(date: Date): string {
+  return date.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}

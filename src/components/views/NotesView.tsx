@@ -4,6 +4,7 @@ import React, { useCallback, useMemo, useRef, useState, forwardRef, useImperativ
 import { NoteItem } from "@/components/items/NoteItem";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterSection } from "@/components/shared/FilterSection";
+import { UndoNotificationStack } from "@/components/shared/UndoNotificationStack";
 import { NotesViewToolbar } from "@/components/shared/NotesViewToolbar";
 import { SavePresetModal } from "@/components/shared/SavePresetModal";
 import {
@@ -806,43 +807,21 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
       />
 
       {/* Undo Notifications */}
-      {undoActions.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col-reverse gap-2">
-          {undoActions.map((action) => (
-            <div
-              key={action.id}
-              className={`transition-opacity duration-3000 ${
-                fadingOutIds.has(action.id) ? "opacity-0" : "opacity-100 animate-slide-up"
-              }`}
-            >
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-100 rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 min-w-[280px]">
-                <div className="flex-1">
-                  <p className="font-medium text-sm">
-                    {action.type === "delete" && "Note deleted"}
-                    {action.type === "archive" && "Note archived"}
-                  </p>
-                  <p className="text-xs text-red-700 dark:text-red-300 mt-0.5 truncate max-w-[180px]">
-                    {action.note.plainText}
-                  </p>
-                </div>
-                <button
-                  onClick={() => undo(action.id)}
-                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded-md font-medium transition-colors flex-shrink-0"
-                >
-                  Undo
-                </button>
-                <button
-                  onClick={() => dismissUndo(action.id)}
-                  className="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors flex-shrink-0"
-                  aria-label="Dismiss"
-                >
-                  <CloseIcon className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <UndoNotificationStack
+        actions={undoActions.map((a) => ({
+          id: a.id,
+          type: a.type,
+          displayText: a.entity.plainText,
+        }))}
+        fadingOutIds={fadingOutIds}
+        onUndo={undo}
+        onDismiss={dismissUndo}
+        getMessage={(type) => {
+          if (type === "delete") return "Note deleted";
+          if (type === "archive") return "Note archived";
+          return "Action completed";
+        }}
+      />
     </>
   );
 });

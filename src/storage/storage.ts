@@ -119,17 +119,31 @@ class IndexedDBAdapter implements StorageAdapter {
     }
   }
 
+  /**
+   * Execute a callback within a transaction, handling common error patterns
+   */
+  private async withTransaction<T>(
+    mode: IDBTransactionMode,
+    operation: (store: IDBObjectStore) => IDBRequest
+  ): Promise<T> {
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(this.storeName, mode);
+      const store = transaction.objectStore(this.storeName);
+      const request = operation(store);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result as T);
+    });
+  }
+
   async getItem(key: string): Promise<string | null> {
     try {
-      const db = await this.getDB();
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(this.storeName, "readonly");
-        const store = transaction.objectStore(this.storeName);
-        const request = store.get(key);
-
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve(request.result ?? null);
-      });
+      const result = await this.withTransaction<string | undefined>(
+        "readonly",
+        (store) => store.get(key)
+      );
+      return result ?? null;
     } catch (error) {
       console.error(`Failed to get item ${key}:`, error);
       return null;
@@ -138,15 +152,10 @@ class IndexedDBAdapter implements StorageAdapter {
 
   async setItem(key: string, value: string): Promise<void> {
     try {
-      const db = await this.getDB();
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(this.storeName, "readwrite");
-        const store = transaction.objectStore(this.storeName);
-        const request = store.put(value, key);
-
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve();
-      });
+      await this.withTransaction<IDBValidKey>(
+        "readwrite",
+        (store) => store.put(value, key)
+      );
     } catch (error) {
       console.error(`Failed to set item ${key}:`, error);
       throw error;
@@ -155,15 +164,10 @@ class IndexedDBAdapter implements StorageAdapter {
 
   async removeItem(key: string): Promise<void> {
     try {
-      const db = await this.getDB();
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(this.storeName, "readwrite");
-        const store = transaction.objectStore(this.storeName);
-        const request = store.delete(key);
-
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve();
-      });
+      await this.withTransaction<undefined>(
+        "readwrite",
+        (store) => store.delete(key)
+      );
     } catch (error) {
       console.error(`Failed to remove item ${key}:`, error);
       throw error;
@@ -172,15 +176,10 @@ class IndexedDBAdapter implements StorageAdapter {
 
   async clear(): Promise<void> {
     try {
-      const db = await this.getDB();
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(this.storeName, "readwrite");
-        const store = transaction.objectStore(this.storeName);
-        const request = store.clear();
-
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve();
-      });
+      await this.withTransaction<undefined>(
+        "readwrite",
+        (store) => store.clear()
+      );
     } catch (error) {
       console.error("Failed to clear storage:", error);
       throw error;
@@ -189,15 +188,10 @@ class IndexedDBAdapter implements StorageAdapter {
 
   async getAllKeys(): Promise<string[]> {
     try {
-      const db = await this.getDB();
-      return new Promise((resolve, reject) => {
-        const transaction = db.transaction(this.storeName, "readonly");
-        const store = transaction.objectStore(this.storeName);
-        const request = store.getAllKeys();
-
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve(request.result as string[]);
-      });
+      return await this.withTransaction<IDBValidKey[]>(
+        "readonly",
+        (store) => store.getAllKeys()
+      ) as string[];
     } catch (error) {
       console.error("Failed to get all keys:", error);
       return [];
@@ -225,6 +219,12 @@ export function createIndexedDBAdapter(): StorageAdapter {
 export function createLocalStorageAdapter(): StorageAdapter {
   return new LocalStorageAdapter();
 }
+
+// Storage key prefix - all app data keys start with this
+export const STORAGE_KEY_PREFIX = "doit-";
+
+// Backup key prefix - for auto-backup and manual backup storage
+export const BACKUP_KEY_PREFIX = "doit-backup-";
 
 // Storage keys - centralized registry of all storage keys
 export const STORAGE_KEYS = {
@@ -426,7 +426,7 @@ export async function estimateStorageQuota(type?: StorageType): Promise<StorageQ
   const adapter = getStorageAdapter();
   const keys = await adapter.getAllKeys();
   for (const key of keys) {
-    if (key && key.startsWith("doit-")) {
+    if (key && key.startsWith(STORAGE_KEY_PREFIX)) {
       try {
         const data = await adapter.getItem(key);
         if (data) {
@@ -467,7 +467,7 @@ export async function migrateToIndexedDB(): Promise<MigrationResult> {
 
     // Also migrate backup keys
     const localStorageKeys = Object.keys(localStorage).filter(
-      (k) => k.startsWith("doit-backup-") && k !== "doit-backup-settings",
+      (k) => k.startsWith(BACKUP_KEY_PREFIX) && k !== STORAGE_KEYS.BACKUP_SETTINGS,
     );
     for (const key of localStorageKeys) {
       const value = localStorage.getItem(key);
@@ -519,7 +519,7 @@ export async function migrateToLocalStorage(): Promise<MigrationResult> {
     // Also migrate backup keys
     const allKeys = await currentAdapter.getAllKeys();
     for (const key of allKeys) {
-      if (key && key.startsWith("doit-backup-") && key !== "doit-backup-settings") {
+      if (key && key.startsWith(BACKUP_KEY_PREFIX) && key !== STORAGE_KEYS.BACKUP_SETTINGS) {
         const value = await currentAdapter.getItem(key);
         if (value) {
           localStorage.setItem(key, value);
@@ -556,7 +556,7 @@ export async function clearAllAppData(): Promise<boolean> {
     // Clear any backup keys and other doit- prefixed keys
     const allKeys = await adapter.getAllKeys();
     for (const key of allKeys) {
-      if (key && key.startsWith("doit-")) {
+      if (key && key.startsWith(STORAGE_KEY_PREFIX)) {
         await adapter.removeItem(key);
       }
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   SelectionHistory,
   SelectionFieldType,
@@ -8,8 +8,8 @@ import {
   DEFAULT_SELECTION_HISTORY,
   MAX_SELECTION_HISTORY,
 } from "@/types/selectionHistory";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storage";
+import { STORAGE_KEYS } from "@/storage/storage";
+import { usePersistedState } from "./usePersistedState";
 
 /**
  * Usage statistics derived from selection history
@@ -47,27 +47,10 @@ function entriesToFrequencyMap(entries: SelectionEntry[]): Map<string, number> {
  * Persists to storage and provides usage statistics.
  */
 export function useSelectionHistory() {
-  const [history, setHistory] = useState<SelectionHistory>(DEFAULT_SELECTION_HISTORY);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Load history from storage on mount
-  useEffect(() => {
-    waitForStorageInit().then(() => {
-      loadFromStorage<SelectionHistory>(STORAGE_KEYS.SELECTION_HISTORY, DEFAULT_SELECTION_HISTORY).then(
-        (storedHistory) => {
-          setHistory(storedHistory);
-          setIsLoaded(true);
-        },
-      );
-    });
-  }, []);
-
-  // Save history to storage when it changes
-  useEffect(() => {
-    if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.SELECTION_HISTORY, history);
-    }
-  }, [history, isLoaded]);
+  const [history, setHistory, isLoaded] = usePersistedState<SelectionHistory>(
+    STORAGE_KEYS.SELECTION_HISTORY,
+    DEFAULT_SELECTION_HISTORY
+  );
 
   /**
    * Record a selection for a field type

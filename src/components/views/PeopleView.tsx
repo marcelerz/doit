@@ -3,7 +3,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PersonItem } from "@/components/items/PersonItem";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { PlusIcon, SearchIcon, CloseIcon } from "@/components/shared/Icons";
+import { PlusIcon } from "@/components/shared/Icons";
+import { SearchInput } from "@/components/shared/SearchInput";
 import { PersonModel } from "@/models/PersonModel";
 import { PersonId } from "@/types/person";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
@@ -153,25 +154,12 @@ export function PeopleView({
 
       {/* Search and filter bar */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search people... (press / to focus)"
-            className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {search && (
-            <button
-              onClick={() => handleSearchChange("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-            >
-              <CloseIcon className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        <SearchInput
+          ref={inputRef}
+          value={search}
+          onChange={handleSearchChange}
+          placeholder="Search people... (press / to focus)"
+        />
         <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer whitespace-nowrap">
           <input
             type="checkbox"

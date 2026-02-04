@@ -17,6 +17,7 @@ import { BatchEditModal, BatchEditData } from "@/components/overlays/BatchEditMo
 import { SavePresetModal } from "@/components/shared/SavePresetModal";
 import { ListViewToolbar } from "@/components/shared/ListViewToolbar";
 import { FilterSection } from "@/components/shared/FilterSection";
+import { UndoNotificationStack } from "@/components/shared/UndoNotificationStack";
 import { useDragReorder } from "@/hooks/useDragReorder";
 import { useListViewState, TodoFilters } from "@/hooks/useListViewState";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -1096,45 +1097,23 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
       )}
 
       {/* Undo Notifications */}
-      {undoActions.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col-reverse gap-2">
-          {undoActions.map((action) => (
-            <div
-              key={action.id}
-              className={`transition-opacity duration-3000 ${
-                fadingOutIds.has(action.id) ? "opacity-0" : "opacity-100 animate-slide-up"
-              }`}
-            >
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-100 rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 min-w-[280px]">
-                <div className="flex-1">
-                  <p className="font-medium text-sm">
-                    {action.type === "delete" && "Todo deleted"}
-                    {action.type === "complete" && "Todo completed"}
-                    {action.type === "uncomplete" && "Todo marked as active"}
-                    {action.type === "archive" && "Todo archived"}
-                  </p>
-                  <p className="text-xs text-red-700 dark:text-red-300 mt-0.5 truncate max-w-[180px]">
-                    {action.todo.plainText}
-                  </p>
-                </div>
-                <button
-                  onClick={() => undo(action.id)}
-                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded-md font-medium transition-colors flex-shrink-0"
-                >
-                  Undo
-                </button>
-                <button
-                  onClick={() => dismissUndo(action.id)}
-                  className="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors flex-shrink-0"
-                  aria-label="Dismiss"
-                >
-                  <CloseIcon className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <UndoNotificationStack
+        actions={undoActions.map((a) => ({
+          id: a.id,
+          type: a.type,
+          displayText: a.entity.plainText,
+        }))}
+        fadingOutIds={fadingOutIds}
+        onUndo={undo}
+        onDismiss={dismissUndo}
+        getMessage={(type) => {
+          if (type === "delete") return "Todo deleted";
+          if (type === "complete") return "Todo completed";
+          if (type === "uncomplete") return "Todo marked as active";
+          if (type === "archive") return "Todo archived";
+          return "Action completed";
+        }}
+      />
 
       {/* Batch Edit Modal */}
       <BatchEditModal

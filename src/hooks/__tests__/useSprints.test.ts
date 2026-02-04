@@ -737,7 +737,7 @@ describe("useSprints", () => {
       });
 
       // Cannot start because another sprint is active
-      expect(result.current.sprints[0].canStart(result.current.sprints)).toBe(false);
+      expect(result.current.sprints[0].canStart(result.current.sprints).canStart).toBe(false);
     });
 
     it("should allow starting when no other sprint is active", async () => {
@@ -761,7 +761,7 @@ describe("useSprints", () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
-      expect(result.current.sprints[0].canStart(result.current.sprints)).toBe(true);
+      expect(result.current.sprints[0].canStart(result.current.sprints).canStart).toBe(true);
     });
   });
 

@@ -12,6 +12,7 @@ import {
 } from "@/utils/autoDetection";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
+import { findByNameOrAlternatives, filterByNameOrAlternatives } from "@/utils/filterHelpers";
 
 export interface TokenMatch {
   type: string;
@@ -252,56 +253,24 @@ const SmartEditableInput = forwardRef<SmartEditableInputHandle, SmartEditableInp
     };
 
     // Helper to find person/project/priority by name or alternative
-    const findPersonByNameOrAlternative = (input: string): PersonModel | undefined => {
-      const lowerInput = input.toLowerCase();
-      return availablePeople.find(
-        (p) => p.name.toLowerCase() === lowerInput || p.alternatives.some((alt) => alt.toLowerCase() === lowerInput),
-      );
-    };
+    // Helper functions using generic utilities
+    const findPersonByNameOrAlternative = (input: string) =>
+      findByNameOrAlternatives(availablePeople, input);
 
-    const findProjectByNameOrAlternative = (input: string): ProjectModel | undefined => {
-      const lowerInput = input.toLowerCase();
-      return availableProjects.find(
-        (p) => p.name.toLowerCase() === lowerInput || p.alternatives.some((alt) => alt.toLowerCase() === lowerInput),
-      );
-    };
+    const findProjectByNameOrAlternative = (input: string) =>
+      findByNameOrAlternatives(availableProjects, input);
 
-    const findPriorityByNameOrAlternative = (input: string): Priority | undefined => {
-      const lowerInput = input.toLowerCase();
-      return availablePriorities.find(
-        (p) => p.name.toLowerCase() === lowerInput || p.alternatives.some((alt) => alt.toLowerCase() === lowerInput),
-      );
-    };
+    const findPriorityByNameOrAlternative = (input: string) =>
+      findByNameOrAlternatives(availablePriorities, input);
 
-    const filterPeopleBySearch = (search: string): PersonModel[] => {
-      const lowerSearch = search.toLowerCase();
-      if (search === "") return availablePeople;
-      return availablePeople.filter(
-        (p) =>
-          p.name.toLowerCase().includes(lowerSearch) ||
-          p.alternatives.some((alt) => alt.toLowerCase().includes(lowerSearch)),
-      );
-    };
+    const filterPeopleBySearch = (search: string) =>
+      filterByNameOrAlternatives(availablePeople, search);
 
-    const filterProjectsBySearch = (search: string): ProjectModel[] => {
-      const lowerSearch = search.toLowerCase();
-      if (search === "") return availableProjects;
-      return availableProjects.filter(
-        (p) =>
-          p.name.toLowerCase().includes(lowerSearch) ||
-          p.alternatives.some((alt) => alt.toLowerCase().includes(lowerSearch)),
-      );
-    };
+    const filterProjectsBySearch = (search: string) =>
+      filterByNameOrAlternatives(availableProjects, search);
 
-    const filterPrioritiesBySearch = (search: string): Priority[] => {
-      const lowerSearch = search.toLowerCase();
-      if (search === "") return availablePriorities;
-      return availablePriorities.filter(
-        (p) =>
-          p.name.toLowerCase().includes(lowerSearch) ||
-          p.alternatives.some((alt) => alt.toLowerCase().includes(lowerSearch)),
-      );
-    };
+    const filterPrioritiesBySearch = (search: string) =>
+      filterByNameOrAlternatives(availablePriorities, search);
 
     const renderTokensFromText = (
       text: string,

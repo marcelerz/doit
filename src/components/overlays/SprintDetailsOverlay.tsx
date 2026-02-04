@@ -9,7 +9,7 @@ import { LinkPattern } from "@/types/linkPattern";
 import { getColor, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { processLinkPatternsInHtml } from "@/utils/linkPatternUtils";
-import { Activity } from "@/components/shared/Activity";
+import { ActivitySection } from "@/components/shared/ActivitySection";
 import { ActionButtons } from "@/components/shared/ActionButtons";
 import { Modal } from "@/components/shared/Modal";
 import { SprintProgress } from "@/components/shared/SprintProgress";
@@ -54,8 +54,8 @@ export function SprintDetailsOverlay({
   onArchive,
   onUnarchive,
   onAddComment,
-  onEditComment: _onEditComment,
-  onDeleteComment: _onDeleteComment,
+  onEditComment,
+  onDeleteComment,
   onTodoClick,
   onRemoveTodoFromSprint,
 }: SprintDetailsOverlayProps) {
@@ -65,7 +65,6 @@ export function SprintDetailsOverlay({
   const [editingDuration, setEditingDuration] = useState(sprint.durationDays);
   const [editingStartDate, setEditingStartDate] = useState(sprint.plannedStartDate || "");
   const [editingColor, setEditingColor] = useState(sprint.color || "");
-  const [newComment, setNewComment] = useState("");
 
   // Get todos in this sprint
   const sprintTodos = useMemo(() => {
@@ -122,13 +121,6 @@ export function SprintDetailsOverlay({
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [onClose]);
-
-  const handleAddComment = () => {
-    if (newComment.trim()) {
-      onAddComment(sprint.id, newComment);
-      setNewComment("");
-    }
-  };
 
   const handleDelete = () => {
     onDelete(sprint.id);
@@ -197,9 +189,9 @@ export function SprintDetailsOverlay({
     return days;
   }, [sprint, sprintTodos]);
 
-  const canStart = sprint.canStart(allSprints);
-  const canComplete = sprint.canComplete();
-  const canCancel = sprint.canCancel();
+  const canStartResult = sprint.canStart(allSprints);
+  const canCompleteResult = sprint.canComplete();
+  const canCancelResult = sprint.canCancel();
 
   // Get the display color (custom color > marker default)
   const sprintColor = editingColor || sprint.color || markerColors.sprint;
@@ -417,7 +409,7 @@ export function SprintDetailsOverlay({
                   ⚡ Sprint Actions
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {canStart && (
+                  {canStartResult.canStart && (
                     <button
                       onClick={handleStart}
                       className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -425,7 +417,7 @@ export function SprintDetailsOverlay({
                       🚀 Start Sprint
                     </button>
                   )}
-                  {canComplete && (
+                  {canCompleteResult.canComplete && (
                     <button
                       onClick={handleComplete}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -433,7 +425,7 @@ export function SprintDetailsOverlay({
                       ✅ Complete Sprint
                     </button>
                   )}
-                  {canCancel && (
+                  {canCancelResult.canCancel && (
                     <button
                       onClick={handleCancel}
                       className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -441,9 +433,9 @@ export function SprintDetailsOverlay({
                       ❌ Cancel Sprint
                     </button>
                   )}
-                  {!canStart && sprint.status === "planning" && (
+                  {!canStartResult.canStart && sprint.status === "planning" && (
                     <div className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                      ⚠️ Complete or cancel the active sprint before starting this one
+                      ⚠️ {canStartResult.reason || "Complete or cancel the active sprint before starting this one"}
                     </div>
                   )}
                 </div>
@@ -454,7 +446,7 @@ export function SprintDetailsOverlay({
                 <ActionButtons
                   isArchived={sprint.isArchived}
                   onArchive={
-                    sprint.canArchive()
+                    sprint.canArchive().canArchive
                       ? () => {
                           onArchive(sprint.id);
                           onClose();
@@ -462,13 +454,13 @@ export function SprintDetailsOverlay({
                       : undefined
                   }
                   onUnarchive={
-                    sprint.canUnarchive()
+                    sprint.canUnarchive().canUnarchive
                       ? () => {
                           onUnarchive(sprint.id);
                         }
                       : undefined
                   }
-                  onDelete={sprint.canDelete() ? handleDelete : undefined}
+                  onDelete={sprint.canDelete().canDelete ? handleDelete : undefined}
                   archiveLabel="Archive sprint"
                   unarchiveLabel="Unarchive sprint"
                   deleteLabel="Delete sprint"
@@ -476,39 +468,14 @@ export function SprintDetailsOverlay({
               </div>
 
               {/* Activity Section */}
-              <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
-                <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">📋 Activity</h4>
-
-                {/* Add comment input */}
-                <div className="mb-4 flex gap-2 items-start">
-                  <div className="flex-1">
-                    <RichTextEditor
-                      value={newComment}
-                      onChange={setNewComment}
-                      onSubmit={(html) => {
-                        if (html.trim()) {
-                          onAddComment(sprint.id, html);
-                          setNewComment("");
-                        }
-                      }}
-                      placeholder="Add a comment..."
-                      minHeight="60px"
-                      maxHeight="200px"
-                      alwaysEditable={true}
-                      linkPatterns={linkPatterns}
-                    />
-                  </div>
-                  <button
-                    onClick={handleAddComment}
-                    disabled={!newComment.trim()}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed dark:disabled:bg-zinc-700 text-white rounded-md font-medium transition-colors"
-                  >
-                    Add
-                  </button>
-                </div>
-
-                <Activity activities={sprint.activity || []} comments={sprint.comments} linkPatterns={linkPatterns} />
-              </div>
+              <ActivitySection
+                activities={sprint.activity || []}
+                comments={sprint.comments}
+                linkPatterns={linkPatterns}
+                onAddComment={(content) => onAddComment(sprint.id, content)}
+                onEditComment={(commentId, content) => onEditComment(sprint.id, commentId, content)}
+                onDeleteComment={(commentId) => onDeleteComment(sprint.id, commentId)}
+              />
             </div>
           )}
 

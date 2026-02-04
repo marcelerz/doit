@@ -1,35 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { TodoMetadata } from "@/types/todo";
 import { TodoTemplate, getTodoTemplateId } from "@/types/todoTemplate";
 import { getTimestamp } from "@/types/time";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storage";
+import { STORAGE_KEYS } from "@/storage/storage";
+import { usePersistedState } from "./usePersistedState";
 
 export function useTemplates() {
-  const [templates, setTemplates] = useState<TodoTemplate[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Load templates from storage on mount
-  useEffect(() => {
-    const loadTemplates = async () => {
-      await waitForStorageInit();
-      const loaded = await loadFromStorage<TodoTemplate[]>(STORAGE_KEYS.TEMPLATES, []);
-      setTemplates(loaded);
-      setIsLoaded(true);
-    };
-    loadTemplates();
-  }, []);
-
-  // Save templates whenever they change
-  useEffect(() => {
-    if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.TEMPLATES, templates).catch((error) => {
-        console.error("Failed to save templates:", error);
-      });
-    }
-  }, [templates, isLoaded]);
+  const [templates, setTemplates, isLoaded] = usePersistedState<TodoTemplate[]>(
+    STORAGE_KEYS.TEMPLATES,
+    []
+  );
 
   const addTemplate = useCallback(
     (template: {

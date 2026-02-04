@@ -7,7 +7,7 @@ import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
 import { LinkPattern } from "@/types/linkPattern";
 import { getColor, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
-import { Activity } from "@/components/shared/Activity";
+import { ActivitySection } from "@/components/shared/ActivitySection";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { ActionButtons } from "@/components/shared/ActionButtons";
@@ -51,8 +51,8 @@ export function PersonDetailsOverlay({
   onArchive,
   onUnarchive,
   onAddComment,
-  onEditComment: _onEditComment,
-  onDeleteComment: _onDeleteComment,
+  onEditComment,
+  onDeleteComment,
   onCreateNote,
   markerColors = defaultMarkerColors,
   linkPatterns = [],
@@ -66,7 +66,6 @@ export function PersonDetailsOverlay({
   const [editingAlternatives, setEditingAlternatives] = useState(person.alternatives);
   const [editingColor, setEditingColor] = useState(person.color);
   const [editingContext, setEditingContext] = useState(person.context || "");
-  const [newComment, setNewComment] = useState("");
 
   // Get all names that could match this person (name + alternatives)
   const personNames = [person.name.toLowerCase(), ...person.alternatives.map((a) => a.toLowerCase())];
@@ -111,13 +110,6 @@ export function PersonDetailsOverlay({
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [onClose]);
-
-  const handleAddComment = () => {
-    if (newComment.trim()) {
-      onAddComment(person.id, newComment);
-      setNewComment("");
-    }
-  };
 
   const handleDelete = () => {
     onDelete(person.id);
@@ -366,39 +358,14 @@ export function PersonDetailsOverlay({
         )}
 
         {/* Activity Section */}
-        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
-          <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">📋 Activity</h4>
-
-          {/* Add comment input */}
-          <div className="mb-4 flex gap-2 items-start">
-            <div className="flex-1">
-              <RichTextEditor
-                value={newComment}
-                onChange={setNewComment}
-                onSubmit={(html) => {
-                  if (html.trim()) {
-                    onAddComment(person.id, html);
-                    setNewComment("");
-                  }
-                }}
-                placeholder="Add a comment..."
-                minHeight="60px"
-                maxHeight="200px"
-                alwaysEditable={true}
-                linkPatterns={linkPatterns}
-              />
-            </div>
-            <button
-              onClick={handleAddComment}
-              disabled={!newComment.trim()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed dark:disabled:bg-zinc-700 text-white rounded-md font-medium transition-colors"
-            >
-              Add
-            </button>
-          </div>
-
-          <Activity activities={person.activity || []} comments={person.comments} linkPatterns={linkPatterns} />
-        </div>
+        <ActivitySection
+          activities={person.activity || []}
+          comments={person.comments}
+          linkPatterns={linkPatterns}
+          onAddComment={(content) => onAddComment(person.id, content)}
+          onEditComment={(commentId, content) => onEditComment(person.id, commentId, content)}
+          onDeleteComment={(commentId) => onDeleteComment(person.id, commentId)}
+        />
       </div>
     </Modal>
   );

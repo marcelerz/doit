@@ -2,7 +2,13 @@
  * Tests for Filter Helper Utilities
  */
 
-import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
+import {
+  setToSortedArray,
+  arrayHasAnyFromSet,
+  setHasValue,
+  findByNameOrAlternatives,
+  filterByNameOrAlternatives,
+} from "@/utils/filterHelpers";
 
 describe("filterHelpers", () => {
   describe("setToSortedArray", () => {
@@ -119,6 +125,92 @@ describe("filterHelpers", () => {
       const set = new Set([true, false]);
       expect(setHasValue(set, true)).toBe(true);
       expect(setHasValue(set, false)).toBe(true);
+    });
+  });
+
+  describe("findByNameOrAlternatives", () => {
+    const items = [
+      { name: "Alice", alternatives: ["Al", "Ally"] },
+      { name: "Bob", alternatives: ["Bobby", "Robert"] },
+      { name: "Charlie", alternatives: [] },
+    ];
+
+    it("should find by exact name match (case-insensitive)", () => {
+      expect(findByNameOrAlternatives(items, "Alice")).toEqual(items[0]);
+      expect(findByNameOrAlternatives(items, "alice")).toEqual(items[0]);
+      expect(findByNameOrAlternatives(items, "ALICE")).toEqual(items[0]);
+    });
+
+    it("should find by alternative match (case-insensitive)", () => {
+      expect(findByNameOrAlternatives(items, "Al")).toEqual(items[0]);
+      expect(findByNameOrAlternatives(items, "ally")).toEqual(items[0]);
+      expect(findByNameOrAlternatives(items, "BOBBY")).toEqual(items[1]);
+    });
+
+    it("should return undefined when no match", () => {
+      expect(findByNameOrAlternatives(items, "David")).toBeUndefined();
+      expect(findByNameOrAlternatives(items, "xyz")).toBeUndefined();
+    });
+
+    it("should return undefined for empty array", () => {
+      expect(findByNameOrAlternatives([], "Alice")).toBeUndefined();
+    });
+
+    it("should handle items with no alternatives", () => {
+      expect(findByNameOrAlternatives(items, "Charlie")).toEqual(items[2]);
+    });
+
+    it("should return first match when multiple items could match", () => {
+      const duplicateItems = [
+        { name: "Test", alternatives: [] },
+        { name: "Test", alternatives: [] },
+      ];
+      expect(findByNameOrAlternatives(duplicateItems, "Test")).toEqual(duplicateItems[0]);
+    });
+  });
+
+  describe("filterByNameOrAlternatives", () => {
+    const items = [
+      { name: "Alice Smith", alternatives: ["Al", "Ally"] },
+      { name: "Bob Johnson", alternatives: ["Bobby", "Robert"] },
+      { name: "Charlie Brown", alternatives: [] },
+      { name: "Alicia Keys", alternatives: ["AK"] },
+    ];
+
+    it("should return all items for empty search", () => {
+      expect(filterByNameOrAlternatives(items, "")).toEqual(items);
+    });
+
+    it("should filter by partial name match (case-insensitive)", () => {
+      const result = filterByNameOrAlternatives(items, "ali");
+      expect(result).toHaveLength(2);
+      expect(result).toContain(items[0]); // Alice
+      expect(result).toContain(items[3]); // Alicia
+    });
+
+    it("should filter by partial alternative match", () => {
+      const result = filterByNameOrAlternatives(items, "bob");
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(items[1]); // Bobby is alternative
+    });
+
+    it("should return empty array when no matches", () => {
+      expect(filterByNameOrAlternatives(items, "xyz")).toEqual([]);
+    });
+
+    it("should handle case-insensitive search", () => {
+      expect(filterByNameOrAlternatives(items, "CHARLIE")).toHaveLength(1);
+      expect(filterByNameOrAlternatives(items, "charlie")).toHaveLength(1);
+    });
+
+    it("should match against any alternative", () => {
+      const result = filterByNameOrAlternatives(items, "obert");
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(items[1]); // Robert is alternative
+    });
+
+    it("should return empty array for empty items array", () => {
+      expect(filterByNameOrAlternatives([], "test")).toEqual([]);
     });
   });
 });

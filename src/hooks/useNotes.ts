@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Note,
   NoteId,
@@ -23,6 +23,7 @@ import { NoteModel, createNoteModels } from "@/models/NoteModel";
 import { createSettingsModel } from "@/models/SettingsModel";
 import { createCommentId } from "@/utils/idGenerator";
 import { generatePrefixedUUID } from "@/utils/idGenerator";
+import { useUndoableActions, UndoableAction } from "./useUndoableActions";
 import { createActivityEntry } from "@/utils/activityUtils";
 
 /**
@@ -139,38 +140,56 @@ function generateNoteMetadataActivities(
   return activities;
 }
 
-export type NoteUndoAction = {
-  id: string;
-  type: "delete" | "archive";
-  note: Note;
-  previousState?: Note;
-  timestamp: number;
-  timeoutId: NodeJS.Timeout;
-};
+export type NoteUndoAction = UndoableAction<"delete" | "archive", Note>;
 
 export function useNotes() {
   const [rawNotes, setRawNotes] = useState<Note[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [undoActions, setUndoActions] = useState<NoteUndoAction[]>([]);
-  const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
-  // Refs for timeout cleanup
-  const undoActionsRef = useRef<NoteUndoAction[]>([]);
-
-  // Keep ref in sync with state for cleanup purposes
-  useEffect(() => {
-    undoActionsRef.current = undoActions;
-  }, [undoActions]);
-
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      undoActionsRef.current.forEach((action) => {
-        clearTimeout(action.timeoutId);
-      });
-    };
+  // Finalize handler for undo actions (called when timeout expires or dismissed)
+  const handleFinalize = useCallback((action: NoteUndoAction) => {
+    if (action.type === "delete") {
+      // Actually remove the deleted note from storage
+      setRawNotes((prev) => prev.filter((note) => note.id !== action.entity.id));
+    }
+    // Archive actions don't need any finalization - the state is already updated
   }, []);
+
+  // Undo handler for restoring previous state
+  const handleUndo = useCallback((action: NoteUndoAction) => {
+    if (action.type === "delete") {
+      // Restore the deleted note with its previous state and add undelete activity
+      if (action.previousState) {
+        const restoredNote: Note = {
+          ...action.previousState,
+          activity: [...action.previousState.activity, createNoteActivity("undeleted", "Note undeleted")],
+        };
+        setRawNotes((prev) => [restoredNote, ...prev]);
+      }
+    } else if (action.type === "archive" && action.previousState) {
+      // Restore previous state for archive with appropriate activity
+      setRawNotes((prev) =>
+        prev.map((note) => {
+          if (note.id === action.entity.id) {
+            return {
+              ...action.previousState!,
+              activity: [...action.previousState!.activity, createNoteActivity("unarchived", "Archive undone")],
+            };
+          }
+          return note;
+        }),
+      );
+    }
+  }, []);
+
+  const { undoActions, fadingOutIds, createUndoAction, undo, dismissUndo } = useUndoableActions<
+    "delete" | "archive",
+    Note
+  >({
+    onFinalize: handleFinalize,
+    onUndo: handleUndo,
+  });
 
   // Create a SettingsModel from settings for use with NoteModel
   const settingsModel = useMemo(() => createSettingsModel(settings), [settings]);
@@ -210,78 +229,6 @@ export function useNotes() {
       });
     }
   }, [rawNotes, isLoaded]);
-
-  // Execute the pending action (actually delete after timeout)
-  const executePendingAction = useCallback((action: NoteUndoAction) => {
-    if (action.type === "delete") {
-      setRawNotes((prev) => prev.filter((note) => note.id !== action.note.id));
-    }
-    // Start fade out animation
-    setFadingOutIds((prev) => new Set(prev).add(action.id));
-    // Wait for fade animation to complete before removing
-    setTimeout(() => {
-      setUndoActions((prev) => prev.filter((a) => a.id !== action.id));
-      setFadingOutIds((prev) => {
-        const next = new Set(prev);
-        next.delete(action.id);
-        return next;
-      });
-    }, 3000);
-  }, []);
-
-  // Undo a specific action
-  const undo = useCallback(
-    (actionId: string) => {
-      const action = undoActions.find((a) => a.id === actionId);
-      if (!action) return;
-
-      // Clear the timeout for this action
-      clearTimeout(action.timeoutId);
-
-      if (action.type === "delete") {
-        // Restore the deleted note with its previous state and add undelete activity
-        if (action.previousState) {
-          const restoredNote: Note = {
-            ...action.previousState,
-            activity: [...action.previousState.activity, createNoteActivity("undeleted", "Note undeleted")],
-          };
-          setRawNotes((prev) => [restoredNote, ...prev]);
-        }
-      } else if (action.previousState) {
-        // Restore previous state for archive with appropriate activity
-        setRawNotes((prev) =>
-          prev.map((note) => {
-            if (note.id === action.note.id) {
-              return {
-                ...action.previousState!,
-                activity: [...action.previousState!.activity, createNoteActivity("unarchived", "Archive undone")],
-              };
-            }
-            return note;
-          }),
-        );
-      }
-
-      // Remove this action from the queue
-      setUndoActions((prev) => prev.filter((a) => a.id !== actionId));
-    },
-    [undoActions],
-  );
-
-  // Dismiss notification without undoing
-  const dismissUndo = useCallback(
-    (actionId: string) => {
-      const action = undoActions.find((a) => a.id === actionId);
-      if (!action) return;
-
-      // Clear the timeout for this action
-      clearTimeout(action.timeoutId);
-
-      // Execute the action immediately with fade out
-      executePendingAction(action);
-    },
-    [undoActions, executePendingAction],
-  );
 
   // Find a note by ID
   const find = useCallback(
@@ -383,29 +330,9 @@ export function useNotes() {
       setRawNotes((prev) => prev.map((note) => (note.id === id ? deletedNote : note)));
 
       // Create undo action
-      const actionId = `${now}-delete-${id}`;
-      const timeoutId = setTimeout(() => {
-        setUndoActions((prev) => {
-          const action = prev.find((a) => a.id === actionId);
-          if (action) {
-            executePendingAction(action);
-          }
-          return prev;
-        });
-      }, 10000);
-
-      const action: NoteUndoAction = {
-        id: actionId,
-        type: "delete",
-        note: deletedNote,
-        previousState,
-        timestamp: now,
-        timeoutId,
-      };
-
-      setUndoActions((prev) => [...prev, action]);
+      createUndoAction("delete", deletedNote, previousState, id);
     },
-    [rawNotes, executePendingAction],
+    [rawNotes, createUndoAction],
   );
 
   // Archive a note
@@ -428,23 +355,9 @@ export function useNotes() {
       setRawNotes((prev) => prev.map((note) => (note.id === id ? updatedNote : note)));
 
       // Create undo action
-      const actionId = `${now}-archive-${id}`;
-      const timeoutId = setTimeout(() => {
-        setUndoActions((prev) => prev.filter((a) => a.id !== actionId));
-      }, 10000);
-
-      const action: NoteUndoAction = {
-        id: actionId,
-        type: "archive",
-        note: updatedNote,
-        previousState,
-        timestamp: now,
-        timeoutId,
-      };
-
-      setUndoActions((prev) => [...prev, action]);
+      createUndoAction("archive", updatedNote, previousState, id);
     },
-    [rawNotes],
+    [rawNotes, createUndoAction],
   );
 
   // Unarchive a note

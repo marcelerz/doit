@@ -672,3 +672,60 @@ export const convertToTimeInputFormat = (
 
   return "";
 };
+
+/**
+ * Format a date as a date key string (YYYY-MM-DD format)
+ * Used for grouping and comparison purposes.
+ *
+ * @param date - Date to format
+ * @returns Date string in YYYY-MM-DD format
+ */
+export const formatDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * Alias for formatDateKey for backward compatibility
+ */
+export const toISODateString = formatDateKey;
+
+/**
+ * Get ISO week number for a date (1-52/53)
+ * Week 1 is the week containing the first Thursday of the year.
+ *
+ * @param date - Date to get week number for
+ * @returns ISO week number (1-53)
+ */
+export const getISOWeekNumber = (date: Date): number => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  // Set to nearest Thursday: current date + 4 - current day number
+  // Make Sunday's day number 7
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  // Get first day of year
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  // Calculate full weeks to nearest Thursday
+  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return weekNo;
+};
+
+/**
+ * Alias for getISOWeekNumber for backward compatibility
+ */
+export const getWeekNumber = getISOWeekNumber;
+
+/**
+ * Check if two ranges overlap
+ * Useful for detecting overlapping date/time ranges.
+ *
+ * @param start1 - Start of first range
+ * @param end1 - End of first range
+ * @param start2 - Start of second range
+ * @param end2 - End of second range
+ * @returns True if ranges overlap
+ */
+export const rangesOverlap = (start1: number, end1: number, start2: number, end2: number): boolean => {
+  return !(end1 <= start2 || start1 >= end2);
+};

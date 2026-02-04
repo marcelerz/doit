@@ -13,7 +13,7 @@
 
 import type { Comment, ActivityEntry } from "@/types/types";
 import type { Timestamp } from "@/types/time";
-import { formatDateWithTime, formatAgeDisplay, pluralize } from "@/utils/formatters";
+import { formatDateWithTime, formatAgeDisplay } from "@/utils/formatters";
 import { SettingsModel } from "./SettingsModel";
 import type { EntityRegistry } from "./EntityRegistry";
 

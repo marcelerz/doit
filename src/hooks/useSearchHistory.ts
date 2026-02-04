@@ -1,37 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { SearchHistoryEntry, getSearchHistoryId } from "@/types/types";
 import { getTimestamp } from "@/types/time";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storage";
+import { STORAGE_KEYS } from "@/storage/storage";
 import { createSearchHistoryId } from "@/utils/idGenerator";
+import { usePersistedState } from "./usePersistedState";
 
 const MAX_HISTORY_ITEMS = 20;
 
 export function useSearchHistory() {
-  const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Load history from storage on mount
-  useEffect(() => {
-    const loadHistory = async () => {
-      await waitForStorageInit();
-      const loaded = await loadFromStorage<SearchHistoryEntry[]>(STORAGE_KEYS.SEARCH_HISTORY, []);
-      setHistory(loaded);
-      setIsLoaded(true);
-    };
-    loadHistory();
-  }, []);
-
-  // Save history whenever it changes
-  useEffect(() => {
-    if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.SEARCH_HISTORY, history).catch((error) => {
-        console.error("Failed to save search history:", error);
-      });
-    }
-  }, [history, isLoaded]);
+  const [history, setHistory, isLoaded] = usePersistedState<SearchHistoryEntry[]>(
+    STORAGE_KEYS.SEARCH_HISTORY,
+    []
+  );
 
   const addToHistory = useCallback((query: string) => {
     if (query.trim() === "") return;

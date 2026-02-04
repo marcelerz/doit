@@ -517,24 +517,3 @@ export function checkAndNotifyDueTasks(
 
   return newNotifiedIds;
 }
-
-/**
- * Parse a due date string into a Date object
- * @deprecated Use TodoModel.dueDateObject instead
- */
-function _parseDueDate(dueDate: string): Date | null {
-  // Try parsing as ISO date
-  const date = new Date(dueDate);
-  if (!isNaN(date.getTime())) {
-    return date;
-  }
-
-  // Try parsing as date only (YYYY-MM-DD)
-  const dateOnlyMatch = dueDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (dateOnlyMatch) {
-    const [, year, month, day] = dateOnlyMatch;
-    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59);
-  }
-
-  return null;
-}
