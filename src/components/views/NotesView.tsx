@@ -9,12 +9,12 @@ import { NotesViewToolbar } from "@/components/shared/NotesViewToolbar";
 import { SavePresetModal } from "@/components/shared/SavePresetModal";
 import {
   CloseIcon,
-  ChevronDownIcon,
   ArchiveIcon,
   TrashIcon,
   UndoIcon,
   CheckCircleIcon,
 } from "@/components/shared/Icons";
+import { SectionHeader } from "@/components/shared/SectionHeader";
 import { NoteModel } from "@/models/NoteModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
@@ -736,61 +736,41 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
         <div className="space-y-4" data-tutorial="notes-list">
           {/* Active Notes Section */}
           {activeNotes.length > 0 && activeQuickFilter !== "archived" && (
-            <section>
-              <button
-                onClick={() => setActiveExpanded(!activeExpanded)}
-                className="w-full flex items-center justify-between text-left mb-3 group"
-              >
-                <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                  Active ({activeNotes.length})
-                </h2>
-                <ChevronDownIcon
-                  className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
-                    activeExpanded ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-              {activeExpanded && (
-                <div className="space-y-4">
-                  {Object.entries(groupedActiveNotes).map(([groupName, groupNotes]) => (
-                    <div key={groupName || "ungrouped"}>
-                      {groupName && (
-                        <h3 className="text-xs font-semibold text-zinc-600 dark:text-zinc-500 uppercase tracking-wide mb-2 pl-2">
-                          {groupName} ({groupNotes.length})
-                        </h3>
-                      )}
-                      <ul className="space-y-2">
-                        {groupNotes.map(renderNoteItem)}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+            <SectionHeader
+              title="Active"
+              count={activeNotes.length}
+              expanded={activeExpanded}
+              onToggle={() => setActiveExpanded(!activeExpanded)}
+            >
+              <div className="space-y-4">
+                {Object.entries(groupedActiveNotes).map(([groupName, groupNotes]) => (
+                  <div key={groupName || "ungrouped"}>
+                    {groupName && (
+                      <h3 className="text-xs font-semibold text-zinc-600 dark:text-zinc-500 uppercase tracking-wide mb-2 pl-2">
+                        {groupName} ({groupNotes.length})
+                      </h3>
+                    )}
+                    <ul className="space-y-2">
+                      {groupNotes.map(renderNoteItem)}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </SectionHeader>
           )}
 
           {/* Archived Notes Section */}
           {archivedNotes.length > 0 && (activeQuickFilter === "archived" || activeQuickFilter === "all") && (
-            <section>
-              <button
-                onClick={() => setArchivedExpanded(!archivedExpanded)}
-                className="w-full flex items-center justify-between text-left mb-3 group"
-              >
-                <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                  Archived ({archivedNotes.length})
-                </h2>
-                <ChevronDownIcon
-                  className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${
-                    archivedExpanded ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-              {archivedExpanded && (
-                <ul className="space-y-2">
-                  {archivedNotes.map(renderNoteItem)}
-                </ul>
-              )}
-            </section>
+            <SectionHeader
+              title="Archived"
+              count={archivedNotes.length}
+              expanded={archivedExpanded}
+              onToggle={() => setArchivedExpanded(!archivedExpanded)}
+            >
+              <ul className="space-y-2">
+                {archivedNotes.map(renderNoteItem)}
+              </ul>
+            </SectionHeader>
           )}
         </div>
       )}
