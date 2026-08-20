@@ -9,9 +9,10 @@ import { ProjectCategory } from "@/types/project";
 import { SprintId } from "@/types/sprint";
 import { TodoId } from "@/types/todo";
 import { SprintModel } from "@/models/SprintModel";
-import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
+import { STORAGE_KEYS } from "@/storage/storage";
 import { PrintIcon } from "@/components/shared/Icons";
 import { formatDateKey } from "@/utils/dateUtils";
+import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
 
 type TimePeriod = "today" | "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "all" | "custom";
 type GroupBy = "assigned" | "source" | "project" | "category" | "sprint" | "day";
@@ -109,45 +110,27 @@ const CHART_COLORS = [
 ];
 
 export default function TimeReportsView({ todos, people, projects, settings, sprints }: TimeReportsViewProps) {
-  const [options, setOptions] = useState<TimeReportOptions>(DEFAULT_OPTIONS);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const isInitialMount = useRef(true);
-
-  // Load options from storage on mount
-  useEffect(() => {
-    loadFromStorage<TimeReportOptions>(STORAGE_KEYS.TIME_REPORT_OPTIONS, DEFAULT_OPTIONS).then((stored) => {
-      setOptions(stored);
-      setIsLoaded(true);
-    });
-  }, []);
+  const [options, setOptions] = usePersistedViewOptions<TimeReportOptions>(
+    STORAGE_KEYS.TIME_REPORT_OPTIONS,
+    DEFAULT_OPTIONS
+  );
 
   const { timePeriod, groupBy, customStartDate, customEndDate } = options;
 
-  // Save options when they change (skip initial mount)
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.TIME_REPORT_OPTIONS, options);
-    }
-  }, [options, isLoaded]);
-
   const setTimePeriod = (value: TimePeriod) => {
-    setOptions((prev) => ({ ...prev, timePeriod: value }));
+    setOptions({ timePeriod: value });
   };
 
   const setGroupBy = (value: GroupBy) => {
-    setOptions((prev) => ({ ...prev, groupBy: value }));
+    setOptions({ groupBy: value });
   };
 
   const setCustomStartDate = (value: string) => {
-    setOptions((prev) => ({ ...prev, customStartDate: value }));
+    setOptions({ customStartDate: value });
   };
 
   const setCustomEndDate = (value: string) => {
-    setOptions((prev) => ({ ...prev, customEndDate: value }));
+    setOptions({ customEndDate: value });
   };
 
   // Calculate date range based on selected period
