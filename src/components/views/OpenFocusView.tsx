@@ -14,6 +14,7 @@ import {
   getAmbientSoundFile,
 } from "@/utils/notifications";
 import { CloseIcon, VolumeOnIcon, VolumeOffIcon, BellIcon, PlayIcon, PauseIcon } from "@/components/shared/Icons";
+import { formatTime, formatClockTime } from "@/utils/formatters";
 
 interface OpenFocusViewProps {
   settings: Settings;
@@ -40,26 +41,6 @@ interface OpenFocusState {
 }
 
 // Format seconds to MM:SS or HH:MM:SS
-function formatTime(seconds: number): string {
-  const isNegative = seconds < 0;
-  const absSeconds = Math.abs(seconds);
-  const hrs = Math.floor(absSeconds / 3600);
-  const mins = Math.floor((absSeconds % 3600) / 60);
-  const secs = absSeconds % 60;
-
-  const timeStr =
-    hrs > 0
-      ? `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-      : `${mins}:${secs.toString().padStart(2, "0")}`;
-
-  return isNegative ? `-${timeStr}` : timeStr;
-}
-
-// Format Date to clock time (e.g., "9:53 PM")
-function formatClockTime(date: Date): string {
-  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-}
-
 export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
   // Get scheduling settings from gantt
   const ganttSettings = settings.gantt ?? {};
