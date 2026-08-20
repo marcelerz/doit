@@ -1,13 +1,13 @@
 "use client";
 
 import { Settings, FeatureSettings } from "@/types/settings";
-import { Priority } from "@/types/priority";
-import { LinkPattern } from "@/types/linkPattern";
+import { Priority, PriorityId} from "@/types/priority";
+import { LinkPattern, LinkPatternId} from "@/types/linkPattern";
 import { MarkerColors } from "@/types/markerColors";
-import { KanbanState } from "@/types/kanbanState";
-import { KanbanView } from "@/types/kanbanView";
+import { KanbanState, KanbanStateId} from "@/types/kanbanState";
+import { KanbanView, KanbanViewId} from "@/types/kanbanView";
 import { KanbanTransition } from "@/types/kanbanTransition";
-import { ProjectCategory } from "@/types/project";
+import { ProjectCategory, ProjectCategoryId} from "@/types/project";
 import { settingsStore, useSharedSettings } from "@/storage/settingsStore";
 import { SettingsModel } from "@/models/SettingsModel";
 
@@ -29,14 +29,14 @@ export function useSettings() {
     }));
   };
 
-  const updatePriority = (id: string, updates: Partial<Priority>) => {
+  const updatePriority = (id: PriorityId, updates: Partial<Priority>) => {
     setSettings((prev) => ({
       ...prev,
       priorities: prev.priorities.map((p) => (p.id === id ? { ...p, ...updates } : p)),
     }));
   };
 
-  const deletePriority = (id: string) => {
+  const deletePriority = (id: PriorityId) => {
     setSettings((prev) => ({
       ...prev,
       priorities: prev.priorities.filter((p) => p.id !== id),
@@ -54,14 +54,14 @@ export function useSettings() {
     }));
   };
 
-  const updateLinkPattern = (id: string, updates: Partial<LinkPattern>) => {
+  const updateLinkPattern = (id: LinkPatternId, updates: Partial<LinkPattern>) => {
     setSettings((prev) => ({
       ...prev,
       linkPatterns: prev.linkPatterns.map((p) => (p.id === id ? { ...p, ...updates } : p)),
     }));
   };
 
-  const deleteLinkPattern = (id: string) => {
+  const deleteLinkPattern = (id: LinkPatternId) => {
     setSettings((prev) => ({
       ...prev,
       linkPatterns: prev.linkPatterns.filter((p) => p.id !== id),
@@ -174,7 +174,7 @@ export function useSettings() {
     return newState.id;
   };
 
-  const updateKanbanState = (id: string, updates: Partial<KanbanState>) => {
+  const updateKanbanState = (id: KanbanStateId, updates: Partial<KanbanState>) => {
     setSettings((prev) => ({
       ...prev,
       kanban: {
@@ -184,7 +184,7 @@ export function useSettings() {
     }));
   };
 
-  const deleteKanbanState = (id: string) => {
+  const deleteKanbanState = (id: KanbanStateId) => {
     setSettings((prev) => {
       // Don't allow deleting system states
       const stateToDelete = prev.kanban.states.find((s) => s.id === id);
@@ -237,7 +237,7 @@ export function useSettings() {
     });
   };
 
-  const removeKanbanTransition = (fromStateId: string, toStateId: string) => {
+  const removeKanbanTransition = (fromStateId: KanbanStateId, toStateId: KanbanStateId) => {
     setSettings((prev) => ({
       ...prev,
       kanban: {
@@ -264,7 +264,7 @@ export function useSettings() {
     return newView.id;
   };
 
-  const updateKanbanView = (id: string, updates: Partial<KanbanView>) => {
+  const updateKanbanView = (id: KanbanViewId, updates: Partial<KanbanView>) => {
     setSettings((prev) => ({
       ...prev,
       kanban: {
@@ -274,7 +274,7 @@ export function useSettings() {
     }));
   };
 
-  const deleteKanbanView = (id: string) => {
+  const deleteKanbanView = (id: KanbanViewId) => {
     setSettings((prev) => {
       // Don't delete if it's the only view
       if (prev.kanban.views.length <= 1) return prev;
@@ -294,7 +294,7 @@ export function useSettings() {
     });
   };
 
-  const setActiveKanbanView = (viewId: string) => {
+  const setActiveKanbanView = (viewId: KanbanViewId) => {
     setSettings((prev) => ({
       ...prev,
       kanban: {
@@ -317,14 +317,14 @@ export function useSettings() {
     return newCategory.id;
   };
 
-  const updateCategory = (id: string, updates: Partial<ProjectCategory>) => {
+  const updateCategory = (id: ProjectCategoryId, updates: Partial<ProjectCategory>) => {
     setSettings((prev) => ({
       ...prev,
       categories: prev.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
     }));
   };
 
-  const deleteCategory = (id: string) => {
+  const deleteCategory = (id: ProjectCategoryId) => {
     setSettings((prev) => ({
       ...prev,
       categories: prev.categories.filter((c) => c.id !== id),

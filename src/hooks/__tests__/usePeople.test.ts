@@ -28,6 +28,7 @@ jest.mock("@/storage/storage", () => ({
 }));
 
 import { useEntityManager } from "../useEntityManager";
+import { getPersonId } from "@/types/person";
 
 describe("usePeople", () => {
   const mockManager = {
@@ -98,7 +99,7 @@ describe("usePeople", () => {
     it("should expose updatePerson that calls updateEntity", () => {
       const { result } = renderHook(() => usePeople());
 
-      result.current.updatePerson("1", { name: "Updated Name" });
+      result.current.updatePerson(getPersonId("1"), { name: "Updated Name" });
 
       expect(mockManager.updateEntity).toHaveBeenCalledWith("1", { name: "Updated Name" });
     });
@@ -106,7 +107,7 @@ describe("usePeople", () => {
     it("should expose deletePerson that calls deleteEntity", () => {
       const { result } = renderHook(() => usePeople());
 
-      result.current.deletePerson("1");
+      result.current.deletePerson(getPersonId("1"));
 
       expect(mockManager.deleteEntity).toHaveBeenCalledWith("1");
     });
@@ -116,7 +117,7 @@ describe("usePeople", () => {
     it("should expose archivePerson that calls archiveEntity", () => {
       const { result } = renderHook(() => usePeople());
 
-      result.current.archivePerson("1");
+      result.current.archivePerson(getPersonId("1"));
 
       expect(mockManager.archiveEntity).toHaveBeenCalledWith("1");
     });
@@ -124,7 +125,7 @@ describe("usePeople", () => {
     it("should expose unarchivePerson that calls unarchiveEntity", () => {
       const { result } = renderHook(() => usePeople());
 
-      result.current.unarchivePerson("1");
+      result.current.unarchivePerson(getPersonId("1"));
 
       expect(mockManager.unarchiveEntity).toHaveBeenCalledWith("1");
     });

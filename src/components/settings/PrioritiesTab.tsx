@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Priority } from "@/types/priority";
+import { Priority, PriorityId} from "@/types/priority";
 import { getColor } from "@/types/types";
 import { useSettings } from "@/hooks/useSettings";
 import { ColorPicker } from "@/components/shared/ColorPicker";
@@ -33,7 +33,7 @@ const getPriorityDefaults = (): Omit<Priority, "id" | "comments" | "activity"> =
 
 export function PrioritiesTab() {
   const { settings, isLoaded, addPriority, updatePriority, deletePriority } = useSettings();
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<PriorityId | null>(null);
   const [editForm, setEditForm] = useState<Partial<Priority>>({});
   const [isAdding, setIsAdding] = useState(false);
   const [newPriority, setNewPriority] = useState(getPriorityDefaults());

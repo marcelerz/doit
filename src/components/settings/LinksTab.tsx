@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LinkPattern } from "@/types/linkPattern";
+import { LinkPattern, LinkPatternId} from "@/types/linkPattern";
 import { getColor } from "@/types/types";
 import { useSettings } from "@/hooks/useSettings";
 import { IconButton } from "@/components/shared/IconButton";
@@ -30,7 +30,7 @@ const getFormDefaults = () => ({
 export function LinksTab() {
   const { settings, isLoaded, addLinkPattern, updateLinkPattern, deleteLinkPattern } = useSettings();
   const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<LinkPatternId | null>(null);
   const [formData, setFormData] = useState(getFormDefaults());
 
   if (!isLoaded) {

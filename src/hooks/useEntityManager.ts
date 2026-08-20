@@ -109,7 +109,7 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
     [config.entityName],
   );
 
-  const updateEntity = useCallback((id: string, updates: Partial<T>) => {
+  const updateEntity = useCallback((id: T["id"], updates: Partial<T>) => {
     setRawEntities((prev) =>
       prev.map((entity) => {
         if (entity.id === id) {
@@ -169,7 +169,7 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
   }, []);
 
   const archiveEntity = useCallback(
-    (id: string) => {
+    (id: T["id"]) => {
       setRawEntities((prev) =>
         prev.map((entity) => {
           if (entity.id === id) {
@@ -196,7 +196,7 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
   );
 
   const unarchiveEntity = useCallback(
-    (id: string) => {
+    (id: T["id"]) => {
       setRawEntities((prev) =>
         prev.map((entity) => {
           if (entity.id === id) {
@@ -222,7 +222,7 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
     [config.entityName],
   );
 
-  const deleteEntity = useCallback((id: string) => {
+  const deleteEntity = useCallback((id: T["id"]) => {
     setRawEntities((prev) => prev.filter((entity) => entity.id !== id));
   }, []);
 

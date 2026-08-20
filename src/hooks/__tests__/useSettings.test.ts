@@ -26,6 +26,7 @@ import { getDurationDay, getDurationMin, getShortTime } from "@/types/time";
 import { getKanbanStateId } from "@/types/kanbanState";
 import { getLinkPatternId } from "@/types/linkPattern";
 import { getProjectCategoryId } from "@/types/project";
+import { getKanbanViewId } from "@/types/kanbanView";
 
 describe("useSettings", () => {
   beforeEach(() => {
@@ -485,7 +486,7 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.updateKanbanView("view-1", { name: "Updated" });
+        result.current.updateKanbanView(getKanbanViewId("view-1"), { name: "Updated" });
       });
 
       expect(result.current.settings.kanban.views[0].name).toBe("Updated");
@@ -510,7 +511,7 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.deleteKanbanView("view-1");
+        result.current.deleteKanbanView(getKanbanViewId("view-1"));
       });
 
       expect(result.current.settings.kanban.views).toHaveLength(1);
@@ -525,7 +526,7 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.setActiveKanbanView("view-123");
+        result.current.setActiveKanbanView(getKanbanViewId("view-123"));
       });
 
       expect(result.current.settings.kanban.activeViewId).toBe("view-123");

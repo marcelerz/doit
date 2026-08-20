@@ -28,6 +28,7 @@ jest.mock("@/storage/storage", () => ({
 }));
 
 import { useEntityManager } from "../useEntityManager";
+import { getProjectId } from "@/types/project";
 
 describe("useProjects", () => {
   const mockManager = {
@@ -98,7 +99,7 @@ describe("useProjects", () => {
     it("should expose updateProject that calls updateEntity", () => {
       const { result } = renderHook(() => useProjects());
 
-      result.current.updateProject("1", { name: "Updated Name" });
+      result.current.updateProject(getProjectId("1"), { name: "Updated Name" });
 
       expect(mockManager.updateEntity).toHaveBeenCalledWith("1", { name: "Updated Name" });
     });
@@ -106,7 +107,7 @@ describe("useProjects", () => {
     it("should expose deleteProject that calls deleteEntity", () => {
       const { result } = renderHook(() => useProjects());
 
-      result.current.deleteProject("1");
+      result.current.deleteProject(getProjectId("1"));
 
       expect(mockManager.deleteEntity).toHaveBeenCalledWith("1");
     });
@@ -116,7 +117,7 @@ describe("useProjects", () => {
     it("should expose archiveProject that calls archiveEntity", () => {
       const { result } = renderHook(() => useProjects());
 
-      result.current.archiveProject("1");
+      result.current.archiveProject(getProjectId("1"));
 
       expect(mockManager.archiveEntity).toHaveBeenCalledWith("1");
     });
@@ -124,7 +125,7 @@ describe("useProjects", () => {
     it("should expose unarchiveProject that calls unarchiveEntity", () => {
       const { result } = renderHook(() => useProjects());
 
-      result.current.unarchiveProject("1");
+      result.current.unarchiveProject(getProjectId("1"));
 
       expect(mockManager.unarchiveEntity).toHaveBeenCalledWith("1");
     });

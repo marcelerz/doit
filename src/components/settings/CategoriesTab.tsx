@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ProjectCategory } from "@/types/project";
+import { ProjectCategory, ProjectCategoryId} from "@/types/project";
 import { getColor } from "@/types/types";
 import { useSettings } from "@/hooks/useSettings";
 import { useProjects } from "@/hooks/useProjects";
@@ -30,7 +30,7 @@ const getCategoryDefaults = (): Omit<ProjectCategory, "id"> => ({
 export function CategoriesTab() {
   const { settings, isLoaded, addCategory, updateCategory, deleteCategory } = useSettings();
   const { projects, updateProject } = useProjects();
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<ProjectCategoryId | null>(null);
   const [editForm, setEditForm] = useState<Partial<ProjectCategory>>({});
   const [isAdding, setIsAdding] = useState(false);
   const [newCategory, setNewCategory] = useState<Omit<ProjectCategory, "id">>(getCategoryDefaults());
@@ -75,7 +75,7 @@ export function CategoriesTab() {
     setNewCategory(getCategoryDefaults());
   };
 
-  const handleDelete = (categoryId: string) => {
+  const handleDelete = (categoryId: ProjectCategoryId) => {
     // Clear category from all projects that use it
     projects.forEach((project) => {
       if (project.category === categoryId) {
