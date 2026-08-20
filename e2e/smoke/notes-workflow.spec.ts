@@ -19,7 +19,7 @@ test.describe("Notes Workflow", () => {
     await page.evaluate(() => {
       localStorage.clear();
       if (typeof indexedDB !== "undefined") {
-        indexedDB.deleteDatabase("doit-storage");
+        indexedDB.deleteDatabase("doit-db");
       }
       localStorage.setItem("doit-tutorial-preferences", JSON.stringify({ completed: true, showOnStartup: false }));
       // Enable notes view feature
@@ -60,7 +60,7 @@ test.describe("Notes Workflow", () => {
       await page.waitForTimeout(500);
 
       // Verify the Notes view is displayed (check for "Add Note" button)
-      const addNoteButton = page.locator('button:has-text("Add Note")');
+      const addNoteButton = page.getByTestId("add-note-button");
       await expect(addNoteButton).toBeVisible();
     });
 
@@ -74,7 +74,7 @@ test.describe("Notes Workflow", () => {
       await page.waitForTimeout(500);
 
       // Click Add Note button
-      const addNoteButton = page.locator('button:has-text("Add Note")');
+      const addNoteButton = page.getByTestId("add-note-button");
       await addNoteButton.click();
 
       // Wait for the modal to appear
@@ -202,7 +202,7 @@ test.describe("Notes Workflow", () => {
       await page.waitForTimeout(500);
 
       // Add another note
-      const addNoteButton = page.locator('button:has-text("Add Note")');
+      const addNoteButton = page.getByTestId("add-note-button");
       await addNoteButton.click();
       await page.waitForSelector('[data-testid="smart-input"]', { timeout: 5000 });
 

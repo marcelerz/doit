@@ -988,6 +988,7 @@ export function TodoApp() {
                 className="px-2 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
                 title="Add new todo (A)"
                 data-tutorial="add-button"
+                data-testid="add-todo-button"
               >
                 <CheckCircleIcon className="w-5 h-5" />
                 <span className="hidden sm:inline">Todo</span>
@@ -998,6 +999,7 @@ export function TodoApp() {
                   className="px-2 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
                   title="Add new note (Shift+N)"
                   data-tutorial="add-note-button"
+                  data-testid="add-note-button"
                 >
                   <DocumentIcon className="w-5 h-5" />
                   <span className="hidden sm:inline">Note</span>
@@ -1870,6 +1872,7 @@ export function TodoApp() {
                     </button>
                     <button
                       type="submit"
+                      data-testid="add-todo-submit"
                       className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
                     >
                       Add Todo

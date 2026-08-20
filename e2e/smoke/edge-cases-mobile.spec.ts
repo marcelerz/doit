@@ -13,7 +13,7 @@ test.describe("Edge Cases and Mobile Workflow", () => {
     await page.evaluate(() => {
       localStorage.clear();
       if (typeof indexedDB !== "undefined") {
-        indexedDB.deleteDatabase("doit-storage");
+        indexedDB.deleteDatabase("doit-db");
       }
       localStorage.setItem("doit-tutorial-preferences", JSON.stringify({ completed: true, showOnStartup: false }));
     });
@@ -26,13 +26,13 @@ test.describe("Edge Cases and Mobile Workflow", () => {
       await todoApp.waitForAppLoad();
 
       // Try to add empty todo
-      const addButton = page.locator('button:has-text("Add")').first();
+      const addButton = page.getByTestId("add-todo-button");
       await addButton.click();
 
       await page.waitForSelector('[data-testid="smart-input"]', { timeout: 5000 });
 
       // Try to submit empty
-      const submitButton = page.locator('button:has-text("Add Todo")');
+      const submitButton = page.getByTestId("add-todo-submit");
       await submitButton.click();
 
       // Should not crash, input should still be visible or validation shown
@@ -67,7 +67,7 @@ test.describe("Edge Cases and Mobile Workflow", () => {
       expect(todos.length).toBeGreaterThanOrEqual(1);
 
       // Page should still be functional
-      const addButton = page.locator('button:has-text("Add")').first();
+      const addButton = page.getByTestId("add-todo-button");
       await expect(addButton).toBeVisible();
     });
 
@@ -107,7 +107,7 @@ test.describe("Edge Cases and Mobile Workflow", () => {
       await todoApp.waitForAppLoad();
 
       // Verify app is responsive
-      const addButton = page.locator('button:has-text("Add")').first();
+      const addButton = page.getByTestId("add-todo-button");
       await expect(addButton).toBeVisible();
     });
 

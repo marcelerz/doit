@@ -13,7 +13,7 @@ test.describe("Accessibility and Keyboard Workflow", () => {
     await page.evaluate(() => {
       localStorage.clear();
       if (typeof indexedDB !== "undefined") {
-        indexedDB.deleteDatabase("doit-storage");
+        indexedDB.deleteDatabase("doit-db");
       }
       localStorage.setItem("doit-tutorial-preferences", JSON.stringify({ completed: true, showOnStartup: false }));
     });
@@ -113,7 +113,7 @@ test.describe("Accessibility and Keyboard Workflow", () => {
       }
 
       // Check for buttons having accessible names
-      const addButton = page.locator('button:has-text("Add")').first();
+      const addButton = page.getByTestId("add-todo-button");
       await expect(addButton).toBeVisible();
     });
 
@@ -122,7 +122,7 @@ test.describe("Accessibility and Keyboard Workflow", () => {
       await todoApp.waitForAppLoad();
 
       // Open add overlay
-      const addButton = page.locator('button:has-text("Add")').first();
+      const addButton = page.getByTestId("add-todo-button");
       await addButton.click();
 
       // Wait for form

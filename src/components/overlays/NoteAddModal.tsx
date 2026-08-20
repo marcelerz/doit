@@ -187,6 +187,7 @@ export function NoteAddModal({
           </button>
           <button
             onClick={handleCreate}
+            data-testid="note-create-submit"
             disabled={plainTitle.trim() === ""}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center gap-2"
           >

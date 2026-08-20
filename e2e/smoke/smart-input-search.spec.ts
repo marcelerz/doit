@@ -13,7 +13,7 @@ test.describe("Smart Input and Search Workflow", () => {
     await page.evaluate(() => {
       localStorage.clear();
       if (typeof indexedDB !== "undefined") {
-        indexedDB.deleteDatabase("doit-storage");
+        indexedDB.deleteDatabase("doit-db");
       }
       localStorage.setItem("doit-tutorial-preferences", JSON.stringify({ completed: true, showOnStartup: false }));
     });

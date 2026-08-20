@@ -110,7 +110,7 @@ export const test = base.extend<{ todoApp: TodoAppFixture }>({
           localStorage.clear();
           // Also clear IndexedDB
           if (typeof indexedDB !== "undefined") {
-            indexedDB.deleteDatabase("doit-storage");
+            indexedDB.deleteDatabase("doit-db");
           }
           // Set tutorial as completed to prevent it from showing
           localStorage.setItem("doit-tutorial-preferences", JSON.stringify({ completed: true, showOnStartup: false }));
@@ -122,11 +122,21 @@ export const test = base.extend<{ todoApp: TodoAppFixture }>({
         await page.waitForSelector('[data-testid="todo-app"]', { timeout: 10000 });
         // Wait a bit for React hydration
         await page.waitForTimeout(500);
+
+        // Dismiss the tutorial if it appeared. Seeding storage cannot suppress it:
+        // the fixture writes localStorage, but the app reads tutorial preferences
+        // through the storage adapter, which is IndexedDB whenever it is available.
+        // The overlay is `fixed inset-0 z-[9999]` and swallows every click behind it.
+        const skipTutorial = page.getByRole("button", { name: "Skip tutorial" });
+        if (await skipTutorial.isVisible().catch(() => false)) {
+          await skipTutorial.click();
+          await page.waitForTimeout(300);
+        }
       },
 
       addTodo: async (text: string) => {
         // Click the Add button to open the overlay
-        const addButton = page.locator('button:has-text("Add")').first();
+        const addButton = page.getByTestId("add-todo-button");
         await addButton.click();
 
         // Wait for the overlay and SmartInput to appear
@@ -137,7 +147,7 @@ export const test = base.extend<{ todoApp: TodoAppFixture }>({
         await input.fill(text);
 
         // Click the "Add Todo" button in the overlay
-        const submitButton = page.locator('button:has-text("Add Todo")');
+        const submitButton = page.getByTestId("add-todo-submit");
         await submitButton.click();
 
         // Wait for the overlay to close and todo to appear

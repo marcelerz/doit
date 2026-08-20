@@ -196,7 +196,7 @@ test.describe("Component Visual Tests", () => {
 
   test("smart input with tokens", async ({ page }) => {
     // Click Add to open overlay with SmartInput
-    const addButton = page.locator('button:has-text("Add")').first();
+    const addButton = page.getByTestId("add-todo-button");
     await addButton.click();
 
     await page.waitForSelector('[data-testid="smart-input"]', { timeout: 5000 });

@@ -16,7 +16,7 @@ test.describe("CRUD Workflow", () => {
     await page.evaluate(() => {
       localStorage.clear();
       if (typeof indexedDB !== "undefined") {
-        indexedDB.deleteDatabase("doit-storage");
+        indexedDB.deleteDatabase("doit-db");
       }
       localStorage.setItem("doit-tutorial-preferences", JSON.stringify({ completed: true, showOnStartup: false }));
     });
@@ -29,7 +29,7 @@ test.describe("CRUD Workflow", () => {
       await todoApp.waitForAppLoad();
 
       // Verify app is loaded with Add button visible
-      const addButton = page.locator('button:has-text("Add")').first();
+      const addButton = page.getByTestId("add-todo-button");
       await expect(addButton).toBeVisible();
 
       // No todos should exist
