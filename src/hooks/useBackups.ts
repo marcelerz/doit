@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
 import { useSettings } from "@/hooks/useSettings";
 import { BACKUP_KEY_PREFIX, BackupData, BackupStats } from "@/storage/backup";
+import { formatDateKey } from "@/utils/dateUtils";
 
 // Re-export types for convenience
 export type { BackupData, BackupStats } from "@/storage/backup";
@@ -133,7 +134,7 @@ function exportBackupAsFile(backup: BackupData): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `doit-backup-${new Date(backup.timestamp).toISOString().split("T")[0]}.json`;
+  link.download = `doit-backup-${formatDateKey(new Date(backup.timestamp))}.json`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -209,7 +210,7 @@ function getBackupStats(backups: BackupData[]): BackupStats {
   // Find the last auto-backup date
   const autoBackups = backups.filter((b) => b.source === "auto");
   const lastAutoBackupDate =
-    autoBackups.length > 0 ? new Date(autoBackups[0].timestamp).toISOString().split("T")[0] : null;
+    autoBackups.length > 0 ? formatDateKey(new Date(autoBackups[0].timestamp)) : null;
 
   return {
     count: backups.length,

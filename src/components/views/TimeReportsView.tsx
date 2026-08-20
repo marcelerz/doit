@@ -11,6 +11,7 @@ import { TodoId } from "@/types/todo";
 import { SprintModel } from "@/hooks/useSprints";
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
 import { PrintIcon } from "@/components/shared/Icons";
+import { formatDateKey } from "@/utils/dateUtils";
 
 type TimePeriod = "today" | "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "all" | "custom";
 type GroupBy = "assigned" | "source" | "project" | "category" | "sprint" | "day";
@@ -353,7 +354,7 @@ export default function TimeReportsView({ todos, people, projects, settings, spr
     for (let i = 0; i < numDays; i++) {
       const date = new Date(dateRange.start);
       date.setDate(date.getDate() + i);
-      const dateStr = date.toISOString().split("T")[0];
+      const dateStr = formatDateKey(date);
 
       const minutes = timeEntries
         .filter((entry) => entry.date.split("T")[0] === dateStr)

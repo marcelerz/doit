@@ -328,6 +328,9 @@ export function calculateNextOccurrence(pattern: RecurringPattern, fromDate: Dat
 
         if (pattern.nthWeek === NTH_WEEK_LAST) {
           // "last" weekday of month - always exists in every month
+          // Clamp the day first: setMonth() with a day of 29-31 overflows into
+          // the following month when the target month is shorter.
+          next.setDate(1);
           next.setFullYear(currentYear);
           next.setMonth(currentMonth);
           const lastDay = getLastDayOfMonth(next);
@@ -342,9 +345,11 @@ export function calculateNextOccurrence(pattern: RecurringPattern, fromDate: Dat
           const maxAttempts = 12; // At most 12 months to find a valid one
 
           for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            // Clamp before changing the month, not after - otherwise a day of
+            // 29-31 overflows setMonth() into the following month.
+            next.setDate(1);
             next.setFullYear(currentYear);
             next.setMonth(currentMonth);
-            next.setDate(1);
 
             // Find first occurrence of the weekday in this month
             while (next.getDay() !== pattern.weekday) {
@@ -373,7 +378,9 @@ export function calculateNextOccurrence(pattern: RecurringPattern, fromDate: Dat
       break;
 
     case "monthly":
-      // Next month on the specified day
+      // Next month on the specified day. Clamp the day first: setMonth() with
+      // a day of 29-31 overflows into the month after the intended one.
+      next.setDate(1);
       next.setMonth(next.getMonth() + 1);
       next.setDate(Math.min(pattern.monthDay || 1, getLastDayOfMonth(next)));
       break;
@@ -388,16 +395,19 @@ export function calculateNextOccurrence(pattern: RecurringPattern, fromDate: Dat
         // Check if we can use the current quarter
         // Create a date for the target day in the current quarter's first month
         const currentQuarterTarget = new Date(next);
+        currentQuarterTarget.setDate(1);
         currentQuarterTarget.setMonth(currentQuarterMonth);
         currentQuarterTarget.setDate(Math.min(targetDay, getLastDayOfMonth(currentQuarterTarget)));
 
         // If current quarter's target date is still in the future, use it
         if (currentQuarterTarget > fromDate) {
+          next.setDate(1);
           next.setMonth(currentQuarterMonth);
           next.setDate(Math.min(targetDay, getLastDayOfMonth(next)));
         } else {
           // Move to next quarter
           const nextQuarterMonth = currentQuarterMonth + 3;
+          next.setDate(1);
           if (nextQuarterMonth > 11) {
             next.setFullYear(next.getFullYear() + 1);
             next.setMonth(nextQuarterMonth - 12);
@@ -410,7 +420,9 @@ export function calculateNextOccurrence(pattern: RecurringPattern, fromDate: Dat
       break;
 
     case "yearly":
-      // Next year on the specified month and day
+      // Next year on the specified month and day. Clamp the day first so
+      // setMonth() cannot overflow into the following month.
+      next.setDate(1);
       next.setFullYear(next.getFullYear() + 1);
       next.setMonth((pattern.month || 1) - 1);
       next.setDate(Math.min(pattern.monthDay || 1, getLastDayOfMonth(next)));

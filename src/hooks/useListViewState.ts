@@ -7,6 +7,7 @@ import { Settings } from "@/types/settings";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
+import { parseLocalDate } from "@/utils/dateUtils";
 
 // Types
 export interface TodoFilters {
@@ -583,7 +584,7 @@ export function useListViewState({ todos, projects, settings }: UseListViewState
           if (!dueDate) {
             group = "No Due Date";
           } else {
-            const dueDateObj = new Date(dueDate);
+            const dueDateObj = parseLocalDate(dueDate);
             if (isNaN(dueDateObj.getTime())) {
               group = "Invalid Date";
             } else {

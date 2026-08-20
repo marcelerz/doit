@@ -692,3 +692,36 @@ describe("recurringParser", () => {
     });
   });
 });
+
+describe("calculateNextOccurrence - month overflow from a month-end reference", () => {
+  // Regression: setMonth() was called while the day-of-month was still 29-31,
+  // so the date rolled into the month *after* the intended one, skipping a
+  // whole cycle. Every pre-existing test used a base date of the 9th.
+  const key = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  it("monthly from Jan 31 lands in February", () => {
+    const pattern: RecurringPattern = { type: "monthly", monthDay: 15, raw: "every month on the 15th" };
+    expect(key(calculateNextOccurrence(pattern, new Date(2025, 0, 31)))).toBe("2025-02-15");
+  });
+
+  it("quarterly from Mar 31 lands in April", () => {
+    const pattern: RecurringPattern = { type: "quarterly", monthDay: 15, raw: "every quarter on the 15th" };
+    expect(key(calculateNextOccurrence(pattern, new Date(2025, 2, 31)))).toBe("2025-04-15");
+  });
+
+  it("yearly from Jan 31 lands on the target month next year", () => {
+    const pattern: RecurringPattern = { type: "yearly", month: 2, monthDay: 15, raw: "every year on feb 15" };
+    expect(key(calculateNextOccurrence(pattern, new Date(2025, 0, 31)))).toBe("2026-02-15");
+  });
+
+  it("nth-weekday from Jan 31 lands on the 2nd Tuesday of February", () => {
+    const pattern: RecurringPattern = { type: "nth-weekday", nthWeek: 2, weekday: 2, raw: "every 2nd tuesday" };
+    expect(key(calculateNextOccurrence(pattern, new Date(2025, 0, 31)))).toBe("2025-02-11");
+  });
+
+  it("still works from a mid-month reference", () => {
+    const pattern: RecurringPattern = { type: "monthly", monthDay: 15, raw: "every month on the 15th" };
+    expect(key(calculateNextOccurrence(pattern, new Date(2025, 0, 9)))).toBe("2025-02-15");
+  });
+});

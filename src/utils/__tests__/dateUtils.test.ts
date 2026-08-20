@@ -3,6 +3,8 @@
  */
 
 import {
+  parseLocalDate,
+  formatDateKey,
   formatDateTime,
   parseShorthand,
   parseDate,
@@ -599,5 +601,34 @@ describe("dateUtils", () => {
       const result = parseShorthand("unknownshorthand", dateTimeSettings, workHours);
       expect(result).toBeNull();
     });
+  });
+});
+
+describe("parseLocalDate", () => {
+  const originalTZ = process.env.TZ;
+  afterEach(() => {
+    process.env.TZ = originalTZ;
+  });
+
+  it("parses a date-only string at local midnight in any timezone", () => {
+    for (const tz of ["America/New_York", "Europe/Berlin", "UTC"]) {
+      process.env.TZ = tz;
+      const d = parseLocalDate("2026-03-15");
+      expect([d.getFullYear(), d.getMonth(), d.getDate(), d.getHours()]).toEqual([2026, 2, 15, 0]);
+    }
+  });
+
+  it("round-trips with formatDateKey in any timezone", () => {
+    for (const tz of ["America/New_York", "Europe/Berlin", "Pacific/Kiritimati"]) {
+      process.env.TZ = tz;
+      expect(formatDateKey(parseLocalDate("2026-01-01"))).toBe("2026-01-01");
+      expect(formatDateKey(parseLocalDate("2026-12-31"))).toBe("2026-12-31");
+    }
+  });
+
+  it("passes through date-time strings, which are already local per spec", () => {
+    process.env.TZ = "America/New_York";
+    const d = parseLocalDate("2026-03-15T13:45");
+    expect([d.getHours(), d.getMinutes()]).toEqual([13, 45]);
   });
 });

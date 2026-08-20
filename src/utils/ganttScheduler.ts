@@ -13,6 +13,7 @@ import { Gantt } from "@/types/gantt";
 import { DEFAULT_BLOCK_TYPES } from "@/types/timeBlock";
 
 import { DurationMin, getDurationMin } from "@/types/time";
+import { formatDateKey } from "@/utils/dateUtils";
 
 // ============================================================================
 // Types
@@ -436,7 +437,7 @@ export function createTaskSchedulingMap(todos: TodoModel[], config: SchedulingCo
       const taskEnd = new Date(currentTime.getTime() + durationMinutes * 60000);
 
       if (taskEnd <= dayEnd) {
-        const dateKey = currentDay.toISOString().split("T")[0];
+        const dateKey = formatDateKey(currentDay);
         map.set(todo.id, dateKey);
         scheduledToday.push(todo.id);
 
@@ -1081,7 +1082,7 @@ export function scheduleWeekTasks(
   getProjectColor: (todo: TodoModel) => string,
 ): WeekDaySchedule[] {
   return dates.map((date) => {
-    const dateStr = date.toISOString().split("T")[0];
+    const dateStr = formatDateKey(date);
     const daySchedule = getScheduleForDate(date, workHours);
     const dayStart = parseTime(daySchedule.startTime, date);
     const dayEnd = parseTime(daySchedule.endTime, date);

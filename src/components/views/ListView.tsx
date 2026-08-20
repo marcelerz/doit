@@ -23,6 +23,7 @@ import { useListViewState, TodoFilters } from "@/hooks/useListViewState";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { getTextColor } from "@/utils/colors";
 import { exportTodos, ExportFormat } from "@/utils/export";
+import { formatDateKey } from "@/utils/dateUtils";
 import {
   EditIcon,
   CheckIcon,
@@ -469,7 +470,7 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
   const handleExport = useCallback(
     (format: ExportFormat) => {
       const todosToExport = hasActiveFilters ? [...activeTodos, ...completedTodos, ...archivedTodos] : todos;
-      const date = new Date().toISOString().split("T")[0];
+      const date = formatDateKey(new Date());
       const filename = `todos-${date}`;
       exportTodos(todosToExport, format, filename);
     },

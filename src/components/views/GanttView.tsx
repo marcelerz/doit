@@ -20,6 +20,7 @@ import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { getTextColor } from "@/utils/colors";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
+import { formatDateKey } from "@/utils/dateUtils";
 import {
   EyeIcon,
   ClockIcon,
@@ -305,7 +306,7 @@ export function GanttView({
 
   // Get todos for selected date based on scheduling map OR time tracking entries
   const { todosForDate, scheduledTodoIds } = useMemo(() => {
-    const dateKey = selectedDate.toISOString().split("T")[0];
+    const dateKey = formatDateKey(selectedDate);
     const dayStart = new Date(selectedDate);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(selectedDate);
@@ -728,7 +729,7 @@ export function GanttView({
   // Get tasks for the entire week using the scheduling map
   const weekTasks = useMemo(() => {
     return currentWeekDates.map((date) => {
-      const dateStr = date.toISOString().split("T")[0];
+      const dateStr = formatDateKey(date);
       const tasksForDay = allActiveTodos.filter((todo) => taskSchedulingMap.get(todo.id) === dateStr);
       return { date, tasks: tasksForDay };
     });

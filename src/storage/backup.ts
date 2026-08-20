@@ -6,6 +6,7 @@
  */
 
 import { STORAGE_KEYS, getStorageAdapter, loadFromStorage, saveToStorage } from "@/storage/storage";
+import { formatDateKey } from "@/utils/dateUtils";
 
 // ============================================================================
 // Types & Constants
@@ -51,7 +52,7 @@ export interface BackupStats {
  */
 function getTodayDateString(): string {
   const today = new Date();
-  return today.toISOString().split("T")[0];
+  return formatDateKey(today);
 }
 
 /**

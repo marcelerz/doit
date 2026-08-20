@@ -983,10 +983,25 @@ function createOrdinalDayParser(): Parser {
         resultDate.setMonth(resultDate.getMonth() + 1);
       }
 
-      // Validate the date is valid (e.g., Feb 30 becomes Mar 2)
+      // The day may not exist in the target month (e.g. the 31st of April),
+      // in which case the Date constructor rolls it forward. Walk month by
+      // month until one actually has that day, rather than assuming the month
+      // after next does.
       if (resultDate.getDate() !== day) {
-        // Invalid date for that month, skip to next valid month
-        resultDate = new Date(refDate.getFullYear(), refDate.getMonth() + 2, day);
+        let year = refDate.getFullYear();
+        let month = refDate.getMonth();
+        for (let attempt = 0; attempt < 12; attempt++) {
+          month += 1;
+          if (month > 11) {
+            month = 0;
+            year += 1;
+          }
+          const candidate = new Date(year, month, day);
+          if (candidate.getDate() === day && candidate > refDate) {
+            resultDate = candidate;
+            break;
+          }
+        }
       }
 
       return context.createParsingComponents({

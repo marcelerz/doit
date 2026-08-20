@@ -8,6 +8,7 @@ import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage"
 import { waitForStorageInit } from "@/storage/storage";
 import { createSprintId, createActivityId, createCommentId } from "@/utils/idGenerator";
 import { SprintModel, createSprintModel } from "@/models/SprintModel";
+import { formatDateKey } from "@/utils/dateUtils";
 
 // Re-export SprintModel for backward compatibility
 export { SprintModel } from "@/models/SprintModel";
@@ -121,7 +122,7 @@ export function useSprints() {
 
   const startSprint = (id: SprintId) => {
     const now = Date.now();
-    const today = new Date().toISOString().split("T")[0];
+    const today = formatDateKey(new Date());
 
     setSprints((prev) =>
       prev.map((s) => {
@@ -149,7 +150,7 @@ export function useSprints() {
 
   const completeSprint = (id: SprintId) => {
     const now = Date.now();
-    const today = new Date().toISOString().split("T")[0];
+    const today = formatDateKey(new Date());
 
     setSprints((prev) =>
       prev.map((s) => {
@@ -177,7 +178,7 @@ export function useSprints() {
 
   const cancelSprint = (id: SprintId) => {
     const now = Date.now();
-    const today = new Date().toISOString().split("T")[0];
+    const today = formatDateKey(new Date());
 
     setSprints((prev) =>
       prev.map((s) => {

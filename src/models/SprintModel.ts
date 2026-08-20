@@ -10,6 +10,7 @@ import { Sprint, SprintId, SprintStatus, getSprintId } from "@/types/sprint";
 import type { Comment, ActivityEntry, Color } from "@/types/types";
 import { generatePrefixedUUID } from "@/utils/idGenerator";
 import { formatDateWithTime, formatAgeDisplay } from "@/utils/formatters";
+import { parseLocalDate, formatDateKey } from "@/utils/dateUtils";
 
 /**
  * Status colors for sprint states
@@ -234,9 +235,9 @@ export class SprintModel {
     const startDate = this._raw.actualStartDate || this._raw.plannedStartDate;
     if (!startDate || !this._raw.durationDays) return undefined;
 
-    const start = new Date(startDate);
+    const start = parseLocalDate(startDate);
     start.setDate(start.getDate() + this._raw.durationDays);
-    return start.toISOString().split("T")[0];
+    return formatDateKey(start);
   }
 
   /**
@@ -248,10 +249,10 @@ export class SprintModel {
 
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    const start = new Date(this._raw.actualStartDate);
+    const start = parseLocalDate(this._raw.actualStartDate);
     start.setHours(0, 0, 0, 0);
 
-    const daysElapsed = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const daysElapsed = Math.round((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     return Math.max(0, this._raw.durationDays - daysElapsed);
   }
 
@@ -264,10 +265,11 @@ export class SprintModel {
 
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    const start = new Date(this._raw.actualStartDate);
+    const start = parseLocalDate(this._raw.actualStartDate);
     start.setHours(0, 0, 0, 0);
 
-    return Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    // Math.round, not floor: a DST transition makes one local day 23h or 25h.
+    return Math.round((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
   }
 
   /**

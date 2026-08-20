@@ -696,3 +696,28 @@ describe("chronoCustom", () => {
     });
   });
 });
+
+describe("ordinal day parsing - day absent from the reference month", () => {
+  // Regression: the "invalid date for this month" fallback jumped
+  // refMonth + 2 unconditionally and never re-validated the result.
+  const key = (d: Date | null) =>
+    d === null
+      ? null
+      : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  it("resolves 'the 31st' from April to the next month that has one", () => {
+    expect(key(parseDateWithCustomChrono("the 31st", new Date(2025, 3, 15)))).toBe("2025-05-31");
+  });
+
+  it("resolves 'the 30th' from February to March", () => {
+    expect(key(parseDateWithCustomChrono("the 30th", new Date(2025, 1, 15)))).toBe("2025-03-30");
+  });
+
+  it("resolves 'the 31st' from February to March", () => {
+    expect(key(parseDateWithCustomChrono("the 31st", new Date(2025, 1, 10)))).toBe("2025-03-31");
+  });
+
+  it("still resolves an ordinary ordinal into the following month", () => {
+    expect(key(parseDateWithCustomChrono("the 15th", new Date(2025, 5, 15)))).toBe("2025-07-15");
+  });
+});

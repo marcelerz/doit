@@ -7,6 +7,7 @@ import { Todo, Subtask, TodoState, getSubtaskId, getTag } from "@/types/todo";
 import { getTimestamp } from "@/types/time";
 import { getActivityId } from "@/types/types";
 import { createSubtaskId, createActivityId } from "@/utils/idGenerator";
+import { formatDateKey } from "@/utils/dateUtils";
 
 /**
  * Parse JSON with enhanced error context including line numbers
@@ -542,7 +543,7 @@ function parseCSVDate(value?: string): string | undefined {
   try {
     const date = new Date(trimmed);
     if (!isNaN(date.getTime())) {
-      return date.toISOString().split("T")[0];
+      return formatDateKey(date);
     }
   } catch {
     // Ignore parse errors

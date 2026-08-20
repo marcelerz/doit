@@ -16,6 +16,7 @@ import { Modal } from "@/components/shared/Modal";
 import { SprintProgress } from "@/components/shared/SprintProgress";
 import { CloseIcon, CheckIcon } from "@/components/shared/Icons";
 import { TodoModel } from "@/models/TodoModel";
+import { formatDateKey } from "@/utils/dateUtils";
 
 interface SprintDetailsOverlayProps {
   sprint: SprintModel;
@@ -166,7 +167,7 @@ export function SprintDetailsOverlay({
     for (let i = 0; i <= sprint.durationDays; i++) {
       const date = new Date(startDate);
       date.setDate(date.getDate() + i);
-      const dateStr = date.toISOString().split("T")[0];
+      const dateStr = formatDateKey(date);
 
       // Ideal burndown: linear decrease
       const ideal = totalItems - (totalItems / sprint.durationDays) * i;
@@ -174,7 +175,7 @@ export function SprintDetailsOverlay({
       // Actual: count remaining items (completed before or on this date)
       const completedByDate = sprintTodos.filter((t) => {
         if (t.state !== "completed" || !t.completedAt) return false;
-        const completedDate = new Date(t.completedAt).toISOString().split("T")[0];
+        const completedDate = formatDateKey(new Date(t.completedAt));
         return completedDate <= dateStr;
       }).length;
       const actual = totalItems - completedByDate;

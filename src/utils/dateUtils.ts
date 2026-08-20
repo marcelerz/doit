@@ -693,6 +693,27 @@ export const formatDateKey = (date: Date): string => {
 export const toISODateString = formatDateKey;
 
 /**
+ * Parse a stored date string into a Date in the *local* timezone.
+ *
+ * `new Date("2026-03-15")` is UTC midnight per the ECMAScript spec, so pairing
+ * it with local-time operations (setHours, getDate, formatDateKey) shifts the
+ * date by a day in every timezone with a non-zero offset. Date-*time* strings
+ * without a trailing Z are already local, so they are passed through.
+ *
+ * Inverse of {@link formatDateKey}.
+ *
+ * @param dateStr - Date string, either YYYY-MM-DD or a fuller ISO form
+ * @returns Date at local midnight for date-only input
+ */
+export const parseLocalDate = (dateStr: string): Date => {
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (dateOnly) {
+    return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
+  }
+  return new Date(dateStr);
+};
+
+/**
  * Get ISO week number for a date (1-52/53)
  * Week 1 is the week containing the first Thursday of the year.
  *

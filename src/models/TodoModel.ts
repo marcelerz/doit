@@ -591,7 +591,8 @@ export class TodoModel {
     const dueDateNormalized = new Date(dueDate.getTime());
     dueDateNormalized.setHours(0, 0, 0, 0);
     const diffTime = dueDateNormalized.getTime() - today.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // Math.round, not ceil: a DST transition makes one local day 23h or 25h.
+    return Math.round(diffTime / (1000 * 60 * 60 * 24));
   }
 
   // ===== Metadata Operations =====
