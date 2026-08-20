@@ -1,3 +1,4 @@
+import { TokenMatch } from "@/types/token";
 import React, { useRef, forwardRef, useImperativeHandle, useState, useEffect } from "react";
 import { DateTimeSettings, WorkHoursSettings } from "@/types/settings";
 import { Priority } from "@/types/priority";
@@ -14,18 +15,9 @@ import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { findByNameOrAlternatives, filterByNameOrAlternatives } from "@/utils/filterHelpers";
 
-export interface TokenMatch {
-  type: string;
-  value: string; // parsed value, e.g. "marcel" (not "@marcel")
-  raw: string; // raw matched string, e.g. "@marcel"
-  start: number;
-  end: number;
-  // For auto-detected dates (without ~)
-  isAutoDetected?: boolean;
-  detectedDateIndex?: number; // Which detected date is active (0-based)
-  allDetectedDates?: string[]; // All ISO dates found at this location
-  autoDetectedType?: "simple" | "range" | "recurring"; // What kind of auto-detection: simple date, date range, or recurring pattern
-}
+// Declared in the types layer; re-exported here so existing consumers of this
+// module keep working.
+export type { TokenMatch };
 
 export interface SmartEditableInputProps {
   initialValue?: string; // Initial value to set on mount (for editing scenarios)

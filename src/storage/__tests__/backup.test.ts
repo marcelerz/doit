@@ -13,9 +13,9 @@ import {
   restoreSnapshot,
   cleanupOldBackups,
   MAX_BACKUP_COUNT,
-  BACKUP_KEY_PREFIX,
   BackupData,
 } from "@/storage/backup";
+import { BACKUP_KEY_PREFIX } from "@/storage/storage";
 import {
   STORAGE_KEYS,
   setStorageAdapter,

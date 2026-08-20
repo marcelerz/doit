@@ -13,24 +13,15 @@ import {
   saveToStorage,
 } from "@/storage/storage";
 import { formatDateKey } from "@/utils/dateUtils";
+import { BackupSettings, defaultBackupSettings } from "@/types/backup";
+import { BACKUP_KEY_PREFIX } from "@/storage/storage";
 
 // ============================================================================
 // Types & Constants
 // ============================================================================
 
-export const BACKUP_KEY_PREFIX = "doit-backup-";
-
-export interface BackupSettings {
-  autoBackupEnabled: boolean;
-  retentionDays: number;
-  lastBackupDate: string | null; // ISO date string (YYYY-MM-DD)
-}
-
-export const defaultBackupSettings: BackupSettings = {
-  autoBackupEnabled: true,
-  retentionDays: 30,
-  lastBackupDate: null,
-};
+export type { BackupSettings } from "@/types/backup";
+export { defaultBackupSettings } from "@/types/backup";
 
 export interface BackupData {
   timestamp: number;

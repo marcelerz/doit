@@ -34,7 +34,7 @@ import { Priority, getPriorityId } from "@/types/priority";
 import { defaultMarkerColors } from "@/types/markerColors";
 import { defaultCalendar } from "@/types/calendar";
 import { defaultCategories } from "@/types/project";
-import { defaultBackupSettings } from "@/storage/backup";
+import { defaultBackupSettings } from "@/types/backup";
 import { TodoModel } from "@/models/TodoModel";
 import { generateUUID } from "@/utils/idGenerator";
 import { createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";

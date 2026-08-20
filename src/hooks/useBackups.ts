@@ -3,13 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getStorageAdapter } from "@/storage/storage";
 import { useSettings } from "@/hooks/useSettings";
-import {
-  BACKUP_KEY_PREFIX,
-  BackupData,
-  BackupStats,
-  buildBackup,
-  restoreSnapshot,
-} from "@/storage/backup";
+import { BackupData, BackupStats, buildBackup, restoreSnapshot } from "@/storage/backup";
+import { BACKUP_KEY_PREFIX } from "@/storage/storage";
 import { formatDateKey } from "@/utils/dateUtils";
 
 // Re-export types for convenience

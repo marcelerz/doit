@@ -2,7 +2,7 @@ import { BreakPeriod, getBreakPeriodId } from "./breakPeriod";
 import { defaultLinkPatterns, LinkPattern } from "./linkPattern";
 import { defaultPriorities, Priority } from "./priority";
 import { defaultCategories, ProjectCategory } from "./project";
-import { BackupSettings, defaultBackupSettings } from "@/storage/backup";
+import { BackupSettings, defaultBackupSettings } from "./backup";
 import {
   DurationDay,
   DurationHour,

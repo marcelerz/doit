@@ -3,7 +3,7 @@
  */
 
 import { parseTokensToMetadata } from "@/utils/tokenParser";
-import { TokenMatch } from "@/components/input/SmartInput";
+import { TokenMatch } from "@/types/token";
 
 describe("tokenParser", () => {
   describe("parseTokensToMetadata", () => {

@@ -7,7 +7,7 @@
  */
 
 import { TodoMetadata } from "@/types/todo";
-import { TokenMatch } from "@/components/input/SmartInput";
+import { TokenMatch } from "@/types/token";
 
 /**
  * Parse tokens into TodoMetadata structure
