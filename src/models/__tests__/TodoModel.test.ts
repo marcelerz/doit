@@ -1513,22 +1513,7 @@ describe("TodoModel", () => {
     });
   });
 
-  describe("auto-assign fallback with EntityRegistry", () => {
-    // Mock EntityRegistry for testing auto-assign fallback behavior
-    const createMockRegistry = () => ({
-      findPersonByName: jest.fn((name: string) => {
-        const lowerName = name.toLowerCase();
-        if (lowerName === "default person") return { id: getPersonId("default-person-id") };
-        if (lowerName === "john") return { id: getPersonId("john-id") };
-        return null;
-      }),
-      findProjectByName: jest.fn((name: string) => {
-        const lowerName = name.toLowerCase();
-        if (lowerName === "default project") return { id: getProjectId("default-project-id") };
-        return null;
-      }),
-    });
-
+  describe("auto-assign fallback", () => {
     it("should return default priority ID when actual field is empty", () => {
       const todo = createTodo({
         priority: undefined,
@@ -1659,119 +1644,64 @@ describe("TodoModel", () => {
       expect(model.dueDate).toBe(specificTimestamp);
     });
 
-    it("should return default assigned person IDs when using EntityRegistry", () => {
-      const todo = createTodo({
-        assignedPeople: [],
-      });
+    it("applies the default assigned person when none is set", () => {
+      // People are stored by name - a typed @mention is branded straight to
+      // PersonId - so the default needs no lookup. This previously required an
+      // EntityRegistry that production code never supplied, which left the
+      // auto-assign setting doing nothing at all.
+      const todo = createTodo({ assignedPeople: [] });
       const settings = createSettings({
-        autoAssign: {
-          enabled: true,
-          assignedPerson: "Default Person",
-        },
+        autoAssign: { enabled: true, assignedPerson: "Default Person" },
       });
-      const mockRegistry = createMockRegistry();
-      const model = new TodoModel(todo, settings, mockRegistry as never);
 
-      expect(model.assignedPeopleIds).toEqual([getPersonId("default-person-id")]);
-      expect(mockRegistry.findPersonByName).toHaveBeenCalledWith("Default Person");
-    });
-
-    it("should return empty array when no registry available for person lookup", () => {
-      const todo = createTodo({
-        assignedPeople: [],
-      });
-      const settings = createSettings({
-        autoAssign: {
-          enabled: true,
-          assignedPerson: "Default Person",
-        },
-      });
-      // No registry provided
       const model = new TodoModel(todo, settings);
 
-      expect(model.assignedPeopleIds).toEqual([]);
+      expect(model.assignedPeopleIds).toEqual([getPersonId("Default Person")]);
     });
 
-    it("should return actual assigned people when set (ignoring default)", () => {
-      const todo = createTodo({
-        assignedPeople: [getPersonId("explicit-person")],
-      });
+    it("applies the default source person when none is set", () => {
+      const todo = createTodo({ sourcePeople: [] });
       const settings = createSettings({
-        autoAssign: {
-          enabled: true,
-          assignedPerson: "Default Person",
-        },
+        autoAssign: { enabled: true, sourcePerson: "John" },
       });
-      const mockRegistry = createMockRegistry();
-      const model = new TodoModel(todo, settings, mockRegistry as never);
 
-      expect(model.assignedPeopleIds).toEqual([getPersonId("explicit-person")]);
-      // Should not have called registry since actual field is set
-      expect(mockRegistry.findPersonByName).not.toHaveBeenCalled();
+      expect(new TodoModel(todo, settings).sourcePeopleIds).toEqual([getPersonId("John")]);
     });
 
-    it("should return default source person IDs when using EntityRegistry", () => {
-      const todo = createTodo({
-        sourcePeople: [],
-      });
+    it("applies the default project when none is set", () => {
+      const todo = createTodo({ projects: [] });
       const settings = createSettings({
-        autoAssign: {
-          enabled: true,
-          sourcePerson: "John",
-        },
+        autoAssign: { enabled: true, project: "Default Project" },
       });
-      const mockRegistry = createMockRegistry();
-      const model = new TodoModel(todo, settings, mockRegistry as never);
 
-      expect(model.sourcePeopleIds).toEqual([getPersonId("john-id")]);
+      expect(new TodoModel(todo, settings).projectIds).toEqual([getProjectId("Default Project")]);
     });
 
-    it("should return default project IDs when using EntityRegistry", () => {
-      const todo = createTodo({
-        projects: [],
-      });
+    it("prefers explicitly set people over the default", () => {
+      const todo = createTodo({ assignedPeople: [getPersonId("explicit-person")] });
       const settings = createSettings({
-        autoAssign: {
-          enabled: true,
-          project: "Default Project",
-        },
+        autoAssign: { enabled: true, assignedPerson: "Default Person" },
       });
-      const mockRegistry = createMockRegistry();
-      const model = new TodoModel(todo, settings, mockRegistry as never);
 
-      expect(model.projectIds).toEqual([getProjectId("default-project-id")]);
+      expect(new TodoModel(todo, settings).assignedPeopleIds).toEqual([
+        getPersonId("explicit-person"),
+      ]);
     });
 
-    it("should return empty array when person name not found in registry", () => {
-      const todo = createTodo({
-        assignedPeople: [],
-      });
+    it("returns an empty array when auto-assign is disabled", () => {
+      const todo = createTodo({ assignedPeople: [] });
       const settings = createSettings({
-        autoAssign: {
-          enabled: true,
-          assignedPerson: "Unknown Person",
-        },
+        autoAssign: { enabled: false, assignedPerson: "Default Person" },
       });
-      const mockRegistry = createMockRegistry();
-      const model = new TodoModel(todo, settings, mockRegistry as never);
 
-      expect(model.assignedPeopleIds).toEqual([]);
+      expect(new TodoModel(todo, settings).assignedPeopleIds).toEqual([]);
     });
 
-    it("should return empty array when project name not found in registry", () => {
-      const todo = createTodo({
-        projects: [],
-      });
-      const settings = createSettings({
-        autoAssign: {
-          enabled: true,
-          project: "Unknown Project",
-        },
-      });
-      const mockRegistry = createMockRegistry();
-      const model = new TodoModel(todo, settings, mockRegistry as never);
+    it("returns an empty array when no default is configured", () => {
+      const todo = createTodo({ assignedPeople: [] });
+      const settings = createSettings({ autoAssign: { enabled: true } });
 
-      expect(model.projectIds).toEqual([]);
+      expect(new TodoModel(todo, settings).assignedPeopleIds).toEqual([]);
     });
   });
 });

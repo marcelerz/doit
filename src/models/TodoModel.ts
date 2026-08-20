@@ -12,7 +12,6 @@ import { parseDuration } from "@/utils/ganttScheduler";
 import { generatePrefixedUUID } from "@/utils/idGenerator";
 import { formatDateWithTime, formatAgeDisplay, pluralize } from "@/utils/formatters";
 import { SettingsModel } from "./SettingsModel";
-import type { EntityRegistry } from "./EntityRegistry";
 
 /**
  * TodoModel wraps a Todo object and provides business logic abstractions.
@@ -22,12 +21,10 @@ import type { EntityRegistry } from "./EntityRegistry";
 export class TodoModel {
   private _raw: Todo;
   private _settingsModel: SettingsModel;
-  private _registry?: EntityRegistry;
 
-  constructor(todo: Todo, settings: SettingsModel, registry?: EntityRegistry) {
+  constructor(todo: Todo, settings: SettingsModel) {
     this._raw = todo;
     this._settingsModel = settings;
-    this._registry = registry;
   }
 
   // ===== Static ID Factory =====
@@ -113,13 +110,13 @@ export class TodoModel {
     if (this._raw.assignedPeople.length > 0) {
       return [...this._raw.assignedPeople];
     }
-    // Apply auto-assign default if registry is available
+    // Apply the auto-assign default. People are stored by name - a typed
+    // @mention is branded straight to PersonId - so the default needs no
+    // registry lookup. It used to require one that was never supplied, which
+    // left this setting doing nothing at all.
     const defaultName = this._settingsModel.defaultAssignedPerson;
-    if (defaultName && this._registry) {
-      const person = this._registry.findPersonByName(defaultName);
-      if (person) {
-        return [person.id as PersonId];
-      }
+    if (defaultName) {
+      return [defaultName as PersonId];
     }
     return [];
   }
@@ -132,13 +129,13 @@ export class TodoModel {
     if (this._raw.sourcePeople.length > 0) {
       return [...this._raw.sourcePeople];
     }
-    // Apply auto-assign default if registry is available
+    // Apply the auto-assign default. People are stored by name - a typed
+    // @mention is branded straight to PersonId - so the default needs no
+    // registry lookup. It used to require one that was never supplied, which
+    // left this setting doing nothing at all.
     const defaultName = this._settingsModel.defaultSourcePerson;
-    if (defaultName && this._registry) {
-      const person = this._registry.findPersonByName(defaultName);
-      if (person) {
-        return [person.id as PersonId];
-      }
+    if (defaultName) {
+      return [defaultName as PersonId];
     }
     return [];
   }
@@ -160,13 +157,10 @@ export class TodoModel {
     if (this._raw.projects.length > 0) {
       return [...this._raw.projects];
     }
-    // Apply auto-assign default if registry is available
+    // Same as the people defaults above: projects are stored by name.
     const defaultName = this._settingsModel.defaultProject;
-    if (defaultName && this._registry) {
-      const project = this._registry.findProjectByName(defaultName);
-      if (project) {
-        return [project.id as ProjectId];
-      }
+    if (defaultName) {
+      return [defaultName as ProjectId];
     }
     return [];
   }
@@ -270,14 +264,8 @@ export class TodoModel {
    * Includes auto-assign fallback via assignedPeopleIds
    */
   get assignedPeople(): string[] {
-    const ids = this.assignedPeopleIds;
-    if (!this._registry) {
-      return ids.map((id) => id as string);
-    }
-    return ids.map((id) => {
-      const person = this._registry!.getPerson(id);
-      return person ? person.name : (id as string);
-    });
+    // Stored as names, so no resolution step is needed.
+    return this.assignedPeopleIds.map((id) => id as string);
   }
 
   /**
@@ -286,14 +274,8 @@ export class TodoModel {
    * Includes auto-assign fallback via sourcePeopleIds
    */
   get sourcePeople(): string[] {
-    const ids = this.sourcePeopleIds;
-    if (!this._registry) {
-      return ids.map((id) => id as string);
-    }
-    return ids.map((id) => {
-      const person = this._registry!.getPerson(id);
-      return person ? person.name : (id as string);
-    });
+    // Stored as names, so no resolution step is needed.
+    return this.sourcePeopleIds.map((id) => id as string);
   }
 
   /**
@@ -301,14 +283,8 @@ export class TodoModel {
    * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
    */
   get mentionedPeople(): string[] {
-    const ids = this.mentionedPeopleIds;
-    if (!this._registry) {
-      return ids.map((id) => id as string);
-    }
-    return ids.map((id) => {
-      const person = this._registry!.getPerson(id);
-      return person ? person.name : (id as string);
-    });
+    // Stored as names, so no resolution step is needed.
+    return this.mentionedPeopleIds.map((id) => id as string);
   }
 
   /**
@@ -317,14 +293,8 @@ export class TodoModel {
    * Includes auto-assign fallback via projectIds
    */
   get projects(): string[] {
-    const ids = this.projectIds;
-    if (!this._registry) {
-      return ids.map((id) => id as string);
-    }
-    return ids.map((id) => {
-      const project = this._registry!.getProject(id);
-      return project ? project.name : (id as string);
-    });
+    // Stored as names, so no resolution step is needed.
+    return this.projectIds.map((id) => id as string);
   }
 
   /**
@@ -428,22 +398,13 @@ export class TodoModel {
     }
 
     // Get raw assigned people (without auto-assign fallback)
-    const rawAssignedPeople = this._raw.assignedPeople.map((id) => {
-      const person = this._registry?.getPerson(id);
-      return person?.name || (id as string);
-    });
+    const rawAssignedPeople = this._raw.assignedPeople.map((id) => id as string);
 
     // Get raw source people (without auto-assign fallback)
-    const rawSourcePeople = this._raw.sourcePeople.map((id) => {
-      const person = this._registry?.getPerson(id);
-      return person?.name || (id as string);
-    });
+    const rawSourcePeople = this._raw.sourcePeople.map((id) => id as string);
 
     // Get raw projects (without auto-assign fallback)
-    const rawProjects = this._raw.projects.map((id) => {
-      const project = this._registry?.getProject(id);
-      return project?.name || (id as string);
-    });
+    const rawProjects = this._raw.projects.map((id) => id as string);
 
     return {
       assignedPeople: rawAssignedPeople,
@@ -803,11 +764,8 @@ export class TodoModel {
   /**
    * Update the underlying settings (useful when settings change)
    */
-  updateSettings(settings: SettingsModel, registry?: EntityRegistry) {
+  updateSettings(settings: SettingsModel) {
     this._settingsModel = settings;
-    if (registry !== undefined) {
-      this._registry = registry;
-    }
   }
 
   // ===== Validation Methods =====
@@ -1226,32 +1184,16 @@ export class TodoModel {
     const priorityName = this.priorityName;
     if (priorityName && priorityName.toLowerCase().includes(search)) return true;
 
-    // Search people and projects using registry if available
-    if (this._registry) {
-      // Search assigned people
-      for (const personId of this.assignedPeopleIds) {
-        const person = this._registry.getPerson(personId);
-        if (person && person.matchesSearch(search)) return true;
-      }
-
-      // Search source people
-      for (const personId of this.sourcePeopleIds) {
-        const person = this._registry.getPerson(personId);
-        if (person && person.matchesSearch(search)) return true;
-      }
-
-      // Search mentioned people
-      for (const personId of this.mentionedPeopleIds) {
-        const person = this._registry.getPerson(personId);
-        if (person && person.matchesSearch(search)) return true;
-      }
-
-      // Search projects
-      for (const projectId of this.projectIds) {
-        const project = this._registry.getProject(projectId);
-        if (project && project.matchesSearch(search)) return true;
-      }
-    }
+    // Search people and projects. These are stored as names, so the id
+    // strings are searchable directly - the previous implementation went
+    // through a registry that was never supplied, so this matched nothing.
+    const relatedNames = [
+      ...this.assignedPeopleIds,
+      ...this.sourcePeopleIds,
+      ...this.mentionedPeopleIds,
+      ...this.projectIds,
+    ];
+    if (relatedNames.some((name) => (name as string).toLowerCase().includes(search))) return true;
 
     return false;
   }
@@ -1307,14 +1249,14 @@ export class TodoModel {
 /**
  * Factory function to create TodoModel instances
  */
-export function createTodoModel(todo: Todo, settings: SettingsModel, registry?: EntityRegistry): TodoModel {
-  return new TodoModel(todo, settings, registry);
+export function createTodoModel(todo: Todo, settings: SettingsModel): TodoModel {
+  return new TodoModel(todo, settings);
 }
 
 /**
  * Create TodoModel instances from an array of todos
  * Filters out any undefined/null entries
  */
-export function createTodoModels(todos: Todo[], settings: SettingsModel, registry?: EntityRegistry): TodoModel[] {
-  return todos.filter((todo) => todo != null).map((todo) => new TodoModel(todo, settings, registry));
+export function createTodoModels(todos: Todo[], settings: SettingsModel): TodoModel[] {
+  return todos.filter((todo) => todo != null).map((todo) => new TodoModel(todo, settings));
 }

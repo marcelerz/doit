@@ -14,7 +14,6 @@ import { ActivityEntry } from "@/types/types";
 import { generatePrefixedUUID } from "@/utils/idGenerator";
 import { formatDateWithTime, formatAgeDisplay, pluralize } from "@/utils/formatters";
 import { SettingsModel } from "./SettingsModel";
-import type { EntityRegistry } from "./EntityRegistry";
 
 /**
  * NoteModel wraps a Note object and provides business logic abstractions.
@@ -23,12 +22,10 @@ import type { EntityRegistry } from "./EntityRegistry";
 export class NoteModel {
   private _raw: Note;
   private _settingsModel: SettingsModel;
-  private _registry?: EntityRegistry;
 
-  constructor(note: Note, settings: SettingsModel, registry?: EntityRegistry) {
+  constructor(note: Note, settings: SettingsModel) {
     this._raw = note;
     this._settingsModel = settings;
-    this._registry = registry;
   }
 
   // ===== Static ID Factory =====
@@ -151,62 +148,34 @@ export class NoteModel {
 
   /**
    * Get assigned people names (string array for UI display)
-   * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
    */
   get assignedPeople(): string[] {
-    const ids = this.assignedPeopleIds;
-    if (!this._registry) {
-      return ids.map((id) => id as string);
-    }
-    return ids.map((id) => {
-      const person = this._registry!.getPerson(id);
-      return person ? person.name : (id as string);
-    });
+    // Stored as names, so no resolution step is needed.
+    return this.assignedPeopleIds.map((id) => id as string);
   }
 
   /**
    * Get source people names (string array for UI display)
-   * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
    */
   get sourcePeople(): string[] {
-    const ids = this.sourcePeopleIds;
-    if (!this._registry) {
-      return ids.map((id) => id as string);
-    }
-    return ids.map((id) => {
-      const person = this._registry!.getPerson(id);
-      return person ? person.name : (id as string);
-    });
+    // Stored as names, so no resolution step is needed.
+    return this.sourcePeopleIds.map((id) => id as string);
   }
 
   /**
    * Get mentioned people names (string array for UI display)
-   * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
    */
   get mentionedPeople(): string[] {
-    const ids = this.mentionedPeopleIds;
-    if (!this._registry) {
-      return ids.map((id) => id as string);
-    }
-    return ids.map((id) => {
-      const person = this._registry!.getPerson(id);
-      return person ? person.name : (id as string);
-    });
+    // Stored as names, so no resolution step is needed.
+    return this.mentionedPeopleIds.map((id) => id as string);
   }
 
   /**
    * Get project names (string array for UI display)
-   * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
    */
   get projects(): string[] {
-    const ids = this.projectIds;
-    if (!this._registry) {
-      return ids.map((id) => id as string);
-    }
-    return ids.map((id) => {
-      const project = this._registry!.getProject(id);
-      return project ? project.name : (id as string);
-    });
+    // Stored as names, so no resolution step is needed.
+    return this.projectIds.map((id) => id as string);
   }
 
   // ===== Action Items =====
@@ -473,7 +442,6 @@ export class NoteModel {
 
   /**
    * Check if note matches search text
-   * Uses registry to look up names from IDs for searching
    */
   matchesSearch(searchText: string): boolean {
     if (searchText === "") return true;
@@ -489,32 +457,16 @@ export class NoteModel {
     // Search tags
     if (this.tags.some((t) => t.toLowerCase().includes(search))) return true;
 
-    // Search people and projects using registry if available
-    if (this._registry) {
-      // Search assigned people
-      for (const personId of this.assignedPeopleIds) {
-        const person = this._registry.getPerson(personId);
-        if (person && person.matchesSearch(search)) return true;
-      }
-
-      // Search source people
-      for (const personId of this.sourcePeopleIds) {
-        const person = this._registry.getPerson(personId);
-        if (person && person.matchesSearch(search)) return true;
-      }
-
-      // Search mentioned people
-      for (const personId of this.mentionedPeopleIds) {
-        const person = this._registry.getPerson(personId);
-        if (person && person.matchesSearch(search)) return true;
-      }
-
-      // Search projects
-      for (const projectId of this.projectIds) {
-        const project = this._registry.getProject(projectId);
-        if (project && project.matchesSearch(search)) return true;
-      }
-    }
+    // People and projects are stored as names, so the id strings are
+    // searchable directly - the previous implementation went through a
+    // registry that was never supplied, so this matched nothing.
+    const relatedNames = [
+      ...this.assignedPeopleIds,
+      ...this.sourcePeopleIds,
+      ...this.mentionedPeopleIds,
+      ...this.projectIds,
+    ];
+    if (relatedNames.some((name) => (name as string).toLowerCase().includes(search))) return true;
 
     return false;
   }
@@ -522,11 +474,8 @@ export class NoteModel {
   /**
    * Update the underlying settings (useful when settings change)
    */
-  updateSettings(settings: SettingsModel, registry?: EntityRegistry) {
+  updateSettings(settings: SettingsModel) {
     this._settingsModel = settings;
-    if (registry !== undefined) {
-      this._registry = registry;
-    }
   }
 
   // ===== Validation Methods =====
@@ -568,14 +517,14 @@ export class NoteModel {
 /**
  * Factory function to create NoteModel instances
  */
-export function createNoteModel(note: Note, settings: SettingsModel, registry?: EntityRegistry): NoteModel {
-  return new NoteModel(note, settings, registry);
+export function createNoteModel(note: Note, settings: SettingsModel): NoteModel {
+  return new NoteModel(note, settings);
 }
 
 /**
  * Create NoteModel instances from an array of notes
  * Filters out any undefined/null entries
  */
-export function createNoteModels(notes: Note[], settings: SettingsModel, registry?: EntityRegistry): NoteModel[] {
-  return notes.filter((note) => note != null).map((note) => new NoteModel(note, settings, registry));
+export function createNoteModels(notes: Note[], settings: SettingsModel): NoteModel[] {
+  return notes.filter((note) => note != null).map((note) => new NoteModel(note, settings));
 }

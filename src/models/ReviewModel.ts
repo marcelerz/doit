@@ -15,7 +15,6 @@ import { ActivityEntry } from "@/types/types";
 import { generatePrefixedUUID } from "@/utils/idGenerator";
 import { formatDateWithTime, formatAgeDisplay, pluralize } from "@/utils/formatters";
 import { SettingsModel } from "./SettingsModel";
-import type { EntityRegistry } from "./EntityRegistry";
 
 /**
  * ReviewModel wraps a Review object and provides business logic abstractions.
@@ -24,12 +23,10 @@ import type { EntityRegistry } from "./EntityRegistry";
 export class ReviewModel {
   private _raw: Review;
   private _settingsModel: SettingsModel;
-  private _registry?: EntityRegistry;
 
-  constructor(review: Review, settings: SettingsModel, registry?: EntityRegistry) {
+  constructor(review: Review, settings: SettingsModel) {
     this._raw = review;
     this._settingsModel = settings;
-    this._registry = registry;
   }
 
   // ===== Static ID Factory =====
@@ -191,17 +188,10 @@ export class ReviewModel {
 
   /**
    * Get project names (string array for UI display)
-   * Uses registry to resolve IDs to names, falls back to IDs if registry unavailable
    */
   get projects(): string[] {
-    const ids = this.projectIds;
-    if (!this._registry) {
-      return ids.map((id) => id as string);
-    }
-    return ids.map((id) => {
-      const project = this._registry!.getProject(id);
-      return project ? project.name : (id as string);
-    });
+    // Stored as names, so no resolution step is needed.
+    return this.projectIds.map((id) => id as string);
   }
 
   // ===== State Checks =====
@@ -490,13 +480,13 @@ export class ReviewModel {
       if (entry.content && entry.content.replace(/<[^>]*>/g, "").toLowerCase().includes(search)) return true;
     }
 
-    // Search projects using registry if available
-    if (this._registry) {
-      for (const projectId of this.projectIds) {
-        const project = this._registry.getProject(projectId);
-        if (project && project.matchesSearch(search)) return true;
-      }
-    }
+    // People and projects are stored as names, so the id strings are
+    // searchable directly - the previous implementation went through a
+    // registry that was never supplied, so this matched nothing.
+    const relatedNames = [
+      ...this.projectIds,
+    ];
+    if (relatedNames.some((name) => (name as string).toLowerCase().includes(search))) return true;
 
     return false;
   }
@@ -504,11 +494,8 @@ export class ReviewModel {
   /**
    * Update the underlying settings (useful when settings change)
    */
-  updateSettings(settings: SettingsModel, registry?: EntityRegistry) {
+  updateSettings(settings: SettingsModel) {
     this._settingsModel = settings;
-    if (registry !== undefined) {
-      this._registry = registry;
-    }
   }
 
   // ===== Validation Methods =====
@@ -563,14 +550,14 @@ export class ReviewModel {
 /**
  * Factory function to create ReviewModel instances
  */
-export function createReviewModel(review: Review, settings: SettingsModel, registry?: EntityRegistry): ReviewModel {
-  return new ReviewModel(review, settings, registry);
+export function createReviewModel(review: Review, settings: SettingsModel): ReviewModel {
+  return new ReviewModel(review, settings);
 }
 
 /**
  * Create ReviewModel instances from an array of reviews
  * Filters out any undefined/null entries
  */
-export function createReviewModels(reviews: Review[], settings: SettingsModel, registry?: EntityRegistry): ReviewModel[] {
-  return reviews.filter((review) => review != null).map((review) => new ReviewModel(review, settings, registry));
+export function createReviewModels(reviews: Review[], settings: SettingsModel): ReviewModel[] {
+  return reviews.filter((review) => review != null).map((review) => new ReviewModel(review, settings));
 }
