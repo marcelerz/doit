@@ -1,9 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
+import { getStorageAdapter } from "@/storage/storage";
 import { useSettings } from "@/hooks/useSettings";
-import { BACKUP_KEY_PREFIX, BackupData, BackupStats } from "@/storage/backup";
+import {
+  BACKUP_KEY_PREFIX,
+  BackupData,
+  BackupStats,
+  buildBackup,
+  restoreSnapshot,
+} from "@/storage/backup";
 import { formatDateKey } from "@/utils/dateUtils";
 
 // Re-export types for convenience
@@ -48,55 +54,12 @@ async function getAllBackups(): Promise<BackupData[]> {
   return backups;
 }
 
-/**
- * Normalize storage data to ensure it's a proper JSON string.
- * Handles cases where data might be a string, object, or null.
- */
-function normalizeStorageData(data: string | null, defaultValue: unknown): string {
-  if (data === null) {
-    return JSON.stringify(defaultValue);
-  }
-  // If it's already a string, verify it's valid JSON and return as-is
-  if (typeof data === "string") {
-    try {
-      JSON.parse(data); // Validate it's proper JSON
-      return data;
-    } catch {
-      // If parsing fails, the string is corrupted or double-encoded
-      // Try to fix double-encoding by parsing twice
-      try {
-        const parsed = JSON.parse(JSON.parse(data));
-        return JSON.stringify(parsed);
-      } catch {
-        // If all else fails, return default
-        return JSON.stringify(defaultValue);
-      }
-    }
-  }
-  // If it's an object (shouldn't happen but handle just in case)
-  return JSON.stringify(data);
-}
 
 async function createBackupInStorage(source: "auto" | "manual" = "manual"): Promise<boolean> {
   try {
     const adapter = getStorageAdapter();
-
-    // Use async methods for proper IndexedDB support
-    const todosData = await adapter.getItem(STORAGE_KEYS.TODOS);
-    const settingsData = await adapter.getItem(STORAGE_KEYS.SETTINGS);
-
-    const now = new Date();
-    const backup: BackupData = {
-      timestamp: now.getTime(),
-      date: now.toISOString(),
-      todos: normalizeStorageData(todosData, []),
-      settings: normalizeStorageData(settingsData, {}),
-      source,
-    };
-
-    const backupKey = `${BACKUP_KEY_PREFIX}${now.getTime()}`;
-    await adapter.setItem(backupKey, JSON.stringify(backup));
-
+    const backup = await buildBackup(source);
+    await adapter.setItem(`${BACKUP_KEY_PREFIX}${backup.timestamp}`, JSON.stringify(backup));
     return true;
   } catch (error) {
     console.error("Failed to create backup:", error);
@@ -104,17 +67,7 @@ async function createBackupInStorage(source: "auto" | "manual" = "manual"): Prom
   }
 }
 
-async function restoreBackupFromStorage(backup: BackupData): Promise<boolean> {
-  try {
-    const adapter = getStorageAdapter();
-    await adapter.setItem(STORAGE_KEYS.TODOS, backup.todos);
-    await adapter.setItem(STORAGE_KEYS.SETTINGS, backup.settings);
-    return true;
-  } catch (error) {
-    console.error("Failed to restore backup:", error);
-    return false;
-  }
-}
+const restoreBackupFromStorage = restoreSnapshot;
 
 async function deleteBackupFromStorage(timestamp: number): Promise<boolean> {
   try {
@@ -142,20 +95,7 @@ function exportBackupAsFile(backup: BackupData): void {
 }
 
 async function exportCurrentDataAsFile(): Promise<void> {
-  const adapter = getStorageAdapter();
-  const todosData = await adapter.getItem(STORAGE_KEYS.TODOS);
-  const settingsData = await adapter.getItem(STORAGE_KEYS.SETTINGS);
-
-  const now = new Date();
-  const backup: BackupData = {
-    timestamp: now.getTime(),
-    date: now.toISOString(),
-    todos: normalizeStorageData(todosData, []),
-    settings: normalizeStorageData(settingsData, {}),
-    source: "manual",
-  };
-
-  exportBackupAsFile(backup);
+  exportBackupAsFile(await buildBackup("manual"));
 }
 
 async function importBackupFromFile(file: File): Promise<{ success: boolean; error?: string }> {

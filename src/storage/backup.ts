@@ -5,7 +5,13 @@
  * This file contains types, constants, and functions needed during app startup (before React hooks are available).
  */
 
-import { STORAGE_KEYS, getStorageAdapter, loadFromStorage, saveToStorage } from "@/storage/storage";
+import {
+  STORAGE_KEYS,
+  STORAGE_KEY_PREFIX,
+  getStorageAdapter,
+  loadFromStorage,
+  saveToStorage,
+} from "@/storage/storage";
 import { formatDateKey } from "@/utils/dateUtils";
 
 // ============================================================================
@@ -29,8 +35,17 @@ export const defaultBackupSettings: BackupSettings = {
 export interface BackupData {
   timestamp: number;
   date: string; // ISO date string for display
-  todos: string; // JSON stringified todos
-  settings: string; // JSON stringified settings
+  todos: string; // JSON stringified todos (kept for backups written before `keys`)
+  settings: string; // JSON stringified settings (ditto)
+  /**
+   * Every doit- storage key at the time of the backup.
+   *
+   * Backups used to capture todos and settings only, so people, projects,
+   * sprints, notes, reviews, templates and presets had no safety net, and a
+   * restore left todos referencing people and projects it had not rolled back.
+   * Absent on backups created before this field existed.
+   */
+  keys?: Record<string, string>;
   uploadedAt?: number; // Timestamp when this backup was uploaded (if imported)
   source?: "auto" | "manual" | "imported"; // How this backup was created
 }
@@ -59,14 +74,111 @@ function getTodayDateString(): string {
  * Get backup settings from storage (async)
  */
 async function loadBackupSettings(): Promise<BackupSettings> {
-  return await loadFromStorage<BackupSettings>(STORAGE_KEYS.BACKUP_SETTINGS, defaultBackupSettings);
+  // The UI reads and writes preferences through settings.backup, while this
+  // module used to read a separate doit-backup-settings key that nothing in
+  // the UI ever wrote - so the auto-backup toggle and retention setting had no
+  // effect at all. Preferences now come from settings; the dedicated key keeps
+  // only lastBackupDate, which is bookkeeping rather than a user preference.
+  const [settings, bookkeeping] = await Promise.all([
+    loadFromStorage<{ backup?: Partial<BackupSettings> }>(STORAGE_KEYS.SETTINGS, {}),
+    loadFromStorage<Partial<BackupSettings>>(STORAGE_KEYS.BACKUP_SETTINGS, {}),
+  ]);
+
+  return {
+    ...defaultBackupSettings,
+    ...(settings.backup ?? {}),
+    lastBackupDate: bookkeeping.lastBackupDate ?? defaultBackupSettings.lastBackupDate,
+  };
+}
+
+/**
+ * Snapshot every doit- key except backups themselves and internal bookkeeping.
+ */
+export async function snapshotAllKeys(): Promise<Record<string, string>> {
+  const adapter = getStorageAdapter();
+  const keys = (await adapter.getAllKeys()).filter(
+    (key) =>
+      key.startsWith(STORAGE_KEY_PREFIX) &&
+      !key.startsWith(BACKUP_KEY_PREFIX) &&
+      key !== STORAGE_KEYS.BACKUP_SETTINGS
+  );
+
+  const snapshot: Record<string, string> = {};
+  for (const key of keys) {
+    const value = await adapter.getItem(key);
+    if (value !== null) snapshot[key] = value;
+  }
+  return snapshot;
+}
+
+/**
+ * Restore a backup over current data.
+ *
+ * Prefers the full `keys` snapshot; falls back to todos+settings for backups
+ * written before that field existed.
+ */
+export async function restoreSnapshot(backup: BackupData): Promise<boolean> {
+  try {
+    const adapter = getStorageAdapter();
+
+    if (backup.keys && Object.keys(backup.keys).length > 0) {
+      // Clear keys the backup does not contain, so restoring cannot leave
+      // records behind that the backup never knew about.
+      const existing = (await adapter.getAllKeys()).filter(
+        (key) =>
+          key.startsWith(STORAGE_KEY_PREFIX) &&
+          !key.startsWith(BACKUP_KEY_PREFIX) &&
+          key !== STORAGE_KEYS.BACKUP_SETTINGS
+      );
+      for (const key of existing) {
+        if (!(key in backup.keys)) await adapter.removeItem(key);
+      }
+      for (const [key, value] of Object.entries(backup.keys)) {
+        await adapter.setItem(key, value);
+      }
+      return true;
+    }
+
+    await adapter.setItem(STORAGE_KEYS.TODOS, backup.todos);
+    await adapter.setItem(STORAGE_KEYS.SETTINGS, backup.settings);
+    return true;
+  } catch (error) {
+    console.error("Failed to restore backup:", error);
+    return false;
+  }
+}
+
+/**
+ * Build a backup of the current data.
+ */
+export async function buildBackup(source: "auto" | "manual" = "manual"): Promise<BackupData> {
+  const adapter = getStorageAdapter();
+  const [todosData, settingsData, keys] = await Promise.all([
+    adapter.getItem(STORAGE_KEYS.TODOS),
+    adapter.getItem(STORAGE_KEYS.SETTINGS),
+    snapshotAllKeys(),
+  ]);
+
+  const now = new Date();
+  return {
+    timestamp: now.getTime(),
+    date: now.toISOString(),
+    todos: normalizeStorageData(todosData, []),
+    settings: normalizeStorageData(settingsData, {}),
+    keys,
+    source,
+  };
 }
 
 /**
  * Save backup settings to storage (async)
  */
 async function saveBackupSettings(settings: BackupSettings): Promise<void> {
-  await saveToStorage(STORAGE_KEYS.BACKUP_SETTINGS, settings);
+  // Only bookkeeping - preferences belong to settings.backup and are owned by
+  // the settings UI. Writing them here too would give them two sources again.
+  await saveToStorage(STORAGE_KEYS.BACKUP_SETTINGS, {
+    lastBackupDate: settings.lastBackupDate,
+  });
 }
 
 /**
@@ -140,17 +252,8 @@ function normalizeStorageData(data: string | null, defaultValue: unknown): strin
 async function createBackup(source: "auto" | "manual" = "manual"): Promise<boolean> {
   try {
     const adapter = getStorageAdapter();
-    const todosData = await adapter.getItem(STORAGE_KEYS.TODOS);
-    const settingsData = await adapter.getItem(STORAGE_KEYS.SETTINGS);
-
-    const now = new Date();
-    const backup: BackupData = {
-      timestamp: now.getTime(),
-      date: now.toISOString(),
-      todos: normalizeStorageData(todosData, []),
-      settings: normalizeStorageData(settingsData, {}),
-      source,
-    };
+    const backup = await buildBackup(source);
+    const now = new Date(backup.timestamp);
 
     const backupKey = `${BACKUP_KEY_PREFIX}${now.getTime()}`;
     await adapter.setItem(backupKey, JSON.stringify(backup));
@@ -208,21 +311,43 @@ export async function autoBackupIfNeeded(): Promise<void> {
 /**
  * Clean up old backups based on retention policy
  */
+/**
+ * Hard ceilings on what backups may consume.
+ *
+ * Retention alone is not a bound: a daily backup of the full dataset with
+ * 30-day retention is ~31 copies of everything, inside a localStorage budget
+ * of roughly 5MB. Exhausting it makes the *live* writes start failing, so the
+ * safety net was capable of causing the data loss it exists to prevent.
+ */
+export const MAX_BACKUP_COUNT = 10;
+export const MAX_BACKUP_TOTAL_BYTES = 2 * 1024 * 1024;
+
 export async function cleanupOldBackups(): Promise<number> {
   const settings = await loadBackupSettings();
-  const backups = await getAllBackups();
+  const backups = await getAllBackups(); // newest first
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - settings.retentionDays);
   const cutoffTimestamp = cutoffDate.getTime();
 
   let deletedCount = 0;
+  let keptCount = 0;
+  let keptBytes = 0;
 
   for (const backup of backups) {
-    if (backup.timestamp < cutoffTimestamp) {
+    const size = JSON.stringify(backup).length;
+    const tooOld = backup.timestamp < cutoffTimestamp;
+    const tooMany = keptCount >= MAX_BACKUP_COUNT;
+    const tooBig = keptBytes + size > MAX_BACKUP_TOTAL_BYTES && keptCount > 0;
+
+    if (tooOld || tooMany || tooBig) {
       if (await deleteBackup(backup.timestamp)) {
         deletedCount++;
       }
+      continue;
     }
+
+    keptCount++;
+    keptBytes += size;
   }
 
   return deletedCount;
