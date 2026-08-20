@@ -30,7 +30,8 @@ import { ProjectDetailsOverlay } from "@/components/overlays/ProjectDetailsOverl
 import { SprintDetailsOverlay } from "@/components/overlays/SprintDetailsOverlay";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { TutorialOverlay, mainTutorialSteps, TutorialStep } from "@/components/overlays/TutorialOverlay";
-import { ViewTabs, ViewTab } from "@/components/shared/ViewTabs";
+import { ViewTabs } from "@/components/shared/ViewTabs";
+import { ViewTab, getEnabledViews } from "@/types/viewRegistry";
 import { PeopleView, peopleViewTutorialSteps } from "@/components/views/PeopleView";
 import { ProjectsView, projectsViewTutorialSteps } from "@/components/views/ProjectsView";
 import { SprintsView, sprintsViewTutorialSteps } from "@/components/views/SprintsView";
@@ -847,23 +848,16 @@ export function TodoApp() {
         return;
       }
 
-      // '1-8' - Switch view tabs (respecting feature settings)
-      if (e.key >= "1" && e.key <= "8" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      // '1-9' - Switch view tabs, indexing the same ordered list the tab bar
+      // renders. This used to be a second hand-maintained list that had
+      // drifted: it omitted Notes, Reviews and Time, so "5" selected People
+      // while the fifth visible tab was Notes.
+      if (e.key >= "1" && e.key <= "9" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
-        // Build enabled views list based on feature settings
-        const enabledViews: ViewTab[] = [
-          "list", // Always enabled
-          ...(features?.kanbanView ? ["kanban" as ViewTab] : []),
-          ...(features?.ganttView ? ["gantt" as ViewTab] : []),
-          ...(features?.calendarView ? ["calendar" as ViewTab] : []),
-          "people", // Always enabled
-          "projects", // Always enabled
-          ...(features?.sprintsView ? ["sprints" as ViewTab] : []),
-          ...(features?.statsView ? ["stats" as ViewTab] : []),
-        ];
+        const enabledViews = getEnabledViews(features);
         const index = parseInt(e.key) - 1;
         if (index < enabledViews.length) {
-          setActiveView(enabledViews[index]);
+          setActiveView(enabledViews[index].id);
         }
         return;
       }

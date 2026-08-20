@@ -1,6 +1,7 @@
 "use client";
 
 import { FeatureSettings } from "@/types/settings";
+import { ViewTab, getEnabledViews } from "@/types/viewRegistry";
 import { SprintModel } from "@/models/SprintModel";
 import {
   TodoListIcon as TodoListIconComponent,
@@ -17,27 +18,6 @@ import {
   ClipboardDocumentCheckIcon,
 } from "@/components/shared/Icons";
 
-export type ViewTab =
-  | "list"
-  | "kanban"
-  | "gantt"
-  | "calendar"
-  | "notes"
-  | "people"
-  | "projects"
-  | "sprints"
-  | "reviews"
-  | "stats"
-  | "timereports";
-
-interface ViewTabConfig {
-  id: ViewTab;
-  label: string;
-  icon: React.ReactNode;
-  testId?: string;
-  featureFlag?: keyof FeatureSettings;
-  showIndicator?: boolean;
-}
 
 export interface ViewTabsProps {
   activeView: ViewTab;
@@ -103,6 +83,21 @@ const StatsIcon = () => <ChartBarIcon className="w-5 h-5" />;
 
 const TimeIcon = () => <ClockIcon className="w-5 h-5" />;
 
+/** Icons live here because this is the only place that renders them. */
+const VIEW_ICONS: Record<ViewTab, React.ReactNode> = {
+  list: <TodosIcon />,
+  kanban: <KanbanIcon />,
+  gantt: <GanttIcon />,
+  calendar: <CalendarViewIcon />,
+  notes: <NotesIcon />,
+  people: <PeopleIcon />,
+  projects: <ProjectsIcon />,
+  sprints: <SprintsIcon />,
+  reviews: <ReviewsIcon />,
+  stats: <StatsIcon />,
+  timereports: <TimeIcon />,
+};
+
 export function ViewTabs({ activeView, onViewChange, features, runningSprint, onOpenTutorial }: ViewTabsProps) {
   const getTabClassName = (isActive: boolean) =>
     `px-2 lg:px-3 py-2 font-medium transition-colors border-b-2 ${
@@ -111,53 +106,12 @@ export function ViewTabs({ activeView, onViewChange, features, runningSprint, on
         : "text-zinc-600 dark:text-zinc-400 border-transparent hover:text-zinc-900 dark:hover:text-zinc-100"
     }`;
 
-  const tabs: ViewTabConfig[] = [
-    { id: "list", label: "Todos", icon: <TodosIcon />, testId: "view-tab-list" },
-    { id: "kanban", label: "Kanban", icon: <KanbanIcon />, testId: "view-tab-kanban", featureFlag: "kanbanView" },
-    { id: "gantt", label: "Gantt", icon: <GanttIcon />, testId: "view-tab-gantt", featureFlag: "ganttView" },
-    {
-      id: "calendar",
-      label: "Calendar",
-      icon: <CalendarViewIcon />,
-      testId: "view-tab-calendar",
-      featureFlag: "calendarView",
-    },
-    {
-      id: "notes",
-      label: "Notes",
-      icon: <NotesIcon />,
-      testId: "view-tab-notes",
-      featureFlag: "notesView",
-    },
-    { id: "people", label: "People", icon: <PeopleIcon />, testId: "view-tab-people" },
-    { id: "projects", label: "Projects", icon: <ProjectsIcon />, testId: "view-tab-projects" },
-    {
-      id: "sprints",
-      label: "Sprints",
-      icon: <SprintsIcon />,
-      featureFlag: "sprintsView",
-      showIndicator: !!runningSprint,
-    },
-    {
-      id: "reviews",
-      label: "Reviews",
-      icon: <ReviewsIcon />,
-      testId: "view-tab-reviews",
-      featureFlag: "reviewsView",
-    },
-    { id: "stats", label: "Stats", icon: <StatsIcon />, featureFlag: "statsView" },
-    { id: "timereports", label: "Time", icon: <TimeIcon />, featureFlag: "timeTracking" },
-  ];
+  const tabs = getEnabledViews(features);
 
   return (
     <div className="mb-6 overflow-x-auto -mx-2 sm:-mx-0 px-2 sm:px-0" data-tutorial="view-tabs">
       <div className="flex gap-1 sm:gap-2 border-b border-zinc-200 dark:border-zinc-800 min-w-max">
         {tabs.map((tab) => {
-          // Check if tab should be shown based on feature flag
-          if (tab.featureFlag && !features?.[tab.featureFlag]) {
-            return null;
-          }
-
           const isActive = activeView === tab.id;
 
           return (
@@ -169,10 +123,10 @@ export function ViewTabs({ activeView, onViewChange, features, runningSprint, on
               title={`${tab.label} view`}
             >
               <div className="flex items-center gap-1 lg:gap-2">
-                {tab.icon}
+                {VIEW_ICONS[tab.id]}
                 <span className="hidden lg:inline">{tab.label}</span>
                 {isActive && <ViewTutorialButton view={tab.id} onOpenTutorial={onOpenTutorial} />}
-                {tab.showIndicator && (
+                {tab.id === "sprints" && runningSprint && (
                   <span className="hidden lg:inline w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                 )}
               </div>
