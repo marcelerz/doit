@@ -1421,7 +1421,6 @@ export function TodoApp() {
         {activeView === "reviews" && !selectedReviewId && (
           <ReviewsView
             reviews={reviews}
-            rawReviews={rawReviews}
             todos={todos.map((t) => t.raw)}
             workWeekStart={settings.dateTime.workWeekStart}
             fiscalYearStart={settings.dateTime.fiscalYearStart}
@@ -1454,7 +1453,6 @@ export function TodoApp() {
           <ReviewEditView
             review={findReview(selectedReviewId)!}
             rawReviews={rawReviews}
-            todos={todos}
             rawTodos={todos.map((t) => t.raw)}
             onBack={() => setSelectedReviewId(null)}
             onSave={editReview}

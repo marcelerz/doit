@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SprintModel } from "@/hooks/useSprints";
+import { SprintModel } from "@/models/SprintModel";
 import { SprintId } from "@/types/sprint";
 import { SprintItem } from "@/components/items/SprintItem";
 import { EmptyState } from "@/components/shared/EmptyState";

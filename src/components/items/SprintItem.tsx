@@ -1,6 +1,6 @@
 "use client";
 
-import { SprintModel } from "@/hooks/useSprints";
+import { SprintModel } from "@/models/SprintModel";
 import { TodoModel } from "@/models/TodoModel";
 import { ChevronRightIcon } from "@/components/shared/Icons";
 import { SprintProgress } from "@/components/shared/SprintProgress";

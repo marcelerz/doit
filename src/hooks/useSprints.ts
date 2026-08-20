@@ -7,11 +7,9 @@ import { getActivityId, getCommentId, CommentId } from "@/types/types";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { createSprintId, createActivityId, createCommentId } from "@/utils/idGenerator";
-import { SprintModel, createSprintModel } from "@/models/SprintModel";
+import { createSprintModel } from "@/models/SprintModel";
 import { formatDateKey } from "@/utils/dateUtils";
 
-// Re-export SprintModel for backward compatibility
-export { SprintModel } from "@/models/SprintModel";
 
 export function useSprints() {
   const [sprints, setSprints] = useState<Sprint[]>([]);

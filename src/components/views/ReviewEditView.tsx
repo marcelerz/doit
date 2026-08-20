@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useMemo } from "react";
 import { ReviewModel } from "@/models/ReviewModel";
-import { TodoModel } from "@/models/TodoModel";
+
 import { Review, ReviewId, ReviewEntry, ReviewTaskEntry, ReviewChildEntry } from "@/types/review";
 import { Todo } from "@/types/todo";
 import {
@@ -20,7 +20,6 @@ import { getTimestamp } from "@/types/time";
 interface ReviewEditViewProps {
   review: ReviewModel;
   rawReviews: Review[];
-  todos: TodoModel[];
   rawTodos: Todo[];
   onBack: () => void;
   onSave: (id: ReviewId, updates: { title?: string; summary?: string }) => void;
@@ -34,7 +33,6 @@ interface ReviewEditViewProps {
 export function ReviewEditView({
   review,
   rawReviews,
-  todos: _todos,
   rawTodos,
   onBack,
   onSave,

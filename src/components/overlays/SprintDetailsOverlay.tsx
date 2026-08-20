@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { SprintModel } from "@/hooks/useSprints";
+import { SprintModel } from "@/models/SprintModel";
 import { Sprint, SprintId } from "@/types/sprint";
 import { TodoId } from "@/types/todo";
 import { MarkerColors } from "@/types/markerColors";

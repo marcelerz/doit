@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo, forwardRef, useImperativeHandle,
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
-import { SprintModel } from "@/hooks/useSprints";
+import { SprintModel } from "@/models/SprintModel";
 import { UndoAction } from "@/hooks/useTodos";
 import { Settings } from "@/types/settings";
 import { Priority } from "@/types/priority";

@@ -8,7 +8,7 @@ import { Settings } from "@/types/settings";
 import { ProjectCategory } from "@/types/project";
 import { SprintId } from "@/types/sprint";
 import { TodoId } from "@/types/todo";
-import { SprintModel } from "@/hooks/useSprints";
+import { SprintModel } from "@/models/SprintModel";
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
 import { PrintIcon } from "@/components/shared/Icons";
 import { formatDateKey } from "@/utils/dateUtils";

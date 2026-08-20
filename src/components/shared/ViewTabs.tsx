@@ -1,7 +1,7 @@
 "use client";
 
 import { FeatureSettings } from "@/types/settings";
-import { SprintModel } from "@/hooks/useSprints";
+import { SprintModel } from "@/models/SprintModel";
 import {
   TodoListIcon as TodoListIconComponent,
   KanbanIcon as KanbanIconComponent,

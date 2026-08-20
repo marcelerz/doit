@@ -15,6 +15,7 @@ import { ActivityEntry } from "@/types/types";
 import { generatePrefixedUUID } from "@/utils/idGenerator";
 import { formatDateWithTime, formatAgeDisplay, pluralize } from "@/utils/formatters";
 import { SettingsModel } from "./SettingsModel";
+import { Timestamp } from "@/types/time";
 
 /**
  * ReviewModel wraps a Review object and provides business logic abstractions.
@@ -69,23 +70,23 @@ export class ReviewModel {
     return this._raw.state;
   }
 
-  get createdAt(): number {
+  get createdAt(): Timestamp {
     return this._raw.createdAt;
   }
 
-  get updatedAt(): number | undefined {
+  get updatedAt(): Timestamp | undefined {
     return this._raw.updatedAt;
   }
 
-  get completedAt(): number | undefined {
+  get completedAt(): Timestamp | undefined {
     return this._raw.completedAt;
   }
 
-  get archivedAt(): number | undefined {
+  get archivedAt(): Timestamp | undefined {
     return this._raw.archivedAt;
   }
 
-  get deletedAt(): number | undefined {
+  get deletedAt(): Timestamp | undefined {
     return this._raw.deletedAt;
   }
 

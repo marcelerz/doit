@@ -348,11 +348,11 @@ export function isWithinMonths(periodStart: string, monthCount: number): boolean
 /**
  * Get completed tasks within a period
  */
-export function getCompletedTasksInPeriod(
-  todos: Todo[],
+export function getCompletedTasksInPeriod<T extends Pick<Todo, "state" | "completedAt">>(
+  todos: T[],
   periodStart: string,
   periodEnd: string
-): Todo[] {
+): T[] {
   const start = parseISODateString(periodStart).getTime();
   const end = parseISODateString(periodEnd).getTime() + 24 * 60 * 60 * 1000 - 1; // End of day
 
@@ -367,12 +367,9 @@ export function getCompletedTasksInPeriod(
  * Get child reviews for a parent period
  * For example, for a month review, get all week reviews within that month
  */
-export function getChildReviewsForPeriod(
-  reviews: Review[],
-  childLevel: ReviewLevel,
-  periodStart: string,
-  periodEnd: string
-): Review[] {
+export function getChildReviewsForPeriod<
+  T extends Pick<Review, "level" | "periodStart" | "periodEnd" | "state">,
+>(reviews: T[], childLevel: ReviewLevel, periodStart: string, periodEnd: string): T[] {
   const start = parseISODateString(periodStart).getTime();
   const end = parseISODateString(periodEnd).getTime() + 24 * 60 * 60 * 1000 - 1;
 
@@ -410,7 +407,7 @@ export function getChildLevel(parentLevel: ReviewLevel): ReviewLevel | null {
  * Check if a review already exists for a given period
  */
 export function hasReviewForPeriod(
-  reviews: Review[],
+  reviews: Pick<Review, "level" | "periodStart" | "state">[],
   level: ReviewLevel,
   periodStart: string
 ): boolean {

@@ -7,7 +7,7 @@ import { UndoNotificationStack } from "@/components/shared/UndoNotificationStack
 import { PlusIcon, CalendarIcon } from "@/components/shared/Icons";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { ReviewModel } from "@/models/ReviewModel";
-import { ReviewId, ReviewLevel, Review } from "@/types/review";
+import { ReviewId, ReviewLevel } from "@/types/review";
 import { Todo } from "@/types/todo";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { ReviewUndoAction } from "@/hooks/useReviews";
@@ -62,7 +62,6 @@ export const reviewsViewTutorialSteps: TutorialStep[] = [
 
 interface ReviewsViewProps {
   reviews: ReviewModel[];
-  rawReviews: Review[];
   todos: Todo[];
   workWeekStart: Weekday;
   fiscalYearStart: Month;
@@ -87,7 +86,6 @@ interface PeriodSection {
 
 export function ReviewsView({
   reviews,
-  rawReviews,
   workWeekStart,
   fiscalYearStart,
   onOpenReview,
@@ -191,7 +189,7 @@ export function ReviewsView({
 
   // Get missing periods (periods without reviews)
   const getMissingPeriods = (periods: PeriodInfo[], level: ReviewLevel): PeriodInfo[] => {
-    return periods.filter((period) => !hasReviewForPeriod(rawReviews, level, period.start));
+    return periods.filter((period) => !hasReviewForPeriod(reviews, level, period.start));
   };
 
   // Build section data (currently for reference - may be used for future features)
