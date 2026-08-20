@@ -7,17 +7,19 @@ import { test, expect } from "../fixtures/todo-app.fixture";
  * and settings.spec.ts into a single sequential workflow.
  */
 test.describe("Persistence and Settings Workflow", () => {
-  test.beforeAll(async ({ browser }) => {
-    const page = await browser.newPage();
-    await page.goto("/");
-    await page.evaluate(() => {
+  test.beforeAll(async ({ workerPage }) => {
+    // Reset on the worker's shared page. browser.newPage() opened a separate
+    // context, so this reset never reached the pages the tests actually used.
+    // The steps below run against this same context, so this is also what
+    // isolates one spec file from the next.
+    await workerPage.goto("/");
+    await workerPage.evaluate(() => {
       localStorage.clear();
       if (typeof indexedDB !== "undefined") {
         indexedDB.deleteDatabase("doit-db");
       }
       localStorage.setItem("doit-tutorial-preferences", JSON.stringify({ completed: true, showOnStartup: false }));
     });
-    await page.close();
   });
 
   test.describe.serial("Sequential Persistence and Settings", () => {
@@ -29,10 +31,9 @@ test.describe("Persistence and Settings Workflow", () => {
       await todoApp.addTodo("Persistence test 1");
       await todoApp.addTodo("Persistence test 2");
 
-      // Verify in storage
-      const storageData = await page.evaluate(() => {
-        return localStorage.getItem("doit-todos") || "[]";
-      });
+      // Verify in storage. This read has to go through the adapter the app
+      // actually uses; localStorage is empty once IndexedDB takes over.
+      const storageData = (await todoApp.getStoredValue("doit-todos")) ?? "[]";
       expect(storageData.length).toBeGreaterThan(2);
 
       const count = await todoApp.getTodoCount();

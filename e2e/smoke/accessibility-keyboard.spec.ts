@@ -7,17 +7,19 @@ import { test, expect } from "../fixtures/todo-app.fixture";
  * into a single sequential workflow.
  */
 test.describe("Accessibility and Keyboard Workflow", () => {
-  test.beforeAll(async ({ browser }) => {
-    const page = await browser.newPage();
-    await page.goto("/");
-    await page.evaluate(() => {
+  test.beforeAll(async ({ workerPage }) => {
+    // Reset on the worker's shared page. browser.newPage() opened a separate
+    // context, so this reset never reached the pages the tests actually used.
+    // The steps below run against this same context, so this is also what
+    // isolates one spec file from the next.
+    await workerPage.goto("/");
+    await workerPage.evaluate(() => {
       localStorage.clear();
       if (typeof indexedDB !== "undefined") {
         indexedDB.deleteDatabase("doit-db");
       }
       localStorage.setItem("doit-tutorial-preferences", JSON.stringify({ completed: true, showOnStartup: false }));
     });
-    await page.close();
   });
 
   test.describe.serial("Sequential Accessibility Tests", () => {

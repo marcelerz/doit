@@ -1,4 +1,7 @@
-import { test, expect } from "./fixtures/todo-app.fixture";
+// Visual tests are independent of one another and the mobile block sets its
+// own viewport via test.use, so they need Playwright's per-test context
+// rather than the worker-scoped page the serial smoke specs share.
+import { isolatedTest as test, expect } from "./fixtures/todo-app.fixture";
 
 /**
  * Visual regression tests for the Todo app

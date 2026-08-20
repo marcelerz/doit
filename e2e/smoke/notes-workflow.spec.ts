@@ -13,10 +13,13 @@ import { test, expect } from "../fixtures/todo-app.fixture";
  */
 test.describe("Notes Workflow", () => {
   // Only clear storage once at the beginning
-  test.beforeAll(async ({ browser }) => {
-    const page = await browser.newPage();
-    await page.goto("/");
-    await page.evaluate(() => {
+  test.beforeAll(async ({ workerPage }) => {
+    // Reset on the worker's shared page. browser.newPage() opened a separate
+    // context, so this reset never reached the pages the tests actually used.
+    // The steps below run against this same context, so this is also what
+    // isolates one spec file from the next.
+    await workerPage.goto("/");
+    await workerPage.evaluate(() => {
       localStorage.clear();
       if (typeof indexedDB !== "undefined") {
         indexedDB.deleteDatabase("doit-db");
@@ -43,7 +46,6 @@ test.describe("Notes Workflow", () => {
         })
       );
     });
-    await page.close();
   });
 
   test.describe.serial("Sequential Notes Operations", () => {
@@ -112,7 +114,9 @@ test.describe("Notes Workflow", () => {
       await page.waitForTimeout(500);
 
       // Find and edit the content area
-      const contentArea = page.locator('[data-testid="note-content-editor"]');
+      // The testid sits on a wrapper div; the editable surface is the
+      // contenteditable RichTextEditor inside it.
+      const contentArea = page.locator('[data-testid="note-content-editor"] [contenteditable="true"]');
       if (await contentArea.isVisible()) {
         await contentArea.click();
         await contentArea.fill("This is the meeting content with important details.");
@@ -121,10 +125,14 @@ test.describe("Notes Workflow", () => {
         await page.waitForTimeout(500);
       }
 
-      // Go back to notes list
+      // Go back to notes list. Escape above may already have done it:
+      // NoteDetailView binds Escape to onBack, so it navigates rather than
+      // just blurring. Only click the button if we are still on the detail view.
       const backButton = page.locator('button:has-text("Back to Notes")');
-      await backButton.click();
-      await page.waitForTimeout(300);
+      if (await backButton.isVisible().catch(() => false)) {
+        await backButton.click();
+        await page.waitForTimeout(300);
+      }
 
       // Verify note still exists
       const noteInList = page.locator('[data-testid="note-item"]').filter({ hasText: "Meeting Notes" });

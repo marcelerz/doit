@@ -1202,6 +1202,7 @@ export function KanbanView({
                     return (
                       <div
                         key={todo.id}
+                        data-testid="todo-item"
                         draggable
                         onDragStart={(e) => handleDragStart(e, todo.id)}
                         onDragEnd={handleDragEnd}
