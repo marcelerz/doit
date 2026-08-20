@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { ProjectItem } from "@/components/items/ProjectItem";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PlusIcon } from "@/components/shared/Icons";
@@ -8,13 +8,10 @@ import { SearchInput } from "@/components/shared/SearchInput";
 import { ProjectModel } from "@/models/ProjectModel";
 import { ProjectId } from "@/types/project";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
-import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
+import { STORAGE_KEYS } from "@/storage/storage";
+import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
 
 // Projects View Options for storage
-interface ProjectsViewOptions {
-  search?: string;
-  showArchived?: boolean;
-}
 
 // Projects View Tutorial Steps
 export const projectsViewTutorialSteps: TutorialStep[] = [
@@ -86,39 +83,22 @@ export function ProjectsView({
   searchInputRef,
 }: ProjectsViewProps) {
   // Internal state for search and show archived
-  const [search, setSearch] = useState("");
-  const [showArchived, setShowArchived] = useState(false);
-  const [optionsLoaded, setOptionsLoaded] = useState(false);
+  const [{ search, showArchived }, setViewOptions] = usePersistedViewOptions(
+    STORAGE_KEYS.PROJECTS_VIEW_OPTIONS,
+    { search: "", showArchived: false }
+  );
 
   const localInputRef = useRef<HTMLInputElement>(null);
   const inputRef = searchInputRef || localInputRef;
 
-  // Load view options from storage on mount
-  useEffect(() => {
-    loadFromStorage<ProjectsViewOptions>(STORAGE_KEYS.PROJECTS_VIEW_OPTIONS, {}).then((saved) => {
-      if (saved.search !== undefined) setSearch(saved.search);
-      if (saved.showArchived !== undefined) setShowArchived(saved.showArchived);
-      setOptionsLoaded(true);
-    });
-  }, []);
-
-  // Persist view options to storage
-  useEffect(() => {
-    if (!optionsLoaded) return;
-    saveToStorage(STORAGE_KEYS.PROJECTS_VIEW_OPTIONS, {
-      search,
-      showArchived,
-    });
-  }, [optionsLoaded, search, showArchived]);
-
   // Handlers for state changes
   const handleSearchChange = useCallback((value: string) => {
-    setSearch(value);
-  }, []);
+    setViewOptions({ search: value });
+  }, [setViewOptions]);
 
   const handleShowArchivedChange = useCallback((value: boolean) => {
-    setShowArchived(value);
-  }, []);
+    setViewOptions({ showArchived: value });
+  }, [setViewOptions]);
 
   // Filter projects based on search and archive filter
   const filteredProjects = useMemo(() => {

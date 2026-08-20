@@ -1,21 +1,18 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { SprintModel } from "@/models/SprintModel";
 import { SprintId } from "@/types/sprint";
 import { SprintItem } from "@/components/items/SprintItem";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TodoModel } from "@/models/TodoModel";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
-import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/storage/storage";
+import { STORAGE_KEYS } from "@/storage/storage";
 import { PlusIcon } from "@/components/shared/Icons";
 import { SearchInput } from "@/components/shared/SearchInput";
+import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
 
 // Sprints View Options for storage
-interface SprintsViewOptions {
-  search?: string;
-  showArchived?: boolean;
-}
 
 // Sprints View Tutorial Steps
 export const sprintsViewTutorialSteps: TutorialStep[] = [
@@ -68,39 +65,22 @@ interface SprintsViewProps {
 
 export function SprintsView({ sprints, todos, onOpenSprint, onAddSprint, searchInputRef }: SprintsViewProps) {
   // Internal state for search and show archived
-  const [search, setSearch] = useState("");
-  const [showArchived, setShowArchived] = useState(false);
-  const [optionsLoaded, setOptionsLoaded] = useState(false);
+  const [{ search, showArchived }, setViewOptions] = usePersistedViewOptions(
+    STORAGE_KEYS.SPRINTS_VIEW_OPTIONS,
+    { search: "", showArchived: false }
+  );
 
   const localInputRef = useRef<HTMLInputElement>(null);
   const inputRef = searchInputRef || localInputRef;
 
-  // Load view options from storage on mount
-  useEffect(() => {
-    loadFromStorage<SprintsViewOptions>(STORAGE_KEYS.SPRINTS_VIEW_OPTIONS, {}).then((saved) => {
-      if (saved.search !== undefined) setSearch(saved.search);
-      if (saved.showArchived !== undefined) setShowArchived(saved.showArchived);
-      setOptionsLoaded(true);
-    });
-  }, []);
-
-  // Persist view options to storage
-  useEffect(() => {
-    if (!optionsLoaded) return;
-    saveToStorage(STORAGE_KEYS.SPRINTS_VIEW_OPTIONS, {
-      search,
-      showArchived,
-    });
-  }, [optionsLoaded, search, showArchived]);
-
   // Handlers for state changes
   const handleSearchChange = useCallback((value: string) => {
-    setSearch(value);
-  }, []);
+    setViewOptions({ search: value });
+  }, [setViewOptions]);
 
   const handleShowArchivedChange = useCallback((value: boolean) => {
-    setShowArchived(value);
-  }, []);
+    setViewOptions({ showArchived: value });
+  }, [setViewOptions]);
 
   // Filter sprints based on search and archive filter
   const filteredSprints = useMemo(() => {
