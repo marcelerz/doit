@@ -9,6 +9,7 @@ import { LinkPattern } from "@/types/linkPattern";
 import { getColor, CommentId } from "@/types/types";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { processLinkPatternsInHtml } from "@/utils/linkPatternUtils";
+import { sanitizeHtml } from "@/utils/sanitize";
 import { ActivitySection } from "@/components/shared/ActivitySection";
 import { ActionButtons } from "@/components/shared/ActionButtons";
 import { Modal } from "@/components/shared/Modal";
@@ -397,7 +398,11 @@ export function SprintDetailsOverlay({
                   <div
                     className="px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer"
                     dangerouslySetInnerHTML={{
-                      __html: processLinkPatternsInHtml(sprint.goal || "<em>No goal set</em>", linkPatterns),
+                      // SECURITY: sanitize on render - imported/restored sprints never pass through RichTextEditor
+                      __html: processLinkPatternsInHtml(
+                        sanitizeHtml(sprint.goal || "<em>No goal set</em>"),
+                        linkPatterns
+                      ),
                     }}
                   />
                 )}

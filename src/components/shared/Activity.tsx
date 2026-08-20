@@ -5,6 +5,7 @@ import { Comment, CommentId } from "@/types/types";
 import { LinkPattern } from "@/types/linkPattern";
 import { formatActivityTime, formatActivityDateTime } from "@/utils/activityLogger";
 import { processLinkPatternsInHtml } from "@/utils/linkPatternUtils";
+import { sanitizeHtml } from "@/utils/sanitize";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { TrashIcon } from "@/components/shared/Icons";
 
@@ -314,12 +315,13 @@ export function Activity({
                             </div>
                           </div>
                         ) : (
-                          // SECURITY: Content is pre-sanitized by DOMPurify in RichTextEditor before storage
-                          // processLinkPatternsInHtml only processes text nodes and escapes all output
+                          // SECURITY: sanitize on render. Content written through RichTextEditor is
+                          // already sanitized, but imported and restored data never passes through it,
+                          // and processLinkPatternsInHtml expects pre-sanitized input.
                           <div
                             className="mt-1 text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 p-2 rounded [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:cursor-pointer"
                             dangerouslySetInnerHTML={{
-                              __html: processLinkPatternsInHtml(entry.content, linkPatterns),
+                              __html: processLinkPatternsInHtml(sanitizeHtml(entry.content), linkPatterns),
                             }}
                           />
                         )}
