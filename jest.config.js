@@ -4,7 +4,10 @@ module.exports = {
   testEnvironment: "node",
   roots: ["<rootDir>/src"],
   setupFilesAfterEnv: ["<rootDir>/src/__tests__/setup.ts"],
-  testMatch: ["**/__tests__/**/*.test.ts", "**/?(*.)+(spec|test).ts"],
+  // .tsx included so component and provider tests can run at all. Without it
+  // no test for anything under components/ or services/ could ever execute,
+  // which is why src/services/__tests__/ sat empty.
+  testMatch: ["**/__tests__/**/*.test.ts?(x)", "**/?(*.)+(spec|test).ts?(x)"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
@@ -37,6 +40,9 @@ module.exports = {
     "src/storage/**/*.ts",
     "src/services/**/*.tsx",
     "!src/**/*.d.ts",
+    // Test files and fixtures are not production code; counting them in the
+    // denominator let an unused 338-line helper drag the ratio down.
+    "!src/**/__tests__/**",
   ],
   coverageDirectory: "coverage",
   coverageReporters: ["text", "lcov", "html"],
@@ -45,10 +51,10 @@ module.exports = {
   // `npm run validate` printed a number and always passed.
   coverageThreshold: {
     global: {
-      statements: 54,
-      branches: 46,
-      functions: 51,
-      lines: 55,
+      statements: 58,
+      branches: 50,
+      functions: 54,
+      lines: 60,
     },
   },
 };
