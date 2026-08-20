@@ -4,7 +4,11 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { NoteModel } from "@/models/NoteModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { PersonModel } from "@/models/PersonModel";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
+import {
+  STORAGE_KEYS,
+  loadFromStorage,
+  saveToStorage,
+} from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { setToSortedArray, arrayHasAnyFromSet } from "@/utils/filterHelpers";
 
@@ -18,7 +22,8 @@ export interface NotesFilters {
   tags: Set<string>;
 }
 
-export type NotesSortField = "title" | "created" | "modified" | "pinned" | "manual";
+export type NotesSortField =
+  "title" | "created" | "modified" | "pinned" | "manual";
 
 export type SortDirection = "asc" | "desc";
 
@@ -73,7 +78,11 @@ interface UseNotesViewStateProps {
 // Storage key for notes view presets
 const NOTES_VIEW_PRESETS_KEY = "doit-notes-view-presets";
 
-export function useNotesViewState({ notes, projects, people }: UseNotesViewStateProps) {
+export function useNotesViewState({
+  notes,
+  projects,
+  people,
+}: UseNotesViewStateProps) {
   // Filter state
   const [filters, setFilters] = useState<NotesFilters>({ ...emptyFilters });
   const [showFilters, setShowFilters] = useState(false);
@@ -86,7 +95,8 @@ export function useNotesViewState({ notes, projects, people }: UseNotesViewState
   const [groupBy, setGroupBy] = useState<NotesGroupBy>("none");
 
   // Quick filter state
-  const [activeQuickFilter, setActiveQuickFilter] = useState<NotesQuickFilter>("all");
+  const [activeQuickFilter, setActiveQuickFilter] =
+    useState<NotesQuickFilter>("all");
 
   // Section expanded states
   const [activeExpanded, setActiveExpanded] = useState(true);
@@ -107,15 +117,21 @@ export function useNotesViewState({ notes, projects, people }: UseNotesViewState
 
   // Selection mode state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
+  const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Expanded note IDs for detail view
-  const [expandedNoteIds, setExpandedNoteIds] = useState<Set<string>>(new Set());
+  const [expandedNoteIds, setExpandedNoteIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Load view presets from storage on mount
   useEffect(() => {
     waitForStorageInit()
-      .then(() => loadFromStorage<NotesViewPreset[]>(NOTES_VIEW_PRESETS_KEY, []))
+      .then(() =>
+        loadFromStorage<NotesViewPreset[]>(NOTES_VIEW_PRESETS_KEY, []),
+      )
       .then((saved) => {
         setViewPresets(saved);
         setViewPresetsLoaded(true);
@@ -131,44 +147,57 @@ export function useNotesViewState({ notes, projects, people }: UseNotesViewState
 
   // Load view options from storage on mount
   useEffect(() => {
-    loadFromStorage<{
-      filters?: {
-        searchText?: string;
-        assignedPeople?: string[];
-        sourcePeople?: string[];
-        mentionedPeople?: string[];
-        projects?: string[];
-        tags?: string[];
-      };
-      sortField?: NotesSortField;
-      sortDirection?: SortDirection;
-      groupBy?: NotesGroupBy;
-      quickFilter?: NotesQuickFilter;
-      sections?: {
-        activeExpanded?: boolean;
-        archivedExpanded?: boolean;
-      };
-    }>(STORAGE_KEYS.NOTES_VIEW_OPTIONS, {}).then((saved) => {
-      if (saved.filters) {
-        setFilters({
-          searchText: saved.filters.searchText || "",
-          assignedPeople: new Set(saved.filters.assignedPeople || []),
-          sourcePeople: new Set(saved.filters.sourcePeople || []),
-          mentionedPeople: new Set(saved.filters.mentionedPeople || []),
-          projects: new Set(saved.filters.projects || []),
-          tags: new Set(saved.filters.tags || []),
-        });
-      }
-      if (saved.sortField) setSortField(saved.sortField);
-      if (saved.sortDirection) setSortDirection(saved.sortDirection);
-      if (saved.groupBy) setGroupBy(saved.groupBy);
-      if (saved.quickFilter) setActiveQuickFilter(saved.quickFilter);
-      if (saved.sections) {
-        if (saved.sections.activeExpanded !== undefined) setActiveExpanded(saved.sections.activeExpanded);
-        if (saved.sections.archivedExpanded !== undefined) setArchivedExpanded(saved.sections.archivedExpanded);
-      }
-      setViewOptionsLoaded(true);
-    });
+    // The presets effect above already waits for initialization; this one did
+    // not, so it read the pre-init localStorage adapter, fell back to the
+    // defaults, and the save effect then wrote those over the stored options.
+    waitForStorageInit()
+      .then(() =>
+        loadFromStorage<{
+          filters?: {
+            searchText?: string;
+            assignedPeople?: string[];
+            sourcePeople?: string[];
+            mentionedPeople?: string[];
+            projects?: string[];
+            tags?: string[];
+          };
+          sortField?: NotesSortField;
+          sortDirection?: SortDirection;
+          groupBy?: NotesGroupBy;
+          quickFilter?: NotesQuickFilter;
+          sections?: {
+            activeExpanded?: boolean;
+            archivedExpanded?: boolean;
+          };
+        }>(STORAGE_KEYS.NOTES_VIEW_OPTIONS, {}),
+      )
+      .then((saved) => {
+        if (saved.filters) {
+          setFilters({
+            searchText: saved.filters.searchText || "",
+            assignedPeople: new Set(saved.filters.assignedPeople || []),
+            sourcePeople: new Set(saved.filters.sourcePeople || []),
+            mentionedPeople: new Set(saved.filters.mentionedPeople || []),
+            projects: new Set(saved.filters.projects || []),
+            tags: new Set(saved.filters.tags || []),
+          });
+        }
+        if (saved.sortField) setSortField(saved.sortField);
+        if (saved.sortDirection) setSortDirection(saved.sortDirection);
+        if (saved.groupBy) setGroupBy(saved.groupBy);
+        if (saved.quickFilter) setActiveQuickFilter(saved.quickFilter);
+        if (saved.sections) {
+          if (saved.sections.activeExpanded !== undefined)
+            setActiveExpanded(saved.sections.activeExpanded);
+          if (saved.sections.archivedExpanded !== undefined)
+            setArchivedExpanded(saved.sections.archivedExpanded);
+        }
+        setViewOptionsLoaded(true);
+      })
+      .catch((error) => {
+        console.error("Failed to load notes view options:", error);
+        setViewOptionsLoaded(true);
+      });
   }, []);
 
   // Save view options to storage when they change
@@ -199,9 +228,18 @@ export function useNotesViewState({ notes, projects, people }: UseNotesViewState
     const matchingPreset = viewPresets.find((preset) => {
       return (
         preset.filters.searchText === filters.searchText &&
-        arraysEqual(preset.filters.assignedPeople, Array.from(filters.assignedPeople)) &&
-        arraysEqual(preset.filters.sourcePeople, Array.from(filters.sourcePeople)) &&
-        arraysEqual(preset.filters.mentionedPeople, Array.from(filters.mentionedPeople)) &&
+        arraysEqual(
+          preset.filters.assignedPeople,
+          Array.from(filters.assignedPeople),
+        ) &&
+        arraysEqual(
+          preset.filters.sourcePeople,
+          Array.from(filters.sourcePeople),
+        ) &&
+        arraysEqual(
+          preset.filters.mentionedPeople,
+          Array.from(filters.mentionedPeople),
+        ) &&
         arraysEqual(preset.filters.projects, Array.from(filters.projects)) &&
         arraysEqual(preset.filters.tags || [], Array.from(filters.tags)) &&
         preset.sortField === sortField &&
@@ -233,7 +271,8 @@ export function useNotesViewState({ notes, projects, people }: UseNotesViewState
     return {
       all: activeNotes.length,
       pinned: activeNotes.filter((n) => n.isPinned).length,
-      hasActionItems: activeNotes.filter((n) => n.pendingActionItemCount > 0).length,
+      hasActionItems: activeNotes.filter((n) => n.pendingActionItemCount > 0)
+        .length,
       archived: notes.filter((n) => n.isArchived).length,
     };
   }, [notes]);
@@ -299,9 +338,12 @@ export function useNotesViewState({ notes, projects, people }: UseNotesViewState
     [filterOptions],
   );
 
-  const handleClearAll = useCallback((type: keyof Omit<NotesFilters, "searchText">) => {
-    setFilters((prev) => ({ ...prev, [type]: new Set() }));
-  }, []);
+  const handleClearAll = useCallback(
+    (type: keyof Omit<NotesFilters, "searchText">) => {
+      setFilters((prev) => ({ ...prev, [type]: new Set() }));
+    },
+    [],
+  );
 
   const handleClearAllFilters = useCallback(() => {
     setFilters({ ...emptyFilters });
@@ -336,19 +378,25 @@ export function useNotesViewState({ notes, projects, people }: UseNotesViewState
 
         // Metadata filters (OR logic within each category)
         if (filters.assignedPeople.size > 0) {
-          if (!arrayHasAnyFromSet(note.assignedPeople, filters.assignedPeople)) return false;
+          if (!arrayHasAnyFromSet(note.assignedPeople, filters.assignedPeople))
+            return false;
         }
 
         if (filters.sourcePeople.size > 0) {
-          if (!arrayHasAnyFromSet(note.sourcePeople, filters.sourcePeople)) return false;
+          if (!arrayHasAnyFromSet(note.sourcePeople, filters.sourcePeople))
+            return false;
         }
 
         if (filters.mentionedPeople.size > 0) {
-          if (!arrayHasAnyFromSet(note.mentionedPeople, filters.mentionedPeople)) return false;
+          if (
+            !arrayHasAnyFromSet(note.mentionedPeople, filters.mentionedPeople)
+          )
+            return false;
         }
 
         if (filters.projects.size > 0) {
-          if (!arrayHasAnyFromSet(note.projects, filters.projects)) return false;
+          if (!arrayHasAnyFromSet(note.projects, filters.projects))
+            return false;
         }
 
         if (filters.tags.size > 0) {
@@ -366,7 +414,11 @@ export function useNotesViewState({ notes, projects, people }: UseNotesViewState
     (noteList: NoteModel[]) => {
       return [...noteList].sort((a, b) => {
         // Pinned notes always come first unless sorting by pinned or manual explicitly
-        if (sortField !== "pinned" && sortField !== "manual" && a.isPinned !== b.isPinned) {
+        if (
+          sortField !== "pinned" &&
+          sortField !== "manual" &&
+          a.isPinned !== b.isPinned
+        ) {
           return a.isPinned ? -1 : 1;
         }
 
@@ -501,7 +553,8 @@ export function useNotesViewState({ notes, projects, people }: UseNotesViewState
         // Ensure pinned group comes first
         const sortedGroups: Record<string, NoteModel[]> = {};
         if (grouped[pinnedKey]) sortedGroups[pinnedKey] = grouped[pinnedKey];
-        if (grouped[unpinnedKey]) sortedGroups[unpinnedKey] = grouped[unpinnedKey];
+        if (grouped[unpinnedKey])
+          sortedGroups[unpinnedKey] = grouped[unpinnedKey];
 
         return sortedGroups;
       }

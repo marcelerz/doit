@@ -4,8 +4,16 @@ import { useCallback, useEffect, useRef } from "react";
 import { TodoModel } from "@/models/TodoModel";
 import { NotificationSettings } from "@/types/settings";
 import { TodoId } from "@/types/todo";
-import { checkAndNotifyDueTasks, getNotificationPermission } from "@/utils/notifications";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
+import {
+  checkAndNotifyDueTasks,
+  getNotificationPermission,
+} from "@/utils/notifications";
+import {
+  STORAGE_KEYS,
+  loadFromStorage,
+  saveToStorage,
+  waitForStorageInit,
+} from "@/storage/storage";
 
 const CHECK_INTERVAL_MS = 60 * 1000;
 
@@ -13,7 +21,10 @@ const CHECK_INTERVAL_MS = 60 * 1000;
  * Hook that monitors todos and sends notifications for due/overdue tasks.
  * Runs a check every minute to send notifications based on settings.
  */
-export function useTaskNotifications(todos: TodoModel[], notificationSettings: NotificationSettings) {
+export function useTaskNotifications(
+  todos: TodoModel[],
+  notificationSettings: NotificationSettings,
+) {
   // Which todos we have already notified about.
   //
   // Persisted: this used to live only in a ref, so every page load and PWA
@@ -39,9 +50,11 @@ export function useTaskNotifications(todos: TodoModel[], notificationSettings: N
   }, [todos, notificationSettings]);
 
   const persist = useCallback((ids: Set<TodoId>) => {
-    saveToStorage(STORAGE_KEYS.NOTIFIED_TASKS, Array.from(ids)).catch((error) => {
-      console.error("Failed to persist notification history:", error);
-    });
+    saveToStorage(STORAGE_KEYS.NOTIFIED_TASKS, Array.from(ids)).catch(
+      (error) => {
+        console.error("Failed to persist notification history:", error);
+      },
+    );
   }, []);
 
   const runCheck = useCallback(() => {
@@ -67,7 +80,11 @@ export function useTaskNotifications(todos: TodoModel[], notificationSettings: N
   // Restore the notified set, then run the first check.
   useEffect(() => {
     let cancelled = false;
-    loadFromStorage<TodoId[]>(STORAGE_KEYS.NOTIFIED_TASKS, [])
+    // Without waiting for initialization this read the emptied localStorage
+    // adapter, so the notified set came back empty on every load and already
+    // notified overdue tasks fired again.
+    waitForStorageInit()
+      .then(() => loadFromStorage<TodoId[]>(STORAGE_KEYS.NOTIFIED_TASKS, []))
       .then((stored) => {
         if (!cancelled) notifiedIds.current = new Set(stored);
       })
@@ -104,7 +121,9 @@ export function useTaskNotifications(todos: TodoModel[], notificationSettings: N
   useEffect(() => {
     if (!hydrated.current) return;
     const activeIds = new Set(todos.filter((t) => t.isActive).map((t) => t.id));
-    const pruned = new Set(Array.from(notifiedIds.current).filter((id) => activeIds.has(id)));
+    const pruned = new Set(
+      Array.from(notifiedIds.current).filter((id) => activeIds.has(id)),
+    );
 
     if (pruned.size !== notifiedIds.current.size) {
       notifiedIds.current = pruned;

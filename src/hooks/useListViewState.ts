@@ -4,9 +4,17 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { TodoModel } from "@/models/TodoModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { Settings } from "@/types/settings";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
+import {
+  STORAGE_KEYS,
+  loadFromStorage,
+  saveToStorage,
+} from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
-import { setToSortedArray, arrayHasAnyFromSet, setHasValue } from "@/utils/filterHelpers";
+import {
+  setToSortedArray,
+  arrayHasAnyFromSet,
+  setHasValue,
+} from "@/utils/filterHelpers";
 import { parseLocalDate } from "@/utils/dateUtils";
 
 // Types
@@ -40,9 +48,17 @@ export type SortField =
 
 export type SortDirection = "asc" | "desc";
 
-export type GroupBy = "none" | "dueDate" | "priority" | "project" | "category" | "assigned" | "sprint";
+export type GroupBy =
+  | "none"
+  | "dueDate"
+  | "priority"
+  | "project"
+  | "category"
+  | "assigned"
+  | "sprint";
 
-export type QuickFilter = "all" | "today" | "overdue" | "thisWeek" | "noDueDate";
+export type QuickFilter =
+  "all" | "today" | "overdue" | "thisWeek" | "noDueDate";
 
 export interface ViewPreset {
   name: string;
@@ -101,7 +117,11 @@ interface UseListViewStateProps {
   settings: Settings;
 }
 
-export function useListViewState({ todos, projects, settings }: UseListViewStateProps) {
+export function useListViewState({
+  todos,
+  projects,
+  settings,
+}: UseListViewStateProps) {
   // Filter state
   const [filters, setFilters] = useState<TodoFilters>({ ...emptyFilters });
   const [showFilters, setShowFilters] = useState(false);
@@ -114,7 +134,8 @@ export function useListViewState({ todos, projects, settings }: UseListViewState
   const [groupBy, setGroupBy] = useState<GroupBy>("dueDate");
 
   // Quick filter state
-  const [activeQuickFilter, setActiveQuickFilter] = useState<QuickFilter>("all");
+  const [activeQuickFilter, setActiveQuickFilter] =
+    useState<QuickFilter>("all");
 
   // Section expanded states
   const [activeExpanded, setActiveExpanded] = useState(true);
@@ -150,58 +171,72 @@ export function useListViewState({ todos, projects, settings }: UseListViewState
 
   // Load view options from storage on mount
   useEffect(() => {
-    loadFromStorage<{
-      filters?: {
-        searchText?: string;
-        assignedPeople?: string[];
-        sourcePeople?: string[];
-        mentionedPeople?: string[];
-        projects?: string[];
-        categories?: string[];
-        priorities?: string[];
-        dueDates?: string[];
-        durations?: string[];
-        tags?: string[];
-        recurring?: string[];
-        dependencies?: string[];
-      };
-      sortField?: SortField;
-      sortDirection?: SortDirection;
-      groupBy?: GroupBy;
-      quickFilter?: QuickFilter;
-      sections?: {
-        activeExpanded?: boolean;
-        completedExpanded?: boolean;
-        archivedExpanded?: boolean;
-      };
-    }>(STORAGE_KEYS.VIEW_OPTIONS, {}).then((saved) => {
-      if (saved.filters) {
-        setFilters({
-          searchText: saved.filters.searchText || "",
-          assignedPeople: new Set(saved.filters.assignedPeople || []),
-          sourcePeople: new Set(saved.filters.sourcePeople || []),
-          mentionedPeople: new Set(saved.filters.mentionedPeople || []),
-          projects: new Set(saved.filters.projects || []),
-          categories: new Set(saved.filters.categories || []),
-          priorities: new Set(saved.filters.priorities || []),
-          dueDates: new Set(saved.filters.dueDates || []),
-          durations: new Set(saved.filters.durations || []),
-          tags: new Set(saved.filters.tags || []),
-          recurring: new Set(saved.filters.recurring || []),
-          dependencies: new Set(saved.filters.dependencies || []),
-        });
-      }
-      if (saved.sortField) setSortField(saved.sortField);
-      if (saved.sortDirection) setSortDirection(saved.sortDirection);
-      if (saved.groupBy) setGroupBy(saved.groupBy);
-      if (saved.quickFilter) setActiveQuickFilter(saved.quickFilter);
-      if (saved.sections) {
-        if (saved.sections.activeExpanded !== undefined) setActiveExpanded(saved.sections.activeExpanded);
-        if (saved.sections.completedExpanded !== undefined) setCompletedExpanded(saved.sections.completedExpanded);
-        if (saved.sections.archivedExpanded !== undefined) setArchivedExpanded(saved.sections.archivedExpanded);
-      }
-      setViewOptionsLoaded(true);
-    });
+    // The presets effect above already waits for initialization; this one did
+    // not, so it read the pre-init localStorage adapter, fell back to the
+    // defaults, and the save effect then wrote those over the stored options.
+    waitForStorageInit()
+      .then(() =>
+        loadFromStorage<{
+          filters?: {
+            searchText?: string;
+            assignedPeople?: string[];
+            sourcePeople?: string[];
+            mentionedPeople?: string[];
+            projects?: string[];
+            categories?: string[];
+            priorities?: string[];
+            dueDates?: string[];
+            durations?: string[];
+            tags?: string[];
+            recurring?: string[];
+            dependencies?: string[];
+          };
+          sortField?: SortField;
+          sortDirection?: SortDirection;
+          groupBy?: GroupBy;
+          quickFilter?: QuickFilter;
+          sections?: {
+            activeExpanded?: boolean;
+            completedExpanded?: boolean;
+            archivedExpanded?: boolean;
+          };
+        }>(STORAGE_KEYS.VIEW_OPTIONS, {}),
+      )
+      .then((saved) => {
+        if (saved.filters) {
+          setFilters({
+            searchText: saved.filters.searchText || "",
+            assignedPeople: new Set(saved.filters.assignedPeople || []),
+            sourcePeople: new Set(saved.filters.sourcePeople || []),
+            mentionedPeople: new Set(saved.filters.mentionedPeople || []),
+            projects: new Set(saved.filters.projects || []),
+            categories: new Set(saved.filters.categories || []),
+            priorities: new Set(saved.filters.priorities || []),
+            dueDates: new Set(saved.filters.dueDates || []),
+            durations: new Set(saved.filters.durations || []),
+            tags: new Set(saved.filters.tags || []),
+            recurring: new Set(saved.filters.recurring || []),
+            dependencies: new Set(saved.filters.dependencies || []),
+          });
+        }
+        if (saved.sortField) setSortField(saved.sortField);
+        if (saved.sortDirection) setSortDirection(saved.sortDirection);
+        if (saved.groupBy) setGroupBy(saved.groupBy);
+        if (saved.quickFilter) setActiveQuickFilter(saved.quickFilter);
+        if (saved.sections) {
+          if (saved.sections.activeExpanded !== undefined)
+            setActiveExpanded(saved.sections.activeExpanded);
+          if (saved.sections.completedExpanded !== undefined)
+            setCompletedExpanded(saved.sections.completedExpanded);
+          if (saved.sections.archivedExpanded !== undefined)
+            setArchivedExpanded(saved.sections.archivedExpanded);
+        }
+        setViewOptionsLoaded(true);
+      })
+      .catch((error) => {
+        console.error("Failed to load list view options:", error);
+        setViewOptionsLoaded(true);
+      });
   }, []);
 
   // Save view options to storage when they change
@@ -239,17 +274,38 @@ export function useListViewState({ todos, projects, settings }: UseListViewState
     const matchingPreset = viewPresets.find((preset) => {
       return (
         preset.filters.searchText === filters.searchText &&
-        arraysEqual(preset.filters.assignedPeople, Array.from(filters.assignedPeople)) &&
-        arraysEqual(preset.filters.sourcePeople, Array.from(filters.sourcePeople)) &&
-        arraysEqual(preset.filters.mentionedPeople, Array.from(filters.mentionedPeople)) &&
+        arraysEqual(
+          preset.filters.assignedPeople,
+          Array.from(filters.assignedPeople),
+        ) &&
+        arraysEqual(
+          preset.filters.sourcePeople,
+          Array.from(filters.sourcePeople),
+        ) &&
+        arraysEqual(
+          preset.filters.mentionedPeople,
+          Array.from(filters.mentionedPeople),
+        ) &&
         arraysEqual(preset.filters.projects, Array.from(filters.projects)) &&
-        arraysEqual(preset.filters.categories || [], Array.from(filters.categories)) &&
-        arraysEqual(preset.filters.priorities, Array.from(filters.priorities)) &&
+        arraysEqual(
+          preset.filters.categories || [],
+          Array.from(filters.categories),
+        ) &&
+        arraysEqual(
+          preset.filters.priorities,
+          Array.from(filters.priorities),
+        ) &&
         arraysEqual(preset.filters.dueDates, Array.from(filters.dueDates)) &&
         arraysEqual(preset.filters.durations, Array.from(filters.durations)) &&
         arraysEqual(preset.filters.tags || [], Array.from(filters.tags)) &&
-        arraysEqual(preset.filters.recurring || [], Array.from(filters.recurring)) &&
-        arraysEqual(preset.filters.dependencies || [], Array.from(filters.dependencies)) &&
+        arraysEqual(
+          preset.filters.recurring || [],
+          Array.from(filters.recurring),
+        ) &&
+        arraysEqual(
+          preset.filters.dependencies || [],
+          Array.from(filters.dependencies),
+        ) &&
         preset.sortField === sortField &&
         preset.sortDirection === sortDirection &&
         preset.groupBy === groupBy &&
@@ -376,9 +432,12 @@ export function useListViewState({ todos, projects, settings }: UseListViewState
     [filterOptions],
   );
 
-  const handleClearAll = useCallback((type: keyof Omit<TodoFilters, "searchText">) => {
-    setFilters((prev) => ({ ...prev, [type]: new Set() }));
-  }, []);
+  const handleClearAll = useCallback(
+    (type: keyof Omit<TodoFilters, "searchText">) => {
+      setFilters((prev) => ({ ...prev, [type]: new Set() }));
+    },
+    [],
+  );
 
   const handleClearAllFilters = useCallback(() => {
     setFilters({ ...emptyFilters });
@@ -414,31 +473,40 @@ export function useListViewState({ todos, projects, settings }: UseListViewState
 
         // Metadata filters (OR logic within each category)
         if (filters.assignedPeople.size > 0) {
-          if (!arrayHasAnyFromSet(todo.assignedPeople, filters.assignedPeople)) return false;
+          if (!arrayHasAnyFromSet(todo.assignedPeople, filters.assignedPeople))
+            return false;
         }
 
         if (filters.sourcePeople.size > 0) {
-          if (!arrayHasAnyFromSet(todo.sourcePeople, filters.sourcePeople)) return false;
+          if (!arrayHasAnyFromSet(todo.sourcePeople, filters.sourcePeople))
+            return false;
         }
 
         if (filters.mentionedPeople.size > 0) {
-          if (!arrayHasAnyFromSet(todo.mentionedPeople, filters.mentionedPeople)) return false;
+          if (
+            !arrayHasAnyFromSet(todo.mentionedPeople, filters.mentionedPeople)
+          )
+            return false;
         }
 
         if (filters.projects.size > 0) {
-          if (!arrayHasAnyFromSet(todo.projects, filters.projects)) return false;
+          if (!arrayHasAnyFromSet(todo.projects, filters.projects))
+            return false;
         }
 
         // Category filter
         if (filters.categories.size > 0) {
           const todoCategories = todo.projects
             .map((projectName) => {
-              const project = projects.find((p) => p.matchesAnyName([projectName]));
+              const project = projects.find((p) =>
+                p.matchesAnyName([projectName]),
+              );
               return project?.category;
             })
             .filter((c): c is NonNullable<typeof c> => !!c);
 
-          if (!arrayHasAnyFromSet(todoCategories, filters.categories)) return false;
+          if (!arrayHasAnyFromSet(todoCategories, filters.categories))
+            return false;
         }
 
         if (filters.priorities.size > 0) {
@@ -450,7 +518,8 @@ export function useListViewState({ todos, projects, settings }: UseListViewState
         }
 
         if (filters.durations.size > 0) {
-          if (!setHasValue(filters.durations, todo.durationDisplay)) return false;
+          if (!setHasValue(filters.durations, todo.durationDisplay))
+            return false;
         }
 
         if (filters.tags.size > 0) {
@@ -462,7 +531,8 @@ export function useListViewState({ todos, projects, settings }: UseListViewState
         }
 
         if (filters.dependencies.size > 0) {
-          if (!arrayHasAnyFromSet(todo.dependencies, filters.dependencies)) return false;
+          if (!arrayHasAnyFromSet(todo.dependencies, filters.dependencies))
+            return false;
         }
 
         return true;
@@ -692,9 +762,13 @@ export function useListViewState({ todos, projects, settings }: UseListViewState
           const categories = new Set<string>();
 
           projectList.forEach((projectName) => {
-            const project = projects.find((p) => p.matchesAnyName([projectName]));
+            const project = projects.find((p) =>
+              p.matchesAnyName([projectName]),
+            );
             if (project?.category) {
-              const category = settings.categories?.find((c) => c.id === project.category);
+              const category = settings.categories?.find(
+                (c) => c.id === project.category,
+              );
               if (category) {
                 categories.add(category.name);
               }

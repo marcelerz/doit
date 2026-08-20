@@ -9,6 +9,7 @@ import {
   getStorageAdapter,
   StorageAdapter,
 } from "@/storage/storage";
+import * as storage from "@/storage/storage";
 
 class MemoryAdapter implements StorageAdapter {
   data = new Map<string, string>();
@@ -101,6 +102,68 @@ describe("usePersistedViewOptions", () => {
       expect(JSON.parse(call[1])).not.toEqual(defaults);
     }
     expect(result.current[0].search).toBe("precious");
+  });
+
+  it("waits for storage initialization before reading", async () => {
+    // Until initializeStorage resolves, the module-level adapter is the
+    // localStorage one. On an IndexedDB install the migration has already
+    // emptied it, so an un-awaited read sees nothing and falls back to the
+    // defaults -- which the save effect then writes over the real data.
+    const installedByInit = new MemoryAdapter();
+    await installedByInit.setItem("doit-vo-init", JSON.stringify({ search: "stored", showArchived: true }));
+
+    let finishInit!: () => void;
+    const init = new Promise<void>((resolve) => {
+      finishInit = () => {
+        setStorageAdapter(installedByInit);
+        resolve();
+      };
+    });
+    const waitSpy = jest.spyOn(storage, "waitForStorageInit").mockReturnValue(init);
+
+    try {
+      const { result } = renderHook(() => usePersistedViewOptions("doit-vo-init", defaults));
+      expect(result.current[2]).toBe(false);
+
+      await act(async () => {
+        finishInit();
+        await init;
+      });
+      await waitFor(() => expect(result.current[2]).toBe(true));
+
+      expect(result.current[0]).toEqual({ search: "stored", showArchived: true });
+    } finally {
+      waitSpy.mockRestore();
+    }
+  });
+
+  it("keeps an update made while the load is still in flight", async () => {
+    await adapter.setItem("doit-vo-race", JSON.stringify({ search: "stored", showArchived: true }));
+
+    let finishInit!: () => void;
+    const init = new Promise<void>((resolve) => {
+      finishInit = resolve;
+    });
+    const waitSpy = jest.spyOn(storage, "waitForStorageInit").mockReturnValue(init);
+
+    try {
+      const { result } = renderHook(() => usePersistedViewOptions("doit-vo-race", defaults));
+
+      // The user changes something before the stored value has landed.
+      act(() => result.current[1]({ search: "typed" }));
+
+      await act(async () => {
+        finishInit();
+        await init;
+      });
+      await waitFor(() => expect(result.current[2]).toBe(true));
+
+      // What they typed survives, and the stored value still merges underneath.
+      expect(result.current[0].search).toBe("typed");
+      expect(result.current[0].showArchived).toBe(true);
+    } finally {
+      waitSpy.mockRestore();
+    }
   });
 
   it("keeps a stable setter identity across renders", async () => {
