@@ -25,6 +25,7 @@ import {
   notifyDueToday,
   notifyDueSoon,
   checkAndNotifyDueTasks,
+  MAX_INDIVIDUAL_NOTIFICATIONS,
   resetNotificationState,
 } from "@/utils/notifications";
 import { MockBrowserApis, setBrowserApis, resetBrowserApis } from "@/utils/browserApis";
@@ -815,6 +816,64 @@ describe("notifications with MockBrowserApis", () => {
       mockApis.windowExists = true;
       mockApis.notificationSupported = true;
       mockApis.notificationPermission = "granted";
+      // These tests describe due dates relative to "today", and one of them
+      // pins 23:30. Without a fixed clock it fails for the last half hour of
+      // every day - it was failing when this was written.
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date(2026, 5, 15, 12, 0, 0));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    const makeOverdue = (n: number) => {
+      const settings = createTestSettings();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return Array.from({ length: n }, (_, i) =>
+        new TodoModel(
+          createTestTodo({
+            id: getTodoId(`overdue-batch-${i}`),
+            plainText: `Overdue ${i}`,
+            dueDate: getTimestamp(yesterday.getTime()),
+          }),
+          settings,
+        ),
+      );
+    };
+
+    it("raises one banner per task while under the cap", () => {
+      const models = makeOverdue(MAX_INDIVIDUAL_NOTIFICATIONS);
+
+      const result = checkAndNotifyDueTasks(models, new Set(), {
+        notifyOverdue: true,
+        notifyDueToday: false,
+        notifyDueSoon: false,
+        dueSoonHours: 2,
+      });
+
+      expect(mockApis.notificationsCreated.length).toBe(MAX_INDIVIDUAL_NOTIFICATIONS);
+      expect(result.size).toBe(MAX_INDIVIDUAL_NOTIFICATIONS);
+    });
+
+    it("collapses into a single summary once over the cap", () => {
+      // A user returning to a long-neglected list previously got one OS banner
+      // per overdue task, all at once, and again on every reload.
+      const count = MAX_INDIVIDUAL_NOTIFICATIONS + 10;
+      const models = makeOverdue(count);
+
+      const result = checkAndNotifyDueTasks(models, new Set(), {
+        notifyOverdue: true,
+        notifyDueToday: false,
+        notifyDueSoon: false,
+        dueSoonHours: 2,
+      });
+
+      expect(mockApis.notificationsCreated.length).toBe(1);
+      expect(mockApis.notificationsCreated[0].title).toContain(String(count));
+      // Everything is still marked notified, so the summary is not repeated.
+      expect(result.size).toBe(count);
     });
 
     it("should notify for overdue tasks", () => {

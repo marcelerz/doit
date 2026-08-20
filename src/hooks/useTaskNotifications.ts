@@ -1,63 +1,114 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { TodoModel } from "@/models/TodoModel";
 import { NotificationSettings } from "@/types/settings";
 import { TodoId } from "@/types/todo";
 import { checkAndNotifyDueTasks, getNotificationPermission } from "@/utils/notifications";
+import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
+
+const CHECK_INTERVAL_MS = 60 * 1000;
 
 /**
  * Hook that monitors todos and sends notifications for due/overdue tasks.
  * Runs a check every minute to send notifications based on settings.
  */
 export function useTaskNotifications(todos: TodoModel[], notificationSettings: NotificationSettings) {
-  // Track which todos we've already notified about to avoid spam
+  // Which todos we have already notified about.
+  //
+  // Persisted: this used to live only in a ref, so every page load and PWA
+  // relaunch replayed the entire overdue backlog as fresh notifications. The
+  // first check therefore waits for hydration rather than running during the
+  // mount commit - otherwise it would notify about everything all over again.
   const notifiedIds = useRef<Set<TodoId>>(new Set());
+  const hydrated = useRef(false);
+
+  // Latest values, so the interval below need not be torn down and recreated
+  // on every todo change. It used to be, which meant that during active
+  // editing the periodic check could effectively never fire on its schedule.
+  //
+  // Synced in an effect, not during render - writing a ref while rendering is
+  // illegal in React 19. Declared before the effects that read them so it runs
+  // first; effects fire in declaration order.
+  const todosRef = useRef(todos);
+  const settingsRef = useRef(notificationSettings);
 
   useEffect(() => {
-    // Don't run if notifications are disabled or permission not granted
-    if (!notificationSettings.enabled) {
-      return;
-    }
-
-    if (getNotificationPermission() !== "granted") {
-      return;
-    }
-
-    // Function to check and send notifications
-    const checkNotifications = () => {
-      // Only check active todos (not completed/archived/deleted)
-      const activeTodos = todos.filter((todo) => todo.isActive);
-
-      // Check and notify, updating our notified set
-      const newNotifiedIds = checkAndNotifyDueTasks(activeTodos, notifiedIds.current, {
-        notifyOverdue: notificationSettings.notifyOverdue,
-        notifyDueToday: notificationSettings.notifyDueToday,
-        notifyDueSoon: notificationSettings.notifyDueSoon,
-        dueSoonHours: notificationSettings.dueSoonHours,
-      });
-
-      // Update the ref with newly notified IDs
-      notifiedIds.current = newNotifiedIds;
-    };
-
-    // Run immediately on mount/settings change
-    checkNotifications();
-
-    // Check every minute
-    const interval = setInterval(checkNotifications, 60 * 1000);
-
-    return () => {
-      clearInterval(interval);
-    };
+    todosRef.current = todos;
+    settingsRef.current = notificationSettings;
   }, [todos, notificationSettings]);
 
-  // Clear notification history when a todo is completed or deleted
-  // This allows re-notification if the task is made active again
-  useEffect(() => {
-    const activeIds = new Set(todos.filter((t) => t.isActive).map((t) => t.id));
+  const persist = useCallback((ids: Set<TodoId>) => {
+    saveToStorage(STORAGE_KEYS.NOTIFIED_TASKS, Array.from(ids)).catch((error) => {
+      console.error("Failed to persist notification history:", error);
+    });
+  }, []);
 
-    // Remove IDs from notified set if they're no longer active
-    notifiedIds.current = new Set(Array.from(notifiedIds.current).filter((id) => activeIds.has(id)));
-  }, [todos]);
+  const runCheck = useCallback(() => {
+    if (!hydrated.current) return;
+    if (!settingsRef.current.enabled) return;
+    if (getNotificationPermission() !== "granted") return;
+
+    const activeTodos = todosRef.current.filter((todo) => todo.isActive);
+    const before = notifiedIds.current;
+    const after = checkAndNotifyDueTasks(activeTodos, before, {
+      notifyOverdue: settingsRef.current.notifyOverdue,
+      notifyDueToday: settingsRef.current.notifyDueToday,
+      notifyDueSoon: settingsRef.current.notifyDueSoon,
+      dueSoonHours: settingsRef.current.dueSoonHours,
+    });
+
+    if (after.size !== before.size) {
+      notifiedIds.current = after;
+      persist(after);
+    }
+  }, [persist]);
+
+  // Restore the notified set, then run the first check.
+  useEffect(() => {
+    let cancelled = false;
+    loadFromStorage<TodoId[]>(STORAGE_KEYS.NOTIFIED_TASKS, [])
+      .then((stored) => {
+        if (!cancelled) notifiedIds.current = new Set(stored);
+      })
+      .catch((error) => {
+        console.error("Failed to load notification history:", error);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        hydrated.current = true;
+        runCheck();
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [runCheck]);
+
+  // The interval depends only on the enable flag, so it is no longer torn down
+  // and recreated whenever a todo changes.
+  useEffect(() => {
+    if (!notificationSettings.enabled) return;
+    const interval = setInterval(runCheck, CHECK_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [notificationSettings.enabled, runCheck]);
+
+  // Re-check promptly when the data or settings change, so a newly added
+  // overdue task does not wait up to a minute. Cheap: already-notified todos
+  // are filtered out inside the check.
+  useEffect(() => {
+    runCheck();
+  }, [todos, notificationSettings, runCheck]);
+
+  // Drop history for todos that are no longer active, so a task made active
+  // again can notify a second time.
+  useEffect(() => {
+    if (!hydrated.current) return;
+    const activeIds = new Set(todos.filter((t) => t.isActive).map((t) => t.id));
+    const pruned = new Set(Array.from(notifiedIds.current).filter((id) => activeIds.has(id)));
+
+    if (pruned.size !== notifiedIds.current.size) {
+      notifiedIds.current = pruned;
+      persist(pruned);
+    }
+  }, [todos, persist]);
 }

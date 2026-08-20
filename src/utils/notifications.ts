@@ -461,6 +461,24 @@ export function notifyDueSoon(todo: TodoModel, hours: number): Notification | nu
 }
 
 /**
+ * Send one notification standing in for many.
+ */
+export function notifyDueSummary(count: number): Notification | null {
+  return sendNotification(`${count} tasks need attention`, {
+    body: "Open DoIt to review what is overdue or due soon.",
+    tag: "due-summary",
+    requireInteraction: false,
+  });
+}
+
+/**
+ * Most notifications to raise individually in one pass before collapsing the
+ * rest into a single summary. A user returning to a long-neglected list would
+ * otherwise get one OS banner per task, all at once.
+ */
+export const MAX_INDIVIDUAL_NOTIFICATIONS = 5;
+
+/**
  * Check todos and send notifications for due/overdue tasks
  */
 export function checkAndNotifyDueTasks(
@@ -476,6 +494,10 @@ export function checkAndNotifyDueTasks(
   const newNotifiedIds = new Set(notifiedIds);
   const now = new Date();
 
+  // Work out what is due before sending anything, so the count is known and
+  // the batch can be collapsed rather than fired one banner at a time.
+  const pending: Array<{ todo: TodoModel; send: () => void }> = [];
+
   todos.forEach((todo) => {
     // Use the dueDateObject from TodoModel which is derived from the dueDate timestamp
     if (!todo.isActive || !todo.dueDateObject) return;
@@ -489,8 +511,7 @@ export function checkAndNotifyDueTasks(
 
     // Check if overdue
     if (settings.notifyOverdue && diffMs < 0) {
-      notifyOverdueTask(todo);
-      newNotifiedIds.add(todo.id);
+      pending.push({ todo, send: () => notifyOverdueTask(todo) });
       return;
     }
 
@@ -502,18 +523,26 @@ export function checkAndNotifyDueTasks(
       todayEnd.setHours(23, 59, 59, 999);
 
       if (dueDate >= todayStart && dueDate <= todayEnd) {
-        notifyDueToday(todo);
-        newNotifiedIds.add(todo.id);
+        pending.push({ todo, send: () => notifyDueToday(todo) });
         return;
       }
     }
 
     // Check if due soon
     if (settings.notifyDueSoon && diffHours > 0 && diffHours <= settings.dueSoonHours) {
-      notifyDueSoon(todo, Math.ceil(diffHours));
-      newNotifiedIds.add(todo.id);
+      const hours = Math.ceil(diffHours);
+      pending.push({ todo, send: () => notifyDueSoon(todo, hours) });
     }
   });
+
+  if (pending.length > MAX_INDIVIDUAL_NOTIFICATIONS) {
+    notifyDueSummary(pending.length);
+  } else {
+    pending.forEach(({ send }) => send());
+  }
+
+  // Mark everything as notified either way - the summary covered the rest.
+  pending.forEach(({ todo }) => newNotifiedIds.add(todo.id));
 
   return newNotifiedIds;
 }

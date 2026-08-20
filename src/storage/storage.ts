@@ -230,6 +230,15 @@ export function createLocalStorageAdapter(): StorageAdapter {
 }
 
 // Storage key prefix - all app data keys start with this
+/**
+ * localStorage budget in bytes.
+ *
+ * The spec'd minimum, and Safari's actual ceiling. Browsers do not expose this
+ * separately from the origin quota, so a fixed conservative figure beats
+ * scaling navigator.storage.estimate(), which reports something else entirely.
+ */
+export const LOCAL_STORAGE_BUDGET_BYTES = 5 * 1024 * 1024;
+
 export const STORAGE_KEY_PREFIX = "doit-";
 
 /** Keys under the doit- prefix that are bookkeeping, not user data. */
@@ -271,6 +280,7 @@ export const STORAGE_KEYS = {
   TUTORIAL_PREFERENCES: "doit-tutorial-preferences",
   KANBAN_FILTER_PRESETS: "doit-kanban-filter-presets",
   NOTES_VIEW_PRESETS: "doit-notes-view-presets",
+  NOTIFIED_TASKS: "doit-notified-tasks",
 } as const;
 
 /**
@@ -379,8 +389,16 @@ export async function isIndexedDBAvailable(): Promise<boolean> {
         resolveOnce(true);
       };
 
-      // Timeout as fallback, but won't override if already resolved
-      setTimeout(() => resolveOnce(false), 1000);
+      // A cold PWA launch with a large database or a busy main thread can take
+      // well over a second. Reporting false there silently ran the whole
+      // session against empty localStorage - the user saw all their data gone.
+      // The timeout exists only to stop a wedged open() hanging forever.
+      setTimeout(() => {
+        if (!resolved) {
+          console.warn("IndexedDB availability probe timed out; falling back to localStorage");
+        }
+        resolveOnce(false);
+      }, 10000);
     });
   } catch {
     return false;
@@ -469,8 +487,12 @@ export async function estimateStorageQuota(type?: StorageType): Promise<StorageQ
           // For IndexedDB, use the full quota (usually much larger)
           available = estimate.quota;
         } else {
-          // For localStorage, browsers typically allocate 5-10MB from the total quota
-          available = Math.min(estimate.quota * 0.001, 10 * 1024 * 1024); // Max 10MB
+          // navigator.storage.estimate() reports the *origin* quota, which
+          // says nothing about the separate localStorage budget. Scaling it
+          // produced a 10MB ceiling on any desktop, against a real Safari
+          // limit of 5MB, so writes began failing at roughly 25% displayed.
+          // The spec'd minimum is 5MB; treat that as the budget.
+          available = LOCAL_STORAGE_BUDGET_BYTES;
         }
         detectionMethod = "api";
       }
@@ -484,21 +506,30 @@ export async function estimateStorageQuota(type?: StorageType): Promise<StorageQ
     if (currentType === "indexedDB") {
       available = 50 * 1024 * 1024; // 50MB conservative estimate for IndexedDB
     } else {
-      available = 5 * 1024 * 1024; // 5MB conservative estimate for localStorage
+      available = LOCAL_STORAGE_BUDGET_BYTES;
     }
     detectionMethod = "fallback";
   }
 
-  // Calculate used space
+  // Calculate used space.
+  //
+  // localStorage bills UTF-16 code units - two bytes per character - while
+  // Blob([data]).size counts UTF-8 bytes. Measuring the wrong unit understated
+  // usage by roughly half, which is why the "Storage Almost Full" warning at
+  // 80% was effectively unreachable before writes started failing.
   let used = 0;
   const adapter = getStorageAdapter();
   const keys = await adapter.getAllKeys();
+  const measure =
+    currentType === "localStorage"
+      ? (data: string) => (data.length + 1) * 2
+      : (data: string) => new Blob([data]).size;
   for (const key of keys) {
     if (key && key.startsWith(STORAGE_KEY_PREFIX)) {
       try {
         const data = await adapter.getItem(key);
         if (data) {
-          used += new Blob([data]).size;
+          used += measure(data) + (currentType === "localStorage" ? key.length * 2 : 0);
         }
       } catch (error) {
         console.error(`Failed to get size for ${key}:`, error);
