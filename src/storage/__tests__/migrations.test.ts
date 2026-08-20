@@ -2,7 +2,20 @@
  * Tests for storage migrations
  */
 
-import { migrateSettings, migrateTodos, getCurrentVersion } from "@/storage/migrations";
+import {
+  migrateSettings,
+  migrateTodos,
+  getCurrentVersion,
+  checkAndUpdateVersion,
+  migrateLegacyEntitiesFromSettings,
+} from "@/storage/migrations";
+import {
+  STORAGE_KEYS,
+  setStorageAdapter,
+  getStorageAdapter,
+  loadFromStorage,
+  StorageAdapter,
+} from "@/storage/storage";
 import { Settings, defaultSettings } from "@/types/settings";
 import { getColor } from "@/types/types";
 import { getDurationDay } from "@/types/time";
@@ -386,5 +399,173 @@ describe("migrations", () => {
       expect(result[0].createdAt).toBeDefined();
       expect(result[0].updatedAt).toBeDefined();
     });
+  });
+});
+
+/** Minimal in-memory adapter for the storage-touching migrations. */
+class MemoryAdapter implements StorageAdapter {
+  data = new Map<string, string>();
+  async getItem(key: string) {
+    return this.data.has(key) ? (this.data.get(key) as string) : null;
+  }
+  async setItem(key: string, value: string) {
+    this.data.set(key, value);
+  }
+  async removeItem(key: string) {
+    this.data.delete(key);
+  }
+  async clear() {
+    this.data.clear();
+  }
+  async getAllKeys() {
+    return [...this.data.keys()];
+  }
+}
+
+describe("migrateSettings field preservation", () => {
+  it("preserves every field of Settings, not an allow-list", () => {
+    // `backup` was the field that fell through the allow-list and was reset on
+    // every load. This asserts the general property so a future field cannot
+    // regress the same way.
+    const stored = JSON.parse(JSON.stringify(defaultSettings));
+    stored.backup = { ...stored.backup, autoBackupEnabled: false, retentionDays: 90 };
+
+    const result = migrateSettings(stored);
+
+    for (const key of Object.keys(defaultSettings)) {
+      expect(result[key as keyof Settings]).toBeDefined();
+    }
+    expect(result.backup.autoBackupEnabled).toBe(false);
+    expect(result.backup.retentionDays).toBe(90);
+  });
+
+  it("fills backup defaults when only part of it was stored", () => {
+    const result = migrateSettings({ backup: { retentionDays: 7 } });
+    expect(result.backup.retentionDays).toBe(7);
+    expect(result.backup.autoBackupEnabled).toBe(defaultSettings.backup.autoBackupEnabled);
+  });
+
+  it("does not leak legacy top-level keys into the result", () => {
+    const result = migrateSettings({
+      people: [{ id: "p1", name: "Ada" }],
+      projects: [{ id: "pr1", name: "Apollo" }],
+      ganttSettings: { someLegacyField: true },
+    }) as unknown as Record<string, unknown>;
+
+    expect(result.people).toBeUndefined();
+    expect(result.projects).toBeUndefined();
+    expect(result.ganttSettings).toBeUndefined();
+    expect(result.gantt).toBeDefined();
+  });
+
+  it("does not write to storage", async () => {
+    const adapter = new MemoryAdapter();
+    const original = getStorageAdapter();
+    setStorageAdapter(adapter);
+    try {
+      migrateSettings({ people: [{ id: "p1", name: "Ada" }] });
+      // Give any stray unawaited promise a chance to land.
+      await Promise.resolve();
+      expect(adapter.data.size).toBe(0);
+    } finally {
+      setStorageAdapter(original);
+    }
+  });
+});
+
+describe("migrateLegacyEntitiesFromSettings", () => {
+  let adapter: MemoryAdapter;
+  let original: StorageAdapter;
+
+  beforeEach(() => {
+    original = getStorageAdapter();
+    adapter = new MemoryAdapter();
+    setStorageAdapter(adapter);
+  });
+  afterEach(() => setStorageAdapter(original));
+
+  it("moves legacy people into their own key and clears the legacy field", async () => {
+    await adapter.setItem(
+      STORAGE_KEYS.SETTINGS,
+      JSON.stringify({ people: [{ id: "p1", name: "Ada" }], theme: "dark" })
+    );
+
+    await migrateLegacyEntitiesFromSettings();
+
+    const people = await loadFromStorage<{ id: string }[]>(STORAGE_KEYS.PEOPLE, []);
+    expect(people.map((p) => p.id)).toEqual(["p1"]);
+
+    const settings = JSON.parse((await adapter.getItem(STORAGE_KEYS.SETTINGS)) as string);
+    expect(settings.people).toBeUndefined();
+    expect(settings.theme).toBe("dark");
+  });
+
+  it("merges rather than overwriting, with existing records winning", async () => {
+    await adapter.setItem(
+      STORAGE_KEYS.PEOPLE,
+      JSON.stringify([{ id: "p1", name: "Ada Lovelace" }, { id: "p2", name: "Grace" }])
+    );
+    await adapter.setItem(
+      STORAGE_KEYS.SETTINGS,
+      JSON.stringify({ people: [{ id: "p1", name: "STALE" }, { id: "p3", name: "Alan" }] })
+    );
+
+    await migrateLegacyEntitiesFromSettings();
+
+    const people = await loadFromStorage<{ id: string; name: string }[]>(STORAGE_KEYS.PEOPLE, []);
+    expect(people.find((p) => p.id === "p1")?.name).toBe("Ada Lovelace");
+    expect(people.map((p) => p.id).sort()).toEqual(["p1", "p2", "p3"]);
+  });
+
+  it("is a no-op when there is no legacy data", async () => {
+    await adapter.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify({ theme: "dark" }));
+    await migrateLegacyEntitiesFromSettings();
+    expect(adapter.data.has(STORAGE_KEYS.PEOPLE)).toBe(false);
+  });
+
+  it("does not re-fire on a second run", async () => {
+    await adapter.setItem(
+      STORAGE_KEYS.SETTINGS,
+      JSON.stringify({ people: [{ id: "p1", name: "Ada" }] })
+    );
+    await migrateLegacyEntitiesFromSettings();
+    await adapter.setItem(STORAGE_KEYS.PEOPLE, JSON.stringify([{ id: "p1", name: "Renamed" }]));
+
+    await migrateLegacyEntitiesFromSettings();
+
+    const people = await loadFromStorage<{ name: string }[]>(STORAGE_KEYS.PEOPLE, []);
+    expect(people[0].name).toBe("Renamed");
+  });
+});
+
+describe("checkAndUpdateVersion downgrade guard", () => {
+  let adapter: MemoryAdapter;
+  let original: StorageAdapter;
+
+  beforeEach(() => {
+    original = getStorageAdapter();
+    adapter = new MemoryAdapter();
+    setStorageAdapter(adapter);
+  });
+  afterEach(() => setStorageAdapter(original));
+
+  it("refuses to migrate data written by a newer build", async () => {
+    const newer = getCurrentVersion() + 5;
+    await adapter.setItem(STORAGE_KEYS.VERSION, String(newer));
+
+    await expect(checkAndUpdateVersion()).resolves.toBe(false);
+    // The stored version must be left alone, not stamped down.
+    expect(await adapter.getItem(STORAGE_KEYS.VERSION)).toBe(String(newer));
+  });
+
+  it("migrates and stamps the version when data is older", async () => {
+    await adapter.setItem(STORAGE_KEYS.VERSION, "1");
+    await expect(checkAndUpdateVersion()).resolves.toBe(true);
+    expect(await adapter.getItem(STORAGE_KEYS.VERSION)).toBe(String(getCurrentVersion()));
+  });
+
+  it("reports no migration needed when already current", async () => {
+    await adapter.setItem(STORAGE_KEYS.VERSION, String(getCurrentVersion()));
+    await expect(checkAndUpdateVersion()).resolves.toBe(false);
   });
 });

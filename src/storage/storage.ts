@@ -232,6 +232,13 @@ export function createLocalStorageAdapter(): StorageAdapter {
 // Storage key prefix - all app data keys start with this
 export const STORAGE_KEY_PREFIX = "doit-";
 
+/** Keys under the doit- prefix that are bookkeeping, not user data. */
+const INTERNAL_STORAGE_KEYS = new Set([
+  "doit-migrated-to-indexeddb",
+  "doit-test-availability",
+  "doit-db",
+]);
+
 // Backup key prefix - for auto-backup and manual backup storage
 export const BACKUP_KEY_PREFIX = "doit-backup-";
 
@@ -262,6 +269,8 @@ export const STORAGE_KEYS = {
   SEARCH_HISTORY: "doit-search-history",
   SELECTION_HISTORY: "doit-selection-history",
   TUTORIAL_PREFERENCES: "doit-tutorial-preferences",
+  KANBAN_FILTER_PRESETS: "doit-kanban-filter-presets",
+  NOTES_VIEW_PRESETS: "doit-notes-view-presets",
 } as const;
 
 /**
@@ -510,7 +519,17 @@ export interface MigrationResult {
 export async function migrateToIndexedDB(): Promise<MigrationResult> {
   try {
     const indexedDBAdapter = createIndexedDBAdapter();
-    const keys = Object.values(STORAGE_KEYS);
+    // Scan by prefix rather than iterating the registry: two keys
+    // (kanban filter presets, notes view presets) were persisted for a long
+    // time without being registered, and were silently dropped on migration.
+    const keys = Array.from(
+      new Set([
+        ...Object.values(STORAGE_KEYS),
+        ...Object.keys(localStorage).filter(
+          (k) => k.startsWith(STORAGE_KEY_PREFIX) && !INTERNAL_STORAGE_KEYS.has(k)
+        ),
+      ])
+    );
     const migratedKeys: string[] = [];
     let migratedCount = 0;
 
@@ -730,8 +749,21 @@ export async function initializeStorage(): Promise<{
     const alreadyMigrated = await isAlreadyMigrated(indexedDBAdapter);
 
     if (hasLocalData && !alreadyMigrated) {
-      // Migrate from localStorage to IndexedDB
-      await migrateToIndexedDB();
+      // Migrate from localStorage to IndexedDB.
+      const result = await migrateToIndexedDB();
+
+      if (!result.success) {
+        // Switching anyway would point the app at half-copied data, and every
+        // hook's auto-save would then write its empty in-memory state over the
+        // rest. Stay on localStorage for this session; the migration flag is
+        // only written on success, so the next load retries.
+        console.error("IndexedDB migration failed, staying on localStorage:", result.error);
+        return {
+          adapter: null as unknown as StorageAdapter,
+          usingIndexedDB: false,
+          migrated: false,
+        };
+      }
 
       setStorageAdapter(indexedDBAdapter);
       return {

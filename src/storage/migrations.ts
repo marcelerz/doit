@@ -10,7 +10,7 @@ import { Project } from "@/types/project";
 import { Priority } from "@/types/priority";
 import { getTimestamp } from "@/types/time";
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
-import { STORAGE_KEYS, saveToStorage, getStorageAdapter } from "./storage";
+import { STORAGE_KEYS, saveToStorage, loadFromStorage, getStorageAdapter } from "./storage";
 
 const CURRENT_VERSION = 7; // Increment when adding new migrations
 
@@ -148,16 +148,12 @@ function migratePriority(priority: any): Priority {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Migration handles legacy data with unknown shape
 export function migrateSettings(loadedSettings: any): Settings {
-  // Migrate people and projects to separate storage if they exist in settings
-  if (loadedSettings.people && Array.isArray(loadedSettings.people)) {
-    const migratedPeople = loadedSettings.people.map(migratePerson);
-    saveToStorage(STORAGE_KEYS.PEOPLE, migratedPeople);
-  }
-
-  if (loadedSettings.projects && Array.isArray(loadedSettings.projects)) {
-    const migratedProjects = loadedSettings.projects.map(migrateProject);
-    saveToStorage(STORAGE_KEYS.PROJECTS, migratedProjects);
-  }
+  // NOTE: people/projects living inside settings is a legacy shape. Moving
+  // them to their own keys is handled by migrateLegacyEntitiesFromSettings,
+  // which is awaited during bootstrap. Doing it here fired unawaited writes
+  // from a synchronous function that raced useEntityManager's read of the
+  // very same keys, and re-fired on every load because the legacy field was
+  // never cleared.
 
   // Handle nested structure migration (old: general.dateTime, new: dateTime at top level)
   const dateTime = loadedSettings.dateTime || loadedSettings.general?.dateTime || {};
@@ -171,8 +167,21 @@ export function migrateSettings(loadedSettings: any): Settings {
   // Remove startOfDay/endOfDay from dateTime if present (v5 migration)
   const { startOfDay: _startOfDay, endOfDay: _endOfDay, ...cleanedDateTime } = dateTime;
 
+  // Legacy top-level keys that must not survive into the returned Settings.
+  const {
+    people: _legacyPeople,
+    projects: _legacyProjects,
+    ganttSettings: _legacyGantt,
+    ...carriedOver
+  } = loadedSettings;
+
   return {
     ...defaultSettings,
+    // Carry over anything not explicitly normalised below. This used to be an
+    // allow-list, which silently reset `backup` on every load and would have
+    // done the same to any future field added to Settings without a matching
+    // line here - something neither typecheck nor lint can catch.
+    ...carriedOver,
     priorities: (loadedSettings.priorities || defaultSettings.priorities).map(migratePriority),
     linkPatterns: loadedSettings.linkPatterns || defaultSettings.linkPatterns,
     markerColors: {
@@ -236,7 +245,59 @@ export function migrateSettings(loadedSettings: any): Settings {
       oneOnOneTemplate: loadedSettings.notes?.oneOnOneTemplate || defaultOneOnOneTemplate,
       meetingNoteTemplate: loadedSettings.notes?.meetingNoteTemplate || defaultMeetingNoteTemplate,
     },
+    backup: {
+      ...defaultSettings.backup,
+      ...(loadedSettings.backup || {}),
+    },
   };
+}
+
+/**
+ * Move people and projects out of the legacy `settings.people` /
+ * `settings.projects` fields into their own storage keys.
+ *
+ * Awaited and one-shot: it merges into whatever is already stored (existing
+ * records win) rather than overwriting, and strips the legacy fields from
+ * doit-settings so it cannot re-fire on the next load.
+ */
+export async function migrateLegacyEntitiesFromSettings(): Promise<void> {
+  const adapter = getStorageAdapter();
+  const rawSettings = await adapter.getItem(STORAGE_KEYS.SETTINGS);
+  if (!rawSettings) return;
+
+  let stored: Record<string, unknown>;
+  try {
+    stored = JSON.parse(rawSettings);
+  } catch {
+    return;
+  }
+  if (stored === null || typeof stored !== "object") return;
+
+  const hasLegacyPeople = Array.isArray(stored.people);
+  const hasLegacyProjects = Array.isArray(stored.projects);
+  if (!hasLegacyPeople && !hasLegacyProjects) return;
+
+  const mergeInto = async <T extends { id: string }>(
+    key: string,
+    legacy: T[]
+  ): Promise<void> => {
+    const existing = await loadFromStorage<T[]>(key, []);
+    const byId = new Map(legacy.map((entity) => [entity.id, entity]));
+    // Existing records win - they are newer than the legacy copy.
+    existing.forEach((entity: T) => byId.set(entity.id, entity));
+    await saveToStorage(key, Array.from(byId.values()));
+  };
+
+  if (hasLegacyPeople) {
+    await mergeInto(STORAGE_KEYS.PEOPLE, (stored.people as unknown[]).map(migratePerson));
+  }
+  if (hasLegacyProjects) {
+    await mergeInto(STORAGE_KEYS.PROJECTS, (stored.projects as unknown[]).map(migrateProject));
+  }
+
+  delete stored.people;
+  delete stored.projects;
+  await saveToStorage(STORAGE_KEYS.SETTINGS, stored);
 }
 
 /**
@@ -319,21 +380,33 @@ export async function checkAndUpdateVersion(): Promise<boolean> {
     const storedVersion = typeof storedVersionResult === "string" ? storedVersionResult : null;
     const currentVersion = storedVersion ? parseInt(storedVersion, 10) : 0;
 
-    if (currentVersion < CURRENT_VERSION) {
-      // Create auto-backup before migration if enabled
-      await autoBackupIfNeeded();
-
-      await adapter.setItem(STORAGE_KEYS.VERSION, CURRENT_VERSION.toString());
-      return true; // Migration needed
+    if (currentVersion > CURRENT_VERSION) {
+      // Data written by a newer build. GitHub Pages caching means a user can
+      // land on an older bundle after a deploy or rollback; writing this
+      // version's shape over newer data would corrupt it.
+      console.warn(
+        `Stored data is version ${currentVersion} but this build understands ${CURRENT_VERSION}. ` +
+          "Refusing to migrate; reload to pick up the newer build."
+      );
+      return false;
     }
 
-    // Even if no migration needed, check for auto-backup
+    const migrationNeeded = currentVersion < CURRENT_VERSION;
+
+    // Create auto-backup before migrating, and on ordinary loads too.
     await autoBackupIfNeeded();
 
-    // Cleanup old backups
+    if (migrationNeeded) {
+      await adapter.setItem(STORAGE_KEYS.VERSION, CURRENT_VERSION.toString());
+    }
+
+    await migrateLegacyEntitiesFromSettings();
+
+    // Runs on every load, not just the no-migration branch - otherwise pruning
+    // is skipped on exactly the load that just created a backup.
     await cleanupOldBackups();
 
-    return false; // No migration needed
+    return migrationNeeded;
   } catch (error) {
     console.error("Failed to check data version:", error);
     return false;
