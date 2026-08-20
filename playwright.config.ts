@@ -68,6 +68,14 @@ export default defineConfig({
     navigationTimeout: 30000,
   },
 
+  /* Visual baselines are project-agnostic: only the `visual-tests` project runs
+   * visual.spec.ts (the `chromium` project explicitly ignores it), and the spec
+   * covers mobile itself via its own viewport. Including {-projectName} in the
+   * path orphaned every baseline when the projects were renamed. Revisit if a
+   * second project ever runs visual specs. */
+  snapshotPathTemplate:
+    "{testFileDir}/{testFileName}-snapshots/{arg}{-snapshotSuffix}{ext}",
+
   /* Configure projects */
   projects: [
     /* Smoke tests - run on desktop Chrome */

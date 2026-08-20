@@ -37,23 +37,23 @@ export function useTemplates() {
       setTemplates((prev) => [...prev, newTemplate]);
       return newTemplate.id;
     },
-    [],
+    [setTemplates],
   );
 
   const updateTemplate = useCallback(
     (id: string, updates: Partial<Omit<TodoTemplate, "id" | "createdAt" | "usageCount">>) => {
       setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
     },
-    [],
+    [setTemplates],
   );
 
   const deleteTemplate = useCallback((id: string) => {
     setTemplates((prev) => prev.filter((t) => t.id !== id));
-  }, []);
+  }, [setTemplates]);
 
   const incrementUsage = useCallback((id: string) => {
     setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, usageCount: t.usageCount + 1 } : t)));
-  }, []);
+  }, [setTemplates]);
 
   // Get templates sorted by usage (most used first)
   const sortedTemplates = [...templates].sort((a, b) => b.usageCount - a.usageCount);

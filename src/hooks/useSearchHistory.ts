@@ -34,15 +34,15 @@ export function useSearchHistory() {
       // Keep only MAX_HISTORY_ITEMS
       return [newEntry, ...filtered].slice(0, MAX_HISTORY_ITEMS);
     });
-  }, []);
+  }, [setHistory]);
 
   const removeFromHistory = useCallback((id: string) => {
     setHistory((prev) => prev.filter((h) => h.id !== id));
-  }, []);
+  }, [setHistory]);
 
   const clearHistory = useCallback(() => {
     setHistory([]);
-  }, []);
+  }, [setHistory]);
 
   // Get suggestions based on current input
   const getSuggestions = useCallback(

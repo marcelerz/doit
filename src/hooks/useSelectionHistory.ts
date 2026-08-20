@@ -74,7 +74,7 @@ export function useSelectionHistory() {
         [fieldType]: newEntries,
       };
     });
-  }, []);
+  }, [setHistory]);
 
   /**
    * Record multiple selections at once (e.g., when saving a todo)
@@ -103,14 +103,14 @@ export function useSelectionHistory() {
       ...prev,
       [fieldType]: [],
     }));
-  }, []);
+  }, [setHistory]);
 
   /**
    * Clear all selection history
    */
   const clearAllHistory = useCallback(() => {
     setHistory(DEFAULT_SELECTION_HISTORY);
-  }, []);
+  }, [setHistory]);
 
   /**
    * Get usage statistics derived from selection history

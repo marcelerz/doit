@@ -937,7 +937,9 @@ export default function RichTextEditor({
 
   // Debounced onChange handler - captures latest onChange via ref to avoid stale callback issues
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   const debouncedOnChange = useCallback((html: string) => {
     if (onChangeTimeoutRef.current) clearTimeout(onChangeTimeoutRef.current);
