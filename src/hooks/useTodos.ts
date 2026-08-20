@@ -132,6 +132,7 @@ export type UndoAction = UndoableAction<TodoUndoActionType, Todo>;
 export function useTodos() {
   const [rawTodos, setRawTodos] = useState<Todo[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<Error | null>(null);
   const [dependencyBlockNotification, setDependencyBlockNotification] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
@@ -216,32 +217,40 @@ export function useTodos() {
   // Load todos from storage on mount
   useEffect(() => {
     // Wait for storage to be initialized before loading data
-    waitForStorageInit().then(async () => {
+    waitForStorageInit()
+      .then(async () => {
       // Check if migration is needed (must await since it's async)
-      const migrationNeeded = await checkAndUpdateVersion();
+        const migrationNeeded = await checkAndUpdateVersion();
 
-      // Load settings and todos asynchronously
-      const [storedSettings, loadedTodos] = await Promise.all([
-        loadFromStorage(STORAGE_KEYS.SETTINGS, defaultSettings),
-        loadFromStorage<Todo[]>(STORAGE_KEYS.TODOS, []),
-      ]);
+        // Load settings and todos asynchronously
+        const [storedSettings, loadedTodos] = await Promise.all([
+          loadFromStorage(STORAGE_KEYS.SETTINGS, defaultSettings),
+          loadFromStorage<Todo[]>(STORAGE_KEYS.TODOS, []),
+        ]);
 
-      const migratedSettings = migrateSettings(storedSettings);
-      setSettings(migratedSettings);
-      const migratedTodos = migrateTodos(loadedTodos, migratedSettings);
-      // Filter out any deleted todos
-      const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
-      setRawTodos(cleanedTodos);
+        const migratedSettings = migrateSettings(storedSettings);
+        setSettings(migratedSettings);
+        const migratedTodos = migrateTodos(loadedTodos, migratedSettings);
+        // Filter out any deleted todos
+        const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
+        setRawTodos(cleanedTodos);
 
-      // If migration was needed or we removed deleted todos, save the cleaned data
-      if (migrationNeeded || cleanedTodos.length !== loadedTodos.length) {
-        saveToStorage(STORAGE_KEYS.TODOS, cleanedTodos).catch((error) => {
-          console.error("Failed to save todos:", error);
-        });
-      }
-
-      setIsLoaded(true);
-    });
+        // If migration was needed or we removed deleted todos, save the cleaned data
+        if (migrationNeeded || cleanedTodos.length !== loadedTodos.length) {
+          saveToStorage(STORAGE_KEYS.TODOS, cleanedTodos).catch((error) => {
+            console.error("Failed to save todos:", error);
+          });
+        }
+      })
+      .catch((error) => {
+        // Without this the promise rejects unobserved, isLoaded stays false
+        // forever and the app sits on its loading screen with no way out.
+        console.error("Failed to load todos from storage:", error);
+        setLoadError(error instanceof Error ? error : new Error(String(error)));
+      })
+      .finally(() => {
+        setIsLoaded(true);
+      });
   }, []);
 
   // Save todos to storage whenever they change
@@ -954,6 +963,7 @@ export function useTodos() {
 
   return {
     todos,
+    loadError,
     addTodo,
     duplicateTodo,
     toggleTodo,

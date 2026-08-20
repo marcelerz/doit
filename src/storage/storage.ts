@@ -134,6 +134,15 @@ class IndexedDBAdapter implements StorageAdapter {
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result as T);
+
+      // A transaction can abort without the request ever settling - a
+      // versionchange from another tab, an engine-level quota abort, or
+      // storage eviction mid-transaction. Without these the promise stays
+      // pending forever and the app never leaves its loading state.
+      transaction.onabort = () =>
+        reject(transaction.error ?? new Error("IndexedDB transaction aborted"));
+      transaction.onerror = () =>
+        reject(transaction.error ?? new Error("IndexedDB transaction failed"));
     });
   }
 
@@ -255,13 +264,55 @@ export const STORAGE_KEYS = {
   TUTORIAL_PREFERENCES: "doit-tutorial-preferences",
 } as const;
 
+/**
+ * Details of a failed write, broadcast to anything listening.
+ */
+export interface StorageWriteFailure {
+  key: string;
+  error: unknown;
+  /** True when the failure looks like the storage quota being exhausted. */
+  isQuotaExceeded: boolean;
+}
+
+type StorageErrorListener = (failure: StorageWriteFailure) => void;
+const storageErrorListeners = new Set<StorageErrorListener>();
+
+/**
+ * Subscribe to storage write failures.
+ *
+ * saveToStorage cannot throw without breaking its callers, and returning
+ * `false` proved useless because no caller ever checked it - so a silent
+ * QuotaExceededError lost a whole session's work with no user-visible signal.
+ * This is the channel that makes those failures observable.
+ *
+ * @returns an unsubscribe function
+ */
+export function onStorageWriteError(listener: StorageErrorListener): () => void {
+  storageErrorListeners.add(listener);
+  return () => storageErrorListeners.delete(listener);
+}
+
+function isQuotaError(error: unknown): boolean {
+  if (typeof DOMException !== "undefined" && error instanceof DOMException) {
+    return (
+      error.name === "QuotaExceededError" ||
+      error.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+      error.code === 22
+    );
+  }
+  return error instanceof Error && /quota/i.test(error.message);
+}
+
 // Generic storage helpers that handle both sync and async adapters
 export async function loadFromStorage<T>(key: string, defaultValue: T): Promise<T> {
   const stored = await storageAdapter.getItem(key);
   if (!stored) return defaultValue;
 
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    // A stored literal "null" parses to null, which every caller then treats
+    // as a valid value and dereferences. Fall back instead.
+    return parsed === null || parsed === undefined ? defaultValue : parsed;
   } catch (error) {
     console.error(`Failed to parse stored data for ${key}:`, error);
     return defaultValue;
@@ -274,6 +325,14 @@ export async function saveToStorage<T>(key: string, value: T): Promise<boolean> 
     return true;
   } catch (error) {
     console.error(`Failed to save data for ${key}:`, error);
+    const failure: StorageWriteFailure = { key, error, isQuotaExceeded: isQuotaError(error) };
+    storageErrorListeners.forEach((listener) => {
+      try {
+        listener(failure);
+      } catch (listenerError) {
+        console.error("Storage error listener threw:", listenerError);
+      }
+    });
     return false;
   }
 }

@@ -56,6 +56,8 @@ import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { CloseIcon, SettingsIcon, HelpIcon, DocumentIcon, CheckCircleIcon } from "@/components/shared/Icons";
 import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { exportNotes } from "@/utils/export";
+import { StorageRecoveryScreen } from "@/components/shared/StorageRecoveryScreen";
+import { StorageErrorBanner } from "@/components/shared/StorageErrorBanner";
 import {
   generateOneOnOneNoteTitle,
   generateMeetingNoteTitle,
@@ -87,6 +89,7 @@ export function TodoApp() {
     deleteTimeEntry,
     setWorkflowState,
     isLoaded,
+    loadError,
     undoActions,
     fadingOutIds,
     dependencyBlockNotification,
@@ -963,6 +966,10 @@ export function TodoApp() {
   // Use full width with consistent padding - let individual views manage their content width
   const containerClass = "w-full px-2 sm:px-4 lg:px-6 xl:px-8";
 
+  if (loadError !== null) {
+    return <StorageRecoveryScreen error={loadError} />;
+  }
+
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800">
@@ -976,6 +983,7 @@ export function TodoApp() {
       data-testid="todo-app"
       className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800 py-4 sm:py-8 px-2 sm:px-4"
     >
+      <StorageErrorBanner />
       <div className={containerClass}>
         <header className="mb-4">
           <div className="flex items-center justify-between mb-2">

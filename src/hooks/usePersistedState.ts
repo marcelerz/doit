@@ -88,7 +88,12 @@ export function usePersistedState<T>(
       }
     };
 
-    loadData();
+    // A rejection here would otherwise go unobserved and isLoaded would stay
+    // false forever, leaving the caller stuck on its loading state.
+    loadData().catch((error) => {
+      console.error(`Failed to load ${storageKey}:`, error);
+      setIsLoaded(true);
+    });
     // Only run on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -177,7 +182,10 @@ export function usePersistedStateWithCleanup<T>(
       }
     };
 
-    loadData();
+    loadData().catch((error) => {
+      console.error(`Failed to load ${storageKey}:`, error);
+      setIsLoaded(true);
+    });
     // Only run on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

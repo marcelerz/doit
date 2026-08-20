@@ -69,10 +69,15 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
           activity: entity.activity || [],
         }));
         setRawEntities(migrated as T[]);
+      });
+    })
+      .catch((error) => {
+        console.error(`Failed to load ${config.entityName.toLowerCase()}s:`, error);
+      })
+      .finally(() => {
         setIsLoaded(true);
       });
-    });
-  }, [config.storageKey]);
+  }, [config.storageKey, config.entityName]);
 
   // Save entities to storage whenever they change
   useEffect(() => {
