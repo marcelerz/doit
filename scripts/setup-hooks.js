@@ -2,44 +2,60 @@
 
 /**
  * Setup script to install git hooks
- * Copies scripts/pre-commit to .git/hooks/pre-commit
+ * Copies scripts/pre-commit into the repository's hooks directory.
+ *
+ * Runs from `postinstall`, so it must never fail an install. A missing or
+ * unwritable hooks directory is a warning, not an error.
  */
 
 const fs = require("fs");
 const path = require("path");
+const { execFileSync } = require("child_process");
 
 const projectRoot = path.resolve(__dirname, "..");
 const sourceHook = path.join(projectRoot, "scripts", "pre-commit");
-const gitHooksDir = path.join(projectRoot, ".git", "hooks");
-const targetHook = path.join(gitHooksDir, "pre-commit");
+
+/**
+ * Resolve the real hooks directory.
+ *
+ * `path.join(root, ".git", "hooks")` is wrong inside a worktree or submodule,
+ * where `.git` is a *file* pointing elsewhere - mkdirSync then throws ENOTDIR.
+ * `git rev-parse --git-path hooks` gives the right answer in every layout.
+ */
+function resolveHooksDir() {
+  try {
+    const output = execFileSync("git", ["rev-parse", "--git-path", "hooks"], {
+      cwd: projectRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return path.resolve(projectRoot, output);
+  } catch {
+    return null;
+  }
+}
 
 function setupHooks() {
-  // Check if we're in a git repository
-  if (!fs.existsSync(path.join(projectRoot, ".git"))) {
+  const gitHooksDir = resolveHooksDir();
+  if (gitHooksDir === null) {
     console.log("Not a git repository, skipping hook setup");
     return;
   }
 
-  // Create hooks directory if it doesn't exist
-  if (!fs.existsSync(gitHooksDir)) {
-    fs.mkdirSync(gitHooksDir, { recursive: true });
-  }
-
-  // Check if source hook exists
   if (!fs.existsSync(sourceHook)) {
-    console.error("Error: scripts/pre-commit not found");
-    process.exit(1);
+    console.warn("Warning: scripts/pre-commit not found, skipping hook setup");
+    return;
   }
 
-  // Copy the hook
   try {
+    fs.mkdirSync(gitHooksDir, { recursive: true });
+    const targetHook = path.join(gitHooksDir, "pre-commit");
     fs.copyFileSync(sourceHook, targetHook);
     // Make it executable (Unix systems)
     fs.chmodSync(targetHook, 0o755);
     console.log("Git pre-commit hook installed successfully");
   } catch (error) {
-    console.error("Error installing git hook:", error.message);
-    process.exit(1);
+    console.warn(`Warning: could not install git pre-commit hook: ${error.message}`);
   }
 }
 

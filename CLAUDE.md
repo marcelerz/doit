@@ -11,7 +11,7 @@ npm run lint             # ESLint validation
 npm run typecheck        # TypeScript type checking
 npm run test             # Jest unit tests
 npm run test:watch       # Jest in watch mode
-npm run test:coverage    # Coverage report (84%+ target)
+npm run test:coverage    # Coverage report (enforced floor in jest.config.js)
 npm run test:e2e         # Playwright E2E tests
 npm run test:all         # Full validation suite (typecheck + lint + test + e2e + visual)
 npm run deploy:gh-pages  # Deploy to GitHub Pages
