@@ -74,7 +74,7 @@ export default defineConfig({
    * path orphaned every baseline when the projects were renamed. Revisit if a
    * second project ever runs visual specs. */
   snapshotPathTemplate:
-    "{testFileDir}/{testFileName}-snapshots/{arg}{-snapshotSuffix}{ext}",
+    "{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}{-snapshotSuffix}{ext}",
 
   /* Configure projects */
   projects: [
