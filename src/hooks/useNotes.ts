@@ -16,7 +16,7 @@ import { getTimestamp } from "@/types/time";
 import { getPersonId } from "@/types/person";
 import { getProjectId } from "@/types/project";
 import { getCommentId, ActivityEntry, CommentId } from "@/types/types";
-import { defaultSettings, Settings } from "@/types/settings";
+
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { NoteModel, createNoteModels } from "@/models/NoteModel";
@@ -25,6 +25,7 @@ import { createCommentId } from "@/utils/idGenerator";
 import { generatePrefixedUUID } from "@/utils/idGenerator";
 import { useUndoableActions, UndoableAction } from "./useUndoableActions";
 import { createActivityEntry } from "@/utils/activityUtils";
+import { useSharedSettings } from "@/storage/settingsStore";
 
 /**
  * Create a new activity entry for notes
@@ -145,7 +146,7 @@ export type NoteUndoAction = UndoableAction<"delete" | "archive", Note>;
 export function useNotes() {
   const [rawNotes, setRawNotes] = useState<Note[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const { settings } = useSharedSettings();
 
   // Finalize handler for undo actions (called when timeout expires or dismissed)
   const handleFinalize = useCallback((action: NoteUndoAction) => {
@@ -200,12 +201,7 @@ export function useNotes() {
   // Load notes from storage on mount
   useEffect(() => {
     waitForStorageInit().then(async () => {
-      const [storedSettings, loadedNotes] = await Promise.all([
-        loadFromStorage(STORAGE_KEYS.SETTINGS, defaultSettings),
-        loadFromStorage<Note[]>(STORAGE_KEYS.NOTES, []),
-      ]);
-
-      setSettings(storedSettings);
+      const loadedNotes = await loadFromStorage<Note[]>(STORAGE_KEYS.NOTES, []);
       // Filter out any deleted notes
       const cleanedNotes = loadedNotes.filter((note) => note.state !== "deleted");
       setRawNotes(cleanedNotes);

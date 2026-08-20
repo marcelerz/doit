@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Settings, defaultSettings, FeatureSettings } from "@/types/settings";
+import { Settings, FeatureSettings } from "@/types/settings";
 import { Priority } from "@/types/priority";
 import { LinkPattern } from "@/types/linkPattern";
 import { MarkerColors } from "@/types/markerColors";
@@ -9,64 +8,15 @@ import { KanbanState } from "@/types/kanbanState";
 import { KanbanView } from "@/types/kanbanView";
 import { KanbanTransition } from "@/types/kanbanTransition";
 import { ProjectCategory } from "@/types/project";
-import { migrateSettings } from "@/storage/migrations";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storage";
+import { settingsStore, useSharedSettings } from "@/storage/settingsStore";
 import { SettingsModel } from "@/models/SettingsModel";
 
 export function useSettings() {
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
-  const [isLoaded, setIsLoaded] = useState(false);
-  // Track the last saved settings to detect actual user changes
-  const lastSavedSettings = useRef<Settings | null>(null);
-
-  // Load settings from storage on mount
-  useEffect(() => {
-    const loadSettings = async () => {
-      // Wait for storage to be initialized first
-      await waitForStorageInit();
-
-      const loadedSettings = await loadFromStorage<Settings>(STORAGE_KEYS.SETTINGS, defaultSettings);
-      const migratedSettings = migrateSettings(loadedSettings);
-
-      // Store these as the last saved settings to avoid re-saving them
-      lastSavedSettings.current = migratedSettings;
-
-      setSettings(migratedSettings);
-      setIsLoaded(true);
-    };
-
-    loadSettings();
-  }, []);
-
-  // Save settings to storage whenever they change (but not on initial load)
-  useEffect(() => {
-    // Skip saving if we haven't loaded yet
-    if (!isLoaded) {
-      return;
-    }
-
-    // Skip saving if settings haven't actually changed from what was loaded/saved
-    if (lastSavedSettings.current === settings) {
-      return;
-    }
-
-    saveToStorage(STORAGE_KEYS.SETTINGS, settings)
-      .then(() => {
-        // Update lastSavedSettings to current settings
-        lastSavedSettings.current = settings;
-        // Also save to localStorage for the inline theme script to read on page load
-        // This ensures theme persistence works even when using IndexedDB
-        try {
-          localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-        } catch (_e) {
-          // Ignore localStorage errors (e.g., in private browsing)
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to save settings:", error);
-      });
-  }, [settings, isLoaded]);
+  // Backed by a module-level store, so every caller of useSettings - and every
+  // hook that needs settings - observes one value, and other tabs are told
+  // when it changes. Loading, persistence and write coalescing live there.
+  const { settings, isLoaded } = useSharedSettings();
+  const setSettings = settingsStore.set;
 
   const addPriority = (priority: Omit<Priority, "id">) => {
     const newPriority: Priority = {

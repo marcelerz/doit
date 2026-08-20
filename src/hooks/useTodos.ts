@@ -22,8 +22,8 @@ import { getSprintId } from "@/types/sprint";
 import { KanbanStateId, getKanbanStateId } from "@/types/kanbanState";
 import { parseDuration } from "@/utils/ganttScheduler";
 import { getCommentId, ActivityEntry, CommentId } from "@/types/types";
-import { migrateTodos, checkAndUpdateVersion, migrateSettings } from "@/storage/migrations";
-import { defaultSettings, Settings } from "@/types/settings";
+import { migrateTodos, checkAndUpdateVersion } from "@/storage/migrations";
+import { Settings } from "@/types/settings";
 import { PriorityId } from "@/types/priority";
 import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
 import { createActivity, generateMetadataActivities } from "@/utils/activityLogger";
@@ -34,6 +34,7 @@ import { TodoModel, createTodoModels } from "@/models/TodoModel";
 import { createSettingsModel } from "@/models/SettingsModel";
 import { parseDate } from "@/utils/dateUtils";
 import { useUndoableActions, UndoableAction } from "./useUndoableActions";
+import { settingsStore, useSharedSettings } from "@/storage/settingsStore";
 
 /**
  * Find a priority ID by its name or alternatives.
@@ -134,7 +135,9 @@ export function useTodos() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [dependencyBlockNotification, setDependencyBlockNotification] = useState<string | null>(null);
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  // Shared, not a private copy: this used to be one of four independent
+  // settings states, three of which went stale after any settings edit.
+  const { settings } = useSharedSettings();
 
   // Ref for notification timeout cleanup
   const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -222,14 +225,11 @@ export function useTodos() {
       // Check if migration is needed (must await since it's async)
         const migrationNeeded = await checkAndUpdateVersion();
 
-        // Load settings and todos asynchronously
-        const [storedSettings, loadedTodos] = await Promise.all([
-          loadFromStorage(STORAGE_KEYS.SETTINGS, defaultSettings),
-          loadFromStorage<Todo[]>(STORAGE_KEYS.TODOS, []),
-        ]);
-
-        const migratedSettings = migrateSettings(storedSettings);
-        setSettings(migratedSettings);
+        // Settings come from the shared store, which owns loading and
+        // migration; todos need the migrated settings to migrate against.
+        await settingsStore.hydrate();
+        const migratedSettings = settingsStore.get();
+        const loadedTodos = await loadFromStorage<Todo[]>(STORAGE_KEYS.TODOS, []);
         const migratedTodos = migrateTodos(loadedTodos, migratedSettings);
         // Filter out any deleted todos
         const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");

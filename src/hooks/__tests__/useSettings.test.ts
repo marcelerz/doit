@@ -4,6 +4,7 @@
 
 import { renderHook, act } from "@testing-library/react";
 import { useSettings } from "../useSettings";
+import { settingsStore } from "@/storage/settingsStore";
 
 // Mock storage
 jest.mock("@/storage/storage", () => ({
@@ -29,7 +30,13 @@ import { getProjectCategoryId } from "@/types/project";
 describe("useSettings", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Settings live in a module-level store now, so it must be dropped between
+    // tests or each one inherits the previous test's state.
+    settingsStore.reset();
     (loadFromStorage as jest.Mock).mockResolvedValue(defaultSettings);
+    // The store only mirrors to localStorage when the write succeeded, so
+    // the mock has to report success rather than returning undefined.
+    (saveToStorage as jest.Mock).mockResolvedValue(true);
     // Mock localStorage
     Object.defineProperty(window, "localStorage", {
       value: {
@@ -656,8 +663,10 @@ describe("useSettings", () => {
         result.current.updateGeneralSettings({ archiveDays: getDurationDay(60) });
       });
 
+      // Writes are coalesced now - a state change no longer means an immediate
+      // serialise-and-write of the whole settings blob. Flush the pending one.
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await settingsStore.flush();
       });
 
       expect(saveToStorage).toHaveBeenCalled();

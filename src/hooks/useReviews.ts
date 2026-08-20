@@ -14,7 +14,7 @@ import { getTag } from "@/types/todo";
 import { getTimestamp } from "@/types/time";
 import { getProjectId } from "@/types/project";
 import { getCommentId, ActivityEntry, CommentId } from "@/types/types";
-import { defaultSettings, Settings } from "@/types/settings";
+
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { ReviewModel, createReviewModels } from "@/models/ReviewModel";
@@ -22,6 +22,7 @@ import { createSettingsModel } from "@/models/SettingsModel";
 import { createCommentId } from "@/utils/idGenerator";
 import { createActivityEntry } from "@/utils/activityUtils";
 import { useUndoableActions, UndoableAction } from "./useUndoableActions";
+import { useSharedSettings } from "@/storage/settingsStore";
 
 /**
  * Create a new activity entry for reviews
@@ -39,7 +40,7 @@ export type ReviewUndoAction = UndoableAction<"delete" | "archive", Review>;
 export function useReviews() {
   const [rawReviews, setRawReviews] = useState<Review[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const { settings } = useSharedSettings();
 
   // Finalize handler for undo actions (called when timeout expires or dismissed)
   const handleFinalize = useCallback((action: ReviewUndoAction) => {
@@ -94,12 +95,7 @@ export function useReviews() {
   // Load reviews from storage on mount
   useEffect(() => {
     waitForStorageInit().then(async () => {
-      const [storedSettings, loadedReviews] = await Promise.all([
-        loadFromStorage(STORAGE_KEYS.SETTINGS, defaultSettings),
-        loadFromStorage<Review[]>(STORAGE_KEYS.REVIEWS, []),
-      ]);
-
-      setSettings(storedSettings);
+      const loadedReviews = await loadFromStorage<Review[]>(STORAGE_KEYS.REVIEWS, []);
       // Filter out any deleted reviews
       const cleanedReviews = loadedReviews.filter((review) => review.state !== "deleted");
       setRawReviews(cleanedReviews);
