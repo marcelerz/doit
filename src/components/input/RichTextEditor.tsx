@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import DOMPurify from "dompurify";
+import { sanitizeHtml, escapeHtmlAttribute } from "@/utils/sanitize";
 import { LinkPattern } from "@/types/linkPattern";
 import { processLinkPatternsInHtml } from "@/utils/linkPatternUtils";
 import { LinkIcon } from "@/components/shared/Icons";
@@ -94,19 +94,6 @@ function ensureEditable(element: HTMLElement): void {
 }
 
 // Sanitize HTML content to prevent XSS attacks
-function sanitizeHtml(html: string): string {
-  if (typeof window === "undefined") return html;
-  return DOMPurify.sanitize(html, {
-    // Include "div" since contentEditable creates <div> elements for line breaks
-    // Include markdown-like elements: lists, blockquotes, headers, checkboxes, code
-    ALLOWED_TAGS: [
-      "b", "i", "u", "strong", "em", "a", "br", "p", "span", "div",
-      "ul", "ol", "li", "blockquote", "h1", "h2", "h3", "h4", "input", "code"
-    ],
-    ALLOWED_ATTR: ["href", "target", "rel", "style", "type", "checked", "class"],
-    ALLOW_DATA_ATTR: true,
-  });
-}
 
 // ========================================
 // Markdown-like Helper Functions
@@ -1040,7 +1027,10 @@ export default function RichTextEditor({
       if (selectedText) {
         // Sanitize selectedHtml to prevent XSS, then create the link
         const sanitizedSelectedHtml = sanitizeHtml(selectedHtml);
-        const linkHtml = `<a href="${sanitizedUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; cursor: pointer;">${sanitizedSelectedHtml}</a>`;
+        // sanitizedUrl has had its scheme checked but not its quotes escaped,
+        // so `https://x" onmouseover="...` would still break out of the
+        // attribute and into the live contentEditable DOM.
+        const linkHtml = `<a href="${escapeHtmlAttribute(sanitizedUrl)}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; cursor: pointer;">${sanitizedSelectedHtml}</a>`;
 
         // Insert the link HTML without extra space
         document.execCommand("insertHTML", false, linkHtml);

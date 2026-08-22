@@ -91,6 +91,25 @@ export function sanitizeUrl(url: string): string | null {
 }
 
 /**
+ * Escape a value being interpolated into a double-quoted HTML attribute.
+ *
+ * sanitizeUrl checks the scheme but leaves quotes intact, so a URL of
+ * `https://x" onmouseover="alert(1)//` still closes the attribute when the
+ * surrounding HTML is built as a string by hand.
+ *
+ * @param value - Raw attribute value
+ * @returns The value with characters that could end the attribute escaped
+ */
+export function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/**
  * Sanitize a value destined for a CSS `color` declaration.
  *
  * Link-pattern colours are user-entered free text (Settings -> Links) and are

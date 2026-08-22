@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import DOMPurify from "dompurify";
+import { sanitizeHtml } from "@/utils/sanitize";
 import { Comment, CommentId } from "@/types/types";
 import { LinkPattern } from "@/types/linkPattern";
 import RichTextEditor from "@/components/input/RichTextEditor";
@@ -9,18 +9,6 @@ import { EditIcon, TrashIcon } from "@/components/shared/Icons";
 import { processLinkPatternsInHtml } from "@/utils/linkPatternUtils";
 
 // Sanitize HTML content to prevent XSS attacks
-function sanitizeHtml(html: string): string {
-  if (typeof window === "undefined") return html;
-  return DOMPurify.sanitize(html, {
-    // Include markdown-like elements: lists, blockquotes, headers, checkboxes, code
-    ALLOWED_TAGS: [
-      "b", "i", "u", "strong", "em", "a", "br", "p", "span",
-      "ul", "ol", "li", "blockquote", "h1", "h2", "h3", "h4", "input", "code"
-    ],
-    ALLOWED_ATTR: ["href", "target", "rel", "style", "type", "checked", "class"],
-    ALLOW_DATA_ATTR: true,
-  });
-}
 
 interface CommentsProps {
   comments: Comment[];
