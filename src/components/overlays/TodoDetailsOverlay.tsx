@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { escapeRegex } from "@/utils/linkPatternUtils";
+import { sanitizeUrl } from "@/utils/sanitize";
 import { TodoMetadata, TodoId, SubtaskId, TimeEntryId } from "@/types/todo";
 import { Settings } from "@/types/settings";
 import { MarkerColors } from "@/types/markerColors";
@@ -1112,11 +1114,13 @@ export function TodoDetailsOverlay({
             // Extract all link patterns from the todo text
             const foundLinks: { prefix: string; id: string; url: string; description: string; color: string }[] = [];
             linkPatterns.forEach((linkPattern) => {
-              const linkRegex = new RegExp(`${linkPattern.prefix}\\d{4,}`, "gi");
+              const linkRegex = new RegExp(`${escapeRegex(linkPattern.prefix)}\\d{4,}`, "gi");
               const matches = todo.text.matchAll(linkRegex);
               for (const match of matches) {
                 const id = match[0].slice(linkPattern.prefix.length);
-                const url = linkPattern.urlTemplate.replace("{id}", id);
+                // urlTemplate is user-entered and lands in an href below.
+                const url = sanitizeUrl(linkPattern.urlTemplate.replace("{id}", id));
+                if (url === null) continue;
                 foundLinks.push({
                   prefix: linkPattern.prefix,
                   id: match[0],

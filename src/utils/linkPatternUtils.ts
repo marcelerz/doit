@@ -1,4 +1,5 @@
 import { LinkPattern } from "@/types/linkPattern";
+import { sanitizeUrl, sanitizeCssColor } from "@/utils/sanitize";
 
 // Node type constants (same as DOM Node constants)
 const TEXT_NODE = 3;
@@ -100,8 +101,13 @@ function processTextForPatterns(text: string, linkPatterns: LinkPattern[]): stri
       if (match.index !== undefined) {
         // Extract the ID part (everything after the prefix)
         const id = match[0].slice(linkPattern.prefix.length);
-        // Replace {id} in the URL template with the actual ID
-        const url = linkPattern.urlTemplate.replace("{id}", id);
+        // Replace {id} in the URL template with the actual ID.
+        // urlTemplate is user-entered and ends up in an href, so the scheme
+        // has to be checked here: this output is injected *after* DOMPurify
+        // has run, and escapeHtml below quotes the value without rejecting
+        // a `javascript:` scheme.
+        const url = sanitizeUrl(linkPattern.urlTemplate.replace("{id}", id));
+        if (url === null) continue;
 
         matches.push({
           start: match.index,
@@ -132,7 +138,11 @@ function processTextForPatterns(text: string, linkPatterns: LinkPattern[]): stri
     }
 
     // Add the link
-    const colorStyle = match.color ? `color: ${match.color};` : "color: #3b82f6;";
+    // Link-pattern colours are free text from Settings -> Links. Unvalidated,
+    // `red" onmouseover="alert(1)//` closes the style attribute and adds a
+    // live event handler that nothing downstream would strip.
+    const safeColor = sanitizeCssColor(match.color);
+    const colorStyle = safeColor ? `color: ${safeColor};` : "color: #3b82f6;";
     result += `<a href="${escapeHtml(match.url)}" target="_blank" rel="noopener noreferrer" style="${colorStyle} font-weight: bold; text-decoration: underline;" title="Opens in new tab">${escapeHtml(match.text)}</a>`;
 
     lastIndex = match.end;
@@ -149,7 +159,7 @@ function processTextForPatterns(text: string, linkPatterns: LinkPattern[]): stri
 /**
  * Escapes special regex characters in a string.
  */
-function escapeRegex(str: string): string {
+export function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 

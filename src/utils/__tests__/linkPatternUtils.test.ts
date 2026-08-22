@@ -15,6 +15,61 @@ describe("linkPatternUtils", () => {
       color: getColor(color || "#3b82f6"),
     });
 
+    describe("injection", () => {
+      // These render *after* DOMPurify has run -- processLinkPatternsInHtml is
+      // called as processLinkPatternsInHtml(sanitizeHtml(x)) at all five
+      // dangerouslySetInnerHTML sites -- so anything this function emits is
+      // injected verbatim. Nothing downstream will strip it.
+
+      it("does not let a colour break out of the style attribute", () => {
+        const pattern = createLinkPattern("T", "https://example.com/{id}");
+        // Settings -> Links takes free text for the colour, with no validation.
+        (pattern as { color: string }).color = 'red" onmouseover="alert(1)//';
+
+        const html = processLinkPatternsInHtml("see T12345", [pattern]);
+
+        expect(html).not.toContain("onmouseover");
+        const el = document.createElement("div");
+        el.innerHTML = html;
+        expect(el.querySelector("a")?.getAttribute("onmouseover")).toBeNull();
+      });
+
+      it("falls back to the default colour when the value is not a colour", () => {
+        const pattern = createLinkPattern("T", "https://example.com/{id}");
+        (pattern as { color: string }).color = "url(javascript:alert(1))";
+
+        const html = processLinkPatternsInHtml("see T12345", [pattern]);
+        expect(html).toContain("color: #3b82f6;");
+      });
+
+      it("keeps a legitimate hex colour", () => {
+        const pattern = createLinkPattern("T", "https://example.com/{id}", "#ff6600");
+        expect(processLinkPatternsInHtml("see T12345", [pattern])).toContain("color: #ff6600;");
+      });
+
+      it("drops a link whose template uses a javascript: scheme", () => {
+        const pattern = createLinkPattern("T", "javascript:alert(1)");
+        const html = processLinkPatternsInHtml("see T12345", [pattern]);
+
+        expect(html).not.toContain("javascript:");
+        const el = document.createElement("div");
+        el.innerHTML = html;
+        expect(el.querySelector("a")).toBeNull();
+      });
+
+      it("leaves the surrounding text intact when a link is dropped", () => {
+        const pattern = createLinkPattern("T", "javascript:alert(1)");
+        expect(processLinkPatternsInHtml("see T12345 now", [pattern])).toContain("see");
+      });
+
+      it("survives a prefix containing regex metacharacters", () => {
+        const pattern = createLinkPattern("[", "https://example.com/{id}");
+        // An unescaped "[" throws SyntaxError: Unterminated character class,
+        // which would take down the render of every todo.
+        expect(() => processLinkPatternsInHtml("see [12345", [pattern])).not.toThrow();
+      });
+    });
+
     it("should return empty string as-is", () => {
       const patterns = [createLinkPattern("T", "https://jira.example.com/browse/T-{id}")];
       expect(processLinkPatternsInHtml("", patterns)).toBe("");

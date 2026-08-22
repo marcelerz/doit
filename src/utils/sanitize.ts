@@ -91,6 +91,29 @@ export function sanitizeUrl(url: string): string | null {
 }
 
 /**
+ * Sanitize a value destined for a CSS `color` declaration.
+ *
+ * Link-pattern colours are user-entered free text (Settings -> Links) and are
+ * interpolated into a style attribute. Without this, a value like
+ * `red" onmouseover="alert(1)//` closes the attribute and adds an event
+ * handler -- and because link patterns are rendered after DOMPurify has run,
+ * nothing downstream would strip it.
+ *
+ * Accepts hex (#rgb, #rgba, #rrggbb, #rrggbbaa) and bare CSS colour keywords.
+ * Anything else returns null and the caller should fall back to its default.
+ *
+ * @param color - Raw colour string
+ * @returns The colour if it is safe to interpolate, otherwise null
+ */
+export function sanitizeCssColor(color: string | undefined): string | null {
+  if (!color) return null;
+  const trimmed = color.trim();
+  if (/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(trimmed)) return trimmed;
+  if (/^[a-z]+$/i.test(trimmed)) return trimmed;
+  return null;
+}
+
+/**
  * Check if HTML content is effectively empty (only whitespace)
  * Uses DOMPurify to safely sanitize before checking content.
  * Used by: Comments for validating comment content

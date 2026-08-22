@@ -1,4 +1,6 @@
 import React from "react";
+import { escapeRegex } from "@/utils/linkPatternUtils";
+import { sanitizeUrl, sanitizeCssColor } from "@/utils/sanitize";
 import { MarkerColors } from "@/types/markerColors";
 import { LinkPattern } from "@/types/linkPattern";
 import { Priority } from "@/types/priority";
@@ -170,15 +172,23 @@ export function MarkedText({
   linkPatterns.forEach((linkPattern) => {
     // Create regex for this link pattern: prefix followed by at least 4 digits
     // e.g., "T" becomes /T\d{4,}/g
-    const linkRegex = new RegExp(`${linkPattern.prefix}\\d{4,}`, "gi");
+    // The prefix is user-entered and must be escaped, as the three sibling
+    // patterns in this file already are. A prefix of "[" throws
+    // SyntaxError: Unterminated character class while rendering every todo,
+    // and a nested quantifier gives catastrophic backtracking. The form field
+    // has a pattern= guard, but imported settings bypass it entirely.
+    const linkRegex = new RegExp(`${escapeRegex(linkPattern.prefix)}\\d{4,}`, "gi");
     const matches = text.matchAll(linkRegex);
 
     for (const match of matches) {
       if (match.index !== undefined) {
         // Extract the ID part (everything after the prefix)
         const id = match[0].slice(linkPattern.prefix.length);
-        // Replace {id} in the URL template with the actual ID
-        const url = linkPattern.urlTemplate.replace("{id}", id);
+        // Replace {id} in the URL template with the actual ID. The template is
+        // user-entered and reaches an href below, so a `javascript:` scheme has
+        // to be rejected here rather than relied on React to block.
+        const url = sanitizeUrl(linkPattern.urlTemplate.replace("{id}", id));
+        if (url === null) continue;
 
         allMatches.push({
           start: match.index,
@@ -384,7 +394,7 @@ export function MarkedText({
           title="Opens in new tab"
           className="inline-block px-1.5 py-0.5 mx-0.5 text-sm rounded font-bold underline hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
           style={{
-            color: match.color || "#3b82f6",
+            color: sanitizeCssColor(match.color) ?? "#3b82f6",
           }}
         >
           {match.text}

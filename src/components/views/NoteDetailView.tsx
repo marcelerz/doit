@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { escapeRegex } from "@/utils/linkPatternUtils";
+import { sanitizeUrl } from "@/utils/sanitize";
 import { NoteModel } from "@/models/NoteModel";
 import { NoteId, NoteMetadata, ActionItemId } from "@/types/note";
 import { TodoId } from "@/types/todo";
@@ -443,11 +445,13 @@ export function NoteDetailView({
     const textToSearch = `${note.text} ${note.content}`;
 
     linkPatterns.forEach((linkPattern) => {
-      const linkRegex = new RegExp(`${linkPattern.prefix}\\d{4,}`, "gi");
+      const linkRegex = new RegExp(`${escapeRegex(linkPattern.prefix)}\\d{4,}`, "gi");
       const matches = textToSearch.matchAll(linkRegex);
       for (const match of matches) {
         const id = match[0].slice(linkPattern.prefix.length);
-        const url = linkPattern.urlTemplate.replace("{id}", id);
+        // urlTemplate is user-entered and lands in an href below.
+        const url = sanitizeUrl(linkPattern.urlTemplate.replace("{id}", id));
+        if (url === null) continue;
         // Avoid duplicates
         if (!foundLinks.some(l => l.id === match[0])) {
           foundLinks.push({
