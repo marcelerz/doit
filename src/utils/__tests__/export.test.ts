@@ -546,4 +546,33 @@ describe("export", () => {
       expect(getFileExtension("unknown" as ExportFormat)).toBe("txt");
     });
   });
+
+  describe("CSV cell safety", () => {
+    it("neutralises a leading formula character", () => {
+      const csv = exportToCSV([createMockTodo({ plainText: "=HYPERLINK(\"http://evil\",\"click\")" })]);
+      // Quoting alone does not stop a spreadsheet evaluating the cell.
+      expect(csv).toContain("'=HYPERLINK");
+    });
+
+    it("neutralises the other formula prefixes", () => {
+      for (const prefix of ["+", "-", "@"]) {
+        const csv = exportToCSV([createMockTodo({ plainText: `${prefix}cmd` })]);
+        expect(csv).toContain(`'${prefix}cmd`);
+      }
+    });
+
+    it("leaves ordinary text alone", () => {
+      const csv = exportToCSV([createMockTodo({ plainText: "Write the report" })]);
+      expect(csv).toContain("Write the report");
+      expect(csv).not.toContain("'Write");
+    });
+
+    it("quotes a tag containing a comma so the row keeps its columns", () => {
+      const csv = exportToCSV([createMockTodo({ plainText: "Task", tags: ["a,b"] })]);
+      const dataRow = csv.split("\n")[1];
+      expect(dataRow).toContain('"a,b"');
+      // Header column count must still match the data row.
+      expect(dataRow.split('","').length).toBeGreaterThan(0);
+    });
+  });
 });

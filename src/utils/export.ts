@@ -95,7 +95,7 @@ export function exportToCSV(todos: TodoModel[]): string {
 
   todos.forEach((todo) => {
     rows.push([
-      escapeCSV(todo.plainText),
+      todo.plainText,
       todo.state,
       todo.priorityName || "",
       todo.dueDateDisplay || "",
@@ -108,15 +108,21 @@ export function exportToCSV(todos: TodoModel[]): string {
     ]);
   });
 
-  return rows.map((row) => row.join(",")).join("\n");
+  return rows.map((row) => row.map(escapeCSV).join(",")).join("\n");
 }
 
 function escapeCSV(value: string): string {
+  // Neutralise spreadsheet formulas. Excel, Sheets and Numbers evaluate a cell
+  // beginning with any of these, and quoting does not stop it -- so a todo
+  // titled `=HYPERLINK(...)` runs on open. A leading apostrophe marks the cell
+  // as literal text.
+  const guarded = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+
   // If value contains comma, newline, or quote, wrap in quotes and escape quotes
-  if (value.includes(",") || value.includes("\n") || value.includes('"')) {
-    return `"${value.replace(/"/g, '""')}"`;
+  if (guarded.includes(",") || guarded.includes("\n") || guarded.includes('"')) {
+    return `"${guarded.replace(/"/g, '""')}"`;
   }
-  return value;
+  return guarded;
 }
 
 /**
@@ -360,7 +366,7 @@ export function exportNotesToCSV(
     const projectNames = note.projects.map((id) => projectsMap.get(id) || id);
 
     rows.push([
-      escapeCSV(note.plainText || "Untitled"),
+      note.plainText || "Untitled",
       note.state,
       note.isPinned ? "Yes" : "No",
       assignedNames.join("; "),
@@ -368,7 +374,7 @@ export function exportNotesToCSV(
       mentionedNames.join("; "),
       projectNames.join("; "),
       note.tags.join("; "),
-      escapeCSV(note.getContentPreview(100)),
+      note.getContentPreview(100),
       String(note.pendingActionItemCount),
       String(note.commentCount),
       note.createdAt ? new Date(note.createdAt).toISOString() : "",
@@ -376,7 +382,7 @@ export function exportNotesToCSV(
     ]);
   });
 
-  return rows.map((row) => row.join(",")).join("\n");
+  return rows.map((row) => row.map(escapeCSV).join(",")).join("\n");
 }
 
 /**
