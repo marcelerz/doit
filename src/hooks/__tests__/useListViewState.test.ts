@@ -369,18 +369,27 @@ describe("auto-assign interaction", () => {
 
 describe("quickFilterCounts", () => {
   it("counts each bucket over the supplied todos", () => {
-    const todos = [
-      makeTodo({ id: "today", dueDate: getTimestamp(daysFromNow(0)) }),
-      makeTodo({ id: "overdue", dueDate: getTimestamp(daysFromNow(-1)) }),
-      makeTodo({ id: "none" }),
-    ];
-    const { result } = mount(todos);
+    // isOverdue compares the full timestamp (`dueDate < new Date()`), and
+    // daysFromNow(0) is today at 12:00, so this counted the "today" todo as
+    // overdue whenever the suite ran after noon. Freeze the clock rather than
+    // letting the assertion depend on the time of day.
+    jest.useFakeTimers().setSystemTime(new Date(2026, 0, 15, 9, 0, 0));
+    try {
+      const todos = [
+        makeTodo({ id: "today", dueDate: getTimestamp(daysFromNow(0)) }),
+        makeTodo({ id: "overdue", dueDate: getTimestamp(daysFromNow(-1)) }),
+        makeTodo({ id: "none" }),
+      ];
+      const { result } = mount(todos);
 
-    const counts = result.current.quickFilterCounts;
+      const counts = result.current.quickFilterCounts;
 
-    expect(counts.overdue).toBe(1);
-    expect(counts.noDueDate).toBe(1);
-    expect(counts.all).toBe(3);
+      expect(counts.overdue).toBe(1);
+      expect(counts.noDueDate).toBe(1);
+      expect(counts.all).toBe(3);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 
