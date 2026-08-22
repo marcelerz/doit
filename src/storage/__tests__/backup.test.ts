@@ -14,6 +14,7 @@ import {
   cleanupOldBackups,
   MAX_BACKUP_COUNT,
   BackupData,
+  validateBackupData,
 } from "@/storage/backup";
 import { BACKUP_KEY_PREFIX } from "@/storage/storage";
 import {
@@ -189,5 +190,72 @@ describe("cleanupOldBackups", () => {
 
     expect(deleted).toBe(1);
     expect(await backupCount()).toBe(1);
+  });
+});
+
+describe("untrusted backup files", () => {
+  describe("validateBackupData", () => {
+    const valid = { timestamp: 1, date: "2026-01-01", todos: "[]", settings: "{}" };
+
+    it("accepts a well-formed backup", () => {
+      expect(validateBackupData(valid)).toBeNull();
+    });
+
+    it("accepts a well-formed key set", () => {
+      expect(validateBackupData({ ...valid, keys: { "doit-todos": "[]" } })).toBeNull();
+    });
+
+    it("rejects a non-object", () => {
+      expect(validateBackupData("nope")).not.toBeNull();
+      expect(validateBackupData(null)).not.toBeNull();
+    });
+
+    it("rejects wrong field types rather than trusting truthiness", () => {
+      expect(validateBackupData({ ...valid, timestamp: "1" })).not.toBeNull();
+      expect(validateBackupData({ ...valid, todos: { length: 5 } })).not.toBeNull();
+      expect(validateBackupData({ ...valid, date: "" })).not.toBeNull();
+    });
+
+    it("rejects a key set whose values are not strings", () => {
+      expect(validateBackupData({ ...valid, keys: { "doit-todos": { evil: true } } })).not.toBeNull();
+    });
+
+    it("rejects prototype-polluting keys", () => {
+      // Built with JSON.parse deliberately: an object literal treats __proto__
+      // as the prototype rather than an own property, so a literal would not
+      // reproduce what parsing an actual backup file produces.
+      const polluted = JSON.parse('{"timestamp":1,"date":"2026-01-01","todos":"[]","settings":"{}","keys":{"__proto__":"x"}}');
+      expect(validateBackupData(polluted)).not.toBeNull();
+      expect(validateBackupData({ ...valid, keys: { constructor: "x" } })).not.toBeNull();
+    });
+  });
+
+  describe("restoreSnapshot", () => {
+    it("ignores keys outside the doit- namespace", async () => {
+      await restoreSnapshot({
+        timestamp: 1,
+        date: "2026-01-01",
+        todos: "[]",
+        settings: "{}",
+        keys: { "doit-todos": "[1]", "evil-key": "pwned" },
+      } as BackupData);
+
+      expect(await adapter.getItem("doit-todos")).toBe("[1]");
+      expect(await adapter.getItem("evil-key")).toBeNull();
+    });
+
+    it("does not let a backup overwrite internal storage bookkeeping", async () => {
+      await adapter.setItem("doit-migrated-to-indexeddb", "true");
+
+      await restoreSnapshot({
+        timestamp: 1,
+        date: "2026-01-01",
+        todos: "[]",
+        settings: "{}",
+        keys: { "doit-todos": "[]", "doit-migrated-to-indexeddb": "false" },
+      } as BackupData);
+
+      expect(await adapter.getItem("doit-migrated-to-indexeddb")).toBe("true");
+    });
   });
 });

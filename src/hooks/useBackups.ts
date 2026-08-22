@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getStorageAdapter } from "@/storage/storage";
 import { useSettings } from "@/hooks/useSettings";
-import { BackupData, BackupStats, buildBackup, restoreSnapshot } from "@/storage/backup";
+import { BackupData, BackupStats, buildBackup, restoreSnapshot, validateBackupData } from "@/storage/backup";
 import { BACKUP_KEY_PREFIX } from "@/storage/storage";
 import { formatDateKey } from "@/utils/dateUtils";
 
@@ -102,9 +102,11 @@ async function importBackupFromFile(file: File): Promise<{ success: boolean; err
         const content = e.target?.result as string;
         const importedBackup = JSON.parse(content) as BackupData;
 
-        // Validate backup structure
-        if (!importedBackup.timestamp || !importedBackup.date || !importedBackup.todos || !importedBackup.settings) {
-          resolve({ success: false, error: "Invalid backup file format" });
+        // Validate backup structure. This file came from wherever the user got
+        // it, and restoring writes its contents straight into storage.
+        const invalid = validateBackupData(importedBackup);
+        if (invalid !== null) {
+          resolve({ success: false, error: invalid });
           return;
         }
 

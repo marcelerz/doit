@@ -242,7 +242,7 @@ export const LOCAL_STORAGE_BUDGET_BYTES = 5 * 1024 * 1024;
 export const STORAGE_KEY_PREFIX = "doit-";
 
 /** Keys under the doit- prefix that are bookkeeping, not user data. */
-const INTERNAL_STORAGE_KEYS = new Set([
+export const INTERNAL_STORAGE_KEYS = new Set([
   "doit-migrated-to-indexeddb",
   "doit-test-availability",
   "doit-db",

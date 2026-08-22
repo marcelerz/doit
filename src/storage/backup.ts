@@ -14,7 +14,7 @@ import {
 } from "@/storage/storage";
 import { formatDateKey } from "@/utils/dateUtils";
 import { BackupSettings, defaultBackupSettings } from "@/types/backup";
-import { BACKUP_KEY_PREFIX } from "@/storage/storage";
+import { BACKUP_KEY_PREFIX, INTERNAL_STORAGE_KEYS } from "@/storage/storage";
 
 // ============================================================================
 // Types & Constants
@@ -85,14 +85,69 @@ async function loadBackupSettings(): Promise<BackupSettings> {
 /**
  * Snapshot every doit- key except backups themselves and internal bookkeeping.
  */
+/**
+ * Validate a parsed backup file before anything is stored or restored.
+ *
+ * A backup file is untrusted: the user opens whatever they were sent. The
+ * previous check tested four fields for truthiness, so a string where a number
+ * belonged, or a `keys` map full of objects, passed straight through to the
+ * storage adapter.
+ *
+ * @returns null if the shape is acceptable, otherwise a reason to show
+ */
+export function validateBackupData(value: unknown): string | null {
+  if (typeof value !== "object" || value === null) return "Not a backup file";
+  const backup = value as Record<string, unknown>;
+
+  if (typeof backup.timestamp !== "number" || !Number.isFinite(backup.timestamp)) {
+    return "Backup is missing a valid timestamp";
+  }
+  if (typeof backup.date !== "string" || backup.date === "") {
+    return "Backup is missing a valid date";
+  }
+  if (typeof backup.todos !== "string") return "Backup is missing its todos";
+  if (typeof backup.settings !== "string") return "Backup is missing its settings";
+
+  if (backup.keys !== undefined) {
+    if (typeof backup.keys !== "object" || backup.keys === null || Array.isArray(backup.keys)) {
+      return "Backup contains a malformed key set";
+    }
+    for (const [key, entry] of Object.entries(backup.keys as Record<string, unknown>)) {
+      // Reject prototype-polluting keys outright rather than relying on every
+      // later consumer to be careful with the parsed object.
+      if (key === "__proto__" || key === "constructor" || key === "prototype") {
+        return "Backup contains an unsafe key";
+      }
+      if (typeof entry !== "string") return "Backup contains a malformed value";
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Whether a storage key is one a backup may capture and restore.
+ *
+ * Used for the snapshot, for deciding what a restore clears, and -- crucially
+ * -- for filtering what a restore is allowed to write. A backup file is
+ * untrusted input: it arrives from wherever the user got it.
+ *
+ * Deliberately a prefix test rather than a list of known keys. snapshotAllKeys
+ * captures every doit- key, including ones no registry names yet, so checking
+ * against STORAGE_KEYS would silently drop a user's data on restore.
+ */
+export function isRestorableKey(key: string): boolean {
+  return (
+    key.startsWith(STORAGE_KEY_PREFIX) &&
+    !key.startsWith(BACKUP_KEY_PREFIX) &&
+    key !== STORAGE_KEYS.BACKUP_SETTINGS &&
+    !INTERNAL_STORAGE_KEYS.has(key)
+  );
+}
+
 export async function snapshotAllKeys(): Promise<Record<string, string>> {
   const adapter = getStorageAdapter();
-  const keys = (await adapter.getAllKeys()).filter(
-    (key) =>
-      key.startsWith(STORAGE_KEY_PREFIX) &&
-      !key.startsWith(BACKUP_KEY_PREFIX) &&
-      key !== STORAGE_KEYS.BACKUP_SETTINGS
-  );
+  const keys = (await adapter.getAllKeys()).filter(isRestorableKey);
 
   const snapshot: Record<string, string> = {};
   for (const key of keys) {
@@ -115,16 +170,16 @@ export async function restoreSnapshot(backup: BackupData): Promise<boolean> {
     if (backup.keys && Object.keys(backup.keys).length > 0) {
       // Clear keys the backup does not contain, so restoring cannot leave
       // records behind that the backup never knew about.
-      const existing = (await adapter.getAllKeys()).filter(
-        (key) =>
-          key.startsWith(STORAGE_KEY_PREFIX) &&
-          !key.startsWith(BACKUP_KEY_PREFIX) &&
-          key !== STORAGE_KEYS.BACKUP_SETTINGS
-      );
+      const existing = (await adapter.getAllKeys()).filter(isRestorableKey);
       for (const key of existing) {
         if (!(key in backup.keys)) await adapter.removeItem(key);
       }
+      // Filter the writes too. The loop above was already guarded, but this one
+      // wrote whatever the file contained, so a crafted backup could set keys
+      // outside the doit- namespace entirely -- or overwrite the internal
+      // bookkeeping that decides which storage backend is in use.
       for (const [key, value] of Object.entries(backup.keys)) {
+        if (!isRestorableKey(key) || typeof value !== "string") continue;
         await adapter.setItem(key, value);
       }
       return true;
