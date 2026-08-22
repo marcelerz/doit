@@ -46,6 +46,15 @@ export interface TestTodoOverrides {
   duration?: string | number;
   sprint?: string;
   workflowState?: string;
+  updatedAt?: number | Timestamp;
+  archivedAt?: number | Timestamp;
+  deletedAt?: number | Timestamp;
+  comments?: Todo["comments"];
+  activity?: Todo["activity"];
+  subtasks?: Todo["subtasks"];
+  timeTracking?: Todo["timeTracking"];
+  context?: string;
+  recurring?: string;
   metadata?: {
     assignedPeople?: string[];
     sourcePeople?: string[];
@@ -241,17 +250,22 @@ export function createRawTodo(overrides: TestTodoOverrides = {}): Todo {
     plainText: overrides.plainText || overrides.text || "Test todo",
     state: overrides.state || "active",
     createdAt,
-    context: "",
+    context: overrides.context ?? "",
+    recurring: overrides.recurring,
     assignedPeople: (overrides.assignedPeople || []) as PersonId[],
     sourcePeople: (overrides.sourcePeople || []) as PersonId[],
     mentionedPeople: (overrides.mentionedPeople || []) as PersonId[],
     projects: (overrides.projects || []) as ProjectId[],
     tags: (overrides.tags || []) as Tag[],
     dependencies: (overrides.dependencies || []) as TodoId[],
-    comments: [],
-    activity: [],
-    subtasks: [],
+    comments: overrides.comments ?? [],
+    activity: overrides.activity ?? [],
+    subtasks: overrides.subtasks ?? [],
     completedAt,
+    updatedAt: overrides.updatedAt === undefined ? undefined : getTimestamp(overrides.updatedAt as number),
+    archivedAt: overrides.archivedAt === undefined ? undefined : getTimestamp(overrides.archivedAt as number),
+    deletedAt: overrides.deletedAt === undefined ? undefined : getTimestamp(overrides.deletedAt as number),
+    timeTracking: overrides.timeTracking,
     priority: overrides.priority as Todo["priority"],
     dueDate: parseDateToTimestamp(overrides.dueDate) as Todo["dueDate"],
     duration: overrides.duration as Todo["duration"],

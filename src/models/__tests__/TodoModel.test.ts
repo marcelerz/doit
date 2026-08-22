@@ -2,10 +2,10 @@
  * Tests for TodoModel Business Logic
  */
 
+import { createRawTodo as createTodo } from "@/utils/__tests__/testHelpers";
 import { TodoModel, createTodoModel, createTodoModels } from "@/models/TodoModel";
-import { generateUUID } from "@/utils/idGenerator";
 import { SettingsModel, createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
-import { Todo, getTodoId, getSubtaskId, getTag } from "@/types/todo";
+import { getTodoId, getSubtaskId, getTag } from "@/types/todo";
 import { Settings } from "@/types/settings";
 import { getPriorityId } from "@/types/priority";
 import { getPersonId } from "@/types/person";
@@ -181,31 +181,7 @@ const createSettings = (overrides: Partial<Settings> = {}): SettingsModel =>
   });
 
 // Helper to create a minimal Todo
-const createTodo = (overrides: Partial<Todo> = {}): Todo =>
-  ({
-    id: overrides.id || getTodoId(generateUUID()),
-    text: overrides.text || "Test todo",
-    plainText: overrides.plainText || "Test todo",
-    state: overrides.state || "active",
-    createdAt: overrides.createdAt || getTimestamp(Date.now()),
-    context: overrides.context || "",
-    // Actual fields (typed IDs)
-    assignedPeople: overrides.assignedPeople || [],
-    sourcePeople: overrides.sourcePeople || [],
-    mentionedPeople: overrides.mentionedPeople || [],
-    projects: overrides.projects || [],
-    tags: overrides.tags || [],
-    dependencies: overrides.dependencies || [],
-    priority: overrides.priority,
-    dueDate: overrides.dueDate,
-    duration: overrides.duration,
-    recurring: overrides.recurring,
-    sprint: overrides.sprint,
-    comments: overrides.comments || [],
-    activity: overrides.activity || [],
-    subtasks: overrides.subtasks || [],
-    ...overrides,
-  } as Todo);
+
 
 describe("TodoModel", () => {
   // Reset singleton before each test to ensure isolation
