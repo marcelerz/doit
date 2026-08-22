@@ -91,6 +91,41 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/*
+          A static export serves no headers, so the policy has to ride in the
+          document. Two consequences worth stating rather than discovering:
+
+          - script-src keeps 'unsafe-inline'. Next emits its RSC payload as
+            inline <script> tags whose contents change with every build, so
+            they cannot be hashed in a checked-in meta tag. This policy
+            therefore does not stop injected inline script; that is handled at
+            the source instead. What it does stop is what such script could do
+            next -- connect-src 'self' blocks exfiltration to another origin,
+            and form-action 'self' blocks posting the data away.
+
+          - frame-ancestors is header-only and has no effect from a meta tag,
+            so it is omitted rather than left in to look reassuring.
+
+          The app loads nothing from another origin: no external fonts, and no
+          fetch calls anywhere in src/.
+        */}
+        <meta
+          httpEquiv="Content-Security-Policy"
+          content={[
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline'",
+            "style-src 'self' 'unsafe-inline'",
+            "img-src 'self' data: blob:",
+            "media-src 'self'",
+            "font-src 'self' data:",
+            "connect-src 'self'",
+            "manifest-src 'self'",
+            "worker-src 'self'",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+          ].join("; ")}
+        />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}>
