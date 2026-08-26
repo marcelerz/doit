@@ -548,9 +548,18 @@ export function useListViewState({
         let comparison = 0;
 
         switch (sortField) {
-          case "manual":
-            comparison = 0; // Keep original order
+          case "manual": {
+            // Sort by sortOrder, with todos without one going to the end.
+            // This returned 0 and relied on the incoming array order, but
+            // reorderTodos only writes a sortOrder field -- it never reorders
+            // rawTodos -- so dragging a row changed nothing on screen and
+            // nothing after a reload either. Mirrors useNotesViewState, which
+            // has always done it this way.
+            const aOrder = a.sortOrder ?? Number.MAX_SAFE_INTEGER;
+            const bOrder = b.sortOrder ?? Number.MAX_SAFE_INTEGER;
+            comparison = aOrder - bOrder;
             break;
+          }
           case "dueDate": {
             const aDate = a.metadata.dueDate;
             const bDate = b.metadata.dueDate;

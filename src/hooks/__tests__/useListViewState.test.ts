@@ -402,3 +402,33 @@ describe("section expansion", () => {
     expect(result.current.archivedExpanded).toBe(false);
   });
 });
+
+describe("manual sort", () => {
+  it("orders by sortOrder rather than the order todos arrive in", () => {
+    // reorderTodos only writes a sortOrder field; it never reorders the
+    // underlying array. Relying on input order meant dragging a row changed
+    // nothing, on screen or after a reload.
+    const todos = [
+      makeTodo({ id: "c", sortOrder: 2 }),
+      makeTodo({ id: "a", sortOrder: 0 }),
+      makeTodo({ id: "b", sortOrder: 1 }),
+    ];
+    const { result } = mount(todos);
+
+    act(() => result.current.setSortField("manual"));
+
+    expect(result.current.sortTodos(todos).map((t) => t.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("puts todos with no sortOrder after those that have one", () => {
+    const todos = [
+      makeTodo({ id: "none" }),
+      makeTodo({ id: "first", sortOrder: 0 }),
+    ];
+    const { result } = mount(todos);
+
+    act(() => result.current.setSortField("manual"));
+
+    expect(result.current.sortTodos(todos).map((t) => t.id)).toEqual(["first", "none"]);
+  });
+});
