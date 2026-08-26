@@ -7,7 +7,10 @@ import { Todo, Subtask, TodoState, getSubtaskId, getTag } from "@/types/todo";
 import { getTimestamp } from "@/types/time";
 import { getActivityId } from "@/types/types";
 import { createSubtaskId, createActivityId } from "@/utils/idGenerator";
-import { formatDateKey } from "@/utils/dateUtils";
+import { formatDateKey, parseLocalDate } from "@/utils/dateUtils";
+import { getPersonId } from "@/types/person";
+import { getProjectId } from "@/types/project";
+import { PriorityId } from "@/types/priority";
 
 /**
  * Parse JSON with enhanced error context including line numbers
@@ -681,7 +684,7 @@ function findMatchingName(name: string, existingNames: string[]): string | undef
  * ensures that names match existing entities (case-insensitive).
  */
 export function convertToTodo(imported: ImportedTodo, options: ConvertOptions = {}): Omit<Todo, "id"> {
-  const { projects = [], people = [], priorities = [] } = options;
+  const { projects = [], people = [], priorities = [], resolvePriorityId } = options;
   const now = Date.now();
 
   // Match project name to existing project (case-insensitive)
@@ -731,12 +734,20 @@ export function convertToTodo(imported: ImportedTodo, options: ConvertOptions = 
     context: imported.notes || "",
     tags: (imported.tags ?? []).map(getTag),
     dependencies: [],
-    assignedPeople: [],
+    // These were left empty with a comment saying useTodos would resolve them
+    // from the text markers built above. It does not -- importTodos only
+    // assigns an id -- so filtering, grouping and every statistic silently
+    // excluded imported todos while the list still rendered the markers and
+    // therefore looked correct. The matched names are already to hand.
+    assignedPeople: matchedPeople.map((name) => getPersonId(name)),
     sourcePeople: [],
     mentionedPeople: [],
-    projects: [], // Will be resolved by useTodos from text markers
-    priority: undefined, // Will be resolved by useTodos from text markers
-    dueDate: imported.dueDate ? getTimestamp(new Date(imported.dueDate).getTime()) : undefined,
+    projects: imported.project ? [getProjectId(matchedProject || imported.project)] : [],
+    priority: matchedPriority ? resolvePriorityId?.(matchedPriority) : undefined,
+    // Parsed as a local date. `new Date("2026-08-20")` is UTC midnight, which
+    // is the previous evening anywhere west of UTC, so due dates landed a day
+    // early and tasks were flagged overdue before they were.
+    dueDate: imported.dueDate ? getTimestamp(parseLocalDate(imported.dueDate).getTime()) : undefined,
     duration: undefined,
     recurring: undefined,
     comments: [],
@@ -759,6 +770,13 @@ export interface ConvertOptions {
   projects?: string[];
   people?: string[];
   priorities?: string[];
+  /**
+   * Resolve a priority name to its id.
+   *
+   * The names above are enough to match what the file says against what the
+   * user has, but a Todo stores a PriorityId, which only the settings know.
+   */
+  resolvePriorityId?: (name: string) => PriorityId | undefined;
 }
 
 /**

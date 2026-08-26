@@ -117,6 +117,8 @@ export function ImportTab() {
       projects: existingProjects,
       people: existingPeople,
       priorities: existingPriorities,
+      resolvePriorityId: (name) =>
+        settings.priorities.find((p) => p.name.toLowerCase() === name.toLowerCase())?.id,
     });
 
     importTodosToStore(converted);

@@ -497,6 +497,74 @@ My Task,yes`;
   });
 
   describe("convertToTodo", () => {
+    describe("typed fields, not just text markers", () => {
+      const base = {
+        title: "Fix login",
+        isCompleted: false,
+        tags: [],
+        subtasks: [],
+        assignedPeople: [],
+        source: "csv" as ImportFormat,
+      };
+
+      it("puts the project in the projects field, not only in the text", () => {
+        // Filtering, grouping and statistics read the field. Leaving it empty
+        // made imported todos invisible to all of them while the rendered row
+        // still showed the %marker, so the list looked correct.
+        const result = convertToTodo({ ...base, project: "Website" }, { projects: ["Website"] });
+        expect(result.projects).toHaveLength(1);
+        expect(result.text).toContain("%Website");
+      });
+
+      it("puts assigned people in the assignedPeople field", () => {
+        const result = convertToTodo(
+          { ...base, assignedPeople: ["Marcel"] },
+          { people: ["Marcel"] },
+        );
+        expect(result.assignedPeople).toHaveLength(1);
+      });
+
+      it("resolves the priority to an id when a resolver is supplied", () => {
+        const result = convertToTodo(
+          { ...base, priority: "high" },
+          { priorities: ["high"], resolvePriorityId: () => "prio-2" as never },
+        );
+        expect(result.priority).toBe("prio-2");
+      });
+
+      it("leaves the priority unset when nothing matches", () => {
+        const result = convertToTodo({ ...base, priority: "nonsense" }, { priorities: ["high"] });
+        expect(result.priority).toBeUndefined();
+      });
+
+      it("matches an existing project case-insensitively", () => {
+        const result = convertToTodo({ ...base, project: "website" }, { projects: ["Website"] });
+        expect(result.text).toContain("%Website");
+        expect(result.projects).toHaveLength(1);
+      });
+    });
+
+    describe("due dates", () => {
+      it("reads a date-only value as a local date", () => {
+        // new Date("2026-08-20") is UTC midnight, which is the previous evening
+        // west of UTC, so the task showed as due a day early and overdue with it.
+        const result = convertToTodo({
+          title: "t",
+          isCompleted: false,
+          tags: [],
+          subtasks: [],
+          assignedPeople: [],
+          source: "csv" as ImportFormat,
+          dueDate: "2026-08-20",
+        });
+
+        const due = new Date(result.dueDate as unknown as number);
+        expect(due.getFullYear()).toBe(2026);
+        expect(due.getMonth()).toBe(7);
+        expect(due.getDate()).toBe(20);
+      });
+    });
+
     it("should convert ImportedTodo to Todo format", () => {
       const imported = {
         title: "Test task",
