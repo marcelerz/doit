@@ -44,7 +44,7 @@ const flowTooltip = (
 );
 
 export function GanttTab() {
-  const { settings, isLoaded, updateGantt } = useSettings();
+  const { settings, isLoaded, updateGanttSettings } = useSettings();
 
   if (!isLoaded) {
     return <SettingsLoading />;
@@ -53,7 +53,7 @@ export function GanttTab() {
   const gantt = settings.gantt;
 
   const handleApplyPreset = (preset: GanttPreset) => {
-    updateGantt({
+    updateGanttSettings({
       ...gantt,
       schedulingTechnique: preset.technique,
       contextSwitchingTime: preset.contextSwitchingTime,
@@ -77,7 +77,7 @@ export function GanttTab() {
     const defaultIds = defaultGanttPresets.map((p) => p.id);
     if (defaultIds.includes(getGanttPresetId(presetId))) return;
 
-    updateGantt({
+    updateGanttSettings({
       ...gantt,
       presets: (gantt.presets || defaultGanttPresets).filter((p) => p.id !== presetId),
       activePresetId: gantt.activePresetId === presetId ? undefined : gantt.activePresetId,
@@ -85,7 +85,7 @@ export function GanttTab() {
   };
 
   const handleResetToDefaults = () => {
-    updateGantt(defaultGantt);
+    updateGanttSettings(defaultGantt);
   };
 
   const presets = gantt.presets || defaultGanttPresets;
@@ -137,7 +137,7 @@ export function GanttTab() {
                 step="5"
                 value={gantt.defaultTaskDuration}
                 onChange={(e) =>
-                  updateGantt({
+                  updateGanttSettings({
                     ...gantt,
                     defaultTaskDuration: getDurationMin(parseInt(e.target.value) || 30),
                     activePresetId: undefined,
@@ -162,7 +162,7 @@ export function GanttTab() {
                 step="0.1"
                 value={gantt.durationMultiplier}
                 onChange={(e) =>
-                  updateGantt({
+                  updateGanttSettings({
                     ...gantt,
                     durationMultiplier: parseFloat(e.target.value) || 1.0,
                     activePresetId: undefined,
@@ -187,7 +187,7 @@ export function GanttTab() {
                 step="1"
                 value={gantt.minimumRemainingDuration ?? 1}
                 onChange={(e) =>
-                  updateGantt({
+                  updateGanttSettings({
                     ...gantt,
                     minimumRemainingDuration: getDurationMin(Math.max(1, parseInt(e.target.value) || 1)),
                     activePresetId: undefined,
@@ -269,7 +269,7 @@ export function GanttTab() {
                 max="60"
                 value={gantt.contextSwitchingTime}
                 onChange={(e) =>
-                  updateGantt({
+                  updateGanttSettings({
                     ...gantt,
                     contextSwitchingTime: getDurationMin(parseInt(e.target.value) || 0),
                     activePresetId: undefined,
@@ -348,7 +348,7 @@ export function GanttTab() {
                 step="5"
                 value={gantt.pomodoroWorkDuration}
                 onChange={(e) =>
-                  updateGantt({
+                  updateGanttSettings({
                     ...gantt,
                     pomodoroWorkDuration: getDurationMin(parseInt(e.target.value) || 25),
                     activePresetId: undefined,
@@ -370,7 +370,7 @@ export function GanttTab() {
                 max="30"
                 value={gantt.pomodoroShortBreak}
                 onChange={(e) =>
-                  updateGantt({
+                  updateGanttSettings({
                     ...gantt,
                     pomodoroShortBreak: getDurationMin(parseInt(e.target.value) || 5),
                     activePresetId: undefined,
@@ -392,7 +392,7 @@ export function GanttTab() {
                 max="60"
                 value={gantt.pomodoroLongBreak}
                 onChange={(e) =>
-                  updateGantt({
+                  updateGanttSettings({
                     ...gantt,
                     pomodoroLongBreak: getDurationMin(parseInt(e.target.value) || 15),
                     activePresetId: undefined,
@@ -414,7 +414,7 @@ export function GanttTab() {
                 max="10"
                 value={gantt.pomodoroLongBreakInterval}
                 onChange={(e) =>
-                  updateGantt({
+                  updateGanttSettings({
                     ...gantt,
                     pomodoroLongBreakInterval: parseInt(e.target.value) || 4,
                     activePresetId: undefined,
@@ -517,7 +517,7 @@ export function GanttTab() {
                 step="5"
                 value={gantt.flowWorkDuration}
                 onChange={(e) =>
-                  updateGantt({
+                  updateGanttSettings({
                     ...gantt,
                     flowWorkDuration: getDurationMin(parseInt(e.target.value) || 52),
                     activePresetId: undefined,
@@ -539,7 +539,7 @@ export function GanttTab() {
                 max="60"
                 value={gantt.flowBreakDuration}
                 onChange={(e) =>
-                  updateGantt({
+                  updateGanttSettings({
                     ...gantt,
                     flowBreakDuration: getDurationMin(parseInt(e.target.value) || 17),
                     activePresetId: undefined,
@@ -561,7 +561,7 @@ export function GanttTab() {
                 max="30"
                 value={gantt.flowContextSwitchingTime}
                 onChange={(e) =>
-                  updateGantt({
+                  updateGanttSettings({
                     ...gantt,
                     flowContextSwitchingTime: getDurationMin(parseInt(e.target.value) || 10),
                     activePresetId: undefined,
@@ -601,7 +601,7 @@ export function GanttTab() {
             </label>
             <select
               value={gantt.zoomLevel || "1hour"}
-              onChange={(e) => updateGantt({ ...gantt, zoomLevel: e.target.value as GanttZoomLevel })}
+              onChange={(e) => updateGanttSettings({ ...gantt, zoomLevel: e.target.value as GanttZoomLevel })}
               className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="15min">15 minutes</option>
@@ -617,7 +617,7 @@ export function GanttTab() {
             <select
               value={gantt.taskRowHeight || "normal"}
               onChange={(e) =>
-                updateGantt({ ...gantt, taskRowHeight: e.target.value as "compact" | "normal" | "comfortable" })
+                updateGanttSettings({ ...gantt, taskRowHeight: e.target.value as "compact" | "normal" | "comfortable" })
               }
               className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
@@ -634,7 +634,7 @@ export function GanttTab() {
             <input
               type="checkbox"
               checked={gantt.showWeekends !== false}
-              onChange={(e) => updateGantt({ ...gantt, showWeekends: e.target.checked })}
+              onChange={(e) => updateGanttSettings({ ...gantt, showWeekends: e.target.checked })}
               className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
             />
             <div>
@@ -647,7 +647,7 @@ export function GanttTab() {
             <input
               type="checkbox"
               checked={gantt.showDependencies !== false}
-              onChange={(e) => updateGantt({ ...gantt, showDependencies: e.target.checked })}
+              onChange={(e) => updateGanttSettings({ ...gantt, showDependencies: e.target.checked })}
               className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
             />
             <div>
@@ -660,7 +660,7 @@ export function GanttTab() {
             <input
               type="checkbox"
               checked={gantt.showBufferZones !== false}
-              onChange={(e) => updateGantt({ ...gantt, showBufferZones: e.target.checked })}
+              onChange={(e) => updateGanttSettings({ ...gantt, showBufferZones: e.target.checked })}
               className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
             />
             <div>
@@ -673,7 +673,7 @@ export function GanttTab() {
             <input
               type="checkbox"
               checked={gantt.showNowLine !== false}
-              onChange={(e) => updateGantt({ ...gantt, showNowLine: e.target.checked })}
+              onChange={(e) => updateGanttSettings({ ...gantt, showNowLine: e.target.checked })}
               className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
             />
             <div>
@@ -686,7 +686,7 @@ export function GanttTab() {
             <input
               type="checkbox"
               checked={gantt.collapseCompleted === true}
-              onChange={(e) => updateGantt({ ...gantt, collapseCompleted: e.target.checked })}
+              onChange={(e) => updateGanttSettings({ ...gantt, collapseCompleted: e.target.checked })}
               className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
             />
             <div>

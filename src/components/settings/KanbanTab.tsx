@@ -349,7 +349,7 @@ export function KanbanTab() {
               <div className="flex gap-2">
                 <button
                   onClick={handleAddState}
-                  disabled={!newStateName.trim()}
+                  disabled={newStateName.trim() === ""}
                   className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
                 >
                   Add State

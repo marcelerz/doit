@@ -95,7 +95,7 @@ export function TodoApp() {
     undo,
     dismissUndo,
   } = useTodos();
-  const { settings, addPriority, updateGantt, updateKanbanSettings } = useSettings();
+  const { settings, addPriority, updateGanttSettings, updateKanbanSettings } = useSettings();
 
   // Task notifications for due/overdue tasks
   useTaskNotifications(todos, settings.notifications);
@@ -1046,7 +1046,7 @@ export function TodoApp() {
             settings={settings}
             linkPatterns={settings.linkPatterns}
             onAddComment={addTodoComment}
-            onUpdateGanttSettings={updateGantt}
+            onUpdateGanttSettings={updateGanttSettings}
             onAddSubtask={addSubtask}
             onToggleSubtask={toggleSubtask}
             onEditSubtask={editSubtask}

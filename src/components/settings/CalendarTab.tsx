@@ -20,7 +20,7 @@ const tooltip = (
 );
 
 export function CalendarTab() {
-  const { settings, isLoaded, updateCalendar } = useSettings();
+  const { settings, isLoaded, updateCalendarSettings } = useSettings();
 
   if (!isLoaded) {
     return <SettingsLoading />;
@@ -37,7 +37,7 @@ export function CalendarTab() {
         description="Configure calendar view display options and task appearance."
         action={{
           label: "Reset to Defaults",
-          onClick: () => updateCalendar(defaultCalendar),
+          onClick: () => updateCalendarSettings(defaultCalendar),
         }}
       />
 
@@ -53,7 +53,7 @@ export function CalendarTab() {
             </div>
             <select
               value={calendar.weekStartDay}
-              onChange={(e) => updateCalendar({ weekStartDay: getWeekday(Number(e.target.value)) })}
+              onChange={(e) => updateCalendarSettings({ weekStartDay: getWeekday(Number(e.target.value)) })}
               className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value={0}>Sunday</option>
@@ -69,7 +69,7 @@ export function CalendarTab() {
             </div>
             <select
               value={calendar.defaultView}
-              onChange={(e) => updateCalendar({ defaultView: e.target.value as CalendarView })}
+              onChange={(e) => updateCalendarSettings({ defaultView: e.target.value as CalendarView })}
               className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="month">Month</option>
@@ -85,7 +85,7 @@ export function CalendarTab() {
               <p className="text-sm text-zinc-500 dark:text-zinc-400">Display week numbers in the calendar sidebar</p>
             </div>
             <button
-              onClick={() => updateCalendar({ showWeekNumbers: !calendar.showWeekNumbers })}
+              onClick={() => updateCalendarSettings({ showWeekNumbers: !calendar.showWeekNumbers })}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                 calendar.showWeekNumbers ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-600"
               }`}
@@ -114,7 +114,7 @@ export function CalendarTab() {
             </div>
             <select
               value={calendar.dotColorBy}
-              onChange={(e) => updateCalendar({ dotColorBy: e.target.value as CalendarDotColorBy })}
+              onChange={(e) => updateCalendarSettings({ dotColorBy: e.target.value as CalendarDotColorBy })}
               className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="state">Task State (Active/Completed)</option>
@@ -137,7 +137,7 @@ export function CalendarTab() {
                 min="1"
                 max="10"
                 value={calendar.taskDotLimit}
-                onChange={(e) => updateCalendar({ taskDotLimit: Number(e.target.value) })}
+                onChange={(e) => updateCalendarSettings({ taskDotLimit: Number(e.target.value) })}
                 className="w-24"
               />
               <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 w-6 text-center">
@@ -155,7 +155,7 @@ export function CalendarTab() {
               </p>
             </div>
             <button
-              onClick={() => updateCalendar({ showTaskCount: !calendar.showTaskCount })}
+              onClick={() => updateCalendarSettings({ showTaskCount: !calendar.showTaskCount })}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                 calendar.showTaskCount ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-600"
               }`}
@@ -185,7 +185,7 @@ export function CalendarTab() {
               </p>
             </div>
             <button
-              onClick={() => updateCalendar({ showOverdueBadge: !calendar.showOverdueBadge })}
+              onClick={() => updateCalendarSettings({ showOverdueBadge: !calendar.showOverdueBadge })}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                 calendar.showOverdueBadge ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-600"
               }`}
@@ -207,7 +207,7 @@ export function CalendarTab() {
               <p className="text-sm text-zinc-500 dark:text-zinc-400">Display a symbol for tasks that repeat</p>
             </div>
             <button
-              onClick={() => updateCalendar({ showRecurringIndicator: !calendar.showRecurringIndicator })}
+              onClick={() => updateCalendarSettings({ showRecurringIndicator: !calendar.showRecurringIndicator })}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                 calendar.showRecurringIndicator ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-600"
               }`}

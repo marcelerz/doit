@@ -292,13 +292,13 @@ export function Activity({
                             <div className="flex gap-2">
                               <button
                                 onClick={() => {
-                                  if (editingCommentContent.trim() && onEditComment) {
+                                  if (editingCommentContent.trim() !== "" && onEditComment) {
                                     onEditComment(comment.commentId, editingCommentContent);
                                     setEditingCommentId(null);
                                     setEditingCommentContent("");
                                   }
                                 }}
-                                disabled={!editingCommentContent.trim()}
+                                disabled={editingCommentContent.trim() === ""}
                                 className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white rounded font-medium transition-colors"
                               >
                                 Save

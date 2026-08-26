@@ -158,7 +158,7 @@ export function Subtasks({ subtasks, onAdd, onToggle, onEdit, onDelete, readOnly
           />
           <button
             type="submit"
-            disabled={!newSubtaskText.trim()}
+            disabled={newSubtaskText.trim() === ""}
             className="px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:text-zinc-500 dark:disabled:bg-zinc-700 dark:disabled:text-zinc-500 rounded-lg transition-colors"
             data-testid="subtask-add-button"
           >

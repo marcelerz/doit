@@ -105,7 +105,7 @@ export function useSettings() {
     }));
   };
 
-  const updateGantt = (gantt: Partial<Settings["gantt"]>) => {
+  const updateGanttSettings = (gantt: Partial<Settings["gantt"]>) => {
     setSettings((prev) => ({
       ...prev,
       gantt: {
@@ -125,7 +125,7 @@ export function useSettings() {
     }));
   };
 
-  const updateCalendar = (calendar: Partial<Settings["calendar"]>) => {
+  const updateCalendarSettings = (calendar: Partial<Settings["calendar"]>) => {
     setSettings((prev) => ({
       ...prev,
       calendar: {
@@ -242,8 +242,8 @@ export function useSettings() {
     updateGeneralSettings,
     updateDateTimeSettings,
     updateWorkHoursSettings,
-    updateGantt,
-    updateCalendar,
+    updateGanttSettings,
+    updateCalendarSettings,
     updateNotificationSettings,
     updateAutoAssignSettings,
     // Kanban methods

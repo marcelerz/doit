@@ -1177,7 +1177,7 @@ export function TodoDetailsOverlay({
                     setNewComment("");
                   }
                 }}
-                disabled={!newComment.trim()}
+                disabled={newComment.trim() === ""}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
                 data-testid="add-comment-button"
               >

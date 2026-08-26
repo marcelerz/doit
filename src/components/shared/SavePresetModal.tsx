@@ -71,7 +71,7 @@ export function SavePresetModal<T extends BasePreset>({
 
           <button
             onClick={() => presetName.trim() && onSave(presetName.trim())}
-            disabled={!presetName.trim()}
+            disabled={presetName.trim() === ""}
             className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors mb-4"
           >
             Save as New Preset

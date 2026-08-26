@@ -251,7 +251,7 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.updateGantt({ defaultTaskDuration: getDurationMin(60) });
+        result.current.updateGanttSettings({ defaultTaskDuration: getDurationMin(60) });
       });
 
       expect(result.current.settings.gantt.defaultTaskDuration).toBe(getDurationMin(60));
@@ -267,7 +267,7 @@ describe("useSettings", () => {
       });
 
       act(() => {
-        result.current.updateCalendar({ showWeekNumbers: true });
+        result.current.updateCalendarSettings({ showWeekNumbers: true });
       });
 
       expect(result.current.settings.calendar.showWeekNumbers).toBe(true);
