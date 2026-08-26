@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { appendComment, amendComment, removeComment } from "@/utils/commentMutations";
 import {
   Review,
   ReviewId,
@@ -13,13 +14,12 @@ import {
 import { getTag } from "@/types/todo";
 import { getTimestamp } from "@/types/time";
 import { getProjectId } from "@/types/project";
-import { getCommentId, ActivityEntry, CommentId } from "@/types/types";
+import { ActivityEntry, CommentId } from "@/types/types";
 
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { ReviewModel, createReviewModels } from "@/models/ReviewModel";
 import { createSettingsModel } from "@/models/SettingsModel";
-import { createCommentId } from "@/utils/idGenerator";
 import { createActivityEntry } from "@/utils/activityUtils";
 import { useUndoableActions, UndoableAction } from "./useUndoableActions";
 import { useSharedSettings } from "@/storage/settingsStore";
@@ -387,13 +387,9 @@ export function useReviews() {
     setRawReviews((prev) =>
       prev.map((review) => {
         if (review.id === reviewId) {
-          const newComment = {
-            commentId: getCommentId(createCommentId()),
-            history: [{ timestamp: now, content }],
-          };
           return {
             ...review,
-            comments: [...review.comments, newComment],
+            comments: appendComment(review.comments, content, now),
             updatedAt: now,
             activity: [...review.activity, createReviewActivity("comment_added", "Comment added")],
           };
@@ -411,11 +407,7 @@ export function useReviews() {
         if (review.id === reviewId) {
           return {
             ...review,
-            comments: review.comments.map((comment) =>
-              comment.commentId === commentId
-                ? { ...comment, history: [...comment.history, { timestamp: now, content }] }
-                : comment
-            ),
+            comments: amendComment(review.comments, commentId, content, now),
             updatedAt: now,
             activity: [...review.activity, createReviewActivity("comment_edited", "Comment edited")],
           };
@@ -433,7 +425,7 @@ export function useReviews() {
         if (review.id === reviewId) {
           return {
             ...review,
-            comments: review.comments.filter((c) => c.commentId !== commentId),
+            comments: removeComment(review.comments, commentId),
             updatedAt: now,
             activity: [...review.activity, createReviewActivity("comment_deleted", "Comment deleted")],
           };

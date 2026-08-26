@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { appendComment, amendComment, removeComment } from "@/utils/commentMutations";
 import {
   Todo,
   TodoMetadata,
@@ -26,7 +27,7 @@ import { getProjectId } from "@/types/project";
 import { getSprintId } from "@/types/sprint";
 import { KanbanStateId, getKanbanStateId } from "@/types/kanbanState";
 import { parseDuration } from "@/utils/ganttScheduler";
-import { getCommentId, ActivityEntry, CommentId } from "@/types/types";
+import { ActivityEntry, CommentId } from "@/types/types";
 import { migrateTodos, checkAndUpdateVersion } from "@/storage/migrations";
 import { Settings } from "@/types/settings";
 import { PriorityId } from "@/types/priority";
@@ -38,7 +39,7 @@ import {
   createActivity,
   generateMetadataActivities,
 } from "@/utils/activityLogger";
-import { createCommentId, createSubtaskId } from "@/utils/idGenerator";
+import { createSubtaskId } from "@/utils/idGenerator";
 import {
   STORAGE_KEYS,
   loadFromStorage,
@@ -753,13 +754,9 @@ export function useTodos() {
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
-          const newComment = {
-            commentId: getCommentId(createCommentId()),
-            history: [{ timestamp: now, content }],
-          };
           return {
             ...todo,
-            comments: [...todo.comments, newComment],
+            comments: appendComment(todo.comments, content, now),
           };
         }
         return todo;
@@ -777,17 +774,7 @@ export function useTodos() {
         if (todo.id === todoId) {
           return {
             ...todo,
-            comments: todo.comments.map((comment) =>
-              comment.commentId === commentId
-                ? {
-                    ...comment,
-                    history: [
-                      ...comment.history,
-                      { timestamp: getTimestamp(Date.now()), content },
-                    ],
-                  }
-                : comment,
-            ),
+            comments: amendComment(todo.comments, commentId, content),
           };
         }
         return todo;
@@ -801,7 +788,7 @@ export function useTodos() {
         if (todo.id === todoId) {
           return {
             ...todo,
-            comments: todo.comments.filter((c) => c.commentId !== commentId),
+            comments: removeComment(todo.comments, commentId),
           };
         }
         return todo;

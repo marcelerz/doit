@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { appendComment, amendComment, removeComment } from "@/utils/commentMutations";
 import { loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
-import { Comment, ActivityEntry, getCommentId, getActivityId } from "@/types/types";
+import { Comment, ActivityEntry, getActivityId } from "@/types/types";
 import { getTimestamp } from "@/types/time";
-import { createActivityId, createCommentId } from "@/utils/idGenerator";
+import { createActivityId } from "@/utils/idGenerator";
 
 /**
  * Base entity interface that all managed entities must implement
@@ -229,14 +230,7 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
     setRawEntities((prev) =>
       prev.map((entity) => {
         if (entity.id === entityId) {
-          const newComment: Comment = {
-            commentId: getCommentId(createCommentId()),
-            history: [{ timestamp: getTimestamp(now), content }],
-          };
-          return {
-            ...entity,
-            comments: [...entity.comments, newComment],
-          };
+          return { ...entity, comments: appendComment(entity.comments, content, now) };
         }
         return entity;
       }),
@@ -248,14 +242,7 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
     setRawEntities((prev) =>
       prev.map((entity) => {
         if (entity.id === entityId) {
-          return {
-            ...entity,
-            comments: entity.comments.map((comment) =>
-              comment.commentId === commentId
-                ? { ...comment, history: [...comment.history, { timestamp: getTimestamp(now), content }] }
-                : comment,
-            ),
-          };
+          return { ...entity, comments: amendComment(entity.comments, commentId, content, now) };
         }
         return entity;
       }),
@@ -266,10 +253,7 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
     setRawEntities((prev) =>
       prev.map((entity) => {
         if (entity.id === entityId) {
-          return {
-            ...entity,
-            comments: entity.comments.filter((c) => c.commentId !== commentId),
-          };
+          return { ...entity, comments: removeComment(entity.comments, commentId) };
         }
         return entity;
       }),

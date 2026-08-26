@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { appendComment, amendComment, removeComment } from "@/utils/commentMutations";
 import {
   Note,
   NoteId,
@@ -15,13 +16,12 @@ import { TodoId, getTag } from "@/types/todo";
 import { getTimestamp } from "@/types/time";
 import { getPersonId } from "@/types/person";
 import { getProjectId } from "@/types/project";
-import { getCommentId, ActivityEntry, CommentId } from "@/types/types";
+import { ActivityEntry, CommentId } from "@/types/types";
 
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { NoteModel, createNoteModels } from "@/models/NoteModel";
 import { createSettingsModel } from "@/models/SettingsModel";
-import { createCommentId } from "@/utils/idGenerator";
 import { generatePrefixedUUID } from "@/utils/idGenerator";
 import { useUndoableActions, UndoableAction } from "./useUndoableActions";
 import { createActivityEntry } from "@/utils/activityUtils";
@@ -412,13 +412,9 @@ export function useNotes() {
     setRawNotes((prev) =>
       prev.map((note) => {
         if (note.id === noteId) {
-          const newComment = {
-            commentId: getCommentId(createCommentId()),
-            history: [{ timestamp: now, content }],
-          };
           return {
             ...note,
-            comments: [...note.comments, newComment],
+            comments: appendComment(note.comments, content, now),
             updatedAt: now,
             activity: [...note.activity, createNoteActivity("comment_added", "Comment added")],
           };
@@ -436,9 +432,7 @@ export function useNotes() {
         if (note.id === noteId) {
           return {
             ...note,
-            comments: note.comments.map((comment) =>
-              comment.commentId === commentId ? { ...comment, history: [...comment.history, { timestamp: now, content }] } : comment,
-            ),
+            comments: amendComment(note.comments, commentId, content, now),
             updatedAt: now,
             activity: [...note.activity, createNoteActivity("comment_edited", "Comment edited")],
           };
@@ -456,7 +450,7 @@ export function useNotes() {
         if (note.id === noteId) {
           return {
             ...note,
-            comments: note.comments.filter((c) => c.commentId !== commentId),
+            comments: removeComment(note.comments, commentId),
             updatedAt: now,
             activity: [...note.activity, createNoteActivity("comment_deleted", "Comment deleted")],
           };
