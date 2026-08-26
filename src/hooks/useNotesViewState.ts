@@ -76,7 +76,7 @@ interface UseNotesViewStateProps {
 }
 
 // Storage key for notes view presets
-const NOTES_VIEW_PRESETS_KEY = "doit-notes-view-presets";
+
 
 export function useNotesViewState({
   notes,
@@ -130,7 +130,7 @@ export function useNotesViewState({
   useEffect(() => {
     waitForStorageInit()
       .then(() =>
-        loadFromStorage<NotesViewPreset[]>(NOTES_VIEW_PRESETS_KEY, []),
+        loadFromStorage<NotesViewPreset[]>(STORAGE_KEYS.NOTES_VIEW_PRESETS, []),
       )
       .then((saved) => {
         setViewPresets(saved);
@@ -141,7 +141,7 @@ export function useNotesViewState({
   // Save view presets to storage when they change
   useEffect(() => {
     if (viewPresetsLoaded) {
-      saveToStorage(NOTES_VIEW_PRESETS_KEY, viewPresets);
+      saveToStorage(STORAGE_KEYS.NOTES_VIEW_PRESETS, viewPresets);
     }
   }, [viewPresets, viewPresetsLoaded]);
 

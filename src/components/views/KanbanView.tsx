@@ -232,13 +232,19 @@ export function KanbanView({
   const [newPresetName, setNewPresetName] = useState("");
   const [activePresetId, setActivePresetId] = useState<string | null>(null);
 
-  // Load view options from storage
+  // Not on usePersistedViewOptions, unlike the other views.
+  //
+  // This key holds the filters as well as the options, and the filters are
+  // Sets in state but arrays in storage. The shared hook merges plain objects
+  // and does not model that boundary, so adopting it would mean restructuring
+  // the filter state of a drag-and-drop view that has no unit coverage --
+  // more risk than the duplication costs. Revisit alongside that coverage.
   useEffect(() => {
     waitForStorageInit()
       .then(() => {
         return Promise.all([
           loadFromStorage<KanbanViewOptions>(STORAGE_KEYS.KANBAN_VIEW_OPTIONS, defaultViewOptions),
-          loadFromStorage<KanbanFilterPreset[]>("doit-kanban-filter-presets", []),
+          loadFromStorage<KanbanFilterPreset[]>(STORAGE_KEYS.KANBAN_FILTER_PRESETS, []),
         ]);
       })
       .then(([savedOptions, savedPresets]) => {
@@ -281,7 +287,7 @@ export function KanbanView({
   // Save filter presets to storage
   useEffect(() => {
     if (!presetsLoaded) return;
-    saveToStorage("doit-kanban-filter-presets", filterPresets);
+    saveToStorage(STORAGE_KEYS.KANBAN_FILTER_PRESETS, filterPresets);
   }, [filterPresets, presetsLoaded]);
 
   // Get sorted states based on order

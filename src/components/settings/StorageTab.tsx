@@ -1,20 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  STORAGE_KEYS,
-  getStorageAdapter,
-  getStorageType,
-  isIndexedDBAvailable,
-  estimateStorageQuota,
-  migrateToIndexedDB,
-  migrateToLocalStorage,
-  clearAllAppData,
-  checkPersistentStorage,
-  requestPersistentStorage,
-  type StorageType,
-  type PersistentStorageInfo,
-} from "@/storage/storage";
+import { STORAGE_KEYS, getStorageAdapter, getStorageType, isIndexedDBAvailable, estimateStorageQuota, migrateToIndexedDB, migrateToLocalStorage, clearAllAppData, checkPersistentStorage, requestPersistentStorage, type StorageType, type PersistentStorageInfo, BACKUP_KEY_PREFIX, STORAGE_KEY_PREFIX } from "@/storage/storage";
 import { WarningTriangleIcon } from "@/components/shared/Icons";
 import { SettingsHeader } from "./components/SettingsHeader";
 
@@ -92,7 +79,7 @@ export function StorageTab() {
     const keys = await adapter.getAllKeys();
 
     for (const key of keys) {
-      if (key && key.startsWith("doit-backup-") && key !== "doit-backup-settings") {
+      if (key && key.startsWith(BACKUP_KEY_PREFIX) && key !== STORAGE_KEYS.BACKUP_SETTINGS) {
         try {
           const data = await adapter.getItem(key);
           if (data) {
@@ -114,7 +101,7 @@ export function StorageTab() {
       let otherSize = 0;
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && !key.startsWith("doit-")) {
+        if (key && !key.startsWith(STORAGE_KEY_PREFIX)) {
           const data = localStorage.getItem(key);
           if (data) {
             otherSize += new Blob([data]).size;
