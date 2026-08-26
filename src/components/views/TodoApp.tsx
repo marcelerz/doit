@@ -1,7 +1,8 @@
 "use client";
 
+import { useUsageSortedOptions } from "@/hooks/useUsageSortedOptions";
 import { usePersonCounts, useProjectCounts } from "@/hooks/useEntityCounts";
-import { useState, useRef, useMemo, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useTodos } from "@/hooks/useTodos";
 import { useNotes } from "@/hooks/useNotes";
@@ -45,7 +46,6 @@ import { NoteDetailView } from "@/components/views/NoteDetailView";
 import { NoteAddModal } from "@/components/overlays/NoteAddModal";
 import { NoteId, getNoteId } from "@/types/note";
 import { ReviewId, ReviewLevel, getReviewId } from "@/types/review";
-import { useSelectionHistory, sortByUsage, sortStringsByUsage } from "@/hooks/useSelectionHistory";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { normalizeDateValue } from "@/utils/dateUtils";
 import { TemplatesManager, CreateTemplateModal } from "@/components/shared/Templates";
@@ -244,67 +244,15 @@ export function TodoApp() {
     }
   }, [activeView, features]);
 
-  // Use selection history hook for tracking selections and providing usage stats
-  const { usageStats, recordSelections } = useSelectionHistory();
-
-  // Combine all person usage stats (assigned + source + mentioned) for unified sorting
-  const combinedPeopleUsage = useMemo(() => {
-    const combined = new Map<string, number>();
-
-    // Add assigned people stats
-    usageStats.assignedPeople.forEach((count, name) => {
-      combined.set(name, (combined.get(name) || 0) + count);
-    });
-
-    // Add source people stats
-    usageStats.sourcePeople.forEach((count, name) => {
-      combined.set(name, (combined.get(name) || 0) + count);
-    });
-
-    // Add mentioned people stats
-    usageStats.mentionedPeople.forEach((count, name) => {
-      combined.set(name, (combined.get(name) || 0) + count);
-    });
-
-    return combined;
-  }, [usageStats]);
-
-  // Sort people, projects, and priorities by usage frequency, filtering out archived items for selection
-  const sortedPeople = useMemo(() => {
-    return sortByUsage(
-      people.filter((p) => !p.archived),
-      combinedPeopleUsage,
-    );
-  }, [people, combinedPeopleUsage]);
-
-  const sortedProjects = useMemo(() => {
-    return sortByUsage(
-      projects.filter((p) => !p.archived),
-      usageStats.projects,
-    );
-  }, [projects, usageStats.projects]);
-
-  const sortedPriorities = useMemo(() => {
-    return sortByUsage(settings.priorities, usageStats.priorities);
-  }, [settings.priorities, usageStats.priorities]);
-
-  // Get all unique tags from todos and sort by usage
-  const sortedTags = useMemo(() => {
-    const allTags = new Set<string>();
-    todos.forEach((todo) => {
-      todo.tags.forEach((tag) => allTags.add(tag));
-    });
-    return sortStringsByUsage(Array.from(allTags), usageStats.tags);
-  }, [todos, usageStats.tags]);
-
-  // All people and projects (including archived) for display in their tabs
-  const allPeople = useMemo(() => {
-    return sortByUsage(people, combinedPeopleUsage);
-  }, [people, combinedPeopleUsage]);
-
-  const allProjects = useMemo(() => {
-    return sortByUsage(projects, usageStats.projects);
-  }, [projects, usageStats.projects]);
+  const {
+    sortedPeople,
+    sortedProjects,
+    sortedPriorities,
+    sortedTags,
+    allPeople,
+    allProjects,
+    recordSelections,
+  } = useUsageSortedOptions(people, projects, settings.priorities, todos);
 
   const countsByPerson = usePersonCounts(todos, notes, people);
   const countsByProject = useProjectCounts(todos, notes, projects);
