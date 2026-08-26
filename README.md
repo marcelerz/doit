@@ -163,7 +163,11 @@ doit/
 │   │   ├── overlays/           # Modal/detail views
 │   │   ├── input/              # SmartInput, RichTextEditor
 │   │   ├── shared/             # Reusable components
-│   │   └── settings/           # Settings tab components
+│   │   ├── settings/           # Settings tab components
+│   │   └── providers/          # App-level React providers
+│   │       ├── ServiceWorkerProvider.tsx  # PWA service worker
+│   │       ├── StorageInitializer.tsx     # Storage initialization
+│   │       └── ThemeProvider.tsx          # Dark/light theme
 │   ├── hooks/                  # React hooks (state management)
 │   │   ├── useTodos.ts         # Todo state management
 │   │   ├── usePeople.ts        # People management
@@ -175,10 +179,6 @@ doit/
 │   │   ├── PersonModel.ts      # Person business logic
 │   │   ├── ProjectModel.ts     # Project business logic
 │   │   └── SettingsModel.ts    # Settings business logic
-│   ├── services/               # React providers
-│   │   ├── ServiceWorkerProvider.tsx  # PWA service worker
-│   │   ├── StorageInitializer.tsx     # Storage initialization
-│   │   └── ThemeProvider.tsx          # Dark/light theme
 │   ├── storage/                # Storage abstraction
 │   │   ├── storage.ts          # IndexedDB/localStorage adapters
 │   │   ├── migrations.ts       # Data migrations

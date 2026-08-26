@@ -5,8 +5,8 @@ module.exports = {
   roots: ["<rootDir>/src"],
   setupFilesAfterEnv: ["<rootDir>/src/__tests__/setup.ts"],
   // .tsx included so component and provider tests can run at all. Without it
-  // no test for anything under components/ or services/ could ever execute,
-  // which is why src/services/__tests__/ sat empty.
+  // no test for anything under components/ could ever execute, which is why
+  // the providers' __tests__ directory sat empty.
   testMatch: ["**/__tests__/**/*.test.ts?(x)", "**/?(*.)+(spec|test).ts?(x)"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
@@ -31,14 +31,14 @@ module.exports = {
     ],
   },
   // Measured over every directory that actually has tests. This previously
-  // covered utils and models only, so hooks, storage and services were absent
-  // from the denominator despite having test suites.
+  // covered utils and models only, so hooks, storage and the providers were
+  // absent from the denominator despite having test suites.
   collectCoverageFrom: [
     "src/utils/**/*.ts",
     "src/models/**/*.ts",
     "src/hooks/**/*.ts",
     "src/storage/**/*.ts",
-    "src/services/**/*.tsx",
+    "src/components/providers/**/*.tsx",
     "!src/**/*.d.ts",
     // Test files and fixtures are not production code; counting them in the
     // denominator let an unused 338-line helper drag the ratio down.

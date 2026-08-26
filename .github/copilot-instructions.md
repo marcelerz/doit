@@ -44,7 +44,7 @@ The app is a fully installable PWA with comprehensive offline support:
 - Provides `applyUpdate()` to activate new service worker
 - Provides `clearCache()` to clear all cached data
 
-**UI Components (`src/services/ServiceWorkerProvider.tsx`):**
+**UI Components (`src/components/providers/ServiceWorkerProvider.tsx`):**
 
 - Shows offline toast when connection is lost
 - Shows persistent offline indicator in corner when offline
@@ -632,7 +632,7 @@ Components are organized by purpose:
 - **input/** - Input components (SmartInput, RichTextEditor)
 - **shared/** - 36 reusable components; see the directory listing rather than a copy of it here
 - **settings/** - Settings tab components
-- **providers/** - App-level providers currently under `src/services/`: StorageInitializer,
+- **providers/** - App-level providers: StorageInitializer,
   ThemeProvider, ServiceWorkerProvider
 
 ## Reusable Abstractions
