@@ -1204,7 +1204,7 @@ export function TodoApp() {
             onDeleteNote={(noteId) => {
               showConfirmDialog({
                 title: "Delete Note",
-                message: "Are you sure you want to delete this note? This action cannot be undone.",
+                message: "Delete this note? You can undo this from the notification for ten seconds.",
                 confirmText: "Delete",
                 confirmVariant: "danger",
                 onConfirm: () => {
@@ -1278,7 +1278,7 @@ export function TodoApp() {
             onDelete={(noteId) => {
               showConfirmDialog({
                 title: "Delete Note",
-                message: "Are you sure you want to delete this note? This action cannot be undone.",
+                message: "Delete this note? You can undo this from the notification for ten seconds.",
                 confirmText: "Delete",
                 confirmVariant: "danger",
                 onConfirm: () => {
@@ -1417,7 +1417,7 @@ export function TodoApp() {
             onDeleteReview={(id) => {
               showConfirmDialog({
                 title: "Delete Review",
-                message: "Are you sure you want to delete this review? This action cannot be undone.",
+                message: "Delete this review? You can undo this from the notification for ten seconds.",
                 confirmText: "Delete",
                 confirmVariant: "danger",
                 onConfirm: () => deleteReview(id),
@@ -1460,7 +1460,7 @@ export function TodoApp() {
             onDelete={(id) => {
               showConfirmDialog({
                 title: "Delete Review",
-                message: "Are you sure you want to delete this review? This action cannot be undone.",
+                message: "Delete this review? You can undo this from the notification for ten seconds.",
                 confirmText: "Delete",
                 confirmVariant: "danger",
                 onConfirm: () => {

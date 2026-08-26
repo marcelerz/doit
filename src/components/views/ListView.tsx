@@ -378,9 +378,9 @@ export function ListView({
     const toDelete = todos.filter((t) => selectedTodoIds.has(t.id));
     showConfirmDialog({
       title: "Delete Selected Tasks",
-      message: `Are you sure you want to delete ${toDelete.length} task${
+      message: `Delete ${toDelete.length} task${
         toDelete.length === 1 ? "" : "s"
-      }? This cannot be undone.`,
+      }? You can undo this from the notification for ten seconds.`,
       confirmText: "Delete",
       confirmVariant: "danger",
       onConfirm: () => {
