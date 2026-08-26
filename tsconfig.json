@@ -39,7 +39,6 @@
     "build/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "e2e/archive"
+    "node_modules"
   ]
 }

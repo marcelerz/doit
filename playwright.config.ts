@@ -17,15 +17,11 @@ const BASE_URL = `http://localhost:${PORT}`;
  * Test structure:
  * - e2e/smoke/ - Sequential smoke tests (workflow-based)
  * - e2e/visual.spec.ts - Visual regression tests
- * - e2e/archive/ - Deprecated granular tests (excluded)
  *
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
   testDir: "./e2e",
-
-  /* Ignore archived tests */
-  testIgnore: ["**/archive/**"],
 
   /* Run test files in parallel, but tests within smoke files are sequential */
   fullyParallel: false,
@@ -112,11 +108,6 @@ export default defineConfig({
     },
 
     // Legacy project for running any remaining tests on chromium
-    {
-      name: "chromium",
-      testIgnore: ["**/smoke/**", "**/archive/**", "**/visual.spec.ts"],
-      use: { ...devices["Desktop Chrome"] },
-    },
   ],
 
   /* Run your local dev server before starting the tests */
