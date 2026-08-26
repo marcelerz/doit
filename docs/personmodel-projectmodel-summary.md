@@ -2,250 +2,119 @@
 
 ## Overview
 
-Following the successful TodoModel abstraction pattern, we've extended the business logic layer to `Person` and `Project` entities. The hooks `usePeople` and `useProjects` now return `PersonModel[]` and `ProjectModel[]` respectively, keeping business logic out of view components.
+Following the [TodoModel](./todomodel-refactoring-summary.md) pattern, `Person` and
+`Project` have a business logic layer too. `usePeople` and `useProjects` return
+`PersonModel[]` and `ProjectModel[]`, keeping that logic out of view components.
 
 ## Architecture Pattern
 
-All hooks follow the same pattern:
+Both hooks are thin wrappers around `useEntityManager`, which holds the raw array and
+wraps it for consumers:
 
 ```typescript
-// Internal state: raw data objects
-const [rawPeople, setRawPeople] = useState<Person[]>([]);
-
-// External interface: wrapped in models via useMemo
 const people = useMemo(() => createPersonModels(rawPeople), [rawPeople]);
-
-// Components receive PersonModel[] with built-in business logic
-return { people, addPerson, updatePerson, ... };
 ```
 
-## PersonModel Features
+Unlike `createTodoModels`, neither factory takes settings: nothing on these entities is
+resolved against configuration, so a model is a pure view over one raw object.
 
-### Validation Methods
+## What both models share
+
+Almost everything, in `BaseEntityModel` -- `PersonModel` and `ProjectModel` add only
+`canDelete`, plus `category` on projects.
+
+### Validation
 
 ```typescript
-person.canArchive(); // { canArchive: true/false, reason?: string }
-person.canUnarchive(); // { canUnarchive: true/false, reason?: string }
-person.canDelete(todos); // Checks if person is assigned to any todos
+person.canArchive(); // { canArchive: boolean, reason?: string }
+person.canUnarchive(); // { canUnarchive: boolean, reason?: string }
+person.canDelete(todos); // { canDelete: boolean, reason?: string }
 ```
 
-### Computed Properties
+`canDelete` takes the todo models and refuses while the entity is still referenced --
+"Person is assigned to active todos". It reads `assignedPeopleIds` and `projectIds`, the
+getters that include auto-assigned defaults, so a person who is only referenced as an
+auto-assign default still counts as in use. Called with no argument it always allows the
+delete, so the caller has to pass the todos for the check to mean anything.
 
-**State Checks:**
+### Computed properties
 
-- `person.isActive` - Not archived
-- `person.isArchived` - Is archived
+**State**: `isActive`, `isArchived`, `archived`
 
-**Comments & Activity:**
+**Comments and activity**: `hasComments`, `commentCount`, `latestComment`, `hasActivity`,
+`activityCount`, `latestActivity`
 
-- `person.hasComments` - Has any comments
-- `person.commentCount` - Total number of comments
-- `person.latestComment` - Most recent comment
-- `person.hasActivity` - Has any activity
-- `person.activityCount` - Total number of activity entries
-- `person.latestActivity` - Most recent activity entry
+**Display**:
 
-**Display:**
+- `initials` -- first letters of the first and last word ("JD" from "John Doe"), or the
+  first two letters of a single-word name
+- `displayName` -- `"John Doe (Johnny, JD)"`, or just the name when there are no
+  alternatives
+- `statusBadge` -- "Active" or "Archived"
+- `statusColor` -- `"blue"` or `"gray"`
+- `allNames` -- name plus alternatives, the list the @ and % detectors match against
+- `name`, `alternatives`, `color`, `context`, `id`, `raw`
 
-- `person.initials` - Two-letter initials ("JD" from "John Doe")
-- `person.displayName` - "John Doe (Johnny, JD)" with alternatives
-- `person.statusBadge` - "Active" or "Archived"
-- `person.statusColor` - "blue" or "gray"
-- `person.allNames` - Array of name + alternatives
-
-### Display & Search Methods
+### Methods
 
 ```typescript
-// Get formatted metadata summary
-person.getMetadataSummary(todoCount);
-// Returns: "3 todos • 2 comments • Active"
-
-// Search across all fields
-person.matchesSearch("john");
-// Searches: name, alternatives, context, comments
-
-// Check if matches any given names (for @mentions)
-person.matchesAnyName(["john", "johnny"]);
-// Returns: true
+person.getMetadataSummary(todoCount); // "3 todos • 2 comments • Active"
+person.matchesSearch("john"); // name, alternatives, context and comments
+person.matchesAnyName(["john", "johnny"]); // for @mention and %project resolution
 ```
 
-## ProjectModel Features
+`getMetadataSummary` omits a count that is zero or missing, so an entity with nothing on
+it renders as just its status rather than "0 todos • 0 comments • Active".
 
-### Validation Methods
+## Components take models
 
-```typescript
-project.canArchive(); // { canArchive: true/false, reason?: string }
-project.canUnarchive(); // { canUnarchive: true/false, reason?: string }
-project.canDelete(todos); // Checks if project is used in any todos
-```
-
-### Computed Properties
-
-**State Checks:**
-
-- `project.isActive` - Not archived
-- `project.isArchived` - Is archived
-
-**Comments & Activity:**
-
-- `project.hasComments` - Has any comments
-- `project.commentCount` - Total number of comments
-- `project.latestComment` - Most recent comment
-- `project.hasActivity` - Has any activity
-- `project.activityCount` - Total number of activity entries
-- `project.latestActivity` - Most recent activity entry
-
-**Display:**
-
-- `project.initials` - Two-letter initials ("WR" from "Website Redesign")
-- `project.displayName` - "Website Redesign (website, redesign)" with alternatives
-- `project.statusBadge` - "Active" or "Archived"
-- `project.statusColor` - "blue" or "gray"
-- `project.allNames` - Array of name + alternatives
-
-### Display & Search Methods
+`PersonItem` and `ProjectItem` read `initials`, `isActive`, `isArchived` and
+`commentCount` off the model. `PersonDetailsOverlay`, `ProjectDetailsOverlay`,
+`PeopleView`, `ProjectsView`, `CalendarView`, `GanttView`, `SmartInput`, `MarkedText` and
+`AutoAssignTab` all take the model types.
 
 ```typescript
-// Get formatted metadata summary
-project.getMetadataSummary(todoCount);
-// Returns: "5 todos • 3 comments • Active"
-
-// Search across all fields
-project.matchesSearch("website");
-// Searches: name, alternatives, context, comments
-
-// Check if matches any given names (for %project mentions)
-project.matchesAnyName(["website", "redesign"]);
-// Returns: true
-```
-
-## Component Updates
-
-### Hook Usage
-
-All components now receive model instances:
-
-```typescript
-// Before
-const { people } = usePeople(); // Person[]
-
-// After
-const { people } = usePeople(); // PersonModel[]
-```
-
-### Updated Components
-
-**Item Components:**
-
-- `PersonItem.tsx` - Uses `person.initials`, `person.isActive`, `person.isArchived`, `person.commentCount`
-- `ProjectItem.tsx` - Uses `project.initials`, `project.isActive`, `project.isArchived`, `project.commentCount`
-
-**Overlay Components:**
-
-- `PersonDetailsOverlay.tsx` - Accepts `PersonModel`, accesses `.raw` for updates
-- `ProjectDetailsOverlay.tsx` - Accepts `ProjectModel`, accesses `.raw` for updates
-
-**View Components:**
-
-- `PeopleView.tsx` - Receives `PersonModel[]`
-- `ProjectsView.tsx` - Receives `ProjectModel[]`
-- `TodoApp.tsx` - Passes `PersonModel[]` and `ProjectModel[]` to child components
-- `CalendarView.tsx` - Accepts `PersonModel[]` and `ProjectModel[]`
-- `GanttView.tsx` - Accepts `PersonModel[]` and `ProjectModel[]`
-
-**Input Components:**
-
-- `SmartInput.tsx` - Accepts `PersonModel[]` and `ProjectModel[]`
-
-**Shared Components:**
-
-- `MarkedText.tsx` - Accepts `PersonModel[]` and `ProjectModel[]`
-
-**Settings Components:**
-
-- `AutoAssignTab.tsx` - Accepts `PersonModel[]` and `ProjectModel[]`
-
-## Code Examples
-
-### Using PersonModel in Components
-
-```typescript
-// Before: direct property access and manual logic
+// Before: manual logic in the view
 <div>{person.archived ? "Archived" : "Active"}</div>
 <div>{person.name.charAt(0).toUpperCase()}</div>
 {person.comments.length > 0 && <span>{person.comments.length}</span>}
 
-// After: using computed properties
+// After
 <div>{person.statusBadge}</div>
 <div>{person.initials}</div>
 {person.hasComments && <span>{person.commentCount}</span>}
 ```
 
-### Using ProjectModel for Validation
+Validation follows the same shape -- the reason string comes from the model rather than
+being written at each call site:
 
 ```typescript
-// Before: manual validation
-const handleDelete = (id: string) => {
-  const isUsed = todos.some((t) => t.projects?.includes(id));
-  if (isUsed) {
-    alert("Cannot delete: project is in use");
-    return;
-  }
-  deleteProject(id);
-};
-
-// After: using validation method
-const handleDelete = (project: ProjectModel) => {
-  const validation = project.canDelete(todos);
-  if (!validation.canDelete) {
-    alert(validation.reason);
-    return;
-  }
-  deleteProject(project.id);
-};
+const validation = project.canDelete(todos);
+if (!validation.canDelete) {
+  showError(validation.reason);
+  return;
+}
+deleteProject(project.id);
 ```
 
-### Accessing Raw Data
+## Accessing raw data
 
-When you need to update storage or pass to hook methods:
+Models are read views. To update, go through the hook with the raw object, which `.raw`
+hands back as a deep clone:
 
 ```typescript
-// Models provide read-only access
-const displayName = person.displayName;
-const isActive = person.isActive;
-
-// To update, access .raw property
-const handleUpdate = (person: PersonModel) => {
-  updatePerson(person.id, {
-    ...person.raw,
-    name: "New Name",
-  });
-};
+updatePerson(person.id, { ...person.raw, name: "New Name" });
 ```
 
-## Benefits
+## A caveat on IDs
 
-1. **Consistent Pattern**: All entities (Todo, Person, Project) use the same model abstraction
-2. **Cleaner Components**: Business logic moved from views to models
-3. **Type Safety**: TypeScript ensures proper usage of model methods
-4. **Computed Properties**: Avoid repetitive calculations in components
-5. **Validation**: Centralized validation logic with clear error messages
-6. **Searchability**: Unified search across all entity fields
-7. **Display Helpers**: Consistent formatting across the app
+`PersonId` and `ProjectId` brand the entity's **name**, not a generated identifier: a
+person named "Marcel" has the id `"Marcel"`. That is what makes `@Marcel` in task text
+resolvable without a lookup table, and it is why renaming an entity is not a simple field
+update. `PersonModel.createId()` mints a `person-<uuid>` and is not what these ids hold.
 
-## Migration Notes
+## Migration notes
 
-- **No data migration needed** - Models wrap existing data structures
-- **Zero runtime impact** - Models created via useMemo, no performance overhead
-- **Backward compatible** - Raw data still accessible via `.raw` property
-- **No breaking changes** - Hook signatures remain the same (return type changes to models)
-
-## Summary
-
-The PersonModel and ProjectModel abstractions complete the business logic layer across all major entities in the app. This provides a consistent, type-safe, and maintainable architecture where:
-
-- **Hooks** manage raw data and expose models
-- **Models** encapsulate business logic
-- **Components** consume models with clean interfaces
-
-This pattern can be extended to other entities (Priority, etc.) as needed.
+- **No data migration** -- models wrap the existing stored shapes
+- **Read views only** -- mutation stays in the hooks
+- **`.raw` is a clone** -- modifying it does not touch the model or the stored object
