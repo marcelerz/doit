@@ -1,5 +1,6 @@
 "use client";
 
+import { buildTemplateFromTodo, TemplateFieldSelection } from "@/utils/todoTemplates";
 import { useUsageSortedOptions } from "@/hooks/useUsageSortedOptions";
 import { usePersonCounts, useProjectCounts } from "@/hooks/useEntityCounts";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -289,41 +290,10 @@ export function TodoApp() {
     setShowCreateTemplate(true);
   };
 
-  const handleSaveTemplate = (
-    name: string,
-    description: string | undefined,
-    selectedFields: {
-      text: boolean;
-      assignedPeople: boolean;
-      sourcePeople: boolean;
-      projects: boolean;
-      priority: boolean;
-      tags: boolean;
-      dueDate: boolean;
-      duration: boolean;
-      subtasks: boolean;
-    },
-  ) => {
+  const handleSaveTemplate = (name: string, description: string | undefined, fields: TemplateFieldSelection) => {
     const todo = todos.find((t) => t.id === templateTodoId);
     if (todo) {
-      addTemplate({
-        name,
-        description,
-        text: selectedFields.text ? todo.text : "",
-        plainText: selectedFields.text ? todo.plainText : "",
-        metadata: {
-          assignedPeople: selectedFields.assignedPeople ? [...todo.metadata.assignedPeople] : [],
-          sourcePeople: selectedFields.sourcePeople ? [...todo.metadata.sourcePeople] : [],
-          mentionedPeople: [], // Don't copy mentioned people - they're auto-detected
-          projects: selectedFields.projects ? [...todo.metadata.projects] : [],
-          dependencies: [], // Don't copy dependencies
-          priority: selectedFields.priority ? todo.metadata.priority : undefined,
-          tags: selectedFields.tags ? [...(todo.metadata.tags ?? [])] : [],
-          dueDate: selectedFields.dueDate ? todo.metadata.dueDate : undefined,
-          duration: selectedFields.duration ? todo.metadata.duration : undefined,
-        },
-        subtasks: selectedFields.subtasks ? todo.subtasks?.map((s) => s.text) : undefined,
-      });
+      addTemplate(buildTemplateFromTodo(todo, name, description, fields));
     }
     setTemplateTodoId(null);
     setShowCreateTemplate(false);
