@@ -8,6 +8,11 @@
 import { ReviewLevel, Review } from "@/types/review";
 import { Todo } from "@/types/todo";
 import { Weekday, Month } from "@/types/time";
+import {
+  formatDateKey as toISODateStringImpl,
+  parseLocalDate as parseISODateStringImpl,
+  getISOWeekNumber as getISOWeekNumberImpl,
+} from "@/utils/dateUtils";
 
 /**
  * Period information for a review
@@ -21,40 +26,25 @@ export interface PeriodInfo {
 /**
  * Get ISO date string (YYYY-MM-DD) from a Date
  */
-export function toISODateString(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 /**
- * Parse ISO date string to Date (at midnight local time)
+ * Local-date helpers, re-exported from dateUtils.
+ *
+ * This module had its own byte-equivalent copies of all four. dateUtils is
+ * where they belong -- it has thirteen importers to this file's none, and its
+ * parseLocalDate deliberately handles fuller ISO forms as well as YYYY-MM-DD,
+ * which the copy here did not. Consolidating the other way would have lost
+ * that.
  */
-export function parseISODateString(dateStr: string): Date {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
+export { formatDateKey as toISODateString, parseLocalDate as parseISODateString, getISOWeekNumber } from "@/utils/dateUtils";
 
 /**
- * Get the ISO week number for a date
- * ISO weeks start on Monday and the first week contains January 4th
- */
-export function getISOWeekNumber(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-}
-
-/**
- * Get week number that respects the workWeekStart setting
+ * Week number honouring the workWeekStart setting.
+ *
+ * It does not yet: the parameter is accepted and ignored, and the ISO
+ * calculation is used regardless.
  */
 export function getWeekNumber(date: Date, _workWeekStart: Weekday): number {
-  // For simplicity, we use ISO week calculation
-  // A more accurate calculation would adjust based on workWeekStart
-  return getISOWeekNumber(date);
+  return getISOWeekNumberImpl(date);
 }
 
 /**
@@ -70,8 +60,8 @@ export function getDayPeriod(date: Date): PeriodInfo {
   const year = d.getFullYear();
 
   return {
-    start: toISODateString(d),
-    end: toISODateString(d),
+    start: toISODateStringImpl(d),
+    end: toISODateStringImpl(d),
     label: `${dayName}, ${monthDay}, ${year}`,
   };
 }
@@ -131,8 +121,8 @@ export function getWeekPeriod(date: Date, workWeekStart: Weekday): PeriodInfo {
   const year = weekStart.getFullYear();
 
   return {
-    start: toISODateString(weekStart),
-    end: toISODateString(weekEnd),
+    start: toISODateStringImpl(weekStart),
+    end: toISODateStringImpl(weekEnd),
     label: `Week ${weekNum}, ${year}`,
   };
 }
@@ -177,8 +167,8 @@ export function getMonthPeriod(date: Date): PeriodInfo {
   const monthName = monthStart.toLocaleDateString("en-US", { month: "long" });
 
   return {
-    start: toISODateString(monthStart),
-    end: toISODateString(monthEnd),
+    start: toISODateStringImpl(monthStart),
+    end: toISODateStringImpl(monthEnd),
     label: `${monthName} ${year}`,
   };
 }
@@ -263,8 +253,8 @@ export function getHalfPeriod(date: Date, fiscalYearStart: Month): PeriodInfo {
   const yearLabel = (fiscalYearStart as number) === 1 ? `${fiscalYear}` : `FY${fiscalYear}`;
 
   return {
-    start: toISODateString(halfStart),
-    end: toISODateString(halfEnd),
+    start: toISODateStringImpl(halfStart),
+    end: toISODateStringImpl(halfEnd),
     label: `${halfLabel} ${yearLabel}`,
   };
 }
@@ -303,8 +293,8 @@ export function getYearPeriod(date: Date, fiscalYearStart: Month): PeriodInfo {
   const yearLabel = (fiscalYearStart as number) === 1 ? `${fiscalYear}` : `FY${fiscalYear}`;
 
   return {
-    start: toISODateString(yearStart),
-    end: toISODateString(yearEnd),
+    start: toISODateStringImpl(yearStart),
+    end: toISODateStringImpl(yearEnd),
     label: yearLabel,
   };
 }
@@ -344,7 +334,7 @@ export function isCurrentWeek(periodStart: string, workWeekStart: Weekday): bool
  * Check if a date falls within the last N months
  */
 export function isWithinMonths(periodStart: string, monthCount: number): boolean {
-  const startDate = parseISODateString(periodStart);
+  const startDate = parseISODateStringImpl(periodStart);
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - monthCount);
   return startDate >= cutoff;
@@ -358,8 +348,8 @@ export function getCompletedTasksInPeriod<T extends Pick<Todo, "state" | "comple
   periodStart: string,
   periodEnd: string
 ): T[] {
-  const start = parseISODateString(periodStart).getTime();
-  const end = parseISODateString(periodEnd).getTime() + 24 * 60 * 60 * 1000 - 1; // End of day
+  const start = parseISODateStringImpl(periodStart).getTime();
+  const end = parseISODateStringImpl(periodEnd).getTime() + 24 * 60 * 60 * 1000 - 1; // End of day
 
   return todos.filter((todo) => {
     if (todo.state !== "completed" && todo.state !== "archived") return false;
@@ -375,15 +365,15 @@ export function getCompletedTasksInPeriod<T extends Pick<Todo, "state" | "comple
 export function getChildReviewsForPeriod<
   T extends Pick<Review, "level" | "periodStart" | "periodEnd" | "state">,
 >(reviews: T[], childLevel: ReviewLevel, periodStart: string, periodEnd: string): T[] {
-  const start = parseISODateString(periodStart).getTime();
-  const end = parseISODateString(periodEnd).getTime() + 24 * 60 * 60 * 1000 - 1;
+  const start = parseISODateStringImpl(periodStart).getTime();
+  const end = parseISODateStringImpl(periodEnd).getTime() + 24 * 60 * 60 * 1000 - 1;
 
   return reviews.filter((review) => {
     if (review.level !== childLevel) return false;
     if (review.state === "deleted") return false;
 
-    const reviewStart = parseISODateString(review.periodStart).getTime();
-    const reviewEnd = parseISODateString(review.periodEnd).getTime();
+    const reviewStart = parseISODateStringImpl(review.periodStart).getTime();
+    const reviewEnd = parseISODateStringImpl(review.periodEnd).getTime();
 
     // Child review's period should be within the parent period
     return reviewStart >= start && reviewEnd <= end;
