@@ -6,6 +6,7 @@
  * and ReviewModel.
  */
 
+import { latestComment, CommentSummary } from "@/utils/commentMutations";
 import { Sprint, SprintId, SprintStatus, getSprintId } from "@/types/sprint";
 import type { Comment, ActivityEntry, Color } from "@/types/types";
 import { generatePrefixedUUID } from "@/utils/idGenerator";
@@ -148,16 +149,8 @@ export class SprintModel {
   /**
    * Get the most recent comment
    */
-  get latestComment() {
-    const comments = this._raw.comments || [];
-    if (comments.length === 0) return null;
-    const comment = comments[comments.length - 1];
-    const latestHistory = comment.history[comment.history.length - 1];
-    return {
-      commentId: comment.commentId,
-      content: latestHistory.content,
-      timestamp: latestHistory.timestamp,
-    };
+  get latestComment(): CommentSummary | null {
+    return latestComment(this._raw.comments || []);
   }
 
   /**

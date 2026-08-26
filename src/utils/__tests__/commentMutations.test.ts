@@ -1,4 +1,4 @@
-import { appendComment, amendComment, removeComment } from "../commentMutations";
+import { appendComment, amendComment, removeComment, latestComment } from "../commentMutations";
 import { Comment, getCommentId } from "@/types/types";
 import { getTimestamp } from "@/types/time";
 
@@ -70,5 +70,42 @@ describe("removeComment", () => {
     const before = [existing("c1", "one")];
     removeComment(before, "c1");
     expect(before).toHaveLength(1);
+  });
+});
+
+describe("latestComment", () => {
+  it("returns null for an empty list", () => {
+    expect(latestComment([])).toBeNull();
+  });
+
+  it("returns the last comment, flattened to its newest revision", () => {
+    const comments: Comment[] = [
+      { commentId: getCommentId("1"), history: [{ timestamp: getTimestamp(1000), content: "First" }] },
+      {
+        commentId: getCommentId("2"),
+        history: [
+          { timestamp: getTimestamp(2000), content: "Original" },
+          { timestamp: getTimestamp(3000), content: "Edited" },
+        ],
+      },
+    ];
+
+    // An edit appends rather than replaces, so the newest revision is the last
+    // history entry -- not the first, which is what a naive read returns.
+    expect(latestComment(comments)).toEqual({
+      commentId: getCommentId("2"),
+      content: "Edited",
+      timestamp: getTimestamp(3000),
+    });
+  });
+
+  it("hands back only primitives, so a caller cannot reach internal state", () => {
+    const comments: Comment[] = [
+      { commentId: getCommentId("1"), history: [{ timestamp: getTimestamp(1000), content: "One" }] },
+    ];
+    const summary = latestComment(comments);
+    summary!.content = "mutated";
+
+    expect(comments[0].history[0].content).toBe("One");
   });
 });

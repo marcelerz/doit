@@ -1,4 +1,5 @@
 import { Todo, TodoId, TodoState, Tag, TodoMetadata, getTodoId } from "@/types/todo";
+import { latestComment, CommentSummary } from "@/utils/commentMutations";
 import type { PersonId } from "@/types/person";
 import type { ProjectId } from "@/types/project";
 import type { PriorityId } from "@/types/priority";
@@ -1039,15 +1040,8 @@ export class TodoModel {
    * Returns a new object (copy) to prevent external modification
    * Note: Uses _raw for performance - only creates a minimal copy for return
    */
-  get latestComment() {
-    if (this._raw.comments.length === 0) return null;
-    const comment = this._raw.comments[this._raw.comments.length - 1];
-    const latestHistory = comment.history[comment.history.length - 1];
-    return {
-      commentId: comment.commentId,
-      content: latestHistory.content,
-      timestamp: latestHistory.timestamp,
-    };
+  get latestComment(): CommentSummary | null {
+    return latestComment(this._raw.comments);
   }
 
   /**

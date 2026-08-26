@@ -7,6 +7,7 @@ import {
   CreatedActionItem,
   getNoteId,
 } from "@/types/note";
+import { latestComment, CommentSummary } from "@/utils/commentMutations";
 import type { PersonId } from "@/types/person";
 import type { ProjectId } from "@/types/project";
 import type { Tag } from "@/types/todo";
@@ -326,15 +327,8 @@ export class NoteModel {
    * Get the most recent comment
    * Returns null if no comments exist
    */
-  get latestComment() {
-    if (this._raw.comments.length === 0) return null;
-    const comment = this._raw.comments[this._raw.comments.length - 1];
-    const latestHistory = comment.history[comment.history.length - 1];
-    return {
-      commentId: comment.commentId,
-      content: latestHistory.content,
-      timestamp: latestHistory.timestamp,
-    };
+  get latestComment(): CommentSummary | null {
+    return latestComment(this._raw.comments);
   }
 
   /**

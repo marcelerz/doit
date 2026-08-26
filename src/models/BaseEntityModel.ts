@@ -10,6 +10,7 @@
  * This reduces code duplication between PersonModel and ProjectModel.
  */
 
+import { latestComment, CommentSummary } from "@/utils/commentMutations";
 import type { Comment, ActivityEntry } from "@/types/types";
 
 /**
@@ -152,13 +153,11 @@ export abstract class BaseEntityModel<T extends BaseEntity> {
   }
 
   /**
-   * Get the most recent comment, if any
-   * Returns null if no comments exist
-   * Returns a copy to prevent external modification of internal state
+   * Get the most recent comment, flattened to its newest revision.
+   * Returns null if no comments exist.
    */
-  get latestComment(): Comment | null {
-    if (this._raw.comments.length === 0) return null;
-    return structuredClone(this._raw.comments[this._raw.comments.length - 1]);
+  get latestComment(): CommentSummary | null {
+    return latestComment(this._raw.comments);
   }
 
   /**

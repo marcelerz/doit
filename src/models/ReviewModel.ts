@@ -9,6 +9,7 @@ import {
   ReviewChildEntry,
   getReviewId,
 } from "@/types/review";
+import { latestComment, CommentSummary } from "@/utils/commentMutations";
 import type { ProjectId } from "@/types/project";
 import type { Tag } from "@/types/todo";
 import { ActivityEntry } from "@/types/types";
@@ -351,15 +352,8 @@ export class ReviewModel {
   /**
    * Get the most recent comment
    */
-  get latestComment() {
-    if (this._raw.comments.length === 0) return null;
-    const comment = this._raw.comments[this._raw.comments.length - 1];
-    const latestHistory = comment.history[comment.history.length - 1];
-    return {
-      commentId: comment.commentId,
-      content: latestHistory.content,
-      timestamp: latestHistory.timestamp,
-    };
+  get latestComment(): CommentSummary | null {
+    return latestComment(this._raw.comments);
   }
 
   /**

@@ -430,3 +430,27 @@ describe("BaseEntityModel", () => {
     });
   });
 });
+
+describe("latestComment shape", () => {
+  it("flattens to the newest revision, matching the other five models", () => {
+    const comments: Comment[] = [
+      {
+        commentId: getCommentId("1"),
+        history: [
+          { timestamp: getTimestamp(1000), content: "Original" },
+          { timestamp: getTimestamp(2000), content: "Edited" },
+        ],
+      },
+    ];
+    const model = new TestEntityModel(createTestEntity({ comments }));
+
+    // This used to return the whole Comment, leaving each caller to walk the
+    // history for the one thing it wanted -- and disagreeing with TodoModel,
+    // NoteModel, ReviewModel and SprintModel, which all returned this shape.
+    expect(model.latestComment).toEqual({
+      commentId: getCommentId("1"),
+      content: "Edited",
+      timestamp: getTimestamp(2000),
+    });
+  });
+});
