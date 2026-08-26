@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
+import { useClickOutside } from "@/hooks/useClickOutside";
 import { FeatureSettings } from "@/types/settings";
 import { SearchHistoryEntry, SearchHistoryId } from "@/types/types";
 import { NotesFilters, NotesGroupBy, NotesSortField, SortDirection, NotesViewPreset } from "@/hooks/useNotesViewState";
@@ -99,26 +100,10 @@ export function NotesViewToolbar({
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
   // Close export menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
-        setIsExportMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  useClickOutside(exportMenuRef, () => setIsExportMenuOpen(false));
 
   // Close more menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
-        setIsMoreMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  useClickOutside(moreMenuRef, () => setIsMoreMenuOpen(false));
 
   const handleExport = (format: ExportFormat) => {
     onExport(format);

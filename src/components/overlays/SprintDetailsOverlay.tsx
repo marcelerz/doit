@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { SprintModel } from "@/models/SprintModel";
 import { Sprint, SprintId } from "@/types/sprint";
 import { TodoId } from "@/types/todo";
@@ -114,15 +115,7 @@ export function SprintDetailsOverlay({
     return () => clearTimeout(handler);
   }, [editingName, editingGoal, editingDuration, editingStartDate, editingColor, sprint, onUpdate]);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [onClose]);
+  useEscapeKey(onClose);
 
   const handleDelete = () => {
     onDelete(sprint.id);

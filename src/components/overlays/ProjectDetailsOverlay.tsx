@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { ProjectModel } from "@/models/ProjectModel";
 import { Project, ProjectCategory, ProjectId, getProjectCategoryId } from "@/types/project";
 import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
@@ -107,15 +108,7 @@ export function ProjectDetailsOverlay({
     return () => clearTimeout(handler);
   }, [editingName, editingAlternatives, editingColor, editingCategory, project, onUpdate, editingContext]);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [onClose]);
+  useEscapeKey(onClose);
 
   const handleDelete = () => {
     onDelete(project.id);

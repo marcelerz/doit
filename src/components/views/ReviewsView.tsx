@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useState, useRef, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useRef, useCallback } from "react";
+import { useClickOutside } from "@/hooks/useClickOutside";
 import { ReviewItem } from "@/components/items/ReviewItem";
 import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
 import { STORAGE_KEYS } from "@/storage/storage";
@@ -138,18 +139,7 @@ export function ReviewsView({
   const datePickerRef = useRef<HTMLDivElement>(null);
 
   // Close date picker when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
-        setCustomDatePickerOpen(null);
-      }
-    };
-
-    if (customDatePickerOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [customDatePickerOpen]);
+  useClickOutside(datePickerRef, () => setCustomDatePickerOpen(null), customDatePickerOpen !== null);
 
   // Handle custom date selection
   const handleCustomDateSelect = (dateStr: string) => {

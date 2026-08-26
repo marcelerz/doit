@@ -1,4 +1,5 @@
 import { test, expect } from "../fixtures/todo-app.fixture";
+import { resetAppStorage } from "../fixtures/smoke-helpers";
 
 /**
  * Smoke Test: Edge Cases and Mobile
@@ -8,18 +9,7 @@ import { test, expect } from "../fixtures/todo-app.fixture";
  */
 test.describe("Edge Cases and Mobile Workflow", () => {
   test.beforeAll(async ({ workerPage }) => {
-    // Reset on the worker's shared page. browser.newPage() opened a separate
-    // context, so this reset never reached the pages the tests actually used.
-    // The steps below run against this same context, so this is also what
-    // isolates one spec file from the next.
-    await workerPage.goto("/");
-    await workerPage.evaluate(() => {
-      localStorage.clear();
-      if (typeof indexedDB !== "undefined") {
-        indexedDB.deleteDatabase("doit-db");
-      }
-      localStorage.setItem("doit-tutorial-preferences", JSON.stringify({ completed: true, showOnStartup: false }));
-    });
+    await resetAppStorage(workerPage);
   });
 
   test.describe.serial("Sequential Edge Case Tests", () => {

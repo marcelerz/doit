@@ -1,4 +1,5 @@
 import { test, expect } from "../fixtures/todo-app.fixture";
+import { resetAppStorage } from "../fixtures/smoke-helpers";
 
 /**
  * Smoke Test: Notes Workflow
@@ -14,17 +15,9 @@ import { test, expect } from "../fixtures/todo-app.fixture";
 test.describe("Notes Workflow", () => {
   // Only clear storage once at the beginning
   test.beforeAll(async ({ workerPage }) => {
-    // Reset on the worker's shared page. browser.newPage() opened a separate
-    // context, so this reset never reached the pages the tests actually used.
-    // The steps below run against this same context, so this is also what
-    // isolates one spec file from the next.
-    await workerPage.goto("/");
+    await resetAppStorage(workerPage);
+    // Notes needs its feature flag on, which the shared reset does not set.
     await workerPage.evaluate(() => {
-      localStorage.clear();
-      if (typeof indexedDB !== "undefined") {
-        indexedDB.deleteDatabase("doit-db");
-      }
-      localStorage.setItem("doit-tutorial-preferences", JSON.stringify({ completed: true, showOnStartup: false }));
       // Enable notes view feature
       localStorage.setItem(
         "doit-settings",

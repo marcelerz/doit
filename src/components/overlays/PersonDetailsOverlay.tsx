@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { PersonModel } from "@/models/PersonModel";
 import { Person, PersonId } from "@/types/person";
 import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
@@ -101,15 +102,7 @@ export function PersonDetailsOverlay({
     return () => clearTimeout(handler);
   }, [editingName, editingAlternatives, editingColor, person, onUpdate, editingContext]);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [onClose]);
+  useEscapeKey(onClose);
 
   const handleDelete = () => {
     onDelete(person.id);

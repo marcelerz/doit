@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { NoteId, NoteMetadata } from "@/types/note";
 import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
 import { PersonModel } from "@/models/PersonModel";
@@ -57,16 +58,7 @@ export function NoteAddModal({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Handle Escape to close
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose]);
+  useEscapeKey(onClose, isOpen);
 
   // Build metadata from tokens
   const buildMetadata = useCallback((): NoteMetadata => {
