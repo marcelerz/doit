@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { ExportMenuItems } from "@/components/shared/ExportMenuItems";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { FeatureSettings } from "@/types/settings";
 import { TodoTemplate } from "@/types/todoTemplate";
@@ -15,9 +16,6 @@ import {
   TemplateIcon,
   ClipboardCheckIcon,
   DragDotsIcon,
-  DocumentIcon,
-  TableIcon,
-  CodeIcon,
 } from "@/components/shared/Icons";
 
 export interface ListViewToolbarProps {
@@ -338,30 +336,7 @@ export function ListViewToolbar({
             </button>
             {isExportMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
-                <button
-                  onClick={() => handleExport("markdown")}
-                  className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                >
-                  <DocumentIcon className="w-4 h-4" />
-                  Markdown (.md)
-                </button>
-                <button
-                  onClick={() => handleExport("csv")}
-                  className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                >
-                  <TableIcon className="w-4 h-4" />
-                  CSV (.csv)
-                </button>
-                <button
-                  onClick={() => handleExport("json")}
-                  className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                >
-                  <CodeIcon className="w-4 h-4" />
-                  JSON (.json)
-                </button>
-                <div className="px-4 py-1 text-xs text-zinc-400 dark:text-zinc-500 border-t border-zinc-200 dark:border-zinc-700 mt-1">
-                  {hasActiveFilters ? "Exports filtered todos" : "Exports all todos"}
-                </div>
+                <ExportMenuItems onExport={handleExport} hasActiveFilters={hasActiveFilters} noun="todos" />
               </div>
             )}
           </div>
@@ -493,30 +468,7 @@ export function ListViewToolbar({
                   <>
                     <div className="border-t border-zinc-200 dark:border-zinc-700 my-1" />
                     <div className="px-4 py-1 text-xs text-zinc-500 dark:text-zinc-400 font-medium">Export</div>
-                    <button
-                      onClick={() => handleExport("markdown")}
-                      className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                    >
-                      <DocumentIcon className="w-4 h-4" />
-                      Markdown (.md)
-                    </button>
-                    <button
-                      onClick={() => handleExport("csv")}
-                      className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                    >
-                      <TableIcon className="w-4 h-4" />
-                      CSV (.csv)
-                    </button>
-                    <button
-                      onClick={() => handleExport("json")}
-                      className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-                    >
-                      <CodeIcon className="w-4 h-4" />
-                      JSON (.json)
-                    </button>
-                    <div className="px-4 py-1 text-xs text-zinc-400 dark:text-zinc-500">
-                      {hasActiveFilters ? "Exports filtered todos" : "Exports all todos"}
-                    </div>
+                    <ExportMenuItems onExport={handleExport} hasActiveFilters={hasActiveFilters} noun="todos" />
                   </>
                 )}
               </div>
