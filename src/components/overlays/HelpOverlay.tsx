@@ -218,7 +218,7 @@ function GettingStartedSection({ onRestartTutorial }: { onRestartTutorial?: () =
                 <li>Completed tasks auto-archive after 7 days (configurable in Settings)</li>
                 <li>The checkbox outline color shows the task&apos;s priority</li>
               </ol>
-              <p className="mt-2 text-zinc-500 italic">💡 Tip: Use ⌘/Ctrl+Z to undo any action!</p>
+              <p className="mt-2 text-zinc-500 italic">💡 Tip: Deleted the wrong thing? Hit Undo in the notification.</p>
             </div>
           </div>
 
@@ -536,10 +536,10 @@ function QuickStartSection() {
             <div className="text-sm text-zinc-600 dark:text-zinc-400">
               <p className="font-medium text-zinc-900 dark:text-zinc-100">Undo a mistake</p>
               <p className="mt-1">
-                Press <kbd className="px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded text-xs">⌘/Ctrl + Z</kbd> to
-                undo.
+                Press <kbd className="px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded text-xs">Undo</kbd> in the
+                notification that appears.
               </p>
-              <p className="mt-1">The task returns to Active! You can undo most actions.</p>
+              <p className="mt-1">The task returns to Active. The button stays for ten seconds.</p>
             </div>
           </div>
 
@@ -1409,31 +1409,11 @@ function KeyboardSection({ shortcuts }: { shortcuts: ViewShortcuts }) {
         </div>
 
         <div>
-          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-3">↩️ Undo/Redo</h4>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                <tr>
-                  <td className="py-2 px-3 w-40">
-                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">⌘/Ctrl</kbd>
-                    <span className="mx-1">+</span>
-                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">Z</kbd>
-                  </td>
-                  <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">Undo last action</td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-3">
-                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">⌘/Ctrl</kbd>
-                    <span className="mx-1">+</span>
-                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">Shift</kbd>
-                    <span className="mx-1">+</span>
-                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">Z</kbd>
-                  </td>
-                  <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">Redo last undone action</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-3">↩️ Undo</h4>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            There is no undo shortcut. Completing, archiving or deleting a task shows a notification with an{" "}
+            <strong>Undo</strong> button for ten seconds; use that.
+          </p>
         </div>
 
         <div>
@@ -1451,13 +1431,27 @@ function KeyboardSection({ shortcuts }: { shortcuts: ViewShortcuts }) {
                   <td className="py-2 px-3">
                     <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">Enter</kbd>
                   </td>
+                  <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">Open the current task&apos;s details</td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-3">
+                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">Shift</kbd>
+                    <span className="mx-1">+</span>
+                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">Enter</kbd>
+                  </td>
                   <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">Complete current task</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-3">
-                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">→</kbd>
+                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">S</kbd>
                   </td>
-                  <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">Skip to next task</td>
+                  <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">Skip to next task (or skip the break)</td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-3">
+                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">N</kbd>
+                  </td>
+                  <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">Skip the current task entirely</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-3">
@@ -2517,17 +2511,11 @@ function AdvancedSection() {
         </div>
 
         <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-lg">
-          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">↩️ Undo/Redo</h4>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">Mistakes happen - undo any action:</p>
+          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">↩️ Undo</h4>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">Mistakes happen:</p>
           <ul className="text-sm text-zinc-600 dark:text-zinc-400 mt-2 list-disc list-inside space-y-1">
-            <li>
-              <kbd className="px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded text-xs">⌘/Ctrl + Z</kbd> to undo
-            </li>
-            <li>
-              <kbd className="px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded text-xs">⌘/Ctrl + Shift + Z</kbd> to
-              redo
-            </li>
-            <li>Undo creating, editing, completing, archiving, or deleting tasks</li>
+            <li>Completing, archiving or deleting shows an Undo button for ten seconds</li>
+            <li>Creating and editing are not undoable -- edit again to change them back</li>
             <li>Works with batch operations too</li>
           </ul>
         </div>

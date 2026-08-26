@@ -770,14 +770,14 @@ export const tooltipContent = {
     </div>
   ),
 
-  // Undo/Redo
+  // Undo
   undoRedo: (
     <div className="space-y-2">
-      <p>Undo or redo your recent changes.</p>
+      <p>Take back a completion, archive or deletion.</p>
       <ul className="space-y-1">
-        <li>• Undo accidental deletions</li>
-        <li>• Redo if you change your mind</li>
-        <li>• Keyboard: Cmd/Ctrl + Z, Cmd/Ctrl + Shift + Z</li>
+        <li>• An Undo button appears for ten seconds after the action</li>
+        <li>• Creating and editing are not undoable</li>
+        <li>• There is no keyboard shortcut</li>
       </ul>
     </div>
   ),
