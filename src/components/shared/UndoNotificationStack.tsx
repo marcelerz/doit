@@ -51,6 +51,11 @@ interface UndoNotificationStackProps {
  *   }}
  * />
  */
+/** Whether an action removed something, and so warrants a warning colour. */
+function isDestructive(type: string): boolean {
+  return type === "delete" || type === "archive";
+}
+
 export function UndoNotificationStack({
   actions,
   fadingOutIds,
@@ -64,7 +69,13 @@ export function UndoNotificationStack({
   }
 
   return (
-    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col-reverse gap-2">
+    <div
+      // These confirm something the user just did and offer the only way to
+      // take it back, and were announced to nobody.
+      role="status"
+      aria-live="polite"
+      className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col-reverse gap-2"
+    >
       {actions.map((action) => (
         <div
           key={action.id}
@@ -72,7 +83,16 @@ export function UndoNotificationStack({
             fadingOutIds.has(action.id) ? "opacity-0" : "opacity-100 animate-slide-up"
           }`}
         >
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-100 rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 min-w-[280px]">
+          {/* Red for every action type meant "Todo completed" arrived styled as
+              an error, with a red primary button. Destructive actions keep it;
+              the rest are neutral. */}
+          <div
+            className={`rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 min-w-[280px] border ${
+              isDestructive(action.type)
+                ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100"
+                : "bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
+            }`}
+          >
             {renderContent ? (
               renderContent(action)
             ) : (
@@ -85,13 +105,19 @@ export function UndoNotificationStack({
             )}
             <button
               onClick={() => onUndo(action.id)}
-              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded-md font-medium transition-colors flex-shrink-0"
+              className={`px-3 py-1.5 text-white text-sm rounded-md font-medium transition-colors flex-shrink-0 ${
+                isDestructive(action.type) ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
+              }`}
             >
               Undo
             </button>
             <button
               onClick={() => onDismiss(action.id)}
-              className="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors flex-shrink-0"
+              className={`p-1.5 transition-colors flex-shrink-0 ${
+                isDestructive(action.type)
+                  ? "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+              }`}
               aria-label="Dismiss"
             >
               <CloseIcon className="w-4 h-4" />

@@ -299,3 +299,27 @@ body {
     opacity: 1;
   }
 }
+
+/* ============================================================================
+   Reduced motion
+   ============================================================================
+   Four keyframe animations ship here (slide-up, slide-down, slide-in,
+   fade-in), plus animate-pulse and several hundred transition-* classes, and
+   nothing in the project consulted prefers-reduced-motion. For someone whose
+   system asks for less movement -- often because motion causes them nausea or
+   dizziness -- every toast slid, every tab pulsed.
+
+   Animations are reduced to a single frame rather than removed, so anything
+   relying on an animationend event still fires.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
