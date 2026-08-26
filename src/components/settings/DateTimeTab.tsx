@@ -191,8 +191,11 @@ export function DateTimeTab() {
             "bod, eod - Beginning/End of day (from Work Hours)",
             "bow, eow - Beginning/End of week",
             "bom, eom - Beginning/End of month",
+            "boq, eoq - Beginning/End of quarter",
+            "boh, eoh - Beginning/End of half-year",
             "boy, eoy - Beginning/End of year",
-            "bofy, eofy - Beginning/End of fiscal year",
+            "nextweek, nextmonth, nextquarter, nexthalf, nextyear - Start of the next period",
+            "weekend - The coming Saturday",
             "today, tomorrow, yesterday - Day-relative dates",
             "mon, tue, wed, thu, fri, sat, sun - Next occurrence of weekday",
           ]}

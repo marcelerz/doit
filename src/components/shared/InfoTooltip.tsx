@@ -749,10 +749,10 @@ export const tooltipContent = {
     <div className="space-y-2">
       <p>Import tasks from external sources.</p>
       <ul className="space-y-1">
-        <li>• Plain text (one task per line)</li>
-        <li>• Markdown checkboxes</li>
-        <li>• CSV format</li>
-        <li>• Duplicate detection available</li>
+        <li>• CSV, including Todoist and Things exports</li>
+        <li>• Apple Reminders exports</li>
+        <li>• JSON, including this app&apos;s own export</li>
+        <li>• Existing people, projects and priorities are matched by name</li>
       </ul>
     </div>
   ),

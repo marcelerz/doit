@@ -13,10 +13,10 @@ const tooltip = (
   <div className="space-y-2">
     <p>Import tasks from external sources.</p>
     <ul className="space-y-1">
-      <li>• Plain text (one task per line)</li>
-      <li>• Markdown checkboxes</li>
-      <li>• CSV format</li>
-      <li>• Duplicate detection available</li>
+      <li>• CSV, including Todoist and Things exports</li>
+      <li>• Apple Reminders exports</li>
+      <li>• JSON, including this app&apos;s own export</li>
+      <li>• Existing people, projects and priorities are matched by name</li>
     </ul>
   </div>
 );
@@ -46,17 +46,34 @@ export function ImportTab() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
-      if (content) {
-        const importResult = importTodos(content, "auto", file.name);
-        setResult(importResult);
-
-        // Select all by default
-        if (importResult.success) {
-          setSelectedTodos(new Set(importResult.todos.map((_, i) => i)));
-        }
-
+      // An empty file used to fall through this check silently, leaving the
+      // user on the upload step with no indication anything had happened.
+      if (!content) {
+        setResult({ success: false, todos: [], errors: ["The file is empty."], warnings: [], format: "json" });
         setStep("preview");
+        return;
       }
+
+      const importResult = importTodos(content, "auto", file.name);
+      setResult(importResult);
+
+      // Select all by default
+      if (importResult.success) {
+        setSelectedTodos(new Set(importResult.todos.map((_, i) => i)));
+      }
+
+      setStep("preview");
+    };
+    // Likewise a read failure: without this the dialog simply never advanced.
+    reader.onerror = () => {
+      setResult({
+        success: false,
+        todos: [],
+        errors: [`Could not read ${file.name}.`],
+        warnings: [],
+        format: "json",
+      });
+      setStep("preview");
     };
     reader.readAsText(file);
   }, []);
@@ -182,7 +199,7 @@ export function ImportTab() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".json,.csv,.txt"
+              accept=".json,.csv"
               onChange={handleInputChange}
               className="hidden"
             />

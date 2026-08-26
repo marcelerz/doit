@@ -1647,7 +1647,7 @@ function SettingsSection() {
               <strong>Work Week Start:</strong> Sunday or Monday
             </li>
             <li>
-              <strong>Fiscal Year Start:</strong> Month when fiscal year begins (for bofy/eofy shortcuts)
+              <strong>Fiscal Year Start:</strong> Month when the fiscal year begins, used for Review periods
             </li>
           </ul>
         </div>
