@@ -1,6 +1,17 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
+ * Dev-server port, overridable with PLAYWRIGHT_PORT.
+ *
+ * reuseExistingServer means whatever already answers on this port gets tested.
+ * With a fixed 3000 that can be another project's dev server, and the run then
+ * fails with "todo-app not visible" rather than anything that points at the
+ * real cause.
+ */
+const PORT = process.env.PLAYWRIGHT_PORT ?? "3000";
+const BASE_URL = `http://localhost:${PORT}`;
+
+/**
  * Playwright configuration for Doit E2E tests
  *
  * Test structure:
@@ -50,7 +61,7 @@ export default defineConfig({
   /* Shared settings for all the projects below */
   use: {
     /* Base URL to use in actions like `await page.goto('/')` */
-    baseURL: "http://localhost:3000",
+    baseURL: BASE_URL,
 
     /* Collect trace when retrying the failed test */
     trace: "on-first-retry",
@@ -110,8 +121,8 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
+    command: `npm run dev -- --port ${PORT}`,
+    url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },
