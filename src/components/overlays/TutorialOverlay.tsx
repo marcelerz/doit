@@ -48,7 +48,7 @@ export const mainTutorialSteps: TutorialStep[] = [
     id: "views",
     title: "Multiple Views 👁️",
     description:
-      "Switch between different views:\n• List - Traditional task list\n• Kanban - Drag & drop board\n• Gantt - Timeline view\n• Calendar - Monthly calendar\n\nPress keys 1-8 to switch quickly!",
+      "Switch between different views:\n• List - Traditional task list\n• Kanban - Drag & drop board\n• Gantt - Timeline view\n• Calendar - Monthly calendar\n\nUse the number keys to switch quickly -- the Help overlay lists which key opens which view.",
     targetSelector: '[data-tutorial="view-tabs"]',
     position: "bottom",
     action: "Try clicking different tabs",
@@ -91,7 +91,7 @@ export const mainTutorialSteps: TutorialStep[] = [
     id: "keyboard",
     title: "Keyboard Shortcuts ⌨️",
     description:
-      "Work faster with shortcuts:\n• N - New task\n• / - Search\n• F - Filters\n• S - Selection mode\n• ? - Help\n• 1-8 - Switch views\n• ⌘/Ctrl+Z - Undo",
+      "Work faster with shortcuts:\n• N - New task\n• / - Search\n• F - Filters\n• S - Selection mode\n• ? - Help\n• Number keys - Switch views",
     position: "center",
   },
   {

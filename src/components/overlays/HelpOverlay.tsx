@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { getEnabledViews } from "@/types/viewRegistry";
+import { FeatureSettings } from "@/types/settings";
 import { Modal } from "@/components/shared/Modal";
 import { CloseIcon } from "@/components/shared/Icons";
 
@@ -43,10 +45,48 @@ interface HelpOverlayProps {
   isOpen: boolean;
   onClose: () => void;
   onRestartTutorial?: () => void;
+  /** Which views this user has enabled; the digit shortcuts index into them. */
+  features?: FeatureSettings;
 }
 
-export function HelpOverlay({ isOpen, onClose, onRestartTutorial }: HelpOverlayProps) {
+/** " (3)" for a view that has a digit key, or "" for one that does not. */
+function shortcutFor(shortcuts: ViewShortcuts, label: string): string {
+  const match = shortcuts.bound.find((entry) => entry.label === label);
+  return match ? ` (${match.key})` : "";
+}
+
+interface ViewShortcuts {
+  /** Views that have a digit key, in order. */
+  bound: { key: string; label: string }[];
+  /** Views past the ninth, which cannot be bound to a single digit. */
+  unbound: string[];
+  /** Display form of the bound range, e.g. "1-9". */
+  range: string;
+}
+
+/**
+ * The digit shortcuts as this user actually has them.
+ *
+ * The numbers index into getEnabledViews, so which view "5" opens depends on
+ * the feature flags. Every mention of them here used to be written out by
+ * hand, and had drifted to a list of eight that no longer matched anything.
+ */
+function useViewShortcuts(features: FeatureSettings | undefined): ViewShortcuts {
+  return useMemo(() => {
+    const views = getEnabledViews(features);
+    // Only single digits can be bound, so views past the ninth have no key.
+    const bound = views.slice(0, 9).map((view, index) => ({ key: String(index + 1), label: view.label }));
+    return {
+      bound,
+      unbound: views.slice(9).map((view) => view.label),
+      range: bound.length === 0 ? "" : bound.length === 1 ? "1" : `1-${bound.length}`,
+    };
+  }, [features]);
+}
+
+export function HelpOverlay({ isOpen, onClose, onRestartTutorial, features }: HelpOverlayProps) {
   const [activeSection, setActiveSection] = useState<HelpSection>("getting-started");
+  const shortcuts = useViewShortcuts(features);
 
   if (!isOpen) return null;
 
@@ -97,12 +137,12 @@ export function HelpOverlay({ isOpen, onClose, onRestartTutorial }: HelpOverlayP
         <div className="flex-1 overflow-y-auto p-6">
           {activeSection === "getting-started" && <GettingStartedSection onRestartTutorial={onRestartTutorial} />}
           {activeSection === "quick-start" && <QuickStartSection />}
-          {activeSection === "views" && <ViewsSection />}
+          {activeSection === "views" && <ViewsSection shortcuts={shortcuts} />}
           {activeSection === "input" && <InputSection />}
           {activeSection === "filtering" && <FilteringSection />}
           {activeSection === "people-projects" && <PeopleProjectsSection />}
           {activeSection === "time-tracking" && <TimeTrackingSection />}
-          {activeSection === "keyboard" && <KeyboardSection />}
+          {activeSection === "keyboard" && <KeyboardSection shortcuts={shortcuts} />}
           {activeSection === "settings" && <SettingsSection />}
           {activeSection === "workflows" && <WorkflowsSection />}
           {activeSection === "productivity" && <ProductivityTechniquesSection />}
@@ -639,19 +679,19 @@ function QuickStartSection() {
   );
 }
 
-function ViewsSection() {
+function ViewsSection({ shortcuts }: { shortcuts: ViewShortcuts }) {
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">👁️ Views</h3>
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         Doit offers multiple views to visualize and manage your tasks. Switch views using tabs or number keys{" "}
-        <kbd className="px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded text-xs">1-8</kbd>.
+        <kbd className="px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded text-xs">{shortcuts.range}</kbd>.
       </p>
 
       <div className="space-y-4">
         <div className="border-l-4 border-blue-500 pl-4">
-          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">📋 List View (1)</h4>
+          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">{"📋 List View"}{shortcutFor(shortcuts, "List")}</h4>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
             The default view showing all your tasks in a list format. Features include:
           </p>
@@ -696,7 +736,7 @@ function ViewsSection() {
         </div>
 
         <div className="border-l-4 border-orange-500 pl-4">
-          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">🗓️ Calendar View (4)</h4>
+          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">{"🗓️ Calendar View"}{shortcutFor(shortcuts, "Calendar")}</h4>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Monthly calendar showing tasks by due date:</p>
           <ul className="text-sm text-zinc-600 dark:text-zinc-400 mt-2 list-disc list-inside space-y-1">
             <li>Colored dots indicate tasks on each day (by state, priority, or project)</li>
@@ -708,7 +748,7 @@ function ViewsSection() {
         </div>
 
         <div className="border-l-4 border-cyan-500 pl-4">
-          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">👥 People View (5)</h4>
+          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">{"👥 People View"}{shortcutFor(shortcuts, "People")}</h4>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Manage your contacts with dedicated features:</p>
           <ul className="text-sm text-zinc-600 dark:text-zinc-400 mt-2 list-disc list-inside space-y-1">
             <li>Create people with names and alternative names (nicknames)</li>
@@ -720,7 +760,7 @@ function ViewsSection() {
         </div>
 
         <div className="border-l-4 border-indigo-500 pl-4">
-          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">📁 Projects View (6)</h4>
+          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">{"📁 Projects View"}{shortcutFor(shortcuts, "Projects")}</h4>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Organize work into projects with categories:</p>
           <ul className="text-sm text-zinc-600 dark:text-zinc-400 mt-2 list-disc list-inside space-y-1">
             <li>Create projects with alternative names</li>
@@ -732,7 +772,7 @@ function ViewsSection() {
         </div>
 
         <div className="border-l-4 border-pink-500 pl-4">
-          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">🏃 Sprints View (7)</h4>
+          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">{"🏃 Sprints View"}{shortcutFor(shortcuts, "Sprints")}</h4>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Scrum-style sprint planning:</p>
           <ul className="text-sm text-zinc-600 dark:text-zinc-400 mt-2 list-disc list-inside space-y-1">
             <li>Create time-boxed sprints with goals and dates</li>
@@ -744,7 +784,7 @@ function ViewsSection() {
         </div>
 
         <div className="border-l-4 border-yellow-500 pl-4">
-          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">📈 Statistics View (8)</h4>
+          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">{"📈 Statistics View"}{shortcutFor(shortcuts, "Stats")}</h4>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Analytics and insights:</p>
           <ul className="text-sm text-zinc-600 dark:text-zinc-400 mt-2 list-disc list-inside space-y-1">
             <li>Task completion rates over time</li>
@@ -1281,7 +1321,7 @@ function PeopleProjectsSection() {
   );
 }
 
-function KeyboardSection() {
+function KeyboardSection({ shortcuts }: { shortcuts: ViewShortcuts }) {
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">⌨️ Keyboard Shortcuts</h3>
@@ -1298,11 +1338,19 @@ function KeyboardSection() {
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                 <tr>
                   <td className="py-2 px-3 w-40">
-                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">1</kbd> -{" "}
-                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">8</kbd>
+                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">
+                      {shortcuts.range}
+                    </kbd>
                   </td>
                   <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">
-                    Switch between views (List, Kanban, Gantt, Calendar, People, Projects, Sprints, Stats)
+                    Switch between views ({shortcuts.bound.map((s) => s.label).join(", ")})
+                    {shortcuts.unbound.length > 0 && (
+                      <span className="block text-xs text-zinc-500 dark:text-zinc-500">
+                        {shortcuts.unbound.join(" and ")}{" "}
+                        {shortcuts.unbound.length === 1 ? "has" : "have"} no number key -- only single digits can be
+                        bound. Use the tabs.
+                      </span>
+                    )}
                   </td>
                 </tr>
                 <tr>

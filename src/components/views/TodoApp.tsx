@@ -688,7 +688,14 @@ export function TodoApp() {
 
       // Allow Escape to work even when input is focused
       if (e.key === "Escape") {
-        // Close overlays in order of priority
+        // Close overlays in order of priority.
+        // Help first: it is the topmost overlay, and it was the one overlay
+        // Escape did not close -- while its own shortcut table listed Esc as
+        // closing overlays.
+        if (isHelpOverlayOpen) {
+          setIsHelpOverlayOpen(false);
+          return;
+        }
         if (detailsOverlayTodo) {
           setDetailsOverlayTodo(null);
           return;
@@ -864,6 +871,7 @@ export function TodoApp() {
     isAddProjectOverlayOpen,
     isAddSprintOverlayOpen,
     isAddNoteOverlayOpen,
+    isHelpOverlayOpen,
     selectedNoteId,
     selectedReviewId,
     features,
@@ -967,7 +975,7 @@ export function TodoApp() {
               <button
                 onClick={() => setIsAddOverlayOpen(true)}
                 className="px-2 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
-                title="Add new todo (A)"
+                title="Add new todo (N)"
                 data-tutorial="add-button"
                 data-testid="add-todo-button"
               >
@@ -2267,6 +2275,7 @@ export function TodoApp() {
         isOpen={isHelpOverlayOpen}
         onClose={() => setIsHelpOverlayOpen(false)}
         onRestartTutorial={handleRestartTutorial}
+        features={features}
       />
 
       {/* Tutorial Overlay */}
