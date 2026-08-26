@@ -31,6 +31,9 @@ export function useConfirmDialog() {
       title={dialog.title}
       message={dialog.message}
       confirmText={dialog.confirmText}
+      // Was accepted in the options and then never passed on, so any caller
+      // customising the cancel label silently got the default.
+      cancelText={dialog.cancelText}
       confirmVariant={dialog.confirmVariant}
       onConfirm={async () => {
         await dialog.onConfirm();
