@@ -242,9 +242,6 @@ export function ReviewItem({
               {review.childReviewCount > 0 && (
                 <span>{review.childReviewCount} review{review.childReviewCount !== 1 ? "s" : ""}</span>
               )}
-              {review.hasComments && (
-                <span>{review.commentCount} comment{review.commentCount !== 1 ? "s" : ""}</span>
-              )}
             </div>
           </div>
 

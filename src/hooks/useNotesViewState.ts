@@ -120,10 +120,6 @@ export function useNotesViewState({
     new Set(),
   );
 
-  // Expanded note IDs for detail view
-  const [expandedNoteIds, setExpandedNoteIds] = useState<Set<string>>(
-    new Set(),
-  );
 
 
   // Load view options from storage on mount
@@ -653,26 +649,8 @@ export function useNotesViewState({
     setSelectedNoteIds(new Set());
   }, []);
 
-  // Expand/collapse handlers
-  const toggleExpanded = useCallback((noteId: string) => {
-    setExpandedNoteIds((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(noteId)) {
-        newSet.delete(noteId);
-      } else {
-        newSet.add(noteId);
-      }
-      return newSet;
-    });
-  }, []);
 
-  const expandAll = useCallback((noteIds: string[]) => {
-    setExpandedNoteIds(new Set(noteIds));
-  }, []);
 
-  const collapseAll = useCallback(() => {
-    setExpandedNoteIds(new Set());
-  }, []);
 
   // Create lookup maps for display names
   const peopleMap = useMemo(() => {
@@ -739,10 +717,6 @@ export function useNotesViewState({
     exitSelectionMode,
 
     // Expand state
-    expandedNoteIds,
-    toggleExpanded,
-    expandAll,
-    collapseAll,
 
     // Filter handlers
     handleFilterClick,

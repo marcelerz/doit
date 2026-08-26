@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { appendComment, amendComment, removeComment } from "@/utils/commentMutations";
 import {
   Review,
   ReviewId,
@@ -14,7 +13,7 @@ import {
 import { getTag } from "@/types/todo";
 import { getTimestamp } from "@/types/time";
 import { getProjectId } from "@/types/project";
-import { ActivityEntry, CommentId } from "@/types/types";
+import { ActivityEntry } from "@/types/types";
 
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
@@ -381,59 +380,8 @@ export function useReviews() {
 
   // ===== Comment Operations =====
 
-  // Add a comment to a review
-  const addReviewComment = useCallback((reviewId: ReviewId, content: string) => {
-    const now = getTimestamp(Date.now());
-    setRawReviews((prev) =>
-      prev.map((review) => {
-        if (review.id === reviewId) {
-          return {
-            ...review,
-            comments: appendComment(review.comments, content, now),
-            updatedAt: now,
-            activity: [...review.activity, createReviewActivity("comment_added", "Comment added")],
-          };
-        }
-        return review;
-      })
-    );
-  }, []);
 
-  // Edit a comment on a review
-  const editReviewComment = useCallback((reviewId: ReviewId, commentId: CommentId, content: string) => {
-    const now = getTimestamp(Date.now());
-    setRawReviews((prev) =>
-      prev.map((review) => {
-        if (review.id === reviewId) {
-          return {
-            ...review,
-            comments: amendComment(review.comments, commentId, content, now),
-            updatedAt: now,
-            activity: [...review.activity, createReviewActivity("comment_edited", "Comment edited")],
-          };
-        }
-        return review;
-      })
-    );
-  }, []);
 
-  // Delete a comment from a review
-  const deleteReviewComment = useCallback((reviewId: ReviewId, commentId: CommentId) => {
-    const now = getTimestamp(Date.now());
-    setRawReviews((prev) =>
-      prev.map((review) => {
-        if (review.id === reviewId) {
-          return {
-            ...review,
-            comments: removeComment(review.comments, commentId),
-            updatedAt: now,
-            activity: [...review.activity, createReviewActivity("comment_deleted", "Comment deleted")],
-          };
-        }
-        return review;
-      })
-    );
-  }, []);
 
   return {
     reviews,
@@ -449,9 +397,6 @@ export function useReviews() {
     updateEntry,
     removeEntry,
     toggleEntryCollapsed,
-    addReviewComment,
-    editReviewComment,
-    deleteReviewComment,
     isLoaded,
     undoActions,
     fadingOutIds,

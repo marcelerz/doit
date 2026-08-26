@@ -301,7 +301,6 @@ export function useBackups() {
     fileInputRef,
 
     // Actions
-    loadBackups,
     createBackup: handleCreateBackup,
     restoreBackup: handleRestoreBackup,
     deleteBackup: handleDeleteBackup,
