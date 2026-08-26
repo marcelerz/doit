@@ -1,5 +1,6 @@
 "use client";
 
+import { usePersonCounts, useProjectCounts } from "@/hooks/useEntityCounts";
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useTodos } from "@/hooks/useTodos";
@@ -305,91 +306,8 @@ export function TodoApp() {
     return sortByUsage(projects, usageStats.projects);
   }, [projects, usageStats.projects]);
 
-  // Calculate todo and note counts for people and projects
-  // Count all relationship types: assigned, sourced, and mentioned
-  // Returns: { activeTodos, closedTodos, activeNotes, archivedNotes }
-  type EntityCounts = { activeTodos: number; closedTodos: number; activeNotes: number; archivedNotes: number };
-
-  const countsByPerson = useMemo(() => {
-    const counts = new Map<string, EntityCounts>();
-
-    const getOrCreate = (personId: string): EntityCounts => {
-      if (!counts.has(personId)) {
-        counts.set(personId, { activeTodos: 0, closedTodos: 0, activeNotes: 0, archivedNotes: 0 });
-      }
-      return counts.get(personId)!;
-    };
-
-    const countPersonNames = (personNames: string[], field: keyof EntityCounts) => {
-      personNames.forEach((personName) => {
-        const person = people.find((p) => p.matchesAnyName([personName]));
-        if (person) {
-          getOrCreate(person.id)[field]++;
-        }
-      });
-    };
-
-    // Count todos
-    todos.forEach((todo) => {
-      const field: keyof EntityCounts = todo.isActive ? "activeTodos" : "closedTodos";
-      countPersonNames(todo.assignedPeople, field);
-      countPersonNames(todo.sourcePeople, field);
-      countPersonNames(todo.mentionedPeople, field);
-    });
-
-    // Count notes
-    notes.forEach((note) => {
-      const field: keyof EntityCounts = note.isArchived ? "archivedNotes" : "activeNotes";
-      const personNames = [
-        ...note.assignedPeopleIds.map((id) => id as string),
-        ...note.sourcePeopleIds.map((id) => id as string),
-        ...note.mentionedPeopleIds.map((id) => id as string),
-      ];
-      personNames.forEach((personName) => {
-        const person = people.find((p) => p.matchesAnyName([personName]));
-        if (person) {
-          getOrCreate(person.id)[field]++;
-        }
-      });
-    });
-
-    return counts;
-  }, [todos, notes, people]);
-
-  const countsByProject = useMemo(() => {
-    const counts = new Map<string, EntityCounts>();
-
-    const getOrCreate = (projectId: string): EntityCounts => {
-      if (!counts.has(projectId)) {
-        counts.set(projectId, { activeTodos: 0, closedTodos: 0, activeNotes: 0, archivedNotes: 0 });
-      }
-      return counts.get(projectId)!;
-    };
-
-    // Count todos
-    todos.forEach((todo) => {
-      const field: keyof EntityCounts = todo.isActive ? "activeTodos" : "closedTodos";
-      todo.projects.forEach((projectName) => {
-        const project = projects.find((p) => p.matchesAnyName([projectName]));
-        if (project) {
-          getOrCreate(project.id)[field]++;
-        }
-      });
-    });
-
-    // Count notes
-    notes.forEach((note) => {
-      const field: keyof EntityCounts = note.isArchived ? "archivedNotes" : "activeNotes";
-      note.projectIds.forEach((projectId) => {
-        const project = projects.find((p) => p.matchesAnyName([projectId as string]));
-        if (project) {
-          getOrCreate(project.id)[field]++;
-        }
-      });
-    });
-
-    return counts;
-  }, [todos, notes, projects]);
+  const countsByPerson = usePersonCounts(todos, notes, people);
+  const countsByProject = useProjectCounts(todos, notes, projects);
 
   // Wrapper functions to convert name string to object format
   const handleAddPerson = (name: string) => {
