@@ -301,8 +301,8 @@ export function TodoDetailsOverlay({
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="3xl" label="Task details">
       <div className="p-6" data-testid="todo-details-overlay">
-        {/* Header with Status Badge */}
-        <div className="flex items-center justify-between mb-4">
+        {/* Header with Status Badge -- sticky so Close stays reachable on a long task */}
+        <div className="flex items-center justify-between sticky top-0 z-10 -mx-6 -mt-6 px-6 pt-6 pb-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 mb-4">
           <div
             className="px-3 py-1 rounded-full text-xs font-medium"
             style={{ backgroundColor: todo.statusColor + "20", color: todo.statusColor }}

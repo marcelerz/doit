@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useId } from "react";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { Priority } from "@/types/priority";
 import { Sprint } from "@/types/sprint";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { CloseIcon } from "@/components/shared/Icons";
+import { Modal } from "@/components/shared/Modal";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 export interface BatchEditData {
   setPriority: boolean;
@@ -64,6 +66,7 @@ export function BatchEditModal({
   sprints,
 }: BatchEditModalProps) {
   const [data, setData] = useState<BatchEditData>(emptyBatchEditData);
+  const titleId = useId();
 
   const handleApply = useCallback(() => {
     onApply(data);
@@ -74,6 +77,8 @@ export function BatchEditModal({
     onClose();
     setData(emptyBatchEditData);
   }, [onClose]);
+
+  useEscapeKey(handleClose, isOpen);
 
   if (!isOpen) return null;
 
@@ -87,11 +92,11 @@ export function BatchEditModal({
     !data.setTags;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={handleClose} />
-      <div className="relative bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md p-6 space-y-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="md" labelledBy={titleId}>
+      <div className="p-6 space-y-6">
+        {/* Sticky so Close stays reachable once the field list scrolls */}
+        <div className="flex items-center justify-between sticky top-0 z-10 -mx-6 -mt-6 px-6 pt-6 pb-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 mb-4">
+          <h2 id={titleId} className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
             <span>
               Edit {selectedCount} Task{selectedCount === 1 ? "" : "s"}
             </span>
@@ -99,6 +104,7 @@ export function BatchEditModal({
           </h2>
           <button
             onClick={handleClose}
+            aria-label="Close"
             className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
           >
             <CloseIcon className="w-5 h-5" />
@@ -306,6 +312,6 @@ export function BatchEditModal({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

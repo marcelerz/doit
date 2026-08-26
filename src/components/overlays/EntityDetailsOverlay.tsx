@@ -200,8 +200,8 @@ export function EntityDetailsOverlay<
       label={`${entityTypeName} details`}
     >
       <div className="p-6 space-y-6">
-        {/* Header with Close Button */}
-        <div className="flex items-start justify-between mb-4">
+        {/* Header with Close Button -- sticky so it stays reachable while scrolling */}
+        <div className="flex items-start justify-between sticky top-0 z-10 -mx-6 -mt-6 px-6 pt-6 pb-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 mb-4">
           <div className="flex items-center gap-4">
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-md"
