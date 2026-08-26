@@ -56,23 +56,6 @@ export function pluralize(count: number, singular: string, plural?: string): str
 }
 
 /**
- * Format a count with its pluralized label.
- *
- * @param count - The number to display
- * @param singular - The singular form of the word
- * @param plural - Optional custom plural form (defaults to singular + 's')
- * @returns Formatted string like "1 person" or "5 people"
- *
- * @example
- * formatCount(1, "person", "people") // "1 person"
- * formatCount(5, "person", "people") // "5 people"
- * formatCount(0, "tag") // "0 tags"
- */
-export function formatCount(count: number, singular: string, plural?: string): string {
-  return `${count} ${pluralize(count, singular, plural)}`;
-}
-
-/**
  * Format activity timestamp as relative time (compact format).
  * Used in activity logs where space is limited.
  *
@@ -180,16 +163,3 @@ export function formatClockTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-/**
- * Format time display for timeline views (e.g., "9:00 AM")
- * Used by: ganttViewUtils for timeline markers
- *
- * @param date - Date to format
- * @returns Formatted time string
- */
-export function formatTimeDisplay(date: Date): string {
-  return date.toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}

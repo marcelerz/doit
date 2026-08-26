@@ -42,26 +42,14 @@ export function getDurationDay(value: number): DurationDay {
 export type DurationWeek = number & { readonly __brand: unique symbol };
 
 // Converts number into DurationWeek type
-export function getDurationWeek(value: number): DurationWeek {
-  return value as DurationWeek;
-}
-
 // Unique branded type for DurationMonth
 export type DurationMonth = number & { readonly __brand: unique symbol };
 
 // Converts number into DurationMonth type
-export function getDurationMonth(value: number): DurationMonth {
-  return value as DurationMonth;
-}
-
 // Unique branded type for DurationYear
 export type DurationYear = number & { readonly __brand: unique symbol };
 
 // Converts number into DurationYear type
-export function getDurationYear(value: number): DurationYear {
-  return value as DurationYear;
-}
-
 // Unique branded type for ShortTime (e.g. "14:30")
 export type ShortTime = string & { readonly __brand: unique symbol };
 

@@ -737,16 +737,3 @@ export const getISOWeekNumber = (date: Date): number => {
  */
 export const getWeekNumber = getISOWeekNumber;
 
-/**
- * Check if two ranges overlap
- * Useful for detecting overlapping date/time ranges.
- *
- * @param start1 - Start of first range
- * @param end1 - End of first range
- * @param start2 - Start of second range
- * @param end2 - End of second range
- * @returns True if ranges overlap
- */
-export const rangesOverlap = (start1: number, end1: number, start2: number, end2: number): boolean => {
-  return !(end1 <= start2 || start1 >= end2);
-};

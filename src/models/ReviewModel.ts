@@ -549,13 +549,6 @@ export class ReviewModel {
 }
 
 /**
- * Factory function to create ReviewModel instances
- */
-export function createReviewModel(review: Review, settings: SettingsModel): ReviewModel {
-  return new ReviewModel(review, settings);
-}
-
-/**
  * Create ReviewModel instances from an array of reviews
  * Filters out any undefined/null entries
  */

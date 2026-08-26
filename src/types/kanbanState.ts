@@ -4,11 +4,6 @@ import { Color, getColor } from "./types";
 export type KanbanStateId = string & { readonly __brand: unique symbol };
 
 // Represents an allowed state transition in the Kanban workflow
-export interface AllowedTransition {
-  fromStateId: KanbanStateId;
-  toStateId: KanbanStateId;
-}
-
 // Converts string id to KanbanStateID type
 export function getKanbanStateId(id: string): KanbanStateId {
   return id as KanbanStateId;

@@ -516,13 +516,6 @@ export class NoteModel {
 }
 
 /**
- * Factory function to create NoteModel instances
- */
-export function createNoteModel(note: Note, settings: SettingsModel): NoteModel {
-  return new NoteModel(note, settings);
-}
-
-/**
  * Create NoteModel instances from an array of notes
  * Filters out any undefined/null entries
  */

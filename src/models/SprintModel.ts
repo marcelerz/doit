@@ -449,10 +449,3 @@ export function createSprintModel(sprint: Sprint): SprintModel {
   return new SprintModel(sprint);
 }
 
-/**
- * Create SprintModel instances from an array of sprints
- * Filters out any undefined/null entries
- */
-export function createSprintModels(sprints: Sprint[]): SprintModel[] {
-  return sprints.filter((sprint) => sprint != null).map((sprint) => new SprintModel(sprint));
-}

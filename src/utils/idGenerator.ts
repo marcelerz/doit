@@ -75,14 +75,6 @@ export function createSubtaskId(): string {
 }
 
 /**
- * Generate a prefixed ID for time entries.
- * @returns A time entry ID like "time-xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
- */
-export function createTimeEntryId(): string {
-  return generatePrefixedUUID("time");
-}
-
-/**
  * Generate a prefixed ID for search history entries.
  * @returns A search history ID like "search-xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
  */
@@ -96,22 +88,6 @@ export function createSearchHistoryId(): string {
  */
 export function createBreakPeriodId(): string {
   return generatePrefixedUUID("break");
-}
-
-/**
- * Generate a prefixed ID for time blocks.
- * @returns A time block ID like "block-xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
- */
-export function createTimeBlockId(): string {
-  return generatePrefixedUUID("block");
-}
-
-/**
- * Generate a prefixed ID for gantt presets.
- * @returns A gantt preset ID like "preset-xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
- */
-export function createGanttPresetId(): string {
-  return generatePrefixedUUID("preset");
 }
 
 /**

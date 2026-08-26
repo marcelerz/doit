@@ -5,7 +5,7 @@
  */
 
 import { ActivityEntry, getActivityId, ActivityId } from "@/types/types";
-import { getTimestamp, Timestamp } from "@/types/time";
+import { getTimestamp } from "@/types/time";
 
 /**
  * Generate a unique ID for an activity entry.
@@ -46,27 +46,3 @@ export function createActivityEntry<AT>(
   };
 }
 
-/**
- * Create a new activity entry with a specific timestamp.
- * Useful when the activity needs to be backdated or synchronized.
- *
- * @param type - The activity type
- * @param description - Human-readable description
- * @param timestamp - The timestamp to use for the activity
- * @param metadata - Optional additional metadata
- * @returns A fully populated ActivityEntry with the specified timestamp
- */
-export function createActivityEntryWithTimestamp<AT>(
-  type: AT,
-  description: string,
-  timestamp: Timestamp,
-  metadata?: Record<string, unknown>
-): ActivityEntry<AT> {
-  return {
-    id: generateActivityId(),
-    timestamp,
-    type,
-    description,
-    metadata,
-  };
-}

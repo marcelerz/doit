@@ -420,9 +420,3 @@ export function getCurrentVersion(): number {
   return CURRENT_VERSION;
 }
 
-/**
- * Force migration of all data (useful for debugging)
- */
-export function forceMigration(): void {
-  localStorage.setItem(STORAGE_KEYS.VERSION, "0");
-}

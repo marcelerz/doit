@@ -818,21 +818,6 @@ export function createSettingsModel(settings: Settings): SettingsModel {
 }
 
 /**
- * Get the current SettingsModel singleton instance.
- * Throws if not initialized - use createSettingsModel() first.
- */
-export function getSettingsModel(): SettingsModel {
-  return SettingsModel.getInstance();
-}
-
-/**
- * Check if SettingsModel singleton has been initialized
- */
-export function isSettingsModelInitialized(): boolean {
-  return SettingsModel.isInitialized();
-}
-
-/**
  * Reset the SettingsModel singleton (for testing only)
  */
 export function resetSettingsModel_DONOTUSE(): void {
