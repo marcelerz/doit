@@ -187,7 +187,6 @@ export interface KanbanSettings {
   activeViewId: string; // Currently selected view
   showEmptyColumns: boolean; // Show columns with no tasks
   showTaskCount: boolean; // Show count in column headers
-  cardDisplayFields: string[]; // Which metadata fields to show on cards
 }
 
 export const defaultKanbanSettings: KanbanSettings = {
@@ -197,7 +196,6 @@ export const defaultKanbanSettings: KanbanSettings = {
   activeViewId: "all",
   showEmptyColumns: true,
   showTaskCount: true,
-  cardDisplayFields: ["assignedPeople", "priority", "dueDate", "projects"],
 };
 
 // Focus View Settings - Timer, sounds, and tracking for focus mode
@@ -209,14 +207,11 @@ export interface FocusSettings {
 
   // Auto Time Tracking
   autoTimeTracking: boolean; // Automatically track time for tasks in focus mode
-  trackActualVsEstimated: boolean; // Store actual time vs estimated for analytics
 
   // Timer Controls
   defaultExtendMinutes: DurationMin; // Default time to add when extending (default 5)
   extendOptions: DurationMin[]; // Quick extend options in minutes (default [5, 10, 15, 30])
-  showEarlyCompletePrompt: boolean; // Ask to record actual time when completing early
   autoExtendOnOvertime: boolean; // Auto-extend duration when tracked time exceeds estimate (default true)
-  useTrackedTimeForDuration: boolean; // Subtract already-tracked time from duration (default true)
 
   // Notifications & Sound Settings
   notificationsEnabled: boolean; // Browser notifications for breaks/task events
@@ -230,8 +225,6 @@ export interface FocusSettings {
   ambientVolume: number; // Volume level 0-1 (default 0.3)
 
   // Display Settings
-  showNextTask: boolean; // Show preview of next task during breaks
-  showSessionStats: boolean; // Show session statistics (tasks done, time worked)
   showKeyboardHints: boolean; // Show keyboard shortcut hints
 }
 
@@ -243,14 +236,11 @@ export const defaultFocusSettings: FocusSettings = {
 
   // Auto Time Tracking
   autoTimeTracking: true,
-  trackActualVsEstimated: true,
 
   // Timer Controls
   defaultExtendMinutes: getDurationMin(5),
   extendOptions: [getDurationMin(5), getDurationMin(10), getDurationMin(15), getDurationMin(30)],
-  showEarlyCompletePrompt: true,
   autoExtendOnOvertime: true,
-  useTrackedTimeForDuration: true,
 
   // Notifications & Sound Settings
   notificationsEnabled: true,
@@ -264,8 +254,6 @@ export const defaultFocusSettings: FocusSettings = {
   ambientVolume: 0.3,
 
   // Display Settings
-  showNextTask: true,
-  showSessionStats: true,
   showKeyboardHints: true,
 };
 

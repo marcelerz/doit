@@ -200,25 +200,6 @@ export function FocusTab() {
           </label>
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-zinc-200 dark:border-zinc-700">
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Compare Actual vs Estimated Time
-            </label>
-            <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-              Record how long tasks actually took compared to estimated duration
-            </p>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={focus.trackActualVsEstimated}
-              onChange={(e) => updateFocusSettings({ ...focus, trackActualVsEstimated: e.target.checked })}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
-          </label>
-        </div>
       </div>
 
       {/* Timer Controls Section */}
@@ -250,45 +231,7 @@ export function FocusTab() {
             <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">Time added when using quick extend</p>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Early Complete Prompt
-              </label>
-              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                Ask to record actual time when completing early
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={focus.showEarlyCompletePrompt}
-                onChange={(e) => updateFocusSettings({ ...focus, showEarlyCompletePrompt: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Use Tracked Time for Duration
-              </label>
-              <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                Subtract already-tracked time from task duration (shows remaining time)
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={focus.useTrackedTimeForDuration !== false}
-                onChange={(e) => updateFocusSettings({ ...focus, useTrackedTimeForDuration: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
 
           <div className="flex items-center justify-between">
             <div>
@@ -593,41 +536,7 @@ export function FocusTab() {
         <h4 className="font-medium text-zinc-900 dark:text-zinc-100">Display Settings</h4>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Show Next Task Preview
-              </label>
-              <p className="text-xs text-zinc-500 dark:text-zinc-500">Show upcoming task during breaks</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={focus.showNextTask}
-                onChange={(e) => updateFocusSettings({ ...focus, showNextTask: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Show Session Statistics
-              </label>
-              <p className="text-xs text-zinc-500 dark:text-zinc-500">Display tasks completed and time worked</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={focus.showSessionStats}
-                onChange={(e) => updateFocusSettings({ ...focus, showSessionStats: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
 
           <div className="flex items-center justify-between">
             <div>
