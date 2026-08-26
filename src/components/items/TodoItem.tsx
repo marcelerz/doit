@@ -468,8 +468,11 @@ export function TodoItem({
               />
             </div>
 
-            {/* Compact metadata row */}
-            <div className="mt-1.5 grid grid-cols-[1fr_auto_auto] sm:grid-cols-[minmax(80px,1fr)_1fr_100px_80px] gap-x-2 gap-y-1 items-center text-[10px]">
+            {/* Compact metadata row.
+                11px on mobile and 12px above it: this band is the densest text
+                in the app and was set at 10px, under the size at which small
+                type stays comfortably legible. */}
+            <div className="mt-1.5 grid grid-cols-[1fr_auto_auto] sm:grid-cols-[minmax(80px,1fr)_1fr_100px_80px] gap-x-2 gap-y-1 items-center text-[11px] sm:text-xs">
               {/* Assigned + Project - column 1 (combined on mobile, separate on desktop) */}
               <div className="flex items-center gap-1 overflow-hidden">
                 {todo.metadata.assignedPeople.length > 0 ? (

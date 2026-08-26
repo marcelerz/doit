@@ -46,11 +46,11 @@ export default defineConfig({
     timeout: 10000,
     /* Visual comparison settings */
     toHaveScreenshot: {
-      maxDiffPixelRatio: 0.01, // Allow 1% pixel difference by default
+      maxDiffPixelRatio: 0.001, // ~0.1%: absorbs antialiasing, not a changed label
       animations: "disabled", // Disable animations for consistent screenshots
     },
     toMatchSnapshot: {
-      maxDiffPixelRatio: 0.01,
+      maxDiffPixelRatio: 0.001,
     },
   },
 

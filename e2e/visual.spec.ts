@@ -28,7 +28,7 @@ test.describe("Visual Regression Tests", () => {
 
   test("empty state - list view", async ({ page }) => {
     await expect(page).toHaveScreenshot("empty-list-view.png", {
-      maxDiffPixelRatio: 0.01, // Allow 1% pixel difference
+      maxDiffPixelRatio: 0.001,
     });
   });
 
@@ -41,7 +41,7 @@ test.describe("Visual Regression Tests", () => {
     await page.waitForTimeout(500); // Wait for animations
 
     await expect(page).toHaveScreenshot("list-view-with-todos.png", {
-      maxDiffPixelRatio: 0.01,
+      maxDiffPixelRatio: 0.001,
     });
   });
 
@@ -54,7 +54,7 @@ test.describe("Visual Regression Tests", () => {
     await page.waitForTimeout(300); // Wait for overlay animation
 
     await expect(page).toHaveScreenshot("todo-details-overlay.png", {
-      maxDiffPixelRatio: 0.01,
+      maxDiffPixelRatio: 0.001,
     });
   });
 
@@ -67,7 +67,7 @@ test.describe("Visual Regression Tests", () => {
 
     // Screenshot showing completed todo
     await expect(page).toHaveScreenshot("completed-todo-list.png", {
-      maxDiffPixelRatio: 0.01,
+      maxDiffPixelRatio: 0.001,
     });
   });
 
@@ -82,7 +82,7 @@ test.describe("Visual Regression Tests", () => {
     await page.waitForTimeout(500);
 
     await expect(page).toHaveScreenshot("kanban-view.png", {
-      maxDiffPixelRatio: 0.02, // Allow slightly more for dynamic columns
+      maxDiffPixelRatio: 0.002, // Slightly more for dynamic columns
     });
   });
 
@@ -96,7 +96,7 @@ test.describe("Visual Regression Tests", () => {
     await page.waitForTimeout(500);
 
     await expect(page).toHaveScreenshot("gantt-view.png", {
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixelRatio: 0.002,
     });
   });
 
@@ -109,7 +109,7 @@ test.describe("Visual Regression Tests", () => {
     await page.waitForTimeout(500);
 
     await expect(page).toHaveScreenshot("calendar-view.png", {
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixelRatio: 0.002,
     });
   });
 
@@ -123,7 +123,7 @@ test.describe("Visual Regression Tests", () => {
     await page.waitForTimeout(500);
 
     await expect(page).toHaveScreenshot("people-view.png", {
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixelRatio: 0.002,
     });
   });
 
@@ -137,7 +137,7 @@ test.describe("Visual Regression Tests", () => {
     await page.waitForTimeout(500);
 
     await expect(page).toHaveScreenshot("projects-view.png", {
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixelRatio: 0.002,
     });
   });
 
@@ -151,7 +151,7 @@ test.describe("Visual Regression Tests", () => {
     await page.waitForTimeout(300);
 
     await expect(page).toHaveScreenshot("dark-mode.png", {
-      maxDiffPixelRatio: 0.01,
+      maxDiffPixelRatio: 0.001,
     });
   });
 
@@ -167,7 +167,7 @@ test.describe("Visual Regression Tests", () => {
     await page.waitForTimeout(300);
 
     await expect(page).toHaveScreenshot("search-results.png", {
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixelRatio: 0.002,
     });
   });
 
@@ -184,7 +184,7 @@ test.describe("Visual Regression Tests", () => {
     await page.waitForTimeout(300);
 
     await expect(page).toHaveScreenshot("todo-with-subtasks.png", {
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixelRatio: 0.002,
     });
   });
 });
@@ -212,7 +212,7 @@ test.describe("Component Visual Tests", () => {
 
     // Screenshot the overlay with smart input tokens
     await expect(page).toHaveScreenshot("smart-input-tokens.png", {
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixelRatio: 0.002,
     });
   });
 
@@ -225,7 +225,7 @@ test.describe("Component Visual Tests", () => {
     await page.waitForTimeout(300);
 
     await expect(page).toHaveScreenshot("todo-details-metadata.png", {
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixelRatio: 0.002,
     });
   });
 });
@@ -246,7 +246,7 @@ test.describe("Mobile Visual Tests", () => {
     await page.waitForTimeout(300);
 
     await expect(page).toHaveScreenshot("mobile-list-view.png", {
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixelRatio: 0.002,
     });
   });
 
@@ -256,7 +256,7 @@ test.describe("Mobile Visual Tests", () => {
     await page.waitForTimeout(300);
 
     await expect(page).toHaveScreenshot("mobile-todo-details.png", {
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixelRatio: 0.002,
     });
   });
 });
