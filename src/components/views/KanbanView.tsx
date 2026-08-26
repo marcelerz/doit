@@ -1,6 +1,7 @@
 "use client";
 
 import { TodoMetadata, TodoId } from "@/types/todo";
+import { useClickOutside } from "@/hooks/useClickOutside";
 import { TodoActionProps } from "@/components/overlays/todoActionProps";
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
@@ -11,7 +12,7 @@ import { MarkerColors } from "@/types/markerColors";
 import { Priority } from "@/types/priority";
 import { LinkPattern } from "@/types/linkPattern";
 import { Sprint } from "@/types/sprint";
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { createViewPresetId } from "@/utils/idGenerator";
@@ -677,6 +678,60 @@ export function KanbanView({
     setSelectedTodoId(todoId);
   };
 
+  /**
+   * Announcement for the live region, so a move made without sight of the
+   * board is confirmed rather than silent.
+   */
+  const [moveAnnouncement, setMoveAnnouncement] = useState("");
+
+  // The Manage trigger had no onClick, and its menu appeared only on hover --
+  // so deleting a preset was impossible by keyboard or on a touch device.
+  const [isManagePresetsOpen, setIsManagePresetsOpen] = useState(false);
+  const managePresetsRef = useRef<HTMLDivElement>(null);
+  useClickOutside(managePresetsRef, () => setIsManagePresetsOpen(false), isManagePresetsOpen);
+
+  /**
+   * Move a card one column left or right from the keyboard.
+   *
+   * Dragging was the only way to change a card's state, which made the board
+   * unusable without a pointer. This goes through the same canTransition and
+   * canAcceptMore checks the drop handler uses, so the rules cannot diverge.
+   */
+  const moveTodoByOffset = (todoId: TodoId, offset: number) => {
+    const todo = todos.find((t) => t.id === todoId);
+    if (!todo) return;
+
+    const fromState = todo.workflowState || "backlog";
+    const currentIndex = visibleStates.findIndex((state) => state.id === fromState);
+    const target = visibleStates[currentIndex + offset];
+    if (currentIndex === -1 || !target) return;
+
+    if (!canTransition(fromState, target.id)) {
+      setMoveAnnouncement(`Cannot move to ${target.name}: that transition is not allowed`);
+      return;
+    }
+    if (!canAcceptMore(target.id)) {
+      setMoveAnnouncement(`Cannot move to ${target.name}: the column is at its limit`);
+      return;
+    }
+
+    onSetWorkflowState(todoId, target.id, kanban.states, kanban.allowedTransitions);
+    setMoveAnnouncement(`Moved to ${target.name}`);
+  };
+
+  const handleCardKeyDown = (event: React.KeyboardEvent, todoId: TodoId) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleTodoClick(todoId);
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      moveTodoByOffset(todoId, 1);
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      moveTodoByOffset(todoId, -1);
+    }
+  };
+
   // Handle closing detail overlay
   const handleCloseDetail = () => {
     setSelectedTodoId(null);
@@ -684,6 +739,11 @@ export function KanbanView({
 
   return (
     <div className="flex flex-col h-full" data-testid="kanban-view">
+      {/* Moving a card by keyboard is otherwise silent: the card travels but
+          nothing says where it landed, or why it did not. */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {moveAnnouncement}
+      </div>
       {/* Header */}
       <div className="flex flex-col gap-2 px-2 sm:px-4 py-2 sm:py-3 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex-shrink-0">
         {/* Top row: View selector, Presets, Filter button */}
@@ -1057,14 +1117,20 @@ export function KanbanView({
 
                 {/* Manage presets (delete) */}
                 {filterPresets.length > 0 && (
-                  <div className="relative group">
+                  <div className="relative" ref={managePresetsRef}>
                     <button
                       type="button"
+                      onClick={() => setIsManagePresetsOpen((open) => !open)}
+                      aria-expanded={isManagePresetsOpen}
                       className="px-2 py-1 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
                     >
                       Manage
                     </button>
-                    <div className="absolute right-0 top-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 z-50 hidden group-hover:block min-w-[150px]">
+                    <div
+                      className={`absolute right-0 top-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 z-50 min-w-[150px] ${
+                        isManagePresetsOpen ? "block" : "hidden"
+                      }`}
+                    >
                       {filterPresets.map((preset) => (
                         <div
                           key={preset.id}
@@ -1201,10 +1267,14 @@ export function KanbanView({
                         key={todo.id}
                         data-testid="todo-item"
                         draggable
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${todo.plainText || todo.text}. Left and right arrows move between columns.`}
                         onDragStart={(e) => handleDragStart(e, todo.id)}
                         onDragEnd={handleDragEnd}
                         onClick={() => handleTodoClick(todo.id)}
-                        className={`bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 p-2 sm:p-3 cursor-pointer hover:shadow-md transition-all ${
+                        onKeyDown={(e) => handleCardKeyDown(e, todo.id)}
+                        className={`bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 p-2 sm:p-3 cursor-pointer hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                           isDragging ? "opacity-50 scale-95" : ""
                         }`}
                         style={priorityColor ? { borderLeftWidth: 3, borderLeftColor: priorityColor } : undefined}
