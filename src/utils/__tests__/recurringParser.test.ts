@@ -273,15 +273,43 @@ describe("recurringParser", () => {
       expect(next.getDay()).toBe(5);
     });
 
-    it("should calculate next month for monthly pattern", () => {
+    it("uses this month for a monthly pattern whose day is still ahead", () => {
+      // baseDate is 2025-12-09, so the next 15th is 2025-12-15. This used to
+      // advance a month unconditionally and return January, skipping an
+      // occurrence -- quarterly has always reused the current period this way.
       const pattern: RecurringPattern = {
         type: "monthly",
         monthDay: 15,
         raw: "monthly on 15th",
       };
       const next = calculateNextOccurrence(pattern, baseDate);
-      expect(next.getMonth()).toBe(0); // January
+      expect(next.getMonth()).toBe(11); // December
       expect(next.getDate()).toBe(15);
+      expect(next.getFullYear()).toBe(2025);
+    });
+
+    it("advances to next month once the day has passed", () => {
+      const pattern: RecurringPattern = {
+        type: "monthly",
+        monthDay: 5,
+        raw: "monthly on 5th",
+      };
+      const next = calculateNextOccurrence(pattern, baseDate);
+      expect(next.getMonth()).toBe(0); // January
+      expect(next.getDate()).toBe(5);
+      expect(next.getFullYear()).toBe(2026);
+    });
+
+    it("advances when completing on the target day itself", () => {
+      // The usual path: the base date is the completed instance's due date, so
+      // the next occurrence must be the following period, not the same one.
+      const pattern: RecurringPattern = {
+        type: "monthly",
+        monthDay: 15,
+        raw: "monthly on 15th",
+      };
+      const next = calculateNextOccurrence(pattern, new Date(2025, 11, 15, 10, 0));
+      expect(next.getMonth()).toBe(0); // January
       expect(next.getFullYear()).toBe(2026);
     });
   });
@@ -710,9 +738,17 @@ describe("calculateNextOccurrence - month overflow from a month-end reference", 
     expect(key(calculateNextOccurrence(pattern, new Date(2025, 2, 31)))).toBe("2025-04-15");
   });
 
-  it("yearly from Jan 31 lands on the target month next year", () => {
+  it("yearly from Jan 31 lands on the target month without overflowing", () => {
+    // The point of this case is that setMonth from a 31st must not spill into
+    // March. Feb 15 2025 is still ahead of Jan 31 2025, so that is the next
+    // occurrence; it used to skip a whole year.
     const pattern: RecurringPattern = { type: "yearly", month: 2, monthDay: 15, raw: "every year on feb 15" };
-    expect(key(calculateNextOccurrence(pattern, new Date(2025, 0, 31)))).toBe("2026-02-15");
+    expect(key(calculateNextOccurrence(pattern, new Date(2025, 0, 31)))).toBe("2025-02-15");
+  });
+
+  it("yearly advances once the target has passed", () => {
+    const pattern: RecurringPattern = { type: "yearly", month: 2, monthDay: 15, raw: "every year on feb 15" };
+    expect(key(calculateNextOccurrence(pattern, new Date(2025, 5, 1)))).toBe("2026-02-15");
   });
 
   it("nth-weekday from Jan 31 lands on the 2nd Tuesday of February", () => {
@@ -722,6 +758,6 @@ describe("calculateNextOccurrence - month overflow from a month-end reference", 
 
   it("still works from a mid-month reference", () => {
     const pattern: RecurringPattern = { type: "monthly", monthDay: 15, raw: "every month on the 15th" };
-    expect(key(calculateNextOccurrence(pattern, new Date(2025, 0, 9)))).toBe("2025-02-15");
+    expect(key(calculateNextOccurrence(pattern, new Date(2025, 0, 9)))).toBe("2025-01-15");
   });
 });

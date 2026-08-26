@@ -404,6 +404,14 @@ export function useTodos() {
       dueDate: todoToDuplicate.dueDate,
       duration: todoToDuplicate.duration,
       recurring: todoToDuplicate.recurring,
+      // Carried over: duplicating a task planned into a sprint, or sitting in a
+      // board column, should produce one in the same place. These were the only
+      // fields dropped without a reason beside them -- every deliberate
+      // omission here says so.
+      sprint: todoToDuplicate.sprint,
+      workflowState: todoToDuplicate.workflowState,
+      // sortOrder is deliberately not copied: two todos claiming the same
+      // manual position would order arbitrarily between themselves.
       comments: [], // Don't copy comments
       activity: [
         createActivity("created", "Task duplicated from another task"),

@@ -478,33 +478,62 @@ export function parseCSV(content: string, mapping?: FieldMapping): ImportResult 
  * Parse CSV lines handling quoted values
  */
 function parseCSVLines(content: string): string[][] {
-  const lines: string[][] = [];
-  const rows = content.split(/\r?\n/);
+  // Scans the whole document once rather than splitting on newlines first.
+  // Splitting up front broke any quoted field containing a line break -- notes
+  // exported from Todoist and Things routinely do -- corrupting that row and
+  // every column after it.
+  //
+  // Quotes follow RFC 4180: a doubled quote inside a quoted field is a literal
+  // quote. The previous code looked for a backslash escape instead, which no
+  // spreadsheet emits, and which our own exportToCSV does not produce either --
+  // so exporting and re-importing did not round-trip.
+  const rows: string[][] = [];
+  let values: string[] = [];
+  let current = "";
+  let inQuotes = false;
 
-  for (const row of rows) {
-    if (row.trim() === "") continue;
+  const endField = () => {
+    values.push(current.trim());
+    current = "";
+  };
+  const endRow = () => {
+    endField();
+    // Skip rows that are entirely empty, as a trailing newline produces.
+    if (values.some((value) => value !== "")) rows.push(values);
+    values = [];
+  };
 
-    const values: string[] = [];
-    let current = "";
-    let inQuotes = false;
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
 
-    for (let i = 0; i < row.length; i++) {
-      const char = row[i];
-
-      if (char === '"' && (i === 0 || row[i - 1] !== "\\")) {
-        inQuotes = !inQuotes;
-      } else if (char === "," && !inQuotes) {
-        values.push(current.trim());
-        current = "";
+    if (inQuotes) {
+      if (char === '"') {
+        if (content[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
       } else {
         current += char;
       }
+      continue;
     }
-    values.push(current.trim());
-    lines.push(values);
+
+    if (char === '"') {
+      inQuotes = true;
+    } else if (char === ",") {
+      endField();
+    } else if (char === "\n") {
+      endRow();
+    } else if (char !== "\r") {
+      current += char;
+    }
   }
 
-  return lines;
+  if (current !== "" || values.length > 0) endRow();
+
+  return rows;
 }
 
 /**

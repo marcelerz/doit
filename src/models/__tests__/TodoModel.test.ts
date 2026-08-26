@@ -1681,3 +1681,37 @@ describe("TodoModel", () => {
     });
   });
 });
+
+describe("due-date windows agree with each other", () => {
+  const settings = createSettings();
+
+  it("counts a task due earlier today as due this week", () => {
+    // isDueToday compares calendar dates; isDueThisWeek used to compare against
+    // the current instant, so between 09:01 and midnight a task due at 09:00
+    // was due today but not due this week.
+    jest.useFakeTimers().setSystemTime(new Date(2026, 0, 15, 14, 0, 0));
+    try {
+      const todo = new TodoModel(
+        createTodo({ dueDate: new Date(2026, 0, 15, 9, 0).getTime() }),
+        settings,
+      );
+      expect(todo.isDueToday).toBe(true);
+      expect(todo.isDueThisWeek).toBe(true);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("still excludes a task due after the window", () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 0, 15, 14, 0, 0));
+    try {
+      const todo = new TodoModel(
+        createTodo({ dueDate: new Date(2026, 0, 30, 9, 0).getTime() }),
+        settings,
+      );
+      expect(todo.isDueThisWeek).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});

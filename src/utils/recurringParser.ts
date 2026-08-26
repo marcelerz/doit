@@ -378,11 +378,26 @@ export function calculateNextOccurrence(pattern: RecurringPattern, fromDate: Dat
       break;
 
     case "monthly":
-      // Next month on the specified day. Clamp the day first: setMonth() with
-      // a day of 29-31 overflows into the month after the intended one.
-      next.setDate(1);
-      next.setMonth(next.getMonth() + 1);
-      next.setDate(Math.min(pattern.monthDay || 1, getLastDayOfMonth(next)));
+      // This month on the specified day if it is still ahead, otherwise next
+      // month. Clamp the day first: setMonth() with a day of 29-31 overflows
+      // into the month after the intended one.
+      //
+      // Quarterly right below has always reused the current period this way.
+      // Monthly advanced unconditionally, so a "monthly on the 15th" task with
+      // no due date, completed on the 1st, skipped straight past the 15th of
+      // the month it was already in.
+      {
+        const targetDay = pattern.monthDay || 1;
+        const thisMonth = new Date(next);
+        thisMonth.setDate(1);
+        thisMonth.setDate(Math.min(targetDay, getLastDayOfMonth(thisMonth)));
+
+        next.setDate(1);
+        if (thisMonth <= fromDate) {
+          next.setMonth(next.getMonth() + 1);
+        }
+        next.setDate(Math.min(targetDay, getLastDayOfMonth(next)));
+      }
       break;
 
     case "quarterly":
@@ -420,12 +435,24 @@ export function calculateNextOccurrence(pattern: RecurringPattern, fromDate: Dat
       break;
 
     case "yearly":
-      // Next year on the specified month and day. Clamp the day first so
-      // setMonth() cannot overflow into the following month.
-      next.setDate(1);
-      next.setFullYear(next.getFullYear() + 1);
-      next.setMonth((pattern.month || 1) - 1);
-      next.setDate(Math.min(pattern.monthDay || 1, getLastDayOfMonth(next)));
+      // This year on the specified month and day if still ahead, otherwise
+      // next year. Clamp the day first so setMonth() cannot overflow into the
+      // following month. Same asymmetry as monthly above.
+      {
+        const targetMonth = (pattern.month || 1) - 1;
+        const targetDay = pattern.monthDay || 1;
+        const thisYear = new Date(next);
+        thisYear.setDate(1);
+        thisYear.setMonth(targetMonth);
+        thisYear.setDate(Math.min(targetDay, getLastDayOfMonth(thisYear)));
+
+        next.setDate(1);
+        if (thisYear <= fromDate) {
+          next.setFullYear(next.getFullYear() + 1);
+        }
+        next.setMonth(targetMonth);
+        next.setDate(Math.min(targetDay, getLastDayOfMonth(next)));
+      }
       break;
   }
 

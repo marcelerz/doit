@@ -534,10 +534,16 @@ export class TodoModel {
   get isDueThisWeek(): boolean {
     const dueDate = this.dueDateObject;
     if (!dueDate) return false;
-    const today = new Date();
-    const weekFromNow = new Date(today);
-    weekFromNow.setDate(today.getDate() + 7);
-    return dueDate >= today && dueDate <= weekFromNow;
+    // Bounded by whole days, not by the current instant. Comparing against
+    // `new Date()` meant a task due today at 09:00 stopped counting as due
+    // this week at 09:01 -- so it was isDueToday and not isDueThisWeek at the
+    // same time, and the This Week filter dropped it partway through the day.
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 7);
+    end.setHours(23, 59, 59, 999);
+    return dueDate >= start && dueDate <= end;
   }
 
   /**

@@ -496,6 +496,44 @@ My Task,yes`;
     });
   });
 
+  describe("CSV quoting", () => {
+    it("keeps a quoted field that contains a line break in one row", () => {
+      // Notes exported from Todoist and Things routinely span lines. Splitting
+      // on newlines before handling quotes corrupted the row and every column
+      // after it.
+      const csv = 'Task,Notes\n"Fix login","line one\nline two"\n';
+      const result = importTodos(csv, "csv");
+
+      expect(result.todos).toHaveLength(1);
+      expect(result.todos[0].title).toBe("Fix login");
+      expect(result.todos[0].notes).toContain("line one");
+      expect(result.todos[0].notes).toContain("line two");
+    });
+
+    it("reads a doubled quote as a literal quote", () => {
+      // RFC 4180, and what exportToCSV emits. The parser looked for a
+      // backslash escape, so exporting and re-importing did not round-trip.
+      const csv = 'Task\n"She said ""hello"""\n';
+      const result = importTodos(csv, "csv");
+
+      expect(result.todos[0].title).toBe('She said "hello"');
+    });
+
+    it("keeps a comma inside a quoted field", () => {
+      const csv = 'Task,Notes\n"Buy milk, eggs","shopping"\n';
+      const result = importTodos(csv, "csv");
+
+      expect(result.todos[0].title).toBe("Buy milk, eggs");
+    });
+
+    it("ignores a trailing newline rather than emitting a blank row", () => {
+      const csv = "Task\nOne\nTwo\n\n";
+      const result = importTodos(csv, "csv");
+
+      expect(result.todos).toHaveLength(2);
+    });
+  });
+
   describe("convertToTodo", () => {
     describe("typed fields, not just text markers", () => {
       const base = {
