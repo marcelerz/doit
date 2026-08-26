@@ -3,6 +3,7 @@
  */
 
 import { renderHook, act } from "@testing-library/react";
+import { getKanbanStateId } from "@/types/kanbanState";
 import { useTodos } from "../useTodos";
 
 // Polyfill structuredClone for Node.js test environment
@@ -223,6 +224,121 @@ describe("useTodos", () => {
       expect(result.current.todos[0].text).toBe("Original");
       expect(result.current.todos[0].comments).toEqual([]); // Comments not copied
       expect(result.current.todos[0].dependencies).toEqual([]); // Dependencies cleared
+    });
+  });
+
+  describe("recurring lifecycle", () => {
+    const recurringTodo = (overrides: Record<string, unknown> = {}) => ({
+      id: "todo-r",
+      text: "Standup ~daily",
+      plainText: "Standup",
+      state: "active",
+      recurring: "daily",
+      dueDate: new Date(2026, 0, 15, 9, 0).getTime(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      comments: [],
+      activity: [],
+      subtasks: [],
+      ...overrides,
+    });
+
+    const mountWith = async (todos: unknown[]) => {
+      (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
+        if (key === "doit-settings") return Promise.resolve(defaultSettings);
+        return Promise.resolve(todos);
+      });
+      const { result } = renderHook(() => useTodos());
+      await act(async () => {
+        jest.runAllTimers();
+        await Promise.resolve();
+      });
+      return result;
+    };
+
+    it("spawns the next occurrence when completed", async () => {
+      const result = await mountWith([recurringTodo()]);
+      act(() => result.current.toggleTodo(getTodoId("todo-r")));
+
+      const active = result.current.todos.filter((t) => t.state === "active");
+      expect(active).toHaveLength(1);
+      expect(active[0].id).not.toBe("todo-r");
+    });
+
+    it("does not leave the spawned instance behind when the completion is undone", async () => {
+      const result = await mountWith([recurringTodo()]);
+      act(() => result.current.toggleTodo(getTodoId("todo-r")));
+      expect(result.current.todos).toHaveLength(2);
+
+      act(() => result.current.undo(result.current.undoActions[0].id));
+
+      // Previously the original was restored and the spawn stayed, leaving two
+      // active copies of the same task.
+      const active = result.current.todos.filter((t) => t.state === "active");
+      expect(active).toHaveLength(1);
+      expect(active[0].id).toBe("todo-r");
+    });
+
+    it("does not carry the completed task's board column onto the next instance", async () => {
+      const result = await mountWith([recurringTodo({ workflowState: "review" })]);
+      act(() => result.current.toggleTodo(getTodoId("todo-r")));
+
+      const spawned = result.current.todos.find((t) => t.id !== "todo-r");
+      expect(spawned?.workflowState).toBeUndefined();
+    });
+    describe("completing by dragging to a Kanban column", () => {
+      const KANBAN_STATES = [
+        { id: getKanbanStateId("backlog"), name: "Backlog", mapsToTodoState: "active" },
+        { id: getKanbanStateId("done"), name: "Done", mapsToTodoState: "completed" },
+      ];
+
+      it("spawns the next occurrence, as the checkbox does", async () => {
+        const result = await mountWith([recurringTodo({ workflowState: "backlog" })]);
+
+        act(() => {
+          result.current.setWorkflowState(getTodoId("todo-r"), getKanbanStateId("done"), KANBAN_STATES);
+        });
+
+        expect(result.current.todos.find((t) => t.id === "todo-r")?.state).toBe("completed");
+        const active = result.current.todos.filter((t) => t.state === "active");
+        expect(active).toHaveLength(1);
+        expect(active[0].id).not.toBe("todo-r");
+      });
+
+      it("refuses a task whose dependency is unfinished, as the checkbox does", async () => {
+        const blocker = {
+          id: "todo-a",
+          text: "Blocker",
+          plainText: "Blocker",
+          state: "active",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          comments: [],
+          activity: [],
+          subtasks: [],
+        };
+        const blocked = {
+          ...blocker,
+          id: "todo-b",
+          text: "Blocked",
+          plainText: "Blocked",
+          dependencies: ["todo-a"],
+          workflowState: "backlog",
+        };
+        const result = await mountWith([blocker, blocked]);
+
+        let accepted: boolean | undefined;
+        act(() => {
+          accepted = result.current.setWorkflowState(
+            getTodoId("todo-b"),
+            getKanbanStateId("done"),
+            KANBAN_STATES,
+          );
+        });
+
+        expect(accepted).toBe(false);
+        expect(result.current.todos.find((t) => t.id === "todo-b")?.state).toBe("active");
+      });
     });
   });
 

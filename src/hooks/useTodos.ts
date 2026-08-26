@@ -15,7 +15,12 @@ import {
   TodoActivityType,
   getTag,
 } from "@/types/todo";
-import { getTimestamp, getDurationSec, getDurationMin } from "@/types/time";
+import {
+  getTimestamp,
+  getDurationSec,
+  getDurationMin,
+  Timestamp,
+} from "@/types/time";
 import { getPersonId } from "@/types/person";
 import { getProjectId } from "@/types/project";
 import { getSprintId } from "@/types/sprint";
@@ -25,10 +30,20 @@ import { getCommentId, ActivityEntry, CommentId } from "@/types/types";
 import { migrateTodos, checkAndUpdateVersion } from "@/storage/migrations";
 import { Settings } from "@/types/settings";
 import { PriorityId } from "@/types/priority";
-import { parseRecurringPattern, calculateNextOccurrence } from "@/utils/recurringParser";
-import { createActivity, generateMetadataActivities } from "@/utils/activityLogger";
+import {
+  parseRecurringPattern,
+  calculateNextOccurrence,
+} from "@/utils/recurringParser";
+import {
+  createActivity,
+  generateMetadataActivities,
+} from "@/utils/activityLogger";
 import { createCommentId, createSubtaskId } from "@/utils/idGenerator";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
+import {
+  STORAGE_KEYS,
+  loadFromStorage,
+  saveToStorage,
+} from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { TodoModel, createTodoModels } from "@/models/TodoModel";
 import { createSettingsModel } from "@/models/SettingsModel";
@@ -40,10 +55,15 @@ import { settingsStore, useSharedSettings } from "@/storage/settingsStore";
  * Find a priority ID by its name or alternatives.
  * Returns undefined if no matching priority is found.
  */
-function findPriorityIdByName(name: string, settings: Settings): PriorityId | undefined {
+function findPriorityIdByName(
+  name: string,
+  settings: Settings,
+): PriorityId | undefined {
   const lowerName = name.toLowerCase();
   const found = settings.priorities.find(
-    (p) => p.name.toLowerCase() === lowerName || p.alternatives.some((alt) => alt.toLowerCase() === lowerName),
+    (p) =>
+      p.name.toLowerCase() === lowerName ||
+      p.alternatives.some((alt) => alt.toLowerCase() === lowerName),
   );
   return found?.id;
 }
@@ -64,7 +84,11 @@ function metadataToTodoFields(metadata: TodoMetadata, settings: Settings) {
   // Parse date string to timestamp
   let dueTimestamp: number | undefined;
   if (metadata.dueDate) {
-    const parsed = parseDate(metadata.dueDate, settings.dateTime, settings.workHours);
+    const parsed = parseDate(
+      metadata.dueDate,
+      settings.dateTime,
+      settings.workHours,
+    );
     if (parsed) {
       dueTimestamp = parsed.timestamp;
     }
@@ -72,14 +96,22 @@ function metadataToTodoFields(metadata: TodoMetadata, settings: Settings) {
 
   return {
     // Arrays: convert string names to IDs (using names as IDs temporarily)
-    assignedPeople: (metadata.assignedPeople || []).map((name) => getPersonId(name)),
-    sourcePeople: (metadata.sourcePeople || []).map((name) => getPersonId(name)),
-    mentionedPeople: (metadata.mentionedPeople || []).map((name) => getPersonId(name)),
+    assignedPeople: (metadata.assignedPeople || []).map((name) =>
+      getPersonId(name),
+    ),
+    sourcePeople: (metadata.sourcePeople || []).map((name) =>
+      getPersonId(name),
+    ),
+    mentionedPeople: (metadata.mentionedPeople || []).map((name) =>
+      getPersonId(name),
+    ),
     projects: (metadata.projects || []).map((name) => getProjectId(name)),
     tags: (metadata.tags || []).map((tag) => getTag(tag)),
     dependencies: (metadata.dependencies || []).map((id) => getTodoId(id)),
     // Singular fields
-    priority: metadata.priority ? findPriorityIdByName(metadata.priority, settings) : undefined,
+    priority: metadata.priority
+      ? findPriorityIdByName(metadata.priority, settings)
+      : undefined,
     dueDate: dueTimestamp ? getTimestamp(dueTimestamp) : undefined,
     duration: durationSec ? getDurationSec(durationSec) : undefined,
     recurring: metadata.recurring,
@@ -104,7 +136,9 @@ function todoToMetadata(todo: Todo): TodoMetadata {
     // Convert timestamp back to ISO string for comparison
     dueDate: todo.dueDate ? new Date(todo.dueDate).toISOString() : undefined,
     // Convert seconds back to duration string (e.g., "30m", "2h")
-    duration: todo.duration ? formatDurationFromSeconds(todo.duration) : undefined,
+    duration: todo.duration
+      ? formatDurationFromSeconds(todo.duration)
+      : undefined,
     recurring: todo.recurring,
     sprint: todo.sprint as string | undefined,
     context: todo.context || "",
@@ -127,14 +161,16 @@ function formatDurationFromSeconds(seconds: number): string {
   return `${hours}h${remainingMinutes}m`;
 }
 
-export type TodoUndoActionType = "delete" | "complete" | "archive" | "uncomplete";
+export type TodoUndoActionType =
+  "delete" | "complete" | "archive" | "uncomplete";
 export type UndoAction = UndoableAction<TodoUndoActionType, Todo>;
 
 export function useTodos() {
   const [rawTodos, setRawTodos] = useState<Todo[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError, setLoadError] = useState<Error | null>(null);
-  const [dependencyBlockNotification, setDependencyBlockNotification] = useState<string | null>(null);
+  const [dependencyBlockNotification, setDependencyBlockNotification] =
+    useState<string | null>(null);
   // Shared, not a private copy: this used to be one of four independent
   // settings states, three of which went stale after any settings edit.
   const { settings } = useSharedSettings();
@@ -155,7 +191,9 @@ export function useTodos() {
   const handleFinalize = useCallback((action: UndoAction) => {
     if (action.type === "delete") {
       // Actually remove the deleted todo from storage
-      setRawTodos((prev) => prev.filter((todo) => todo.id !== action.entity.id));
+      setRawTodos((prev) =>
+        prev.filter((todo) => todo.id !== action.entity.id),
+      );
     }
     // Complete/archive/uncomplete actions don't need any finalization - the state is already updated
   }, []);
@@ -167,72 +205,103 @@ export function useTodos() {
       if (action.previousState) {
         const restoredTodo: Todo = {
           ...action.previousState,
-          activity: [...action.previousState.activity, createActivity("undeleted", "Task undeleted")],
+          activity: [
+            ...action.previousState.activity,
+            createActivity("undeleted", "Task undeleted"),
+          ],
         };
         setRawTodos((prev) => [restoredTodo, ...prev]);
       }
     } else if (action.previousState) {
       // Restore previous state for toggle/archive with appropriate activity
       setRawTodos((prev) =>
-        prev.map((todo) => {
-          if (todo.id === action.entity.id) {
-            let activityType: ActivityEntry<TodoActivityType>["type"];
-            let description: string;
+        prev
+          // Completing a recurring task spawns the next instance. Undoing the
+          // completion left it behind, so the user ended up with two active
+          // copies. The spawn records the todo it came from, so it can be
+          // identified without extra bookkeeping. Only drop it if it is still
+          // untouched -- one activity entry, its creation -- so an undo cannot
+          // discard work the user did on it during the undo window.
+          .filter(
+            (todo) =>
+              !(
+                action.type === "complete" &&
+                todo.recurringPreviousId === action.entity.id &&
+                todo.state === "active" &&
+                todo.activity.length === 1
+              ),
+          )
+          .map((todo) => {
+            if (todo.id === action.entity.id) {
+              let activityType: ActivityEntry<TodoActivityType>["type"];
+              let description: string;
 
-            if (action.type === "complete") {
-              activityType = "uncompleted";
-              description = "Completion undone";
-            } else if (action.type === "uncomplete") {
-              activityType = "completed";
-              description = "Uncompletion undone";
-            } else if (action.type === "archive") {
-              activityType = "unarchived";
-              description = "Archive undone";
-            } else {
-              return action.previousState!;
+              if (action.type === "complete") {
+                activityType = "uncompleted";
+                description = "Completion undone";
+              } else if (action.type === "uncomplete") {
+                activityType = "completed";
+                description = "Uncompletion undone";
+              } else if (action.type === "archive") {
+                activityType = "unarchived";
+                description = "Archive undone";
+              } else {
+                return action.previousState!;
+              }
+
+              return {
+                ...action.previousState!,
+                activity: [
+                  ...action.previousState!.activity,
+                  createActivity(activityType, description),
+                ],
+              };
             }
-
-            return {
-              ...action.previousState!,
-              activity: [...action.previousState!.activity, createActivity(activityType, description)],
-            };
-          }
-          return todo;
-        }),
+            return todo;
+          }),
       );
     }
   }, []);
 
-  const { undoActions, fadingOutIds, createUndoAction, undo, dismissUndo } = useUndoableActions<
-    TodoUndoActionType,
-    Todo
-  >({
-    onFinalize: handleFinalize,
-    onUndo: handleUndo,
-  });
+  const { undoActions, fadingOutIds, createUndoAction, undo, dismissUndo } =
+    useUndoableActions<TodoUndoActionType, Todo>({
+      onFinalize: handleFinalize,
+      onUndo: handleUndo,
+    });
 
   // Create a SettingsModel from settings for use with TodoModel
-  const settingsModel = useMemo(() => createSettingsModel(settings), [settings]);
+  const settingsModel = useMemo(
+    () => createSettingsModel(settings),
+    [settings],
+  );
 
   // Create TodoModel instances from raw todos
-  const todos = useMemo(() => createTodoModels(rawTodos, settingsModel), [rawTodos, settingsModel]);
+  const todos = useMemo(
+    () => createTodoModels(rawTodos, settingsModel),
+    [rawTodos, settingsModel],
+  );
 
   // Load todos from storage on mount
   useEffect(() => {
     // Wait for storage to be initialized before loading data
     waitForStorageInit()
       .then(async () => {
-      // Check if migration is needed (must await since it's async)
+        // Check if migration is needed (must await since it's async)
         const migrationNeeded = await checkAndUpdateVersion();
 
         // Settings come from the shared store, which owns loading and
         // migration; todos need the migrated settings to migrate against.
         await settingsStore.hydrate();
         const migratedSettings = settingsStore.get();
-        const loadedTodos = await loadFromStorage<Todo[]>(STORAGE_KEYS.TODOS, []);
+        const loadedTodos = await loadFromStorage<Todo[]>(
+          STORAGE_KEYS.TODOS,
+          [],
+        );
         const migratedTodos = migrateTodos(loadedTodos, migratedSettings);
         // Filter out any deleted todos
-        const cleanedTodos = migratedTodos.filter((todo) => todo.state !== "deleted");
+        const cleanedTodos = migratedTodos.filter(
+          (todo) => todo.state !== "deleted",
+        );
         setRawTodos(cleanedTodos);
 
         // If migration was needed or we removed deleted todos, save the cleaned data
@@ -262,7 +331,11 @@ export function useTodos() {
     }
   }, [rawTodos, isLoaded]);
 
-  const addTodo = (text: string, plainText: string, metadata: TodoMetadata): TodoId => {
+  const addTodo = (
+    text: string,
+    plainText: string,
+    metadata: TodoMetadata,
+  ): TodoId => {
     const now = getTimestamp(Date.now());
     const fields = metadataToTodoFields(metadata, settings);
 
@@ -332,30 +405,140 @@ export function useTodos() {
       duration: todoToDuplicate.duration,
       recurring: todoToDuplicate.recurring,
       comments: [], // Don't copy comments
-      activity: [createActivity("created", "Task duplicated from another task")],
+      activity: [
+        createActivity("created", "Task duplicated from another task"),
+      ],
       subtasks: [],
     };
     setRawTodos((prev) => [duplicatedTodo, ...prev]);
     return duplicatedTodo.id;
   };
 
+  /**
+   * Build the next instance of a recurring todo.
+   *
+   * Shared by the checkbox and by dragging a card to a Kanban column that
+   * maps to `completed`; before this existed only the checkbox spawned the
+   * next occurrence, so a recurring task dragged to Done simply stopped
+   * recurring.
+   *
+   * @returns the new todo, or null if this one does not recur
+   */
+  const buildRecurringSpawn = (todo: Todo, now: Timestamp): Todo | null => {
+    if (!todo.recurring) return null;
+    const recurringPattern = parseRecurringPattern(todo.recurring);
+    if (!recurringPattern) return null;
+    {
+      // Calculate next occurrence from the current due date (if set) or today
+      // This ensures proper interval calculation (e.g., "every 2 weeks" from the due date)
+      const baseDate = todo.dueDate ? new Date(todo.dueDate) : new Date();
+      const nextDate = calculateNextOccurrence(recurringPattern, baseDate);
+
+      // Convert nextDate to timestamp
+      const nextDueDate = getTimestamp(nextDate.getTime());
+
+      // Determine the origin ID for the recurring chain
+      // If the completed task has an origin, use that; otherwise, the completed task is the origin
+      const originId = todo.recurringOriginId || todo.id;
+      const previousId = todo.id;
+
+      // Copy subtasks but reset their completed state
+      const resetSubtasks = todo.subtasks.map((subtask) => ({
+        ...subtask,
+        id: getSubtaskId(createSubtaskId()), // New ID for the new task's subtask
+        completed: false,
+        completedAt: undefined,
+        createdAt: now,
+      }));
+
+      // Create activity with metadata for task navigation
+      const recurringActivity = createActivity(
+        "created",
+        `Task created from recurring pattern: ${todo.recurring}`,
+        {
+          recurringOriginId: originId,
+          recurringPreviousId: previousId,
+        },
+      );
+
+      // Create new todo with updated due date
+      const newRecurringTodo: Todo = {
+        ...todo,
+        id: TodoModel.createId(),
+        state: "active",
+        createdAt: now,
+        updatedAt: now,
+        completedAt: undefined,
+        archivedAt: undefined,
+        deletedAt: undefined,
+        context: todo.context || "",
+        tags: todo.tags || [],
+        dependencies: [],
+        assignedPeople: todo.assignedPeople || [],
+        sourcePeople: todo.sourcePeople || [],
+        mentionedPeople: todo.mentionedPeople || [],
+        projects: todo.projects || [],
+        priority: todo.priority,
+        dueDate: nextDueDate,
+        duration: todo.duration,
+        recurring: todo.recurring,
+        recurringOriginId: originId,
+        recurringPreviousId: previousId,
+        // Not inherited: spreading the completed todo carried these over, so
+        // tomorrow's task appeared already sitting in Review, and a later
+        // transition could be refused because no rule allows leaving it.
+        workflowState: undefined,
+        sortOrder: undefined,
+        comments: [], // New instance starts with no comments
+        activity: [recurringActivity],
+        subtasks: resetSubtasks, // Copy subtasks with reset state
+        timeTracking: undefined, // New instance starts with no time tracking
+      };
+
+      // For recurring tasks, the text is copied as-is since markers will be re-parsed
+      // The due date is stored in the actual field, not in text
+      newRecurringTodo.text = todo.text;
+
+      return newRecurringTodo;
+    }
+  };
+
+  /**
+   * Why this todo may not be completed, or null if it may.
+   *
+   * Shared for the same reason: the dependency check used to live only in
+   * toggleTodo, so a blocked task could still be dragged to Done.
+   */
+  const blockedFromCompleting = (todo: Todo): string | null => {
+    const validation = new TodoModel(todo, settingsModel).canComplete(todos);
+    return validation.canComplete
+      ? null
+      : validation.reason || "Cannot complete task";
+  };
+
+  const notifyDependencyBlock = (reason: string) => {
+    setDependencyBlockNotification(reason);
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+    }
+    notificationTimeoutRef.current = setTimeout(
+      () => setDependencyBlockNotification(null),
+      5000,
+    );
+  };
+
   const toggleTodo = (id: string) => {
     const todoToToggle = rawTodos.find((t) => t.id === id);
     if (!todoToToggle) return;
 
-    const newState: "active" | "completed" = todoToToggle.state === "completed" ? "active" : "completed";
+    const newState: "active" | "completed" =
+      todoToToggle.state === "completed" ? "active" : "completed";
 
     // Check dependencies before allowing completion using TodoModel
     if (newState === "completed") {
-      const todoModel = new TodoModel(todoToToggle, settingsModel);
-      const validation = todoModel.canComplete(todos);
-      if (!validation.canComplete) {
-        setDependencyBlockNotification(validation.reason || "Cannot complete task");
-        // Clear previous timeout if any, then set new one
-        if (notificationTimeoutRef.current) {
-          clearTimeout(notificationTimeoutRef.current);
-        }
-        notificationTimeoutRef.current = setTimeout(() => setDependencyBlockNotification(null), 5000);
+      const blocked = blockedFromCompleting(todoToToggle);
+      if (blocked !== null) {
+        notifyDependencyBlock(blocked);
         return; // Don't allow completion
       }
     }
@@ -392,84 +575,24 @@ export function useTodos() {
       duration: updatedDuration,
     };
 
-    setRawTodos((prev) => prev.map((todo) => (todo.id === id ? updatedTodo : todo)));
+    setRawTodos((prev) =>
+      prev.map((todo) => (todo.id === id ? updatedTodo : todo)),
+    );
 
     // If completing a recurring task, create a new instance
-    if (newState === "completed" && todoToToggle.recurring) {
-      const recurringPattern = parseRecurringPattern(todoToToggle.recurring);
-      if (recurringPattern) {
-        // Calculate next occurrence from the current due date (if set) or today
-        // This ensures proper interval calculation (e.g., "every 2 weeks" from the due date)
-        const baseDate = todoToToggle.dueDate ? new Date(todoToToggle.dueDate) : new Date();
-        const nextDate = calculateNextOccurrence(recurringPattern, baseDate);
-
-        // Convert nextDate to timestamp
-        const nextDueDate = getTimestamp(nextDate.getTime());
-
-        // Determine the origin ID for the recurring chain
-        // If the completed task has an origin, use that; otherwise, the completed task is the origin
-        const originId = todoToToggle.recurringOriginId || todoToToggle.id;
-        const previousId = todoToToggle.id;
-
-        // Copy subtasks but reset their completed state
-        const resetSubtasks = todoToToggle.subtasks.map((subtask) => ({
-          ...subtask,
-          id: getSubtaskId(createSubtaskId()), // New ID for the new task's subtask
-          completed: false,
-          completedAt: undefined,
-          createdAt: now,
-        }));
-
-        // Create activity with metadata for task navigation
-        const recurringActivity = createActivity(
-          "created",
-          `Task created from recurring pattern: ${todoToToggle.recurring}`,
-          {
-            recurringOriginId: originId,
-            recurringPreviousId: previousId,
-          },
-        );
-
-        // Create new todo with updated due date
-        const newRecurringTodo: Todo = {
-          ...todoToToggle,
-          id: TodoModel.createId(),
-          state: "active",
-          createdAt: now,
-          updatedAt: now,
-          completedAt: undefined,
-          archivedAt: undefined,
-          deletedAt: undefined,
-          context: todoToToggle.context || "",
-          tags: todoToToggle.tags || [],
-          dependencies: [],
-          assignedPeople: todoToToggle.assignedPeople || [],
-          sourcePeople: todoToToggle.sourcePeople || [],
-          mentionedPeople: todoToToggle.mentionedPeople || [],
-          projects: todoToToggle.projects || [],
-          priority: todoToToggle.priority,
-          dueDate: nextDueDate,
-          duration: todoToToggle.duration,
-          recurring: todoToToggle.recurring,
-          recurringOriginId: originId,
-          recurringPreviousId: previousId,
-          comments: [], // New instance starts with no comments
-          activity: [recurringActivity],
-          subtasks: resetSubtasks, // Copy subtasks with reset state
-          timeTracking: undefined, // New instance starts with no time tracking
-        };
-
-        // For recurring tasks, the text is copied as-is since markers will be re-parsed
-        // The due date is stored in the actual field, not in text
-        newRecurringTodo.text = todoToToggle.text;
-
-        // Add the new recurring todo to the list
-        setRawTodos((prev) => [newRecurringTodo, ...prev]);
-      }
+    // If completing a recurring task, create a new instance
+    if (newState === "completed") {
+      const spawned = buildRecurringSpawn(todoToToggle, now);
+      if (spawned) setRawTodos((prev) => [spawned, ...prev]);
     }
 
     // Create undo action
-    createUndoAction(newState === "completed" ? "complete" : "uncomplete", updatedTodo, previousState, id);
+    createUndoAction(
+      newState === "completed" ? "complete" : "uncomplete",
+      updatedTodo,
+      previousState,
+      id,
+    );
   };
 
   const deleteTodo = (id: string) => {
@@ -483,11 +606,16 @@ export function useTodos() {
       state: "deleted",
       deletedAt: now,
       updatedAt: now,
-      activity: [...todoToDelete.activity, createActivity("deleted", "Task deleted")],
+      activity: [
+        ...todoToDelete.activity,
+        createActivity("deleted", "Task deleted"),
+      ],
     };
 
     // Update the todo to deleted state (keeps it in the list but hidden)
-    setRawTodos((prev) => prev.map((todo) => (todo.id === id ? deletedTodo : todo)));
+    setRawTodos((prev) =>
+      prev.map((todo) => (todo.id === id ? deletedTodo : todo)),
+    );
 
     // Create undo action
     createUndoAction("delete", deletedTodo, previousState, id);
@@ -501,12 +629,17 @@ export function useTodos() {
     const todoModel = new TodoModel(todoToArchive, settingsModel);
     const validation = todoModel.canArchive(todos);
     if (!validation.canArchive) {
-      setDependencyBlockNotification(validation.reason || "Cannot archive task");
+      setDependencyBlockNotification(
+        validation.reason || "Cannot archive task",
+      );
       // Clear previous timeout if any, then set new one
       if (notificationTimeoutRef.current) {
         clearTimeout(notificationTimeoutRef.current);
       }
-      notificationTimeoutRef.current = setTimeout(() => setDependencyBlockNotification(null), 5000);
+      notificationTimeoutRef.current = setTimeout(
+        () => setDependencyBlockNotification(null),
+        5000,
+      );
       return; // Don't allow archive
     }
 
@@ -518,10 +651,15 @@ export function useTodos() {
       archivedAt: now,
       updatedAt: now,
       deletedAt: undefined,
-      activity: [...todoToArchive.activity, createActivity("archived", "Task archived")],
+      activity: [
+        ...todoToArchive.activity,
+        createActivity("archived", "Task archived"),
+      ],
     };
 
-    setRawTodos((prev) => prev.map((todo) => (todo.id === id ? updatedTodo : todo)));
+    setRawTodos((prev) =>
+      prev.map((todo) => (todo.id === id ? updatedTodo : todo)),
+    );
 
     // Create undo action
     createUndoAction("archive", updatedTodo, previousState, id);
@@ -540,7 +678,10 @@ export function useTodos() {
             archivedAt: undefined,
             deletedAt: undefined,
             updatedAt: getTimestamp(Date.now()),
-            activity: [...todo.activity, createActivity("unarchived", "Task unarchived")],
+            activity: [
+              ...todo.activity,
+              createActivity("unarchived", "Task unarchived"),
+            ],
           };
         }
         return todo;
@@ -548,7 +689,12 @@ export function useTodos() {
     );
   };
 
-  const editTodo = (id: string, text: string, plainText: string, metadata: TodoMetadata) => {
+  const editTodo = (
+    id: string,
+    text: string,
+    plainText: string,
+    metadata: TodoMetadata,
+  ) => {
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === id) {
@@ -564,7 +710,10 @@ export function useTodos() {
           const oldMetadata = todoToMetadata(todo);
 
           // Check for metadata changes
-          const metadataActivities = generateMetadataActivities(oldMetadata, metadata);
+          const metadataActivities = generateMetadataActivities(
+            oldMetadata,
+            metadata,
+          );
           activities.push(...metadataActivities);
 
           // Convert new metadata to typed fields
@@ -614,7 +763,11 @@ export function useTodos() {
     );
   };
 
-  const editTodoComment = (todoId: TodoId, commentId: CommentId, content: string) => {
+  const editTodoComment = (
+    todoId: TodoId,
+    commentId: CommentId,
+    content: string,
+  ) => {
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId) {
@@ -622,7 +775,13 @@ export function useTodos() {
             ...todo,
             comments: todo.comments.map((comment) =>
               comment.commentId === commentId
-                ? { ...comment, history: [...comment.history, { timestamp: getTimestamp(Date.now()), content }] }
+                ? {
+                    ...comment,
+                    history: [
+                      ...comment.history,
+                      { timestamp: getTimestamp(Date.now()), content },
+                    ],
+                  }
                 : comment,
             ),
           };
@@ -653,7 +812,11 @@ export function useTodos() {
       return prev.map((todo) => {
         const newOrder = orderMap.get(todo.id);
         if (newOrder !== undefined && newOrder !== todo.sortOrder) {
-          return { ...todo, sortOrder: newOrder, updatedAt: getTimestamp(Date.now()) };
+          return {
+            ...todo,
+            sortOrder: newOrder,
+            updatedAt: getTimestamp(Date.now()),
+          };
         }
         return todo;
       });
@@ -732,7 +895,9 @@ export function useTodos() {
         if (todo.id === todoId) {
           return {
             ...todo,
-            subtasks: (todo.subtasks || []).filter((subtask) => subtask.id !== subtaskId),
+            subtasks: (todo.subtasks || []).filter(
+              (subtask) => subtask.id !== subtaskId,
+            ),
             updatedAt: now,
           };
         }
@@ -744,7 +909,8 @@ export function useTodos() {
   // Helper to transition a todo to "in-progress" if allowed
   const maybeTransitionToInProgress = (todo: Todo): Partial<Todo> | null => {
     const inProgressStateId = getKanbanStateId("in-progress");
-    const currentStateId = (todo.workflowState as KanbanStateId) || getKanbanStateId("backlog");
+    const currentStateId =
+      (todo.workflowState as KanbanStateId) || getKanbanStateId("backlog");
 
     // Already in progress - no transition needed
     if (currentStateId === inProgressStateId) {
@@ -754,7 +920,8 @@ export function useTodos() {
     // Check if transition is allowed
     const { states, allowedTransitions } = settings.kanban;
     const isAllowed = allowedTransitions.some(
-      (t) => t.fromStateId === currentStateId && t.toStateId === inProgressStateId,
+      (t) =>
+        t.fromStateId === currentStateId && t.toStateId === inProgressStateId,
     );
 
     if (!isAllowed) {
@@ -762,8 +929,10 @@ export function useTodos() {
     }
 
     // Get state names for activity description
-    const oldStateName = states.find((s) => s.id === currentStateId)?.name || currentStateId;
-    const newStateName = states.find((s) => s.id === inProgressStateId)?.name || inProgressStateId;
+    const oldStateName =
+      states.find((s) => s.id === currentStateId)?.name || currentStateId;
+    const newStateName =
+      states.find((s) => s.id === inProgressStateId)?.name || inProgressStateId;
 
     const workflowActivity = createActivity(
       "workflow_state_changed",
@@ -788,7 +957,10 @@ export function useTodos() {
             startTime: now,
             note,
           };
-          const currentTracking = todo.timeTracking || { entries: [], totalMinutes: getDurationMin(0) };
+          const currentTracking = todo.timeTracking || {
+            entries: [],
+            totalMinutes: getDurationMin(0),
+          };
 
           // Also transition to "in-progress" if allowed
           const workflowUpdates = maybeTransitionToInProgress(todo);
@@ -815,12 +987,16 @@ export function useTodos() {
         if (todo.id === todoId && todo.timeTracking) {
           const entries = todo.timeTracking.entries.map((entry) => {
             if (!entry.endTime) {
-              const duration = getDurationMin(Math.round((now - entry.startTime) / 60000)); // Convert to minutes
+              const duration = getDurationMin(
+                Math.round((now - entry.startTime) / 60000),
+              ); // Convert to minutes
               return { ...entry, endTime: now, duration };
             }
             return entry;
           });
-          const totalMinutes = getDurationMin(entries.reduce((sum, e) => sum + (e.duration || 0), 0));
+          const totalMinutes = getDurationMin(
+            entries.reduce((sum, e) => sum + (e.duration || 0), 0),
+          );
 
           // Also transition to "in-progress" if allowed
           const workflowUpdates = maybeTransitionToInProgress(todo);
@@ -837,7 +1013,11 @@ export function useTodos() {
     );
   };
 
-  const addManualTimeEntry = (todoId: TodoId, minutes: number, note?: string) => {
+  const addManualTimeEntry = (
+    todoId: TodoId,
+    minutes: number,
+    note?: string,
+  ) => {
     const now = getTimestamp(Date.now());
     setRawTodos((prev) =>
       prev.map((todo) => {
@@ -849,12 +1029,17 @@ export function useTodos() {
             duration: getDurationMin(minutes),
             note,
           };
-          const currentTracking = todo.timeTracking || { entries: [], totalMinutes: getDurationMin(0) };
+          const currentTracking = todo.timeTracking || {
+            entries: [],
+            totalMinutes: getDurationMin(0),
+          };
           return {
             ...todo,
             timeTracking: {
               entries: [...currentTracking.entries, newEntry],
-              totalMinutes: getDurationMin(currentTracking.totalMinutes + minutes),
+              totalMinutes: getDurationMin(
+                currentTracking.totalMinutes + minutes,
+              ),
             },
             updatedAt: now,
           };
@@ -869,8 +1054,12 @@ export function useTodos() {
     setRawTodos((prev) =>
       prev.map((todo) => {
         if (todo.id === todoId && todo.timeTracking) {
-          const entries = todo.timeTracking.entries.filter((e) => e.id !== entryId);
-          const totalMinutes = getDurationMin(entries.reduce((sum, e) => sum + (e.duration || 0), 0));
+          const entries = todo.timeTracking.entries.filter(
+            (e) => e.id !== entryId,
+          );
+          const totalMinutes = getDurationMin(
+            entries.reduce((sum, e) => sum + (e.duration || 0), 0),
+          );
           return {
             ...todo,
             timeTracking: { entries, totalMinutes },
@@ -895,8 +1084,15 @@ export function useTodos() {
   const setWorkflowState = (
     todoId: TodoId,
     newStateId: KanbanStateId,
-    kanbanStates: Array<{ id: KanbanStateId; name?: string; mapsToTodoState?: string }>,
-    allowedTransitions?: Array<{ fromStateId: KanbanStateId; toStateId: KanbanStateId }>,
+    kanbanStates: Array<{
+      id: KanbanStateId;
+      name?: string;
+      mapsToTodoState?: string;
+    }>,
+    allowedTransitions?: Array<{
+      fromStateId: KanbanStateId;
+      toStateId: KanbanStateId;
+    }>,
   ): boolean => {
     const todo = rawTodos.find((t) => t.id === todoId);
     if (!todo) return false;
@@ -905,7 +1101,9 @@ export function useTodos() {
 
     // Check if transition is allowed (if transition rules exist)
     if (allowedTransitions && allowedTransitions.length > 0) {
-      const isAllowed = allowedTransitions.some((t) => t.fromStateId === currentStateId && t.toStateId === newStateId);
+      const isAllowed = allowedTransitions.some(
+        (t) => t.fromStateId === currentStateId && t.toStateId === newStateId,
+      );
       if (!isAllowed) {
         return false;
       }
@@ -915,8 +1113,25 @@ export function useTodos() {
     const newState = kanbanStates.find((s) => s.id === newStateId);
     const mappedTodoState = newState?.mapsToTodoState as TodoState | undefined;
 
+    // Dragging a card into a column that maps to `completed` is a completion,
+    // so it has to obey the same two rules the checkbox does. Neither was
+    // applied here: a blocked task could be dragged to Done, and a recurring
+    // one stopped recurring. This deliberately does not call toggleTodo --
+    // that rebuilds the todo from a closure snapshot and would drop the
+    // workflowState this function is in the middle of setting.
+    const isCompleting =
+      mappedTodoState === "completed" && todo.state !== "completed";
+    if (isCompleting) {
+      const blocked = blockedFromCompleting(todo);
+      if (blocked !== null) {
+        notifyDependencyBlock(blocked);
+        return false;
+      }
+    }
+
     // Get state names for activity description
-    const oldStateName = kanbanStates.find((s) => s.id === currentStateId)?.name || currentStateId;
+    const oldStateName =
+      kanbanStates.find((s) => s.id === currentStateId)?.name || currentStateId;
     const newStateName = newState?.name || newStateId;
 
     setRawTodos((prev) =>
@@ -939,7 +1154,10 @@ export function useTodos() {
             updates.state = mappedTodoState;
             if (mappedTodoState === "completed" && t.state !== "completed") {
               updates.completedAt = now;
-            } else if (mappedTodoState === "archived" && t.state !== "archived") {
+            } else if (
+              mappedTodoState === "archived" &&
+              t.state !== "archived"
+            ) {
               updates.archivedAt = now;
             } else if (mappedTodoState === "active") {
               // Reopening - clear completion/archive timestamps
@@ -957,6 +1175,11 @@ export function useTodos() {
         return t;
       }),
     );
+
+    if (isCompleting) {
+      const spawned = buildRecurringSpawn(todo, now);
+      if (spawned) setRawTodos((prev) => [spawned, ...prev]);
+    }
 
     return true;
   };
