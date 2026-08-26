@@ -81,8 +81,15 @@ self.addEventListener("install", (event) => {
       }),
     ]).then(() => {
       console.log("[SW] Installation complete");
-      // Force activation of new service worker
-      return self.skipWaiting();
+      // Deliberately no skipWaiting() here.
+      //
+      // Activating immediately meant a new worker never entered the waiting
+      // state, so registration.waiting was always null -- and applyUpdate,
+      // which is guarded on exactly that, did nothing. The "Update" button in
+      // the update toast has therefore never worked.
+      //
+      // The new worker now waits, the toast offers the update, and the
+      // SKIP_WAITING message below activates it when the user accepts.
     }),
   );
 });
