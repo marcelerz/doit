@@ -77,8 +77,6 @@ export function TodoApp() {
     unarchiveTodo,
     editTodo,
     addTodoComment,
-    editTodoComment,
-    deleteTodoComment,
     reorderTodos,
     addSubtask,
     toggleSubtask,
@@ -1124,8 +1122,6 @@ export function TodoApp() {
             onAddProject={handleAddProject}
             onAddPriority={handleAddPriority}
             onAddComment={addTodoComment}
-            onEditComment={editTodoComment}
-            onDeleteComment={deleteTodoComment}
             onAddSubtask={addSubtask}
             onToggleSubtask={toggleSubtask}
             onEditSubtask={editSubtask}
@@ -1514,9 +1510,6 @@ export function TodoApp() {
             onAddPerson={handleAddPerson}
             onAddProject={handleAddProject}
             onAddPriority={handleAddPriority}
-            addTodoComment={addTodoComment}
-            editTodoComment={editTodoComment}
-            deleteTodoComment={deleteTodoComment}
             onOpenTodoDetails={setDetailsOverlayTodo}
             undoActions={undoActions}
             fadingOutIds={fadingOutIds}

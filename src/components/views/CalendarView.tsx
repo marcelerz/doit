@@ -8,7 +8,6 @@ import { ProjectModel } from "@/models/ProjectModel";
 import { Settings } from "@/types/settings";
 import { MarkerColors } from "@/types/markerColors";
 import { CalendarView as CalendarViewType, Calendar } from "@/types/calendar";
-import { CommentId } from "@/types/types";
 import { TodoId, TodoMetadata } from "@/types/todo";
 import { useState, useMemo, useEffect, useRef, Fragment, useCallback } from "react";
 import { TodoItem } from "@/components/items/TodoItem";
@@ -89,8 +88,6 @@ interface CalendarViewProps extends TodoActionProps {
   onAddPerson: (name: string) => void;
   onAddProject: (name: string) => void;
   onAddComment: (todoId: TodoId, content: string) => void;
-  onEditComment: (todoId: TodoId, commentId: CommentId, content: string) => void;
-  onDeleteComment: (todoId: TodoId, commentId: CommentId) => void;
   onQuickAdd?: (dueDate: string) => void;
   // Subtask handlers
   // Time tracking handlers
@@ -116,8 +113,6 @@ export function CalendarView({
   onAddProject,
   onAddPriority,
   onAddComment,
-  onEditComment,
-  onDeleteComment,
   onQuickAdd,
   onAddSubtask,
   onToggleSubtask,
@@ -872,12 +867,6 @@ export function CalendarView({
                           onAddPerson={onAddPerson}
                           onAddProject={onAddProject}
                           onAddPriority={onAddPriority}
-                          onMarkerClick={() => {}}
-                          isExpanded={false}
-                          onToggleExpand={() => {}}
-                          onAddComment={onAddComment}
-                          onEditComment={onEditComment}
-                          onDeleteComment={onDeleteComment}
                         />
                       ))}
                     </div>
@@ -961,12 +950,8 @@ export function CalendarView({
                     onAddPerson={onAddPerson}
                     onAddProject={onAddProject}
                     onAddPriority={onAddPriority}
-                    onMarkerClick={() => {}}
-                    isExpanded={false}
-                    onToggleExpand={() => setDetailsOverlayTodo(todo)}
-                    onAddComment={onAddComment}
-                    onEditComment={onEditComment}
-                    onDeleteComment={onDeleteComment}
+
+                    onTextClick={() => setDetailsOverlayTodo(todo)}
                   />
                 </div>
               ))}

@@ -7,11 +7,9 @@ import { MarkerColors } from "@/types/markerColors";
 import { LinkPattern } from "@/types/linkPattern";
 import { Priority } from "@/types/priority";
 import { Sprint } from "@/types/sprint";
-import { CommentId } from "@/types/types";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { MarkedText } from "@/components/shared/MarkedText";
-import { Comments } from "@/components/shared/Comments";
-import { formatDateForDisplay, normalizeDateValue } from "@/utils/dateUtils";
+import { normalizeDateValue } from "@/utils/dateUtils";
 import { findPersonColor, findProjectColor, findPriorityColor, getTextColor } from "@/utils/colors";
 import { DELAY_OPTIONS } from "@/utils/delayOptions";
 import { TodoModel } from "@/models/TodoModel";
@@ -32,6 +30,12 @@ interface TodoItemProps {
   todo: TodoModel;
   onToggle: (id: TodoId) => void;
   onDelete: (id: TodoId) => void;
+  /**
+   * Clicking the task text. Optional: this used to be onToggleExpand, driving
+   * an inline expansion that no caller enabled. Calendar was the one view
+   * passing a real handler, to open the details overlay.
+   */
+  onTextClick?: () => void;
   onEdit: (id: TodoId, text: string, plainText: string, metadata: TodoMetadata) => void;
   onArchive?: (id: TodoId) => void;
   onUnarchive?: (id: TodoId) => void;
@@ -44,15 +48,6 @@ interface TodoItemProps {
   onAddPerson?: (name: string) => void;
   onAddProject?: (name: string) => void;
   onAddPriority?: (name: string) => void;
-  onMarkerClick?: (
-    type: "assignedPeople" | "sourcePeople" | "mentionedPeople" | "projects" | "priorities" | "dueDates" | "durations",
-    value: string,
-  ) => void;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
-  onAddComment?: (todoId: TodoId, content: string) => void;
-  onEditComment?: (todoId: TodoId, commentId: CommentId, content: string) => void;
-  onDeleteComment?: (todoId: TodoId, commentId: CommentId) => void;
   // Bulk selection props
   isSelectionMode?: boolean;
   isSelected?: boolean;
@@ -75,6 +70,7 @@ export function TodoItem({
   todo,
   onToggle,
   onDelete,
+  onTextClick,
   onEdit,
   onArchive,
   onUnarchive,
@@ -87,12 +83,6 @@ export function TodoItem({
   onAddPerson,
   onAddProject,
   onAddPriority,
-  onMarkerClick,
-  isExpanded,
-  onToggleExpand,
-  onAddComment,
-  onEditComment,
-  onDeleteComment,
   isSelectionMode = false,
   isSelected = false,
   onSelectionChange,
@@ -463,7 +453,7 @@ export function TodoItem({
                 </div>
               );
             })()}
-          <div className="flex-1 min-w-0 cursor-pointer" onClick={onToggleExpand}>
+          <div className={`flex-1 min-w-0 ${onTextClick ? "cursor-pointer" : ""}`} onClick={onTextClick}>
             <div className="text-base" data-testid="todo-text">
               <MarkedText
                 text={todo.text}
@@ -478,46 +468,28 @@ export function TodoItem({
               />
             </div>
 
-            {/* Compact metadata row (shown when not expanded) */}
-            {!isExpanded && (
-              <div className="mt-1.5 grid grid-cols-[1fr_auto_auto] sm:grid-cols-[minmax(80px,1fr)_1fr_100px_80px] gap-x-2 gap-y-1 items-center text-[10px]">
-                {/* Assigned + Project - column 1 (combined on mobile, separate on desktop) */}
-                <div className="flex items-center gap-1 overflow-hidden">
-                  {todo.metadata.assignedPeople.length > 0 ? (
-                    <span
-                      className="px-1.5 py-0.5 rounded truncate"
-                      style={{
-                        backgroundColor: getPersonColorForName(todo.metadata.assignedPeople[0]),
-                        color: getTextColor(getPersonColorForName(todo.metadata.assignedPeople[0])),
-                      }}
-                      title={todo.metadata.assignedPeople.join(", ")}
-                    >
-                      @{todo.metadata.assignedPeople[0]}
-                      {todo.metadata.assignedPeople.length > 1 && ` +${todo.metadata.assignedPeople.length - 1}`}
-                    </span>
-                  ) : (
-                    <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">—</span>
-                  )}
-                  {/* Project shown inline on mobile */}
-                  <span className="sm:hidden">
-                    {todo.metadata.projects.length > 0 && (
-                      <span
-                        className="px-1.5 py-0.5 rounded truncate"
-                        style={{
-                          backgroundColor: getProjectColorForName(todo.metadata.projects[0]),
-                          color: getTextColor(getProjectColorForName(todo.metadata.projects[0])),
-                        }}
-                        title={todo.metadata.projects.join(", ")}
-                      >
-                        %{todo.metadata.projects[0]}
-                      </span>
-                    )}
+            {/* Compact metadata row */}
+            <div className="mt-1.5 grid grid-cols-[1fr_auto_auto] sm:grid-cols-[minmax(80px,1fr)_1fr_100px_80px] gap-x-2 gap-y-1 items-center text-[10px]">
+              {/* Assigned + Project - column 1 (combined on mobile, separate on desktop) */}
+              <div className="flex items-center gap-1 overflow-hidden">
+                {todo.metadata.assignedPeople.length > 0 ? (
+                  <span
+                    className="px-1.5 py-0.5 rounded truncate"
+                    style={{
+                      backgroundColor: getPersonColorForName(todo.metadata.assignedPeople[0]),
+                      color: getTextColor(getPersonColorForName(todo.metadata.assignedPeople[0])),
+                    }}
+                    title={todo.metadata.assignedPeople.join(", ")}
+                  >
+                    @{todo.metadata.assignedPeople[0]}
+                    {todo.metadata.assignedPeople.length > 1 && ` +${todo.metadata.assignedPeople.length - 1}`}
                   </span>
-                </div>
-
-                {/* Project + Sprint - column 2 (desktop only, centered) */}
-                <div className="hidden sm:flex items-center justify-center gap-1 overflow-hidden">
-                  {todo.metadata.projects.length > 0 ? (
+                ) : (
+                  <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">—</span>
+                )}
+                {/* Project shown inline on mobile */}
+                <span className="sm:hidden">
+                  {todo.metadata.projects.length > 0 && (
                     <span
                       className="px-1.5 py-0.5 rounded truncate"
                       style={{
@@ -527,82 +499,98 @@ export function TodoItem({
                       title={todo.metadata.projects.join(", ")}
                     >
                       %{todo.metadata.projects[0]}
-                      {todo.metadata.projects.length > 1 && ` +${todo.metadata.projects.length - 1}`}
-                    </span>
-                  ) : (
-                    <span className="text-zinc-300 dark:text-zinc-600">—</span>
-                  )}
-                  {todo.metadata.sprint &&
-                    (() => {
-                      const sprint = sprints.find((s) => s.id === todo.metadata.sprint);
-                      return sprint ? (
-                        <span
-                          className="px-1.5 py-0.5 rounded truncate bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 whitespace-nowrap"
-                          title={sprint.name}
-                        >
-                          🏃 {sprint.name}
-                        </span>
-                      ) : null;
-                    })()}
-                </div>
-
-                {/* Due date + Duration - column 3 (fixed width for consistency) */}
-                <div className="flex items-center gap-1 justify-end sm:justify-center">
-                  {todo.metadata.dueDate ? (
-                    <span
-                      className={`px-1.5 py-0.5 rounded whitespace-nowrap ${
-                        todo.isOverdue
-                          ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                          : todo.isDueToday
-                          ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
-                          : ""
-                      }`}
-                      style={
-                        !todo.isOverdue && !todo.isDueToday
-                          ? {
-                              backgroundColor: markerColors.dueDate,
-                              color: getTextColor(markerColors.dueDate),
-                            }
-                          : undefined
-                      }
-                      title={todo.metadata.dueDate}
-                    >
-                      {todo.dueDateDisplay}
-                    </span>
-                  ) : (
-                    <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">—</span>
-                  )}
-                  {todo.metadata.duration && (
-                    <span
-                      className="px-1.5 py-0.5 rounded whitespace-nowrap"
-                      style={{
-                        backgroundColor: markerColors.duration,
-                        color: getTextColor(markerColors.duration),
-                      }}
-                    >
-                      {todo.durationDisplay}
                     </span>
                   )}
-                </div>
-
-                {/* Priority - column 4 (fixed width for consistency) */}
-                <div className="flex items-center justify-end">
-                  {todo.metadata.priority ? (
-                    <span
-                      className="px-1.5 py-0.5 rounded font-medium"
-                      style={{
-                        backgroundColor: getPriorityColorForName(todo.metadata.priority),
-                        color: getTextColor(getPriorityColorForName(todo.metadata.priority)),
-                      }}
-                    >
-                      {todo.metadata.priority}
-                    </span>
-                  ) : (
-                    <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">—</span>
-                  )}
-                </div>
+                </span>
               </div>
-            )}
+
+              {/* Project + Sprint - column 2 (desktop only, centered) */}
+              <div className="hidden sm:flex items-center justify-center gap-1 overflow-hidden">
+                {todo.metadata.projects.length > 0 ? (
+                  <span
+                    className="px-1.5 py-0.5 rounded truncate"
+                    style={{
+                      backgroundColor: getProjectColorForName(todo.metadata.projects[0]),
+                      color: getTextColor(getProjectColorForName(todo.metadata.projects[0])),
+                    }}
+                    title={todo.metadata.projects.join(", ")}
+                  >
+                    %{todo.metadata.projects[0]}
+                    {todo.metadata.projects.length > 1 && ` +${todo.metadata.projects.length - 1}`}
+                  </span>
+                ) : (
+                  <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                )}
+                {todo.metadata.sprint &&
+                  (() => {
+                    const sprint = sprints.find((s) => s.id === todo.metadata.sprint);
+                    return sprint ? (
+                      <span
+                        className="px-1.5 py-0.5 rounded truncate bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 whitespace-nowrap"
+                        title={sprint.name}
+                      >
+                        🏃 {sprint.name}
+                      </span>
+                    ) : null;
+                  })()}
+              </div>
+
+              {/* Due date + Duration - column 3 (fixed width for consistency) */}
+              <div className="flex items-center gap-1 justify-end sm:justify-center">
+                {todo.metadata.dueDate ? (
+                  <span
+                    className={`px-1.5 py-0.5 rounded whitespace-nowrap ${
+                      todo.isOverdue
+                        ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                        : todo.isDueToday
+                        ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                        : ""
+                    }`}
+                    style={
+                      !todo.isOverdue && !todo.isDueToday
+                        ? {
+                            backgroundColor: markerColors.dueDate,
+                            color: getTextColor(markerColors.dueDate),
+                          }
+                        : undefined
+                    }
+                    title={todo.metadata.dueDate}
+                  >
+                    {todo.dueDateDisplay}
+                  </span>
+                ) : (
+                  <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">—</span>
+                )}
+                {todo.metadata.duration && (
+                  <span
+                    className="px-1.5 py-0.5 rounded whitespace-nowrap"
+                    style={{
+                      backgroundColor: markerColors.duration,
+                      color: getTextColor(markerColors.duration),
+                    }}
+                  >
+                    {todo.durationDisplay}
+                  </span>
+                )}
+              </div>
+
+              {/* Priority - column 4 (fixed width for consistency) */}
+              <div className="flex items-center justify-end">
+                {todo.metadata.priority ? (
+                  <span
+                    className="px-1.5 py-0.5 rounded font-medium"
+                    style={{
+                      backgroundColor: getPriorityColorForName(todo.metadata.priority),
+                      color: getTextColor(getPriorityColorForName(todo.metadata.priority)),
+                    }}
+                  >
+                    {todo.metadata.priority}
+                  </span>
+                ) : (
+                  <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">—</span>
+                )}
+              </div>
+            </div>
 
             {/* Subtask progress indicator and time tracking */}
             {(todo.hasSubtasks || todo.hasTimeTracking) && (
@@ -646,266 +634,6 @@ export function TodoItem({
               </div>
             )}
 
-            {/* Expanded Details */}
-            {isExpanded && (
-              <div
-                className="mt-2 space-y-2 border-t border-zinc-200 dark:border-zinc-800 pt-2"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Created/Completed Info */}
-                <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-600 dark:text-zinc-400">
-                    <div>
-                      <span className="font-medium">Created:</span> {todo.createdDateDisplay} ({todo.ageDisplay})
-                    </div>
-                    {todo.updatedAt && (
-                      <div>
-                        <span className="font-medium">Updated:</span> {todo.updatedDateDisplay}
-                      </div>
-                    )}
-                    {todo.completedAt && (
-                      <div>
-                        <span className="font-medium">Completed:</span> {todo.completedDateDisplay}
-                      </div>
-                    )}
-                    {todo.archivedAt && (
-                      <div>
-                        <span className="font-medium">Archived:</span> {new Date(todo.archivedAt).toLocaleString()}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Task Details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {/* Assigned People */}
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">👤 Assigned</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {todo.metadata.assignedPeople.length > 0 ? (
-                        todo.metadata.assignedPeople.map((person, idx) => {
-                          const bgColor = getPersonColorForName(person);
-                          const textColor = getTextColor(bgColor);
-                          return (
-                            <button
-                              key={idx}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onMarkerClick?.("assignedPeople", person);
-                              }}
-                              style={{ backgroundColor: bgColor, color: textColor }}
-                              className="px-2 py-0.5 text-xs rounded hover:opacity-80 transition-opacity"
-                            >
-                              @{person}
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Projects */}
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📁 Projects</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {todo.metadata.projects.length > 0 ? (
-                        todo.metadata.projects.map((project, idx) => {
-                          const bgColor = getProjectColorForName(project);
-                          const textColor = getTextColor(bgColor);
-                          return (
-                            <button
-                              key={idx}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onMarkerClick?.("projects", project);
-                              }}
-                              style={{ backgroundColor: bgColor, color: textColor }}
-                              className="px-2 py-0.5 text-xs rounded hover:opacity-80 transition-opacity"
-                            >
-                              %{project}
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Source People */}
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📤 Source</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {todo.metadata.sourcePeople.length > 0 ? (
-                        todo.metadata.sourcePeople.map((person, idx) => {
-                          const bgColor = getPersonColorForName(person);
-                          const textColor = getTextColor(bgColor);
-                          return (
-                            <button
-                              key={idx}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onMarkerClick?.("sourcePeople", person);
-                              }}
-                              style={{ backgroundColor: bgColor, color: textColor }}
-                              className="px-2 py-0.5 text-xs rounded hover:opacity-80 transition-opacity"
-                            >
-                              ${person}
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Mentioned People */}
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">💬 Mentioned</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {todo.metadata.mentionedPeople.length > 0 ? (
-                        todo.metadata.mentionedPeople.map((person, idx) => {
-                          const bgColor = getPersonColorForName(person);
-                          const textColor = getTextColor(bgColor);
-                          return (
-                            <button
-                              key={idx}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onMarkerClick?.("mentionedPeople", person);
-                              }}
-                              style={{ backgroundColor: bgColor, color: textColor }}
-                              className="px-2 py-0.5 text-xs rounded hover:opacity-80 transition-opacity"
-                            >
-                              {person}
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Priority */}
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">🔥 Priority</h4>
-                    {todo.metadata.priority ? (
-                      (() => {
-                        const bgColor = getPriorityColorForName(todo.metadata.priority);
-                        const textColor = getTextColor(bgColor);
-                        return (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onMarkerClick?.("priorities", todo.metadata.priority!);
-                            }}
-                            style={{ backgroundColor: bgColor, color: textColor }}
-                            className="px-2 py-0.5 text-xs rounded hover:opacity-80 transition-opacity"
-                          >
-                            !!{todo.metadata.priority}
-                          </button>
-                        );
-                      })()
-                    ) : (
-                      <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                    )}
-                  </div>
-
-                  {/* Due Date */}
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">📅 Due</h4>
-                    {todo.metadata.dueDate ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onMarkerClick?.("dueDates", todo.metadata.dueDate!);
-                        }}
-                        className={`px-2 py-0.5 text-xs rounded transition-colors hover:opacity-80 ${
-                          todo.isOverdue
-                            ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                            : todo.isDueToday
-                            ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
-                            : ""
-                        }`}
-                        style={
-                          !todo.isOverdue && !todo.isDueToday
-                            ? {
-                                backgroundColor: markerColors.dueDate,
-                                color: getTextColor(markerColors.dueDate),
-                              }
-                            : undefined
-                        }
-                        title={todo.metadata.dueDate}
-                      >
-                        {formatDateForDisplay(todo.metadata.dueDate)}
-                      </button>
-                    ) : (
-                      <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                    )}
-                  </div>
-
-                  {/* Duration */}
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">⏱️ Duration</h4>
-                    {todo.metadata.duration ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onMarkerClick?.("durations", todo.metadata.duration!);
-                        }}
-                        className="px-2 py-0.5 text-xs rounded transition-opacity hover:opacity-80"
-                        style={{
-                          backgroundColor: markerColors.duration,
-                          color: getTextColor(markerColors.duration),
-                        }}
-                      >
-                        {todo.metadata.duration}
-                      </button>
-                    ) : (
-                      <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                    )}
-                  </div>
-
-                  {/* Sprint */}
-                  {sprints.length > 0 && (
-                    <div>
-                      <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">🏃 Sprint</h4>
-                      {todo.metadata.sprint ? (
-                        (() => {
-                          const sprint = sprints.find((s) => s.id === todo.metadata.sprint);
-                          return sprint ? (
-                            <span className="px-2 py-0.5 text-xs rounded bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">
-                              {sprint.name}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-zinc-400 dark:text-zinc-500">Unknown</span>
-                          );
-                        })()
-                      ) : (
-                        <span className="text-xs text-zinc-400 dark:text-zinc-500">None</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Comments Section */}
-                <div className="border-t border-zinc-200 dark:border-zinc-800 pt-2">
-                  <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">💬 Comments</h4>
-                  <Comments
-                    comments={todo.comments}
-                    onAddComment={(content: string) => onAddComment?.(todo.id, content)}
-                    onEditComment={(commentId: CommentId, content: string) =>
-                      onEditComment?.(todo.id, commentId, content)
-                    }
-                    onDeleteComment={(commentId: CommentId) => onDeleteComment?.(todo.id, commentId)}
-                  />
-                </div>
-              </div>
-            )}
           </div>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
             {/* Delayed button - only for active todos */}

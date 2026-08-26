@@ -14,7 +14,7 @@ import { SprintModel } from "@/models/SprintModel";
 import { UndoAction } from "@/hooks/useTodos";
 import { Settings } from "@/types/settings";
 import { Priority } from "@/types/priority";
-import { CommentId, SearchHistoryEntry, SearchHistoryId } from "@/types/types";
+import { SearchHistoryEntry, SearchHistoryId } from "@/types/types";
 import { TodoTemplate } from "@/types/todoTemplate";
 import { TodoId, TodoMetadata } from "@/types/todo";
 import { TodoItem } from "@/components/items/TodoItem";
@@ -158,9 +158,6 @@ interface ListViewProps {
   onAddPriority: (name: string, color?: string) => void;
 
   // Comment actions
-  addTodoComment: (todoId: TodoId, text: string) => void;
-  editTodoComment: (todoId: TodoId, commentId: CommentId, text: string) => void;
-  deleteTodoComment: (todoId: TodoId, commentId: CommentId) => void;
 
   // Details overlay
   onOpenTodoDetails: (todo: TodoModel) => void;
@@ -199,9 +196,6 @@ export function ListView({
   onAddPerson,
   onAddProject,
   onAddPriority,
-  addTodoComment,
-  editTodoComment,
-  deleteTodoComment,
   onOpenTodoDetails,
   undoActions,
   fadingOutIds,
@@ -1046,11 +1040,6 @@ export function ListView({
                                 onAddPerson={onAddPerson}
                                 onAddProject={onAddProject}
                                 onAddPriority={onAddPriority}
-                                isExpanded={false}
-                                onToggleExpand={() => {}}
-                                onAddComment={addTodoComment}
-                                onEditComment={editTodoComment}
-                                onDeleteComment={deleteTodoComment}
                                 isSelectionMode={isSelectionMode}
                                 isSelected={selectedTodoIds.has(todo.id)}
                                 onSelectionChange={handleSelectionChange}
@@ -1114,11 +1103,6 @@ export function ListView({
                         onAddPerson={onAddPerson}
                         onAddProject={onAddProject}
                         onAddPriority={onAddPriority}
-                        isExpanded={false}
-                        onToggleExpand={() => {}}
-                        onAddComment={addTodoComment}
-                        onEditComment={editTodoComment}
-                        onDeleteComment={deleteTodoComment}
                         isSelectionMode={isSelectionMode}
                         isSelected={selectedTodoIds.has(todo.id)}
                         onSelectionChange={handleSelectionChange}
@@ -1172,11 +1156,6 @@ export function ListView({
                         onAddPerson={onAddPerson}
                         onAddProject={onAddProject}
                         onAddPriority={onAddPriority}
-                        isExpanded={false}
-                        onToggleExpand={() => {}}
-                        onAddComment={addTodoComment}
-                        onEditComment={editTodoComment}
-                        onDeleteComment={deleteTodoComment}
                         isSelectionMode={isSelectionMode}
                         isSelected={selectedTodoIds.has(todo.id)}
                         onSelectionChange={handleSelectionChange}
