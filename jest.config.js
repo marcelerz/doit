@@ -51,10 +51,10 @@ module.exports = {
   // `npm run validate` printed a number and always passed.
   coverageThreshold: {
     global: {
-      statements: 58,
-      branches: 50,
-      functions: 54,
-      lines: 60,
+      statements: 65,
+      branches: 55,
+      functions: 60,
+      lines: 66,
     },
   },
 };
