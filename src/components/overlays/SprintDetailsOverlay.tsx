@@ -198,7 +198,7 @@ export function SprintDetailsOverlay({
   ];
 
   return (
-    <Modal isOpen={true} onClose={onClose} maxWidth="4xl">
+    <Modal isOpen={true} onClose={onClose} maxWidth="4xl" label="Sprint details">
       <div className="flex flex-col h-[80vh] max-h-[800px]">
         {/* Header */}
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">

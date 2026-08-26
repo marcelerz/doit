@@ -24,7 +24,7 @@ export function TemplatesManager({ templates, onDelete, onClose }: TemplatesMana
   );
 
   return (
-    <Modal isOpen={true} onClose={onClose} maxWidth="lg">
+    <Modal isOpen={true} onClose={onClose} maxWidth="lg" label="Templates">
       <div className="w-full max-w-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
@@ -152,7 +152,7 @@ export function CreateTemplateModal({
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} maxWidth="md">
+    <Modal isOpen={true} onClose={onClose} maxWidth="md" label="Create template">
       <div className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Create Template</h2>
 

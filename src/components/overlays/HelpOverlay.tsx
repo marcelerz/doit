@@ -91,7 +91,7 @@ export function HelpOverlay({ isOpen, onClose, onRestartTutorial, features }: He
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="4xl">
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="4xl" label="Help">
       <div className="flex flex-col h-[80vh] max-h-[800px]">
         {/* Header */}
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">

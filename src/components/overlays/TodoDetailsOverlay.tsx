@@ -299,7 +299,7 @@ export function TodoDetailsOverlay({
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="3xl">
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="3xl" label="Task details">
       <div className="p-6" data-testid="todo-details-overlay">
         {/* Header with Status Badge */}
         <div className="flex items-center justify-between mb-4">

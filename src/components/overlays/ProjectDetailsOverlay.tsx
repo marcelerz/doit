@@ -116,7 +116,7 @@ export function ProjectDetailsOverlay({
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} maxWidth="3xl">
+    <Modal isOpen={true} onClose={onClose} maxWidth="3xl" label="Project details">
       <div className="p-6 space-y-6">
         {/* Header with Close Button */}
         <div className="flex items-start justify-between mb-4">

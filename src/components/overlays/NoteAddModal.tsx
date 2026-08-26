@@ -131,7 +131,7 @@ export function NoteAddModal({
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="xl">
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="xl" label="Add note">
       <div className="p-6 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
