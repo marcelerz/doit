@@ -274,3 +274,28 @@ body {
 .dark .rich-text-content code {
   background-color: #3f3f46;
 }
+
+/* ============================================================================
+   Hover-revealed row actions
+   ============================================================================
+   Seventeen places reveal their actions with `opacity-0 group-hover:opacity-100`
+   -- including Delete on task, note, sprint and entity rows. Hover leaves out
+   two kinds of user entirely:
+
+   - keyboard users, who never hover, so the action they have tabbed to stays
+     invisible while it has focus;
+   - touch devices, which have no hover at all, so on a phone those buttons
+     could only be revealed by a stray tap that also activated the row.
+
+   Handled here rather than at each call site, so a new row cannot forget it.
+   ========================================================================== */
+
+.group:focus-within .group-hover\:opacity-100 {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .group .group-hover\:opacity-100 {
+    opacity: 1;
+  }
+}
