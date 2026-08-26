@@ -4,9 +4,6 @@ import { Settings, FeatureSettings } from "@/types/settings";
 import { Priority, PriorityId} from "@/types/priority";
 import { LinkPattern, LinkPatternId} from "@/types/linkPattern";
 import { MarkerColors } from "@/types/markerColors";
-import { KanbanState, KanbanStateId} from "@/types/kanbanState";
-import { KanbanView, KanbanViewId} from "@/types/kanbanView";
-import { KanbanTransition } from "@/types/kanbanTransition";
 import { ProjectCategory, ProjectCategoryId} from "@/types/project";
 import { settingsStore, useSharedSettings } from "@/storage/settingsStore";
 import { SettingsModel } from "@/models/SettingsModel";
@@ -159,151 +156,6 @@ export function useSettings() {
     }));
   };
 
-  const addKanbanState = (state: Omit<KanbanState, "id">) => {
-    const newState: KanbanState = {
-      ...state,
-      id: SettingsModel.createKanbanStateId(),
-    };
-    setSettings((prev) => ({
-      ...prev,
-      kanban: {
-        ...prev.kanban,
-        states: [...prev.kanban.states, newState],
-      },
-    }));
-    return newState.id;
-  };
-
-  const updateKanbanState = (id: KanbanStateId, updates: Partial<KanbanState>) => {
-    setSettings((prev) => ({
-      ...prev,
-      kanban: {
-        ...prev.kanban,
-        states: prev.kanban.states.map((s) => (s.id === id ? { ...s, ...updates } : s)),
-      },
-    }));
-  };
-
-  const deleteKanbanState = (id: KanbanStateId) => {
-    setSettings((prev) => {
-      // Don't allow deleting system states
-      const stateToDelete = prev.kanban.states.find((s) => s.id === id);
-      if (stateToDelete?.isSystem) return prev;
-
-      return {
-        ...prev,
-        kanban: {
-          ...prev.kanban,
-          states: prev.kanban.states.filter((s) => s.id !== id),
-          // Also remove transitions involving this state
-          allowedTransitions: prev.kanban.allowedTransitions.filter((t) => t.fromStateId !== id && t.toStateId !== id),
-          // Remove from views
-          views: prev.kanban.views.map((v) => ({
-            ...v,
-            stateIds: v.stateIds.filter((sId) => sId !== id),
-          })),
-        },
-      };
-    });
-  };
-
-  const reorderKanbanStates = (newOrder: string[]) => {
-    setSettings((prev) => ({
-      ...prev,
-      kanban: {
-        ...prev.kanban,
-        states: prev.kanban.states
-          .map((s) => ({ ...s, order: newOrder.indexOf(s.id) }))
-          .sort((a, b) => a.order - b.order),
-      },
-    }));
-  };
-
-  const addKanbanTransition = (transition: KanbanTransition) => {
-    setSettings((prev) => {
-      // Check if transition already exists
-      const exists = prev.kanban.allowedTransitions.some(
-        (t) => t.fromStateId === transition.fromStateId && t.toStateId === transition.toStateId,
-      );
-      if (exists) return prev;
-
-      return {
-        ...prev,
-        kanban: {
-          ...prev.kanban,
-          allowedTransitions: [...prev.kanban.allowedTransitions, transition],
-        },
-      };
-    });
-  };
-
-  const removeKanbanTransition = (fromStateId: KanbanStateId, toStateId: KanbanStateId) => {
-    setSettings((prev) => ({
-      ...prev,
-      kanban: {
-        ...prev.kanban,
-        allowedTransitions: prev.kanban.allowedTransitions.filter(
-          (t) => !(t.fromStateId === fromStateId && t.toStateId === toStateId),
-        ),
-      },
-    }));
-  };
-
-  const addKanbanView = (view: Omit<KanbanView, "id">) => {
-    const newView: KanbanView = {
-      ...view,
-      id: SettingsModel.createKanbanViewId(),
-    };
-    setSettings((prev) => ({
-      ...prev,
-      kanban: {
-        ...prev.kanban,
-        views: [...prev.kanban.views, newView],
-      },
-    }));
-    return newView.id;
-  };
-
-  const updateKanbanView = (id: KanbanViewId, updates: Partial<KanbanView>) => {
-    setSettings((prev) => ({
-      ...prev,
-      kanban: {
-        ...prev.kanban,
-        views: prev.kanban.views.map((v) => (v.id === id ? { ...v, ...updates } : v)),
-      },
-    }));
-  };
-
-  const deleteKanbanView = (id: KanbanViewId) => {
-    setSettings((prev) => {
-      // Don't delete if it's the only view
-      if (prev.kanban.views.length <= 1) return prev;
-
-      const updatedViews = prev.kanban.views.filter((v) => v.id !== id);
-      // If we deleted the active view, switch to first remaining
-      const newActiveViewId = prev.kanban.activeViewId === id ? updatedViews[0]?.id : prev.kanban.activeViewId;
-
-      return {
-        ...prev,
-        kanban: {
-          ...prev.kanban,
-          views: updatedViews,
-          activeViewId: newActiveViewId,
-        },
-      };
-    });
-  };
-
-  const setActiveKanbanView = (viewId: KanbanViewId) => {
-    setSettings((prev) => ({
-      ...prev,
-      kanban: {
-        ...prev.kanban,
-        activeViewId: viewId,
-      },
-    }));
-  };
-
   // Category methods
   const addCategory = (category: Omit<ProjectCategory, "id">) => {
     const newCategory: ProjectCategory = {
@@ -396,16 +248,6 @@ export function useSettings() {
     updateAutoAssignSettings,
     // Kanban methods
     updateKanbanSettings,
-    addKanbanState,
-    updateKanbanState,
-    deleteKanbanState,
-    reorderKanbanStates,
-    addKanbanTransition,
-    removeKanbanTransition,
-    addKanbanView,
-    updateKanbanView,
-    deleteKanbanView,
-    setActiveKanbanView,
     // Category methods
     addCategory,
     updateCategory,
