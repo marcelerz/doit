@@ -1,15 +1,12 @@
 "use client";
 
-import React, { useCallback, useMemo, useRef } from "react";
+import React from "react";
 import { ProjectItem } from "@/components/items/ProjectItem";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { PlusIcon } from "@/components/shared/Icons";
-import { SearchInput } from "@/components/shared/SearchInput";
+import { EntityListView } from "@/components/views/EntityListView";
 import { ProjectModel } from "@/models/ProjectModel";
 import { ProjectId } from "@/types/project";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { STORAGE_KEYS } from "@/storage/storage";
-import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
 
 // Projects View Options for storage
 
@@ -82,97 +79,36 @@ export function ProjectsView({
   onCreateProjectNote,
   searchInputRef,
 }: ProjectsViewProps) {
-  // Internal state for search and show archived
-  const [{ search, showArchived }, setViewOptions] = usePersistedViewOptions(
-    STORAGE_KEYS.PROJECTS_VIEW_OPTIONS,
-    { search: "", showArchived: false }
-  );
-
-  const localInputRef = useRef<HTMLInputElement>(null);
-  const inputRef = searchInputRef || localInputRef;
-
-  // Handlers for state changes
-  const handleSearchChange = useCallback((value: string) => {
-    setViewOptions({ search: value });
-  }, [setViewOptions]);
-
-  const handleShowArchivedChange = useCallback((value: boolean) => {
-    setViewOptions({ showArchived: value });
-  }, [setViewOptions]);
-
-  // Filter projects based on search and archive filter
-  const filteredProjects = useMemo(() => {
-    return projects.filter((project) => {
-      // Filter by archived status
-      if (!showArchived && project.isArchived) return false;
-      // Filter by search term
-      if (search.trim()) {
-        return project.matchesSearch(search);
-      }
-      return true;
-    });
-  }, [projects, search, showArchived]);
-
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Projects</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-            {filteredProjects.length} of {projects.length} {projects.length === 1 ? "project" : "projects"}
-          </p>
-        </div>
-        <button
-          onClick={onAddProject}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-          data-tutorial="add-project-button"
-        >
-          <PlusIcon className="w-5 h-5" />
-          Add Project
-        </button>
-      </div>
-
-      {/* Search and filter bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <SearchInput
-          ref={inputRef}
-          value={search}
-          onChange={handleSearchChange}
-          placeholder="Search projects... (press / to focus)"
+    <EntityListView<ProjectModel, ProjectId>
+      entities={projects}
+      config={{
+        title: "Projects",
+        noun: "project",
+        pluralNoun: "projects",
+        addLabel: "Add Project",
+        addTutorialId: "add-project-button",
+        searchPlaceholder: "Search projects... (press / to focus)",
+        storageKey: STORAGE_KEYS.PROJECTS_VIEW_OPTIONS,
+        emptyEmoji: "\u{1F4C1}",
+        emptyTitle: "No Projects",
+        emptyMessage: "No projects yet. Add one to get started!",
+        noResultsMessage: "No projects match your search.",
+      }}
+      onAdd={onAddProject}
+      searchInputRef={searchInputRef}
+      renderItem={(project) => (
+        <ProjectItem
+          project={project}
+          onClick={() => onOpenProject(project.id)}
+          onDelete={onDeleteProject}
+          onArchive={onArchiveProject}
+          onUnarchive={onUnarchiveProject}
+          onRequestDeleteConfirm={onRequestDeleteConfirm}
+          onCreateNote={onCreateProjectNote}
+          counts={countsByProject.get(project.id)}
         />
-        <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer whitespace-nowrap">
-          <input
-            type="checkbox"
-            checked={showArchived}
-            onChange={(e) => handleShowArchivedChange(e.target.checked)}
-            className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-          />
-          Show archived
-        </label>
-      </div>
-
-      {projects.length === 0 ? (
-        <EmptyState emoji="📁" title="No Projects" message="No projects yet. Add one to get started!" />
-      ) : filteredProjects.length === 0 ? (
-        <EmptyState emoji="🔍" title="No Results" message="No projects match your search." />
-      ) : (
-        <ul className="space-y-2">
-          {filteredProjects.map((project) => (
-            <li key={project.id}>
-              <ProjectItem
-                project={project}
-                onClick={() => onOpenProject(project.id)}
-                onDelete={onDeleteProject}
-                onArchive={onArchiveProject}
-                onUnarchive={onUnarchiveProject}
-                onRequestDeleteConfirm={onRequestDeleteConfirm}
-                onCreateNote={onCreateProjectNote}
-                counts={countsByProject.get(project.id)}
-              />
-            </li>
-          ))}
-        </ul>
       )}
-    </div>
+    />
   );
 }

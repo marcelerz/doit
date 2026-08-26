@@ -1,15 +1,12 @@
 "use client";
 
-import React, { useCallback, useMemo, useRef } from "react";
+import React from "react";
 import { PersonItem } from "@/components/items/PersonItem";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { PlusIcon } from "@/components/shared/Icons";
-import { SearchInput } from "@/components/shared/SearchInput";
+import { EntityListView } from "@/components/views/EntityListView";
 import { PersonModel } from "@/models/PersonModel";
 import { PersonId } from "@/types/person";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { STORAGE_KEYS } from "@/storage/storage";
-import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
 
 // People View Options for storage
 
@@ -82,97 +79,36 @@ export function PeopleView({
   onCreatePersonNote,
   searchInputRef,
 }: PeopleViewProps) {
-  // Internal state for search and show archived
-  const [{ search, showArchived }, setViewOptions] = usePersistedViewOptions(
-    STORAGE_KEYS.PEOPLE_VIEW_OPTIONS,
-    { search: "", showArchived: false }
-  );
-
-  const localInputRef = useRef<HTMLInputElement>(null);
-  const inputRef = searchInputRef || localInputRef;
-
-  // Handlers for state changes
-  const handleSearchChange = useCallback((value: string) => {
-    setViewOptions({ search: value });
-  }, [setViewOptions]);
-
-  const handleShowArchivedChange = useCallback((value: boolean) => {
-    setViewOptions({ showArchived: value });
-  }, [setViewOptions]);
-
-  // Filter people based on search and archive filter
-  const filteredPeople = useMemo(() => {
-    return people.filter((person) => {
-      // Filter by archived status
-      if (!showArchived && person.isArchived) return false;
-      // Filter by search term
-      if (search.trim()) {
-        return person.matchesSearch(search);
-      }
-      return true;
-    });
-  }, [people, search, showArchived]);
-
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">People</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-            {filteredPeople.length} of {people.length} {people.length === 1 ? "person" : "people"}
-          </p>
-        </div>
-        <button
-          onClick={onAddPerson}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-          data-tutorial="add-person-button"
-        >
-          <PlusIcon className="w-5 h-5" />
-          Add Person
-        </button>
-      </div>
-
-      {/* Search and filter bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <SearchInput
-          ref={inputRef}
-          value={search}
-          onChange={handleSearchChange}
-          placeholder="Search people... (press / to focus)"
+    <EntityListView<PersonModel, PersonId>
+      entities={people}
+      config={{
+        title: "People",
+        noun: "person",
+        pluralNoun: "people",
+        addLabel: "Add Person",
+        addTutorialId: "add-person-button",
+        searchPlaceholder: "Search people... (press / to focus)",
+        storageKey: STORAGE_KEYS.PEOPLE_VIEW_OPTIONS,
+        emptyEmoji: "\u{1F465}",
+        emptyTitle: "No People",
+        emptyMessage: "No people yet. Add one to get started!",
+        noResultsMessage: "No people match your search.",
+      }}
+      onAdd={onAddPerson}
+      searchInputRef={searchInputRef}
+      renderItem={(person) => (
+        <PersonItem
+          person={person}
+          onClick={() => onOpenPerson(person.id)}
+          onDelete={onDeletePerson}
+          onArchive={onArchivePerson}
+          onUnarchive={onUnarchivePerson}
+          onRequestDeleteConfirm={onRequestDeleteConfirm}
+          onCreateNote={onCreatePersonNote}
+          counts={countsByPerson.get(person.id)}
         />
-        <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer whitespace-nowrap">
-          <input
-            type="checkbox"
-            checked={showArchived}
-            onChange={(e) => handleShowArchivedChange(e.target.checked)}
-            className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500"
-          />
-          Show archived
-        </label>
-      </div>
-
-      {people.length === 0 ? (
-        <EmptyState emoji="👥" title="No People" message="No people yet. Add one to get started!" />
-      ) : filteredPeople.length === 0 ? (
-        <EmptyState emoji="🔍" title="No Results" message="No people match your search." />
-      ) : (
-        <ul className="space-y-2">
-          {filteredPeople.map((person) => (
-            <li key={person.id}>
-              <PersonItem
-                person={person}
-                onClick={() => onOpenPerson(person.id)}
-                onDelete={onDeletePerson}
-                onArchive={onArchivePerson}
-                onUnarchive={onUnarchivePerson}
-                onRequestDeleteConfirm={onRequestDeleteConfirm}
-                onCreateNote={onCreatePersonNote}
-                counts={countsByPerson.get(person.id)}
-              />
-            </li>
-          ))}
-        </ul>
       )}
-    </div>
+    />
   );
 }
