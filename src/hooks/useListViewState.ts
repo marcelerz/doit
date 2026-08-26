@@ -669,7 +669,11 @@ export function useListViewState({
             } else {
               dueDateObj.setHours(0, 0, 0, 0);
               const dueDateMs = dueDateObj.getTime();
-              const diffDays = Math.floor((dueDateMs - todayMs) / oneDayMs);
+              // Math.round, not floor. Both sides are local midnights, and the
+              // day containing a spring-forward transition is 23 hours, so a
+              // todo due tomorrow gave 0.958 days and floored to 0 -- grouped
+              // under Today. TodoModel.daysUntilDue already rounds for this.
+              const diffDays = Math.round((dueDateMs - todayMs) / oneDayMs);
 
               if (diffDays < 0) {
                 group = "Overdue";

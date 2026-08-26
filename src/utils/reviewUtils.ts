@@ -240,11 +240,16 @@ export function getHalfPeriod(date: Date, fiscalYearStart: Month): PeriodInfo {
   }
 
   // Handle year wraparound
-  const startYear = fiscalYear;
+  let startYear = fiscalYear;
   let endYear = fiscalYear;
 
   if (halfStartMonth >= 12) {
     halfStartMonth -= 12;
+    // The start year has to advance with it. Only endYear was being moved, so
+    // for a fiscal year starting in July or later, H2 ran from January of the
+    // *previous* year: an eighteen-month period that pulled an extra twelve
+    // months of completed tasks into the review.
+    startYear = fiscalYear + 1;
   }
   if (halfEndMonth >= 12) {
     halfEndMonth -= 12;

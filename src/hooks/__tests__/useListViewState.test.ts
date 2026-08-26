@@ -432,3 +432,26 @@ describe("manual sort", () => {
     expect(result.current.sortTodos(todos).map((t) => t.id)).toEqual(["first", "none"]);
   });
 });
+
+describe("due-date grouping across a DST boundary", () => {
+  it("puts tomorrow in Tomorrow on a spring-forward day", () => {
+    // US spring-forward is 02:00 on 2026-03-08, so midnight-to-midnight across
+    // 03-08 -> 03-09 is 23 hours. Dividing local midnights and flooring gave
+    // 0.958 -> 0, grouping tomorrow's todo under Today. Only exercises the DST
+    // path in a timezone that observes it; elsewhere it simply asserts the
+    // ordinary case.
+    jest.useFakeTimers().setSystemTime(new Date(2026, 2, 8, 9, 0, 0));
+    try {
+      const todos = [makeTodo({ id: "tomorrow", dueDate: getTimestamp(new Date(2026, 2, 9, 12, 0).getTime()) })];
+      const { result } = mount(todos);
+
+      act(() => result.current.setGroupBy("dueDate"));
+      const groups = result.current.groupTodos(todos);
+
+      expect(groups["Today"] ?? []).toHaveLength(0);
+      expect((groups["Tomorrow"] ?? []).map((t) => t.id)).toEqual(["tomorrow"]);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});

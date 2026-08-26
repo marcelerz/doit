@@ -145,17 +145,13 @@ describe("getHalfPeriod", () => {
     expect(period.label).toBe("H2 FY2025");
   });
 
-  it("KNOWN WRONG: H2 spans 18 months when the half start wraps past December", () => {
+  it("advances the start year when the half start wraps past December", () => {
     // fiscalYearStart 7 puts H2's start month at index 12, which wraps to 0 of
-    // the *next* year -- but only endYear is advanced, startYear is not. The
-    // period should be 2027-01-01..2027-06-30; it comes back a year early and
-    // so pulls in an extra twelve months of tasks.
-    //
-    // Pinned as-is so the fix reads as a deliberate change rather than a
-    // surprise. Only reachable through imported or hand-edited settings today:
-    // fiscalYearStart has no settings UI.
+    // the next year. Only endYear used to advance, so the period ran from
+    // January of the previous year -- eighteen months, pulling an extra twelve
+    // months of completed tasks into the review.
     const period = getHalfPeriod(new Date(2027, 1, 15), JULY);
-    expect(period.start).toBe("2026-01-01");
+    expect(period.start).toBe("2027-01-01");
     expect(period.end).toBe("2027-06-30");
   });
 });

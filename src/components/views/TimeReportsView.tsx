@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, { useMemo } from "react";
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
@@ -11,7 +11,7 @@ import { TodoId } from "@/types/todo";
 import { SprintModel } from "@/models/SprintModel";
 import { STORAGE_KEYS } from "@/storage/storage";
 import { PrintIcon } from "@/components/shared/Icons";
-import { formatDateKey } from "@/utils/dateUtils";
+import { formatDateKey, parseLocalDate } from "@/utils/dateUtils";
 import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
 
 type TimePeriod = "today" | "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "all" | "custom";
@@ -82,7 +82,9 @@ function formatDuration(minutes: number): string {
 }
 
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
+  // Values here are local YYYY-MM-DD keys; new Date() would read those as UTC
+  // midnight and render the previous day west of UTC.
+  const date = parseLocalDate(dateStr);
   return date.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
@@ -161,9 +163,12 @@ export default function TimeReportsView({ todos, people, projects, settings, spr
         return getMonthRange(lastMonth);
       }
       case "custom": {
-        const start = customStartDate ? new Date(customStartDate) : new Date(now);
+        // parseLocalDate, not new Date: the date input yields YYYY-MM-DD, which
+        // new Date() reads as UTC midnight. Applying local setHours to that
+        // shifted the whole range a day earlier west of UTC.
+        const start = customStartDate ? parseLocalDate(customStartDate) : new Date(now);
         start.setHours(0, 0, 0, 0);
-        const end = customEndDate ? new Date(customEndDate) : new Date(now);
+        const end = customEndDate ? parseLocalDate(customEndDate) : new Date(now);
         end.setHours(23, 59, 59, 999);
         return { start, end };
       }
@@ -205,7 +210,11 @@ export default function TimeReportsView({ todos, people, projects, settings, spr
           entries.push({
             todoId: todo.id,
             todoText: todo.plainText || todo.text,
-            date: new Date(entry.startTime).toISOString(),
+            // A local date key, not toISOString(). The bucketing below and the
+            // daily trend both compare against formatDateKey, which is local,
+            // so a UTC key split one working day across two rows and labelled
+            // them with the wrong dates anywhere west of UTC.
+            date: formatDateKey(entryDate),
             duration: duration,
             assignedPeople: todo.assignedPeople || [],
             sourcePeople: todo.sourcePeople || [],
@@ -244,7 +253,7 @@ export default function TimeReportsView({ todos, people, projects, settings, spr
           keys = [entry.sprint || "No Sprint"];
           break;
         case "day":
-          keys = [entry.date.split("T")[0]];
+          keys = [entry.date];
           break;
       }
 
@@ -340,7 +349,7 @@ export default function TimeReportsView({ todos, people, projects, settings, spr
       const dateStr = formatDateKey(date);
 
       const minutes = timeEntries
-        .filter((entry) => entry.date.split("T")[0] === dateStr)
+        .filter((entry) => entry.date === dateStr)
         .reduce((sum, entry) => sum + entry.duration, 0);
 
       days.push({
