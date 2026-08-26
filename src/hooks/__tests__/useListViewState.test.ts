@@ -21,11 +21,6 @@ import { Todo, getTodoId, getTag } from "@/types/todo";
 import { getPersonId } from "@/types/person";
 import { getTimestamp } from "@/types/time";
 
-if (typeof structuredClone === "undefined") {
-  (global as unknown as Record<string, unknown>).structuredClone = <T>(obj: T): T =>
-    JSON.parse(JSON.stringify(obj));
-}
-
 // Auto-assign is ON by default and defaults dueDate to "today", so a todo with
 // no explicit due date still reports one. Fixtures turn it off so "no due
 // date" means what it says; the default behaviour is pinned separately below.

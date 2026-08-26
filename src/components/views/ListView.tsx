@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, forwardRef, useImperativeHandle, useRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
@@ -13,7 +19,10 @@ import { TodoTemplate } from "@/types/todoTemplate";
 import { TodoId, TodoMetadata } from "@/types/todo";
 import { TodoItem } from "@/components/items/TodoItem";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
-import { BatchEditModal, BatchEditData } from "@/components/overlays/BatchEditModal";
+import {
+  BatchEditModal,
+  BatchEditData,
+} from "@/components/overlays/BatchEditModal";
 import { SavePresetModal } from "@/components/shared/SavePresetModal";
 import { ListViewToolbar } from "@/components/shared/ListViewToolbar";
 import { FilterSection } from "@/components/shared/FilterSection";
@@ -76,7 +85,8 @@ export const listViewTutorialSteps: TutorialStep[] = [
     targetSelector: '[data-tutorial="save-preset"]',
     position: "bottom",
     spotlightPadding: 8,
-    fallbackHint: "The save preset button (💾) is in the toolbar area near filters",
+    fallbackHint:
+      "The save preset button (💾) is in the toolbar area near filters",
   },
   {
     id: "list-selection",
@@ -134,7 +144,12 @@ interface ListViewProps {
   deleteTodo: (id: TodoId) => void;
   archiveTodo: (id: TodoId) => void;
   unarchiveTodo: (id: TodoId) => void;
-  editTodo: (id: TodoId, text: string, plainText: string, metadata: TodoMetadata) => void;
+  editTodo: (
+    id: TodoId,
+    text: string,
+    plainText: string,
+    metadata: TodoMetadata,
+  ) => void;
   reorderTodos: (newOrder: TodoId[]) => void;
 
   // People/Project/Priority actions
@@ -160,43 +175,41 @@ interface ListViewProps {
   dependencyBlockNotification: string | null;
 }
 
-export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListView(
-  {
-    todos,
-    settings,
-    sortedPeople,
-    sortedProjects,
-    sortedPriorities,
-    sprints,
-    nextPlannedSprint,
-    features,
-    templates,
-    onShowTemplatesManager,
-    searchHistory,
-    addToSearchHistory,
-    removeFromSearchHistory,
-    clearSearchHistory,
-    toggleTodo,
-    deleteTodo,
-    archiveTodo,
-    unarchiveTodo,
-    editTodo,
-    reorderTodos,
-    onAddPerson,
-    onAddProject,
-    onAddPriority,
-    addTodoComment,
-    editTodoComment,
-    deleteTodoComment,
-    onOpenTodoDetails,
-    undoActions,
-    fadingOutIds,
-    undo,
-    dismissUndo,
-    dependencyBlockNotification,
-  },
+export function ListView({
+  todos,
+  settings,
+  sortedPeople,
+  sortedProjects,
+  sortedPriorities,
+  sprints,
+  nextPlannedSprint,
+  features,
+  templates,
+  onShowTemplatesManager,
+  searchHistory,
+  addToSearchHistory,
+  removeFromSearchHistory,
+  clearSearchHistory,
+  toggleTodo,
+  deleteTodo,
+  archiveTodo,
+  unarchiveTodo,
+  editTodo,
+  reorderTodos,
+  onAddPerson,
+  onAddProject,
+  onAddPriority,
+  addTodoComment,
+  editTodoComment,
+  deleteTodoComment,
+  onOpenTodoDetails,
+  undoActions,
+  fadingOutIds,
+  undo,
+  dismissUndo,
+  dependencyBlockNotification,
   ref,
-) {
+}: ListViewProps & { ref?: React.Ref<ListViewHandle> }) {
   // Search input ref for focus handling
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -250,7 +263,9 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
 
   // Bulk selection state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedTodoIds, setSelectedTodoIds] = useState<Set<string>>(new Set());
+  const [selectedTodoIds, setSelectedTodoIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Batch edit state
   const [isBatchEditOpen, setIsBatchEditOpen] = useState(false);
@@ -295,7 +310,14 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
       toggleFilters,
       focusSearch,
     }),
-    [isSelectionMode, toggleSelectionMode, isDragMode, toggleDragMode, toggleFilters, focusSearch],
+    [
+      isSelectionMode,
+      toggleSelectionMode,
+      isDragMode,
+      toggleDragMode,
+      toggleFilters,
+      focusSearch,
+    ],
   );
 
   const handleSelectionChange = useCallback((id: string, selected: boolean) => {
@@ -337,13 +359,17 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
 
   // Bulk action handlers
   const bulkComplete = useCallback(() => {
-    const selectedActive = todos.filter((t) => t.isActive && selectedTodoIds.has(t.id));
+    const selectedActive = todos.filter(
+      (t) => t.isActive && selectedTodoIds.has(t.id),
+    );
     selectedActive.forEach((todo) => toggleTodo(todo.id));
     setSelectedTodoIds(new Set());
   }, [todos, selectedTodoIds, toggleTodo]);
 
   const bulkArchive = useCallback(() => {
-    const selectedCompleted = todos.filter((t) => t.isCompleted && selectedTodoIds.has(t.id));
+    const selectedCompleted = todos.filter(
+      (t) => t.isCompleted && selectedTodoIds.has(t.id),
+    );
     selectedCompleted.forEach((todo) => archiveTodo(todo.id));
     setSelectedTodoIds(new Set());
   }, [todos, selectedTodoIds, archiveTodo]);
@@ -365,7 +391,9 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
   }, [todos, selectedTodoIds, deleteTodo, showConfirmDialog]);
 
   const bulkUnarchive = useCallback(() => {
-    const selectedArchived = todos.filter((t) => t.isArchived && selectedTodoIds.has(t.id));
+    const selectedArchived = todos.filter(
+      (t) => t.isArchived && selectedTodoIds.has(t.id),
+    );
     selectedArchived.forEach((todo) => unarchiveTodo(todo.id));
     setSelectedTodoIds(new Set());
   }, [todos, selectedTodoIds, unarchiveTodo]);
@@ -387,7 +415,10 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
         if (batchEditData.setProject) {
           if (batchEditData.project) {
             if (!newMetadata.projects.includes(batchEditData.project)) {
-              newMetadata.projects = [...newMetadata.projects, batchEditData.project];
+              newMetadata.projects = [
+                ...newMetadata.projects,
+                batchEditData.project,
+              ];
             }
           } else {
             newMetadata.projects = [];
@@ -396,7 +427,10 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
         if (batchEditData.setAssignee) {
           if (batchEditData.assignee) {
             if (!newMetadata.assignedPeople.includes(batchEditData.assignee)) {
-              newMetadata.assignedPeople = [...newMetadata.assignedPeople, batchEditData.assignee];
+              newMetadata.assignedPeople = [
+                ...newMetadata.assignedPeople,
+                batchEditData.assignee,
+              ];
             }
           } else {
             newMetadata.assignedPeople = [];
@@ -408,7 +442,10 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
         if (batchEditData.setSource) {
           if (batchEditData.source) {
             if (!newMetadata.sourcePeople.includes(batchEditData.source)) {
-              newMetadata.sourcePeople = [...newMetadata.sourcePeople, batchEditData.source];
+              newMetadata.sourcePeople = [
+                ...newMetadata.sourcePeople,
+                batchEditData.source,
+              ];
             }
           } else {
             newMetadata.sourcePeople = [];
@@ -444,7 +481,10 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
 
   // Convert SprintModel[] to Sprint[] for components that need raw data
   const sprintsRaw = useMemo(() => sprints.map((s) => s.raw), [sprints]);
-  const nextPlannedSprintRaw = useMemo(() => nextPlannedSprint?.raw, [nextPlannedSprint]);
+  const nextPlannedSprintRaw = useMemo(
+    () => nextPlannedSprint?.raw,
+    [nextPlannedSprint],
+  );
 
   // Calculate archive threshold
   const archiveThresholdMs = settings.general.archiveDays * 24 * 60 * 60 * 1000;
@@ -469,7 +509,9 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
   // Export handler - exports filtered todos if filters active, otherwise all
   const handleExport = useCallback(
     (format: ExportFormat) => {
-      const todosToExport = hasActiveFilters ? [...activeTodos, ...completedTodos, ...archivedTodos] : todos;
+      const todosToExport = hasActiveFilters
+        ? [...activeTodos, ...completedTodos, ...archivedTodos]
+        : todos;
       const date = formatDateKey(new Date());
       const filename = `todos-${date}`;
       exportTodos(todosToExport, format, filename);
@@ -479,7 +521,11 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
 
   // Helper function to get button color class for filter sections
   // Uses actual marker colors from settings
-  const getFilterButtonColor = (type: keyof Omit<TodoFilters, "searchText">, value: string, isSelected: boolean) => {
+  const getFilterButtonColor = (
+    type: keyof Omit<TodoFilters, "searchText">,
+    value: string,
+    isSelected: boolean,
+  ) => {
     if (isSelected) {
       return "px-2 py-0.5 text-xs rounded transition-colors";
     }
@@ -572,8 +618,12 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onToggle={(value) => handleFilterClick("assignedPeople", value)}
                 onSelectAll={() => handleSelectAll("assignedPeople")}
                 onClear={() => handleClearAll("assignedPeople")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("assignedPeople", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("assignedPeople", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("assignedPeople", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("assignedPeople", value, isSelected)
+                }
                 formatLabel={(value) => `@${value}`}
               />
 
@@ -586,8 +636,12 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onToggle={(value) => handleFilterClick("projects", value)}
                 onSelectAll={() => handleSelectAll("projects")}
                 onClear={() => handleClearAll("projects")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("projects", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("projects", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("projects", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("projects", value, isSelected)
+                }
                 formatLabel={(value) => `%${value}`}
               />
 
@@ -600,19 +654,26 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onToggle={(value) => handleFilterClick("categories", value)}
                 onSelectAll={() => handleSelectAll("categories")}
                 onClear={() => handleClearAll("categories")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("categories", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("categories", value, isSelected)
+                }
                 getButtonStyle={(value, isSelected) => {
                   if (!isSelected) return undefined;
                   // Use category's own color
-                  const category = settings.categories.find((c) => c.id === value);
-                  const bgColor = category?.color || settings.markerColors.project;
+                  const category = settings.categories.find(
+                    (c) => c.id === value,
+                  );
+                  const bgColor =
+                    category?.color || settings.markerColors.project;
                   return {
                     backgroundColor: bgColor,
                     color: getTextColor(bgColor),
                   };
                 }}
                 formatLabel={(value) => {
-                  const category = settings.categories.find((c) => c.id === value);
+                  const category = settings.categories.find(
+                    (c) => c.id === value,
+                  );
                   return category?.name || value;
                 }}
               />
@@ -626,8 +687,12 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onToggle={(value) => handleFilterClick("sourcePeople", value)}
                 onSelectAll={() => handleSelectAll("sourcePeople")}
                 onClear={() => handleClearAll("sourcePeople")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("sourcePeople", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("sourcePeople", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("sourcePeople", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("sourcePeople", value, isSelected)
+                }
                 formatLabel={(value) => `$${value}`}
               />
 
@@ -637,11 +702,17 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 activeCount={filters.mentionedPeople.size}
                 options={filterOptions.mentionedPeople}
                 selectedValues={filters.mentionedPeople}
-                onToggle={(value) => handleFilterClick("mentionedPeople", value)}
+                onToggle={(value) =>
+                  handleFilterClick("mentionedPeople", value)
+                }
                 onSelectAll={() => handleSelectAll("mentionedPeople")}
                 onClear={() => handleClearAll("mentionedPeople")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("mentionedPeople", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("mentionedPeople", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("mentionedPeople", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("mentionedPeople", value, isSelected)
+                }
                 formatLabel={(value) => value}
               />
 
@@ -654,8 +725,12 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onToggle={(value) => handleFilterClick("priorities", value)}
                 onSelectAll={() => handleSelectAll("priorities")}
                 onClear={() => handleClearAll("priorities")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("priorities", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("priorities", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("priorities", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("priorities", value, isSelected)
+                }
                 formatLabel={(value) => `!!${value}`}
               />
 
@@ -668,8 +743,12 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onToggle={(value) => handleFilterClick("dueDates", value)}
                 onSelectAll={() => handleSelectAll("dueDates")}
                 onClear={() => handleClearAll("dueDates")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("dueDates", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("dueDates", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("dueDates", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("dueDates", value, isSelected)
+                }
                 formatLabel={(value) => `~${value}`}
               />
 
@@ -682,8 +761,12 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onToggle={(value) => handleFilterClick("durations", value)}
                 onSelectAll={() => handleSelectAll("durations")}
                 onClear={() => handleClearAll("durations")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("durations", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("durations", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("durations", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("durations", value, isSelected)
+                }
                 formatLabel={(value) => `*${value}`}
               />
 
@@ -696,8 +779,12 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onToggle={(value) => handleFilterClick("tags", value)}
                 onSelectAll={() => handleSelectAll("tags")}
                 onClear={() => handleClearAll("tags")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("tags", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("tags", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("tags", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("tags", value, isSelected)
+                }
                 formatLabel={(value) => `&${value}`}
               />
 
@@ -710,8 +797,12 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onToggle={(value) => handleFilterClick("recurring", value)}
                 onSelectAll={() => handleSelectAll("recurring")}
                 onClear={() => handleClearAll("recurring")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("recurring", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("recurring", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("recurring", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("recurring", value, isSelected)
+                }
                 formatLabel={(value) => `%${value}`}
               />
 
@@ -724,8 +815,12 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
                 onToggle={(value) => handleFilterClick("dependencies", value)}
                 onSelectAll={() => handleSelectAll("dependencies")}
                 onClear={() => handleClearAll("dependencies")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("dependencies", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("dependencies", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("dependencies", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("dependencies", value, isSelected)
+                }
                 formatLabel={(value) => `>${value}`}
               />
             </div>
@@ -740,10 +835,16 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
             <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
               {selectedTodoIds.size} selected
             </span>
-            <button onClick={selectAll} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+            <button
+              onClick={selectAll}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            >
               Select all
             </button>
-            <button onClick={deselectAll} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+            <button
+              onClick={deselectAll}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            >
               Clear
             </button>
           </div>
@@ -891,7 +992,9 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
       {todos.length === 0 ? (
         <div className="text-center py-16" data-tutorial="todo-list">
           <div className="text-6xl mb-4">📝</div>
-          <p className="text-xl text-zinc-600 dark:text-zinc-400">No tasks yet. Add one to get started!</p>
+          <p className="text-xl text-zinc-600 dark:text-zinc-400">
+            No tasks yet. Add one to get started!
+          </p>
         </div>
       ) : (
         <div className="space-y-4" data-tutorial="todo-list">
@@ -912,55 +1015,61 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
               </button>
               {activeExpanded && (
                 <div className="space-y-4">
-                  {Object.entries(groupedActiveTodos).map(([groupName, groupTodos]) => (
-                    <div key={groupName}>
-                      {groupName && (
-                        <h3 className="text-xs font-semibold text-zinc-600 dark:text-zinc-500 uppercase tracking-wide mb-2 pl-2">
-                          {groupName} ({groupTodos.length})
-                        </h3>
-                      )}
-                      <ul className="space-y-2">
-                        {groupTodos.map((todo) => (
-                          <li key={todo.id} onClick={() => onOpenTodoDetails(todo)} className="cursor-pointer">
-                            <TodoItem
-                              todo={todo}
-                              onToggle={toggleTodo}
-                              onDelete={deleteTodo}
-                              onArchive={archiveTodo}
-                              onUnarchive={unarchiveTodo}
-                              onEdit={editTodo}
-                              markerColors={settings.markerColors}
-                              settings={settings}
-                              linkPatterns={settings.linkPatterns}
-                              availablePeople={sortedPeople}
-                              availableProjects={sortedProjects}
-                              availablePriorities={sortedPriorities}
-                              onAddPerson={onAddPerson}
-                              onAddProject={onAddProject}
-                              onAddPriority={onAddPriority}
-                              isExpanded={false}
-                              onToggleExpand={() => {}}
-                              onAddComment={addTodoComment}
-                              onEditComment={editTodoComment}
-                              onDeleteComment={deleteTodoComment}
-                              isSelectionMode={isSelectionMode}
-                              isSelected={selectedTodoIds.has(todo.id)}
-                              onSelectionChange={handleSelectionChange}
-                              isDraggable={isDragMode && todo.isActive}
-                              isDraggedOver={dragOverTodoId === todo.id}
-                              onDragStart={handleDragStart}
-                              onDragEnd={handleDragEnd}
-                              onDragOver={handleDragOver}
-                              onDragLeave={handleDragLeave}
-                              onDrop={handleDrop}
-                              sprints={sprintsRaw}
-                              nextPlannedSprint={nextPlannedSprintRaw}
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
+                  {Object.entries(groupedActiveTodos).map(
+                    ([groupName, groupTodos]) => (
+                      <div key={groupName}>
+                        {groupName && (
+                          <h3 className="text-xs font-semibold text-zinc-600 dark:text-zinc-500 uppercase tracking-wide mb-2 pl-2">
+                            {groupName} ({groupTodos.length})
+                          </h3>
+                        )}
+                        <ul className="space-y-2">
+                          {groupTodos.map((todo) => (
+                            <li
+                              key={todo.id}
+                              onClick={() => onOpenTodoDetails(todo)}
+                              className="cursor-pointer"
+                            >
+                              <TodoItem
+                                todo={todo}
+                                onToggle={toggleTodo}
+                                onDelete={deleteTodo}
+                                onArchive={archiveTodo}
+                                onUnarchive={unarchiveTodo}
+                                onEdit={editTodo}
+                                markerColors={settings.markerColors}
+                                settings={settings}
+                                linkPatterns={settings.linkPatterns}
+                                availablePeople={sortedPeople}
+                                availableProjects={sortedProjects}
+                                availablePriorities={sortedPriorities}
+                                onAddPerson={onAddPerson}
+                                onAddProject={onAddProject}
+                                onAddPriority={onAddPriority}
+                                isExpanded={false}
+                                onToggleExpand={() => {}}
+                                onAddComment={addTodoComment}
+                                onEditComment={editTodoComment}
+                                onDeleteComment={deleteTodoComment}
+                                isSelectionMode={isSelectionMode}
+                                isSelected={selectedTodoIds.has(todo.id)}
+                                onSelectionChange={handleSelectionChange}
+                                isDraggable={isDragMode && todo.isActive}
+                                isDraggedOver={dragOverTodoId === todo.id}
+                                onDragStart={handleDragStart}
+                                onDragEnd={handleDragEnd}
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                sprints={sprintsRaw}
+                                nextPlannedSprint={nextPlannedSprintRaw}
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ),
+                  )}
                 </div>
               )}
             </section>
@@ -984,7 +1093,11 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
               {completedExpanded && (
                 <ul className="space-y-2">
                   {completedTodos.map((todo) => (
-                    <li key={todo.id} onClick={() => onOpenTodoDetails(todo)} className="cursor-pointer">
+                    <li
+                      key={todo.id}
+                      onClick={() => onOpenTodoDetails(todo)}
+                      className="cursor-pointer"
+                    >
                       <TodoItem
                         todo={todo}
                         onToggle={toggleTodo}
@@ -1038,7 +1151,11 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
               {archivedExpanded && (
                 <ul className="space-y-2">
                   {archivedTodos.map((todo) => (
-                    <li key={todo.id} onClick={() => onOpenTodoDetails(todo)} className="cursor-pointer">
+                    <li
+                      key={todo.id}
+                      onClick={() => onOpenTodoDetails(todo)}
+                      className="cursor-pointer"
+                    >
                       <TodoItem
                         todo={todo}
                         onToggle={toggleTodo}
@@ -1131,4 +1248,4 @@ export const ListView = forwardRef<ListViewHandle, ListViewProps>(function ListV
       {ConfirmDialogComponent}
     </>
   );
-});
+}

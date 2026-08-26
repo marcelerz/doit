@@ -6,11 +6,6 @@ import { renderHook, act } from "@testing-library/react";
 import { getKanbanStateId } from "@/types/kanbanState";
 import { useTodos } from "../useTodos";
 
-// Polyfill structuredClone for Node.js test environment
-if (typeof structuredClone === "undefined") {
-  (global as unknown as Record<string, unknown>).structuredClone = <T>(obj: T): T => JSON.parse(JSON.stringify(obj));
-}
-
 // Mock storage
 jest.mock("@/storage/storage", () => ({
   STORAGE_KEYS: { TODOS: "doit-todos", SETTINGS: "doit-settings" },

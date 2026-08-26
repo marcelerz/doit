@@ -17,7 +17,7 @@ import { getTimestamp, Timestamp } from "@/types/time";
  * @returns A branded ActivityId
  */
 export function generateActivityId(): ActivityId {
-  return getActivityId(`activity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  return getActivityId(`activity_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`);
 }
 
 /**

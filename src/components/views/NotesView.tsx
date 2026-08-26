@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useMemo, useRef, useState, forwardRef, useImperativeHandle } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  useImperativeHandle,
+} from "react";
 import { NoteItem } from "@/components/items/NoteItem";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FilterSection } from "@/components/shared/FilterSection";
@@ -72,7 +78,7 @@ export const notesViewTutorialSteps: TutorialStep[] = [
     id: "notes-filters",
     title: "Filter Notes",
     description:
-      'Click the filter button to filter notes by:\n\n- People (assigned, source, mentioned)\n- Projects\n- Tags\n\nCombine filters to find exactly what you need.',
+      "Click the filter button to filter notes by:\n\n- People (assigned, source, mentioned)\n- Projects\n- Tags\n\nCombine filters to find exactly what you need.",
     targetSelector: '[data-tutorial="notes-filters"]',
     position: "bottom",
     spotlightPadding: 8,
@@ -156,34 +162,32 @@ interface NotesViewProps {
   onExport?: (format: ExportFormat) => void;
 }
 
-export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function NotesView(
-  {
-    notes,
-    people,
-    projects,
-    todos,
-    onOpenNote,
-    onDeleteNote,
-    onArchiveNote,
-    onUnarchiveNote,
-    onTogglePinned,
-    onConvertToTodo,
-    onReorderNotes,
-    markerColors = defaultMarkerColors,
-    features,
-    searchInputRef,
-    searchHistory = [],
-    addToSearchHistory = () => {},
-    removeFromSearchHistory = () => {},
-    clearSearchHistory = () => {},
-    undoActions = [],
-    fadingOutIds = new Set(),
-    undo = () => {},
-    dismissUndo = () => {},
-    onExport = () => {},
-  },
+export function NotesView({
+  notes,
+  people,
+  projects,
+  todos,
+  onOpenNote,
+  onDeleteNote,
+  onArchiveNote,
+  onUnarchiveNote,
+  onTogglePinned,
+  onConvertToTodo,
+  onReorderNotes,
+  markerColors = defaultMarkerColors,
+  features,
+  searchInputRef,
+  searchHistory = [],
+  addToSearchHistory = () => {},
+  removeFromSearchHistory = () => {},
+  clearSearchHistory = () => {},
+  undoActions = [],
+  fadingOutIds = new Set(),
+  undo = () => {},
+  dismissUndo = () => {},
+  onExport = () => {},
   ref,
-) {
+}: NotesViewProps & { ref?: React.Ref<NotesViewHandle> }) {
   const localInputRef = useRef<HTMLInputElement>(null);
   const inputRef = searchInputRef || localInputRef;
 
@@ -253,7 +257,15 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
       toggleFilters: () => setShowFilters(!showFilters),
       focusSearch: () => inputRef.current?.focus(),
     }),
-    [isSelectionMode, setIsSelectionMode, isDragMode, setIsDragMode, showFilters, setShowFilters, inputRef],
+    [
+      isSelectionMode,
+      setIsSelectionMode,
+      isDragMode,
+      setIsDragMode,
+      showFilters,
+      setShowFilters,
+      inputRef,
+    ],
   );
 
   // Toggle selection mode
@@ -289,7 +301,9 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
   );
 
   const selectAllVisible = useCallback(() => {
-    const visibleIds = filteredAndSortedNotes.filter((n) => n.isActive).map((n) => n.id);
+    const visibleIds = filteredAndSortedNotes
+      .filter((n) => n.isActive)
+      .map((n) => n.id);
     selectAll(visibleIds);
   }, [selectAll, filteredAndSortedNotes]);
 
@@ -357,7 +371,9 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
       if (draggedId === targetNoteId) return;
 
       // Build new order
-      const activeNoteIds = filteredAndSortedNotes.filter((n) => n.isActive).map((n) => n.id);
+      const activeNoteIds = filteredAndSortedNotes
+        .filter((n) => n.isActive)
+        .map((n) => n.id);
       const fromIndex = activeNoteIds.indexOf(draggedId);
       const toIndex = activeNoteIds.indexOf(targetNoteId);
 
@@ -385,7 +401,10 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
   );
 
   // Group active notes
-  const groupedActiveNotes = useMemo(() => groupNotes(activeNotes), [activeNotes, groupNotes]);
+  const groupedActiveNotes = useMemo(
+    () => groupNotes(activeNotes),
+    [activeNotes, groupNotes],
+  );
 
   // Count active and archived notes (unfiltered)
   const activeCount = notes.filter((n) => n.isActive).length;
@@ -470,9 +489,12 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div>
-          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Notes</h2>
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+            Notes
+          </h2>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-            {filteredAndSortedNotes.length} of {activeCount} note{activeCount !== 1 ? "s" : ""}
+            {filteredAndSortedNotes.length} of {activeCount} note
+            {activeCount !== 1 ? "s" : ""}
             {archivedCount > 0 && ` (${archivedCount} archived)`}
             {hasActiveFilters && (
               <span className="ml-2 text-blue-600 dark:text-blue-400">
@@ -530,8 +552,12 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
                 onToggle={(value) => handleFilterClick("assignedPeople", value)}
                 onSelectAll={() => handleSelectAll("assignedPeople")}
                 onClear={() => handleClearAll("assignedPeople")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("assignedPeople", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("assignedPeople", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("assignedPeople", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("assignedPeople", value, isSelected)
+                }
                 formatLabel={(id) => peopleMap.get(id) || id}
               />
 
@@ -543,8 +569,12 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
                 onToggle={(value) => handleFilterClick("sourcePeople", value)}
                 onSelectAll={() => handleSelectAll("sourcePeople")}
                 onClear={() => handleClearAll("sourcePeople")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("sourcePeople", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("sourcePeople", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("sourcePeople", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("sourcePeople", value, isSelected)
+                }
                 formatLabel={(id) => peopleMap.get(id) || id}
               />
 
@@ -553,11 +583,17 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
                 activeCount={filters.mentionedPeople.size}
                 options={filterOptions.mentionedPeople}
                 selectedValues={filters.mentionedPeople}
-                onToggle={(value) => handleFilterClick("mentionedPeople", value)}
+                onToggle={(value) =>
+                  handleFilterClick("mentionedPeople", value)
+                }
                 onSelectAll={() => handleSelectAll("mentionedPeople")}
                 onClear={() => handleClearAll("mentionedPeople")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("mentionedPeople", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("mentionedPeople", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("mentionedPeople", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("mentionedPeople", value, isSelected)
+                }
                 formatLabel={(id) => peopleMap.get(id) || id}
               />
 
@@ -569,8 +605,12 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
                 onToggle={(value) => handleFilterClick("projects", value)}
                 onSelectAll={() => handleSelectAll("projects")}
                 onClear={() => handleClearAll("projects")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("projects", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("projects", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("projects", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("projects", value, isSelected)
+                }
                 formatLabel={(id) => projectsMap.get(id) || id}
               />
 
@@ -582,8 +622,12 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
                 onToggle={(value) => handleFilterClick("tags", value)}
                 onSelectAll={() => handleSelectAll("tags")}
                 onClear={() => handleClearAll("tags")}
-                getButtonColor={(value, isSelected) => getFilterButtonColor("tags", value, isSelected)}
-                getButtonStyle={(value, isSelected) => getFilterButtonStyle("tags", value, isSelected)}
+                getButtonColor={(value, isSelected) =>
+                  getFilterButtonColor("tags", value, isSelected)
+                }
+                getButtonStyle={(value, isSelected) =>
+                  getFilterButtonStyle("tags", value, isSelected)
+                }
               />
             </div>
           </div>
@@ -597,10 +641,16 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
             <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
               {selectedNoteIds.size} selected
             </span>
-            <button onClick={selectAllVisible} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+            <button
+              onClick={selectAllVisible}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            >
               Select all
             </button>
-            <button onClick={clearSelection} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+            <button
+              onClick={clearSelection}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            >
               Clear
             </button>
           </div>
@@ -743,35 +793,39 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
               onToggle={() => setActiveExpanded(!activeExpanded)}
             >
               <div className="space-y-4">
-                {Object.entries(groupedActiveNotes).map(([groupName, groupNotes]) => (
-                  <div key={groupName || "ungrouped"}>
-                    {groupName && (
-                      <h3 className="text-xs font-semibold text-zinc-600 dark:text-zinc-500 uppercase tracking-wide mb-2 pl-2">
-                        {groupName} ({groupNotes.length})
-                      </h3>
-                    )}
-                    <ul className="space-y-2">
-                      {groupNotes.map(renderNoteItem)}
-                    </ul>
-                  </div>
-                ))}
+                {Object.entries(groupedActiveNotes).map(
+                  ([groupName, groupNotes]) => (
+                    <div key={groupName || "ungrouped"}>
+                      {groupName && (
+                        <h3 className="text-xs font-semibold text-zinc-600 dark:text-zinc-500 uppercase tracking-wide mb-2 pl-2">
+                          {groupName} ({groupNotes.length})
+                        </h3>
+                      )}
+                      <ul className="space-y-2">
+                        {groupNotes.map(renderNoteItem)}
+                      </ul>
+                    </div>
+                  ),
+                )}
               </div>
             </SectionHeader>
           )}
 
           {/* Archived Notes Section */}
-          {archivedNotes.length > 0 && (activeQuickFilter === "archived" || activeQuickFilter === "all") && (
-            <SectionHeader
-              title="Archived"
-              count={archivedNotes.length}
-              expanded={archivedExpanded}
-              onToggle={() => setArchivedExpanded(!archivedExpanded)}
-            >
-              <ul className="space-y-2">
-                {archivedNotes.map(renderNoteItem)}
-              </ul>
-            </SectionHeader>
-          )}
+          {archivedNotes.length > 0 &&
+            (activeQuickFilter === "archived" ||
+              activeQuickFilter === "all") && (
+              <SectionHeader
+                title="Archived"
+                count={archivedNotes.length}
+                expanded={archivedExpanded}
+                onToggle={() => setArchivedExpanded(!archivedExpanded)}
+              >
+                <ul className="space-y-2">
+                  {archivedNotes.map(renderNoteItem)}
+                </ul>
+              </SectionHeader>
+            )}
         </div>
       )}
 
@@ -804,4 +858,4 @@ export const NotesView = forwardRef<NotesViewHandle, NotesViewProps>(function No
       />
     </>
   );
-});
+}

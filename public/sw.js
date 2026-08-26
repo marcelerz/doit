@@ -310,13 +310,6 @@ self.addEventListener("message", (event) => {
 });
 
 // Background sync for when coming back online
-self.addEventListener("sync", (event) => {
-  if (event.tag === "sync-data") {
-    console.log("[SW] Background sync triggered");
-    // Data is stored in IndexedDB, no sync needed
-  }
-});
-
 // Handle push notifications
 self.addEventListener("push", (event) => {
   if (event.data) {

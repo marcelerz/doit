@@ -9,7 +9,16 @@ const getItem = jest.fn();
 
 jest.mock("@/storage/storage", () => ({
   STORAGE_KEYS: { SETTINGS: "doit-settings" },
-  getStorageAdapter: () => ({ getItem: (key: string) => getItem(key) }),
+  loadFromStorage: (key: string, fallback: unknown) =>
+    Promise.resolve(getItem(key)).then((raw) => {
+      if (typeof raw !== "string") return raw ?? fallback;
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed ?? fallback;
+      } catch {
+        return fallback;
+      }
+    }),
   waitForStorageInit: jest.fn().mockResolvedValue(undefined),
 }));
 

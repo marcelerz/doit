@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { ThemeMode } from "@/types/settings";
-import { STORAGE_KEYS, getStorageAdapter } from "@/storage/storage";
+import { STORAGE_KEYS, loadFromStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 
 // Function to apply theme
@@ -30,12 +30,16 @@ const loadTheme = async (useFallback = true): Promise<void> => {
     // Wait for storage initialization to ensure we use the correct adapter
     await waitForStorageInit();
 
-    const settingsStr = await Promise.resolve(getStorageAdapter().getItem(STORAGE_KEYS.SETTINGS));
-    if (settingsStr && typeof settingsStr === "string") {
-      const settings = JSON.parse(settingsStr);
-      const theme = settings.general?.theme || "system";
-      applyTheme(theme);
-      return theme;
+    // The one place that read the adapter and parsed JSON by hand, against 27
+    // that go through loadFromStorage. That also skipped its guard against a
+    // stored literal "null", which parses to null and is then dereferenced.
+    const settings = await loadFromStorage<{ general?: { theme?: ThemeMode } } | null>(
+      STORAGE_KEYS.SETTINGS,
+      null,
+    );
+    if (settings) {
+      applyTheme(settings.general?.theme || "system");
+      return;
     }
   } catch (e) {
     console.error("Failed to load theme:", e);
