@@ -13,9 +13,8 @@ guides, the four auto-detection documents, and the e2e testing patterns.
 - **Type**: Next.js TypeScript webapp
 - **Features**: Todo app with automatic IndexedDB/localStorage, state-based architecture, multiple views, business logic abstraction (TodoModel, PersonModel, ProjectModel), offline PWA support
 - **Design**: Full-page, mobile-responsive, installable PWA
-- **Status**: Complete and running
 - **Storage**: Automatic IndexedDB with localStorage fallback and migration
-- **Migration Version**: 5 (removed imageUrl field from people and projects)
+- **Migration Version**: 7 (see `src/storage/migrations.ts`; a stored version above this is refused rather than guessed at)
 - **Business Logic**: Model abstraction layer - useTodos returns TodoModel[], usePeople returns PersonModel[], useProjects returns ProjectModel[]
 - **PWA**: Service worker with offline caching, update notifications, and installable on mobile/desktop
 
@@ -45,7 +44,7 @@ The app is a fully installable PWA with comprehensive offline support:
 - Provides `applyUpdate()` to activate new service worker
 - Provides `clearCache()` to clear all cached data
 
-**UI Components (`src/components/ServiceWorkerProvider.tsx`):**
+**UI Components (`src/services/ServiceWorkerProvider.tsx`):**
 
 - Shows offline toast when connection is lost
 - Shows persistent offline indicator in corner when offline
@@ -61,16 +60,16 @@ The app is a fully installable PWA with comprehensive offline support:
 
 ### Storage Abstraction Layer
 
-The app uses a storage abstraction layer (`src/utils/storage.ts`) that provides:
+The app uses a storage abstraction layer (`src/storage/storage.ts`) that provides:
 
 - `StorageAdapter` interface for easy swapping of storage mechanisms
 - `LocalStorageAdapter` implementation for basic localStorage
 - `IndexedDBAdapter` implementation for IndexedDB with larger capacity
-- **Automatic storage detection** (`src/utils/storageInit.ts`) - tries IndexedDB first, falls back to localStorage
+- **Automatic storage detection** (`initializeStorage` in the same module) - tries IndexedDB first, falls back to localStorage
 - **Safari compatibility** - detects Safari Private Mode and uses localStorage fallback
 - **Automatic migration** - migrates existing localStorage data to IndexedDB transparently
 - Generic async helpers: `loadFromStorage`, `saveToStorage`, `removeFromStorage`
-- Synchronous helpers for backward compatibility: `loadFromStorageSync`, `saveToStorageSync`, `removeFromStorageSync`
+- `waitForStorageInit()` - **await this before the first read.** Until initialization resolves the module-level adapter is the localStorage one, and on an IndexedDB install the migration has already emptied it, so an un-awaited read returns nothing
 - Centralized storage keys in `STORAGE_KEYS` constant
 - `setStorageAdapter()` to manually switch storage mechanisms
 - `createIndexedDBAdapter()` factory for IndexedDB instances
@@ -85,7 +84,9 @@ The system automatically:
 
 ### Data Organization
 
-Data is now organized into separate top-level storage keys:
+Data is organized into separate top-level storage keys. `STORAGE_KEYS` in
+`src/storage/storage.ts` is the registry and the only current list; these are the ones
+worth knowing:
 
 - `doit-todos` - Todo items (managed by `useTodos` hook)
 - `doit-people` - People entities (managed by `usePeople` hook)
@@ -103,11 +104,12 @@ Data is now organized into separate top-level storage keys:
 - `doit-backup-settings` - Backup configuration
 - `doit-selection-history` - Selection history for smart suggestions (managed by `useSelectionHistory` hook)
 
-All keys are centralized in `STORAGE_KEYS` constant for easy management.
+Every key carries the `doit-` prefix, which is what backup and restore filter on -- an
+enumerated check against `STORAGE_KEYS` would silently drop anything not yet registered.
 
 ### Hooks Architecture
 
-- **`useTodos`** - Manages todo state, CRUD operations, undo/redo, exports `createModels()` helper
+- **`useTodos`** - Manages todo state, CRUD operations, and undo (there is no redo). Returns `TodoModel[]`, not raw todos
 - **`usePeople`** - Manages people state, CRUD operations, comments
 - **`useProjects`** - Manages projects state, CRUD operations, comments
 - **`useSettings`** - Manages application settings (priorities, links, markers, general, dateTime, workHours, autoAssign)
@@ -127,7 +129,7 @@ The app uses a **selection history tracking system** instead of calculating usag
 - **Tracks selections** - Records when users select values (people, projects, tags, etc.)
 - **Provides usage stats** - Returns frequency counts for sorting suggestions
 - **Persists to storage** - Maintains history across sessions
-- **Maximum history** - Keeps the last 100 selections per field type
+- **Maximum history** - Keeps the last `MAX_SELECTION_HISTORY` (100) selections per field type
 
 **Key exports from `useSelectionHistory`:**
 
@@ -136,8 +138,10 @@ The app uses a **selection history tracking system** instead of calculating usag
 - `usageStats` - Map of frequency counts per field type
 - `getRecentSelections(fieldType, limit)` - Get most recently selected values
 - `getTopUsed(fieldType, limit)` - Get most frequently used values
-- `sortByUsage(items, usageMap)` - Sort objects by usage frequency
-- `sortStringsByUsage(items, usageMap)` - Sort strings by usage frequency
+- `clearFieldHistory(fieldType)`, `clearAllHistory()` - Discard recorded selections
+
+`sortByUsage(items, usageMap)` and `sortStringsByUsage(items, usageMap)` are module-level
+exports from the same file, not part of the hook's return.
 
 **Field types tracked:**
 
@@ -360,9 +364,14 @@ Settings are organized by tabs and no longer include people/projects:
 
 ## Views
 
-The app now has four different views accessible via tabs:
+`VIEW_DEFINITIONS` in `src/types/viewRegistry.ts` is the single source for the tab list,
+its labels, its test ids and its feature flags. Eleven views are registered: Todos,
+Kanban, Gantt, Calendar, Notes, People, Projects, Sprints, Reviews, Stats and Time. All
+but Todos, People and Projects sit behind a feature flag and can be switched off.
 
-1. **List View** - Traditional todo list with filtering, sorting, grouping
+Only the first nine have a digit shortcut, because there are only nine digit keys.
+
+1. **List View** (labelled "Todos") - Traditional todo list with filtering, sorting, grouping
 2. **Kanban View** - Drag-and-drop board with customizable workflow states
 3. **Gantt View** - Timeline visualization showing todos with due dates on a horizontal timeline
 4. **Calendar View** - Monthly calendar with dots indicating tasks, click to see details
@@ -492,7 +501,7 @@ The SmartInput component automatically detects dates, recurring patterns, mentio
 
 ### Person Mention Auto-Detection
 
-- **No Marker Required**: Mentioned people are automatically detected without needing the ^ marker
+- **No Marker Required**: Mentioned people are automatically detected; there is no explicit mention marker
 - **Name Matching**: Detects person names and all their alternatives as whole words
 - **Smart Priority**: Avoids conflicts with explicit @ and $ markers, and with dates
 - **Color Highlighting**: Uses person's custom color or falls back to marker color (yellow/orange)
@@ -609,24 +618,35 @@ Todos now use a unified state system instead of separate boolean flags:
 
 Components are organized by purpose:
 
-- **views/** - Main application views (TodoApp [main container], ListView, CalendarView, GanttView, KanbanView, PeopleView, ProjectsView, SprintsView)
-- **items/** - List item components (TodoItem, PersonItem, ProjectItem)
-- **overlays/** - Modal/detail views (TodoDetailsOverlay, PersonDetailsOverlay, ProjectDetailsOverlay, BatchEditModal)
+- **views/** - Main application views: TodoApp (the container), ListView, KanbanView,
+  GanttView, CalendarView, NotesView, NoteDetailView, PeopleView, ProjectsView,
+  SprintsView, ReviewsView, ReviewDetailView, ReviewEditView, StatisticsView,
+  TimeReportsView, FocusView, OpenFocusView, and EntityListView (the shared shell behind
+  the people and projects lists)
+- **items/** - List item components: TodoItem, TodoListItem, NoteItem, NoteListItem,
+  PersonItem, ProjectItem, SprintItem, ReviewItem, and EntityItem (the shared body of the
+  person and project rows)
+- **overlays/** - Modal/detail views: TodoDetailsOverlay, PersonDetailsOverlay,
+  ProjectDetailsOverlay, SprintDetailsOverlay, BatchEditModal, NoteAddModal, HelpOverlay,
+  TutorialOverlay
 - **input/** - Input components (SmartInput, RichTextEditor)
-- **shared/** - Reusable components (Activity, Comments, MarkedText, MarkerReference, Notification, Badge, Modal, SearchableDropdown, ViewTabs, ListViewToolbar, SavePresetModal)
+- **shared/** - 36 reusable components; see the directory listing rather than a copy of it here
 - **settings/** - Settings tab components
+- **providers/** - App-level providers currently under `src/services/`: StorageInitializer,
+  ThemeProvider, ServiceWorkerProvider
 
 ## Reusable Abstractions
 
 ### Components
 
 - **Badge** - Reusable badge with optional remove button (7 color variants)
-- **Modal** - Modal/overlay wrapper with backdrop
+- **Modal** - Modal/overlay wrapper with dialog semantics, a focus trap and focus restore.
+  Its close is deliberately deferred by one tick so a RichTextEditor `onBlur` commits before unmount
+- **NoticeBox** - Info/warning/error/success notice, four variants
 - **SearchableDropdown** - Dropdown with search, keyboard nav, and add functionality
 - **ColorPicker** - Color picker with text input and "Use Default" button
 - **AlternativesInput** - Comma-separated input with preview badges
 - **ActionButtons** - Archive/unarchive + delete button group
-- **CollapsibleSection** - Collapsible section with header and count
 - **EmptyState** - Standardized empty state with emoji, message, and optional action
 - **MetadataSection** - Reusable metadata section with badges and add dropdown
 - **FilterSection** - Standardized filter section with select/clear all buttons
@@ -637,12 +657,15 @@ Components are organized by purpose:
 ### Hooks
 
 - **useKeyboardNavigation** - Arrow up/down/enter/escape handling for lists
-- **useTodos** - Todo state management with localStorage
+- **useTodos** - Todo state management, returning `TodoModel[]`
+- **useEntityManager** - The shared CRUD/comments/activity engine behind `usePeople` and `useProjects`
+- **usePersistedViewOptions** - Per-view filter/sort/group persistence, storage-init aware
+- **useViewPresets** - Saved view presets for the list and notes views
+- **useEscapeKey**, **useClickOutside** - Dismissal behaviour for menus and overlays
 - **usePeople** - People management with separate storage
 - **useProjects** - Projects management with separate storage
 - **useSettings** - Application settings management
 - **useDropdownManager** - Centralized dropdown state management
-- **useFilters** - Filter state management with localStorage persistence
 - **useListViewState** - Filter/sort/group state with view presets
 - **useDragReorder** - Drag-and-drop reordering state and handlers
 
@@ -650,13 +673,25 @@ Components are organized by purpose:
 
 - **colors.ts** - Color generation and manipulation (getPersonColor, getProjectColor, getTextColor)
 - **suggestions.ts** - Duration and recurring pattern suggestions
-- **storage.ts** - Storage abstraction layer
-- **dateParser.ts** - Date parsing, suggestions, and conversion utilities (convertToDateInputFormat, convertToTimeInputFormat)
+- **dateUtils.ts** - Date parsing, formatting and arithmetic. `parseLocalDate` is the one to
+  reach for: parsing a bare `YYYY-MM-DD` with `new Date()` lands on UTC midnight and shifts a day
+- **autoDetection.ts** - The detectors behind SmartInput
 - **recurringParser.ts** - Recurring pattern parsing
-- **metadataParser.ts** - Token-to-metadata conversion (parseTokensToMetadata)
-- **filterHelpers.ts** - Filter operations (setToSortedArray, arrayHasAnyFromSet, setHasValue)
+- **tokenParser.ts** - Token-to-metadata conversion (`parseTokensToMetadata`)
+- **filterHelpers.ts** - Filter operations (setToSortedArray, arrayHasAnyFromSet, setHasValue,
+  findByNameOrAlternatives, filterByNameOrAlternatives, arraysEqual)
+- **sanitize.ts** - The single sanitiser: `sanitizeHtml`, `sanitizeUrl`, `sanitizeCssColor`,
+  `escapeHtmlAttribute`. Anything re-injecting HTML after sanitisation reopens the XSS hole
+- **linkPatternUtils.ts** - Link pattern matching, including `escapeRegex` for user-supplied patterns
 
 ## Types
 
-- `todo.ts` - TodoState type and Todo interface
-- `settings.ts` - Settings, Person, Project, Priority interfaces
+One file per domain -- `todo.ts`, `note.ts`, `review.ts`, `person.ts`, `project.ts`,
+`sprint.ts`, `priority.ts`, `settings.ts`, and the rest of `src/types/`.
+
+All IDs are branded (`TodoId`, `PersonId`, `ProjectId`, `SprintId`, `Tag`) and are built
+through their factory functions -- `getTodoId()`, `getPersonId()` -- rather than cast.
+
+`PersonId` and `ProjectId` brand the entity's **name**, not a generated identifier: the
+person named "Marcel" has the id `"Marcel"`. That is what lets `@Marcel` in task text
+resolve without a lookup, and it is why renaming an entity is not a simple field update.
