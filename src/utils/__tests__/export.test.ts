@@ -401,6 +401,18 @@ describe("export", () => {
     });
   });
 
+    it("fills the Assigned and Projects columns", () => {
+      // Both were emitted empty behind a stale comment about needing a name
+      // registry; the model resolves them already.
+      const csv = exportToCSV([
+        createMockTodo({ plainText: "Task", assignedPeople: ["Marcel"], projects: ["Website"] }),
+      ]);
+      const dataRow = csv.split("\n")[1];
+
+      expect(dataRow).toContain("Marcel");
+      expect(dataRow).toContain("Website");
+    });
+
   describe("exportToJSON", () => {
     it("should export valid JSON", () => {
       const todos = [createMockTodo({ plainText: "Task", state: "active" })];

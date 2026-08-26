@@ -100,8 +100,11 @@ export function exportToCSV(todos: TodoModel[]): string {
       todo.priorityName || "",
       todo.dueDateDisplay || "",
       todo.durationDisplay || "",
-      "", // Assigned - would need registry for names
-      "", // Projects - would need registry for names
+      // These were emitted empty behind a comment saying names needed a
+      // registry. They do not: TodoModel resolves both to names already, which
+      // is how the notes export has always filled the same two columns.
+      todo.assignedPeople.join("; "),
+      todo.projects.join("; "),
       todo.tags.join("; "),
       todo.createdAt ? new Date(todo.createdAt).toISOString() : "",
       todo.completedAt ? new Date(todo.completedAt).toISOString() : "",
