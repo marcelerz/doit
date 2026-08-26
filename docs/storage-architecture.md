@@ -56,16 +56,15 @@ interface StorageAdapter {
 
 ### Storage Keys Registry
 
-All storage keys are centralized in `STORAGE_KEYS`:
+All storage keys are centralized in `STORAGE_KEYS` in `src/storage/storage.ts`,
+which holds 28 of them. Read that; a copy here would drift, as this list had --
+it named eight and omitted notes, reviews, every per-view options key and the
+preset keys.
 
-- `TODOS` - "doit-todos"
-- `PEOPLE` - "doit-people"
-- `PROJECTS` - "doit-projects"
-- `SETTINGS` - "doit-settings"
-- `VERSION` - "doit-version"
-- `VIEW_PRESETS` - "doit-view-presets"
-- `VIEW_OPTIONS` - "doit-view-options"
-- `BACKUP_SETTINGS` - "doit-backup-settings"
+Two prefixes are exported alongside it, for code that must match the namespace
+rather than a single key: `STORAGE_KEY_PREFIX` ("doit-") and `BACKUP_KEY_PREFIX`
+("doit-backup-"). `INTERNAL_STORAGE_KEYS` names the bookkeeping keys that
+backups and migrations skip.
 
 ## Usage
 
@@ -74,7 +73,7 @@ All storage keys are centralized in `STORAGE_KEYS`:
 The app automatically selects and initializes the best storage mechanism. You don't need to do anything - just use the storage helpers:
 
 ```typescript
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/utils/storage";
+import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 
 // Load data (async)
 const todos = await loadFromStorage(STORAGE_KEYS.TODOS, []);
@@ -85,36 +84,42 @@ await saveToStorage(STORAGE_KEYS.TODOS, updatedTodos);
 
 The storage layer handles IndexedDB or localStorage transparently based on what's available.
 
-### Synchronous Operations (for React state initialization)
+### Waiting for initialization
 
-For cases where async operations aren't suitable (like useState initializers):
+`loadFromStorage` and `saveToStorage` are async, and there are no sync variants
+-- `loadFromStorageSync` and `saveToStorageSync` do not exist.
+
+What does matter is *when* you read. The module-level adapter starts as the
+localStorage one and is only swapped once `initializeStorage` resolves, and
+`migrateToIndexedDB` deletes the localStorage copies as it goes. Reading before
+that returns nothing, and a save effect then writes the defaults over the real
+data:
 
 ```typescript
-import { STORAGE_KEYS, loadFromStorageSync, saveToStorageSync } from "@/utils/storage";
+import { loadFromStorage, waitForStorageInit } from "@/storage/storage";
 
-// Synchronous load (only works with localStorage)
-const todos = loadFromStorageSync(STORAGE_KEYS.TODOS, []);
-
-// Synchronous save
-saveToStorageSync(STORAGE_KEYS.TODOS, updatedTodos);
+await waitForStorageInit();
+const todos = await loadFromStorage(STORAGE_KEYS.TODOS, []);
 ```
 
-**Note:** Sync methods only work when localStorage is the active adapter. If IndexedDB is active, they will log a warning and return the default value.
+Every hook that reads storage does this. `usePersistedViewOptions` and
+`useViewPresets` do it for you.
 
 ### Manual Storage Selection (Advanced)
 
 If you need to manually control which storage mechanism to use:
 
 ```typescript
-import { setStorageAdapter, createIndexedDBAdapter } from "@/utils/storage";
+import { setStorageAdapter, createIndexedDBAdapter } from "@/storage/storage";
 
 // Force use of IndexedDB
 const indexedDBAdapter = createIndexedDBAdapter();
 setStorageAdapter(indexedDBAdapter);
 
 // Or force use of localStorage
-import { LocalStorageAdapter } from "@/utils/storage";
-setStorageAdapter(new LocalStorageAdapter());
+import { createLocalStorageAdapter } from "@/storage/storage";
+// LocalStorageAdapter is not exported; use the factory.
+setStorageAdapter(createLocalStorageAdapter());
 ```
 
 **Caution:** Manual selection bypasses automatic detection and migration. Use the automatic system unless you have a specific reason not to.
@@ -175,14 +180,14 @@ The system automatically handles migration from localStorage to IndexedDB:
 If you need to manually trigger migration:
 
 ```typescript
-import { initializeStorage } from "@/utils/storageInit";
+import { initializeStorageClient } from "@/storage/storage";
 
-const result = await initializeStorage();
+const result = await initializeStorageClient();
 console.log("Using IndexedDB:", result.usingIndexedDB);
 console.log("Data migrated:", result.migrated);
 ```
 
-The `initializeStorage()` function returns:
+The `initializeStorageClient()` function returns:
 
 - `adapter`: The active storage adapter
 - `usingIndexedDB`: Boolean indicating if IndexedDB is being used
@@ -255,10 +260,10 @@ Or:
 To clear all data and reset storage:
 
 ```typescript
-import { clearAllStorage } from "@/utils/storage";
+import { clearAllAppData } from "@/storage/storage";
 
 // Clear all app data
-await clearAllStorage();
+await clearAllAppData();
 
 // Then reload the page
 window.location.reload();

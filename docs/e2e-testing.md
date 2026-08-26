@@ -46,30 +46,70 @@ npm run test:e2e:report
 
 ## Test Structure
 
-E2E tests are located in the `e2e/` directory:
-
 ```
 e2e/
 ├── fixtures/
-│   └── todo-app.fixture.ts   # Custom test fixtures and helpers
-├── accessibility.spec.ts     # Accessibility and ARIA tests (6 tests)
-├── advanced-search.spec.ts   # Advanced search functionality (13 tests)
-├── archive-duplicate.spec.ts # Archive/unarchive and duplicate (8 tests)
-├── bulk-operations.spec.ts   # Bulk selection and operations (7 tests)
-├── comments.spec.ts          # Comments functionality (5 tests)
-├── keyboard.spec.ts          # Keyboard navigation and shortcuts (10 tests)
-├── mobile.spec.ts            # Mobile responsiveness (4 tests)
-├── persistence.spec.ts       # Data persistence tests (5 tests)
-├── search-filter.spec.ts     # Basic search and filtering (5 tests)
-├── settings.spec.ts          # Settings page tests (3 tests)
-├── smart-input.spec.ts       # Smart input and auto-detection (7 tests)
-├── subtasks.spec.ts          # Subtask functionality (7 tests)
-├── todo-crud.spec.ts         # Todo CRUD operations (7 tests)
-├── todo-details.spec.ts      # Todo details overlay (13 tests)
-└── views.spec.ts             # View navigation tests (7 tests)
+│   ├── todo-app.fixture.ts   # Page helpers, and the two test objects below
+│   └── smoke-helpers.ts      # resetAppStorage, used by every smoke spec
+├── smoke/                    # Sequential workflow specs, 69 tests
+│   ├── accessibility-keyboard.spec.ts
+│   ├── crud-workflow.spec.ts
+│   ├── dates-recurring.spec.ts
+│   ├── edge-cases-mobile.spec.ts
+│   ├── notes-workflow.spec.ts
+│   ├── persistence-settings.spec.ts
+│   ├── smart-input-search.spec.ts
+│   ├── todo-details-workflow.spec.ts
+│   └── views-workflow.spec.ts
+└── visual.spec.ts            # Visual regression, 16 screenshots
 ```
 
-**Total: 106 tests** (212 with mobile browser = 106 × 2)
+Projects in `playwright.config.ts`: `smoke-tests`, `smoke-mobile` and
+`visual-tests`. 93 tests across 10 files.
+
+## Two test objects, and which to import
+
+`todo-app.fixture.ts` exports two:
+
+- **`test`** shares one browser context per worker. The smoke specs are
+  `describe.serial` and each step builds on the state the last one left, which
+  Playwright's default per-test context does not preserve -- every step after
+  the first would open an empty app. Each spec's `beforeAll` calls
+  `resetAppStorage(workerPage)` on that shared page, which is also what isolates
+  one spec file from the next.
+
+- **`isolatedTest`** is Playwright's ordinary per-test context. Use it when
+  tests are independent, and whenever a spec sets its own context options:
+  `test.use({ viewport })` cannot apply to a context the worker fixture has
+  already created. `visual.spec.ts` imports this one.
+
+## Selectors
+
+Prefer `data-testid`. Text selectors are brittle here in a specific way: the
+add-todo button's visible label is "Todo" while its title is "Add new todo", and
+below `sm:` the label is hidden entirely. A suite matching on `has-text("Add")`
+went unnoticed for seven months.
+
+## Running against a different port
+
+`reuseExistingServer` means whatever answers on the configured port gets tested,
+including another project's dev server. Set `PLAYWRIGHT_PORT` to avoid the
+collision:
+
+```bash
+PLAYWRIGHT_PORT=3100 npx playwright test --project=smoke-tests
+```
+
+## Visual baselines
+
+Committed under `e2e/visual.spec.ts-snapshots/`, one per platform suffix. The
+comparison allows a 1-2% pixel difference, which is enough to pass a genuine
+layout change -- delete the baseline and regenerate if you need to see the real
+before and after.
+
+```bash
+npm run test:visual:update
+```
 
 ## Custom Fixtures
 
