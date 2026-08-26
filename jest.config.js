@@ -49,12 +49,15 @@ module.exports = {
   // A ratchet, not an aspiration: set just below the current numbers so
   // coverage cannot silently regress. Raise as it improves. Without this,
   // `npm run validate` printed a number and always passed.
+  // Raised to just under what the suite currently reaches, so a commit that
+  // drops coverage fails rather than quietly spending the headroom. Measured
+  // at 67.02 / 57.30 / 61.78 / 68.48.
   coverageThreshold: {
     global: {
-      statements: 65,
-      branches: 55,
-      functions: 60,
-      lines: 66,
+      statements: 67,
+      branches: 57,
+      functions: 61,
+      lines: 68,
     },
   },
 };
