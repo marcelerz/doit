@@ -1,62 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { sanitizeHtml, escapeHtmlAttribute } from "@/utils/sanitize";
+import { sanitizeHtml, escapeHtmlAttribute, sanitizeUrl } from "@/utils/sanitize";
+import {
+  getValidatedSelection,
+  isRangeValid,
+  ensureEditable,
+  getCurrentBlock,
+  getLineTextBeforeCursor,
+  isCursorAtBlockStart,
+  getTextAfterTrigger,
+  clearCurrentLine,
+} from "@/utils/richText/selection";
 import { LinkPattern } from "@/types/linkPattern";
 import { processLinkPatternsInHtml } from "@/utils/linkPatternUtils";
 import { LinkIcon } from "@/components/shared/Icons";
-
-// ========================================
-// Selection Validation Utilities
-// ========================================
-
-interface ValidatedSelection {
-  selection: Selection;
-  range: Range;
-}
-
-function getValidatedSelection(): ValidatedSelection | null {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return null;
-
-  try {
-    const range = selection.getRangeAt(0);
-    if (!range.startContainer.isConnected || !range.endContainer.isConnected) {
-      return null;
-    }
-    return { selection, range };
-  } catch {
-    return null;
-  }
-}
-
-function isRangeValid(range: Range | null): boolean {
-  if (!range) return false;
-  try {
-    return range.startContainer.isConnected && range.endContainer.isConnected;
-  } catch {
-    return false;
-  }
-}
-
-// ========================================
-// Security - URL Validation
-// ========================================
-
-function sanitizeUrl(url: string): string | null {
-  if (!url?.trim()) return null;
-  const lower = url.trim().toLowerCase();
-
-  const dangerous = ["javascript:", "data:", "vbscript:", "file:"];
-  if (dangerous.some((p) => lower.startsWith(p))) return null;
-
-  if (!url.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:/)) {
-    return `https://${url.trim()}`;
-  }
-
-  const allowed = ["http:", "https:", "mailto:", "tel:"];
-  if (!allowed.some((p) => lower.startsWith(p))) return null;
-
-  return url.trim();
-}
 
 // ========================================
 // Checkbox State Synchronization
@@ -87,84 +43,11 @@ function synchronizeCheckboxState(
 // Empty Element Handling
 // ========================================
 
-function ensureEditable(element: HTMLElement): void {
-  if (!element.firstChild) {
-    element.appendChild(document.createElement("br"));
-  }
-}
-
-// Sanitize HTML content to prevent XSS attacks
-
 // ========================================
 // Markdown-like Helper Functions
 // ========================================
 
 // Get the current block element containing the cursor
-function getCurrentBlock(editor: HTMLDivElement): HTMLElement | null {
-  const validated = getValidatedSelection();
-  if (!validated) return null;
-
-  let node: Node | null = validated.selection.anchorNode;
-  if (!node) return null;
-
-  // Walk up to find the block-level element
-  while (node && node !== editor) {
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const el = node as HTMLElement;
-      const display = window.getComputedStyle(el).display;
-      if (display === "block" || display === "list-item" || el.tagName === "LI") {
-        return el;
-      }
-    }
-    node = node.parentNode;
-  }
-  return null;
-}
-
-// Get the text content before cursor on the current line
-function getLineTextBeforeCursor(): string {
-  const validated = getValidatedSelection();
-  if (!validated) return "";
-
-  const { range } = validated;
-  const node = range.startContainer;
-
-  if (node.nodeType === Node.TEXT_NODE) {
-    return node.textContent?.substring(0, range.startOffset) || "";
-  }
-  return "";
-}
-
-// Check if cursor is at the start of a block element
-function isCursorAtBlockStart(editor: HTMLDivElement): boolean {
-  const validated = getValidatedSelection();
-  if (!validated) return false;
-
-  const { range } = validated;
-  if (range.startOffset !== 0) return false;
-
-  // Check if we're at the very beginning of a block
-  const block = getCurrentBlock(editor);
-  if (!block) return false;
-
-  let node: Node | null = range.startContainer;
-  while (node && node !== block) {
-    const parent: ParentNode | null = node.parentNode;
-    if (!parent) break;
-    // Check if there are any siblings before this node with content
-    let sibling = node.previousSibling;
-    while (sibling) {
-      if (sibling.textContent && sibling.textContent.length > 0) {
-        return false;
-      }
-      sibling = sibling.previousSibling;
-    }
-    node = parent as Node;
-  }
-  return true;
-}
-
-// Check if a list item is empty (only whitespace)
 function isListItemEmpty(li: HTMLLIElement): boolean {
   // For checkbox items, check the span content
   if (li.classList.contains("checkbox-item")) {
@@ -218,36 +101,6 @@ function createCheckboxListItem(text: string = "", checked: boolean = false): HT
 }
 
 // Get text content of current line and calculate remaining text after trigger removal
-function getTextAfterTrigger(triggerLength: number): { remainingText: string; textNode: Text | null; block: HTMLElement | null } {
-  const validated = getValidatedSelection();
-  if (!validated) {
-    return { remainingText: "", textNode: null, block: null };
-  }
-
-  const { range } = validated;
-  const node = range.startContainer;
-
-  if (node.nodeType === Node.TEXT_NODE) {
-    const fullText = node.textContent || "";
-    // Text after the trigger (everything after the cursor position, since trigger is before cursor)
-    const textAfterCursor = fullText.substring(range.startOffset);
-    // Text before the trigger (everything before cursor minus trigger length)
-    const textBeforeTrigger = fullText.substring(0, range.startOffset - triggerLength);
-    const remainingText = (textBeforeTrigger + textAfterCursor).trim();
-    return { remainingText, textNode: node as Text, block: null };
-  }
-
-  return { remainingText: "", textNode: null, block: null };
-}
-
-// Clear the current line content (text node)
-function clearCurrentLine(textNode: Text | null): void {
-  if (textNode) {
-    textNode.textContent = "";
-  }
-}
-
-// Convert current line to a bullet list
 function convertToBulletList(editor: HTMLDivElement, initialText: string = "", triggerLength: number = 0): void {
   const validated = getValidatedSelection();
   if (!validated) return;
