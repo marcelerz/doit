@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { ClockIcon, CloseIcon, SearchIcon } from "@/components/shared/Icons";
+import { ClockIcon, CloseIcon } from "@/components/shared/Icons";
 import { SearchHistoryId } from "@/types/types";
 
 interface SearchHistoryDropdownProps {
@@ -57,96 +56,3 @@ export function SearchHistoryDropdown({ history, onSelect, onRemove, onClear, is
   );
 }
 
-interface SearchInputWithHistoryProps {
-  value: string;
-  onChange: (value: string) => void;
-  onSearch: (query: string) => void;
-  placeholder?: string;
-  history: Array<{ id: SearchHistoryId; query: string; timestamp: number }>;
-  onRemoveFromHistory: (id: SearchHistoryId) => void;
-  onClearHistory: () => void;
-  className?: string;
-}
-
-export function SearchInputWithHistory({
-  value,
-  onChange,
-  onSearch,
-  placeholder = "Search...",
-  history,
-  onRemoveFromHistory,
-  onClearHistory,
-  className = "",
-}: SearchInputWithHistoryProps) {
-  const [isFocused, setIsFocused] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-
-  const handleSelect = (query: string) => {
-    onChange(query);
-    onSearch(query);
-    setShowHistory(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && value.trim()) {
-      onSearch(value.trim());
-      setShowHistory(false);
-    } else if (e.key === "Escape") {
-      setShowHistory(false);
-    }
-  };
-
-  return (
-    <div className={`relative ${className}`}>
-      <div className="relative">
-        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={() => {
-            setIsFocused(true);
-            if (!value && history.length > 0) {
-              setShowHistory(true);
-            }
-          }}
-          onBlur={() => {
-            setIsFocused(false);
-            // Delay hiding to allow click on history items
-            setTimeout(() => setShowHistory(false), 200);
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className="w-full pl-10 pr-8 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        {value && (
-          <button
-            onClick={() => {
-              onChange("");
-              setShowHistory(true);
-            }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-          >
-            <CloseIcon className="w-4 h-4" />
-          </button>
-        )}
-        {!value && history.length > 0 && isFocused && (
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-            title="Show search history"
-          >
-            <ClockIcon className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-      <SearchHistoryDropdown
-        history={history}
-        onSelect={handleSelect}
-        onRemove={onRemoveFromHistory}
-        onClear={onClearHistory}
-        isVisible={showHistory && !value}
-      />
-    </div>
-  );
-}

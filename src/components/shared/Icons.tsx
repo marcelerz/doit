@@ -163,21 +163,6 @@ export function LightningIcon({
 }
 
 /**
- * List icon - standard list view with equal lines
- */
-export function ListIcon({
-  className = defaultProps.className,
-  strokeWidth = defaultProps.strokeWidth,
-  ...props
-}: IconProps) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
-  );
-}
-
-/**
  * Todo list icon - checklist with checkmarks
  */
 export function TodoListIcon({
@@ -213,21 +198,6 @@ export function KanbanIcon({
         strokeWidth={strokeWidth}
         d="M4 4v16M4 4h4v12h-4M10 4v16M10 4h4v8h-4M16 4v16M16 4h4v14h-4"
       />
-    </svg>
-  );
-}
-
-/**
- * Offline/Slash icon - diagonal line indicating offline or disabled state
- */
-export function OfflineIcon({
-  className = defaultProps.className,
-  strokeWidth = defaultProps.strokeWidth,
-  ...props
-}: IconProps) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M3 3l18 18" />
     </svg>
   );
 }
@@ -333,26 +303,6 @@ export function EditIcon({
 }
 
 /**
- * Comment/Chat icon
- */
-export function CommentIcon({
-  className = defaultProps.className,
-  strokeWidth = defaultProps.strokeWidth,
-  ...props
-}: IconProps) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={strokeWidth}
-        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-      />
-    </svg>
-  );
-}
-
-/**
  * Settings/Gear icon
  */
 export function SettingsIcon({
@@ -373,26 +323,6 @@ export function SettingsIcon({
         strokeLinejoin="round"
         strokeWidth={strokeWidth}
         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-      />
-    </svg>
-  );
-}
-
-/**
- * User/Person icon
- */
-export function UserIcon({
-  className = defaultProps.className,
-  strokeWidth = defaultProps.strokeWidth,
-  ...props
-}: IconProps) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={strokeWidth}
-        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
       />
     </svg>
   );
@@ -539,26 +469,6 @@ export function FilterIcon({
 }
 
 /**
- * Sort icon
- */
-export function SortIcon({
-  className = defaultProps.className,
-  strokeWidth = defaultProps.strokeWidth,
-  ...props
-}: IconProps) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={strokeWidth}
-        d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
-      />
-    </svg>
-  );
-}
-
-/**
  * Duplicate/Copy icon
  */
 export function DuplicateIcon({
@@ -599,26 +509,6 @@ export function LinkIcon({
 }
 
 /**
- * Tag icon
- */
-export function TagIcon({
-  className = defaultProps.className,
-  strokeWidth = defaultProps.strokeWidth,
-  ...props
-}: IconProps) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={strokeWidth}
-        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-      />
-    </svg>
-  );
-}
-
-/**
  * Eye/View icon
  */
 export function EyeIcon({
@@ -639,26 +529,6 @@ export function EyeIcon({
         strokeLinejoin="round"
         strokeWidth={strokeWidth}
         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-      />
-    </svg>
-  );
-}
-
-/**
- * Eye off/Hidden icon
- */
-export function EyeOffIcon({
-  className = defaultProps.className,
-  strokeWidth = defaultProps.strokeWidth,
-  ...props
-}: IconProps) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={strokeWidth}
-        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
       />
     </svg>
   );
@@ -771,32 +641,6 @@ export function PauseIcon({
 }
 
 /**
- * Stop icon
- */
-export function StopIcon({
-  className = defaultProps.className,
-  strokeWidth = defaultProps.strokeWidth,
-  ...props
-}: IconProps) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={strokeWidth}
-        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={strokeWidth}
-        d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
-      />
-    </svg>
-  );
-}
-
-/**
  * Undo icon - arrow curving left
  */
 export function UndoIcon({
@@ -811,26 +655,6 @@ export function UndoIcon({
         strokeLinejoin="round"
         strokeWidth={strokeWidth}
         d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-      />
-    </svg>
-  );
-}
-
-/**
- * Redo icon - arrow curving right
- */
-export function RedoIcon({
-  className = defaultProps.className,
-  strokeWidth = defaultProps.strokeWidth,
-  ...props
-}: IconProps) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={strokeWidth}
-        d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"
       />
     </svg>
   );
@@ -1283,26 +1107,6 @@ export function AcademicCapIcon({
         strokeLinejoin="round"
         strokeWidth={strokeWidth}
         d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
-      />
-    </svg>
-  );
-}
-
-/**
- * Wifi signal / online status icon
- */
-export function WifiIcon({
-  className = defaultProps.className,
-  strokeWidth = defaultProps.strokeWidth,
-  ...props
-}: IconProps) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={strokeWidth}
-        d="M18.364 5.636a9 9 0 010 12.728m-3.536-3.536a4 4 0 010-5.656m-7.072 7.072a9 9 0 010-12.728m3.536 3.536a4 4 0 010 5.656"
       />
     </svg>
   );
