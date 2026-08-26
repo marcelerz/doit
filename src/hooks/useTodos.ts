@@ -306,9 +306,7 @@ export function useTodos() {
 
         // If migration was needed or we removed deleted todos, save the cleaned data
         if (migrationNeeded || cleanedTodos.length !== loadedTodos.length) {
-          saveToStorage(STORAGE_KEYS.TODOS, cleanedTodos).catch((error) => {
-            console.error("Failed to save todos:", error);
-          });
+          saveToStorage(STORAGE_KEYS.TODOS, cleanedTodos);
         }
       })
       .catch((error) => {
@@ -325,9 +323,7 @@ export function useTodos() {
   // Save todos to storage whenever they change
   useEffect(() => {
     if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.TODOS, rawTodos).catch((error) => {
-        console.error("Failed to save todos:", error);
-      });
+      saveToStorage(STORAGE_KEYS.TODOS, rawTodos);
     }
   }, [rawTodos, isLoaded]);
 

@@ -102,9 +102,7 @@ export function useReviews() {
 
       // If we removed deleted reviews, save the cleaned data
       if (cleanedReviews.length !== loadedReviews.length) {
-        saveToStorage(STORAGE_KEYS.REVIEWS, cleanedReviews).catch((error) => {
-          console.error("Failed to save reviews:", error);
-        });
+        saveToStorage(STORAGE_KEYS.REVIEWS, cleanedReviews);
       }
 
       setIsLoaded(true);
@@ -114,9 +112,7 @@ export function useReviews() {
   // Save reviews to storage whenever they change
   useEffect(() => {
     if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.REVIEWS, rawReviews).catch((error) => {
-        console.error("Failed to save reviews:", error);
-      });
+      saveToStorage(STORAGE_KEYS.REVIEWS, rawReviews);
     }
   }, [rawReviews, isLoaded]);
 

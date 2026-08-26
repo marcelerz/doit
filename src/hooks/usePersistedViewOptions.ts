@@ -66,9 +66,7 @@ export function usePersistedViewOptions<T extends object>(
     // Skip the initial render, or the defaults would overwrite what is stored
     // before the load has landed.
     if (!isLoaded) return;
-    saveToStorage(storageKey, options).catch((error) => {
-      console.error(`Failed to save view options for ${storageKey}:`, error);
-    });
+    saveToStorage(storageKey, options);
   }, [storageKey, options, isLoaded]);
 
   const setOptions = useCallback((updates: Partial<T>) => {

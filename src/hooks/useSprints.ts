@@ -37,9 +37,7 @@ export function useSprints() {
   // Save sprints to storage whenever they change
   useEffect(() => {
     if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.SPRINTS, sprints).catch((error) => {
-        console.error("Failed to save sprints:", error);
-      });
+      saveToStorage(STORAGE_KEYS.SPRINTS, sprints);
     }
   }, [sprints, isLoaded]);
 

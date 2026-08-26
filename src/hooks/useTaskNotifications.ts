@@ -50,11 +50,7 @@ export function useTaskNotifications(
   }, [todos, notificationSettings]);
 
   const persist = useCallback((ids: Set<TodoId>) => {
-    saveToStorage(STORAGE_KEYS.NOTIFIED_TASKS, Array.from(ids)).catch(
-      (error) => {
-        console.error("Failed to persist notification history:", error);
-      },
-    );
+    saveToStorage(STORAGE_KEYS.NOTIFIED_TASKS, Array.from(ids));
   }, []);
 
   const runCheck = useCallback(() => {

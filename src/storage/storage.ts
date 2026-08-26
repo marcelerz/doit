@@ -299,10 +299,14 @@ const storageErrorListeners = new Set<StorageErrorListener>();
 /**
  * Subscribe to storage write failures.
  *
- * saveToStorage cannot throw without breaking its callers, and returning
- * `false` proved useless because no caller ever checked it - so a silent
+ * saveToStorage cannot throw without breaking its callers, so a silent
  * QuotaExceededError lost a whole session's work with no user-visible signal.
  * This is the channel that makes those failures observable.
+ *
+ * It resolves `false` rather than rejecting, and sharedStore reads that to
+ * decide whether a write landed. Every other caller should simply ignore the
+ * result: attaching `.catch` to it looks careful but can never run, because
+ * the rejection it waits for does not happen.
  *
  * @returns an unsubscribe function
  */

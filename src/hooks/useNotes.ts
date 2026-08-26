@@ -208,9 +208,7 @@ export function useNotes() {
 
       // If we removed deleted notes, save the cleaned data
       if (cleanedNotes.length !== loadedNotes.length) {
-        saveToStorage(STORAGE_KEYS.NOTES, cleanedNotes).catch((error) => {
-          console.error("Failed to save notes:", error);
-        });
+        saveToStorage(STORAGE_KEYS.NOTES, cleanedNotes);
       }
 
       setIsLoaded(true);
@@ -220,9 +218,7 @@ export function useNotes() {
   // Save notes to storage whenever they change
   useEffect(() => {
     if (isLoaded) {
-      saveToStorage(STORAGE_KEYS.NOTES, rawNotes).catch((error) => {
-        console.error("Failed to save notes:", error);
-      });
+      saveToStorage(STORAGE_KEYS.NOTES, rawNotes);
     }
   }, [rawNotes, isLoaded]);
 

@@ -164,9 +164,7 @@ export function usePersistedStateWithCleanup<T>(
       // If cleaning changed the data, save the cleaned version
       const dataChanged = JSON.stringify(cleanedData) !== JSON.stringify(migratedData);
       if (dataChanged) {
-        saveToStorage(storageKey, cleanedData).catch((error) => {
-          console.error(`Failed to save cleaned ${storageKey}:`, error);
-        });
+        saveToStorage(storageKey, cleanedData);
       }
 
       // Store as last saved to avoid re-saving on initial load

@@ -82,9 +82,7 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
   // Save entities to storage whenever they change
   useEffect(() => {
     if (isLoaded) {
-      saveToStorage(config.storageKey, rawEntities).catch((error) => {
-        console.error(`Failed to save ${config.entityName.toLowerCase()}s:`, error);
-      });
+      saveToStorage(config.storageKey, rawEntities);
     }
   }, [rawEntities, isLoaded, config.storageKey, config.entityName]);
 
