@@ -31,7 +31,8 @@ import { SprintDetailsOverlay } from "@/components/overlays/SprintDetailsOverlay
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { TutorialOverlay, mainTutorialSteps, TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { ViewTabs } from "@/components/shared/ViewTabs";
-import { ViewTab, getEnabledViews } from "@/types/viewRegistry";
+import { ViewTab, getEnabledViews, VIEW_DEFINITIONS } from "@/types/viewRegistry";
+import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
 import { PeopleView, peopleViewTutorialSteps } from "@/components/views/PeopleView";
 import { ProjectsView, projectsViewTutorialSteps } from "@/components/views/ProjectsView";
 import { SprintsView, sprintsViewTutorialSteps } from "@/components/views/SprintsView";
@@ -52,7 +53,6 @@ import { TodoId } from "@/types/todo";
 import { getColor } from "@/types/types";
 import { parseTokensToMetadata } from "@/utils/tokenParser";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storage";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { CloseIcon, SettingsIcon, HelpIcon, DocumentIcon, CheckCircleIcon } from "@/components/shared/Icons";
 import { AlternativesInput } from "@/components/shared/AlternativesInput";
@@ -240,7 +240,6 @@ export function TodoApp() {
     };
 
     if (activeView in viewFeatureMap && viewFeatureMap[activeView] === false) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: redirect to list if current view is disabled
       setActiveView("list");
     }
   }, [activeView, features]);
@@ -490,52 +489,34 @@ export function TodoApp() {
   const [ganttRefreshKey, setGanttRefreshKey] = useState(0);
 
   // UI state
-  const [uiOptionsLoaded, setUiOptionsLoaded] = useState(false);
+
+  const [uiOptions, setUiOptions, uiOptionsLoaded] = usePersistedViewOptions<{ activeTab?: ViewTab }>(
+    STORAGE_KEYS.UI_OPTIONS,
+    {},
+  );
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [tutorialChecked, setTutorialChecked] = useState(false);
   const [viewTutorialOpen, setViewTutorialOpen] = useState<string | null>(null); // Which view tutorial is open
 
-  // Load UI options from storage (only activeTab now - view-specific options are in their own views)
-  useEffect(() => {
-    waitForStorageInit()
-      .then(() => {
-        return loadFromStorage<{
-          activeTab?: ViewTab;
-        }>(STORAGE_KEYS.UI_OPTIONS, {});
-      })
-      .then((saved) => {
-        if (saved.activeTab !== undefined) {
-          const validTabs: ViewTab[] = [
-            "list",
-            "kanban",
-            "gantt",
-            "calendar",
-            "people",
-            "projects",
-            "sprints",
-            "stats",
-            "timereports",
-          ];
-          if (validTabs.includes(saved.activeTab)) {
-            setActiveView(saved.activeTab);
-          }
-        }
-        setUiOptionsLoaded(true);
-      })
-      .catch((error) => {
-        console.error("Failed to load UI options:", error);
-        // Still mark as loaded so the app can proceed with defaults
-        setUiOptionsLoaded(true);
-      });
-  }, []);
-
-  // Persist UI options to storage (only after initial load)
+  // Restore the last active tab. The hand-written list of valid tabs this
+  // replaced omitted notes, reviews and focus, so a user whose last view was
+  // Notes was silently returned to the default one. VIEW_DEFINITIONS is the
+  // authoritative list, which is what it exists for.
   useEffect(() => {
     if (!uiOptionsLoaded) return;
-    saveToStorage(STORAGE_KEYS.UI_OPTIONS, {
-      activeTab: activeView,
-    });
-  }, [uiOptionsLoaded, activeView]);
+    const saved = uiOptions.activeTab;
+    if (saved && VIEW_DEFINITIONS.some((view) => view.id === saved)) {
+      setActiveView(saved);
+    }
+    // Only on the first load: afterwards this state is driven by the tab bar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uiOptionsLoaded]);
+
+  // Persist the active tab.
+  useEffect(() => {
+    if (!uiOptionsLoaded) return;
+    setUiOptions({ activeTab: activeView });
+  }, [uiOptionsLoaded, activeView, setUiOptions]);
 
   // Check tutorial preferences on first load
   useEffect(() => {
