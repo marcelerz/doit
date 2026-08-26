@@ -15,10 +15,12 @@ A powerful, feature-rich todo and project management application built with Next
 
 - ✅ **State-based Todo System** - Active, Completed, Archived, Deleted states with full timestamp tracking
 - ✅ **Smart Input** - Natural language parsing with auto-detection of dates, people, projects, and priorities
-- ✅ **Multiple Views** - List, Kanban, Gantt, Calendar, Focus, Statistics, and Time Reports
+- ✅ **Multiple Views** - Todos, Kanban, Gantt, Calendar, Notes, People, Projects, Sprints, Reviews, Statistics and Time Reports, each switchable off in settings
 - ✅ **People & Projects** - Full entity management with assignments and mentions
 - ✅ **Sprint Planning** - Scrum-style sprint management with Kanban integration
-- ✅ **Comments & Activity** - Full history tracking on todos, people, and projects
+- ✅ **Notes & Reviews** - Rich-text notes with action items, and 1:1 review documents
+- ✅ **Comments & Activity** - Full history tracking on todos, notes, people, and projects
+- ✅ **Time Tracking** - Start/stop timers and manual entries, reported per project and person
 
 ### Views
 
@@ -88,8 +90,8 @@ The app automatically detects and parses:
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
+- Node.js 20+ (required by Next.js 16)
+- npm
 
 ### Installation
 
@@ -113,9 +115,12 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 # Build for production
 npm run build
 
-# Start production server
-npm start
+# Static export for GitHub Pages (sets basePath and output: "export")
+npm run build:gh-pages
 ```
+
+The deployed app is a static export with no server: everything runs in the browser and all
+data stays in the browser's own storage.
 
 ## 🧪 Testing
 
@@ -132,8 +137,15 @@ npm run test:coverage
 # Run E2E tests
 npm run test:e2e
 
-# Run all tests (unit + E2E + visual)
+# Run smoke and visual suites
+npm run test:smoke
+npm run test:visual
+
+# typecheck + lint + test + smoke + visual
 npm run test:all
+
+# the same, with the coverage floors enforced
+npm run validate
 ```
 
 ## 📁 Project Structure
@@ -146,7 +158,7 @@ doit/
 │   │   ├── page.tsx            # Main app page
 │   │   └── settings/           # Settings page
 │   ├── components/
-│   │   ├── views/              # Main views (TodoApp, GanttView, CalendarView)
+│   │   ├── views/              # Main views (TodoApp is the container)
 │   │   ├── items/              # List item components
 │   │   ├── overlays/           # Modal/detail views
 │   │   ├── input/              # SmartInput, RichTextEditor
@@ -171,8 +183,9 @@ doit/
 │   │   ├── storage.ts          # IndexedDB/localStorage adapters
 │   │   ├── migrations.ts       # Data migrations
 │   │   └── backup.ts           # Backup/restore functionality
-│   ├── types/                  # TypeScript types
-│   │   ├── todo.ts             # Todo types
+│   ├── types/                  # TypeScript types, one file per domain
+│   │   ├── todo.ts             # Todo types and branded TodoId
+│   │   ├── viewRegistry.ts     # The single source for the view tabs
 │   │   └── settings.ts         # Settings types
 │   └── utils/                  # Utility functions
 │       ├── autoDetection.ts    # Smart input detection
@@ -193,7 +206,7 @@ doit/
 The app uses a business logic layer that wraps raw data with computed properties and validation:
 
 ```typescript
-// TodoModel provides 30+ methods and properties
+// useTodos returns models, so todos[0] is already a TodoModel
 const todo = todos[0];
 todo.isOverdue; // Computed: is past due date?
 todo.dueDateDisplay; // "Today", "Tomorrow", "Dec 15"
@@ -207,9 +220,12 @@ Automatic storage selection with migration:
 
 ```typescript
 // Automatic IndexedDB with localStorage fallback
-import { loadFromStorage, saveToStorage } from "@/storage/storage";
+import { loadFromStorage, saveToStorage, waitForStorageInit } from "@/storage/storage";
 
-const data = await loadFromStorage("doit-todos");
+// Await initialization first, or on an IndexedDB install you read an
+// emptied localStorage and persist the fallback over the user's data
+await waitForStorageInit();
+const data = await loadFromStorage("doit-todos", []);
 await saveToStorage("doit-todos", updatedData);
 ```
 
@@ -235,6 +251,8 @@ Each data domain has its own hook:
 - **Gantt** - Scheduling technique settings
 - **Focus** - Pomodoro/Flow mode configuration
 - **Calendar** - Calendar display options
+- **Notes** - Note defaults and templates
+- **Import** - Import from Todoist and other CSV exports
 - **Kanban** - Workflow states, transitions, views
 - **Sprints** - Sprint management, default duration
 - **Auto-Assign** - Default metadata for new todos
@@ -284,19 +302,18 @@ Personal Use License - This software is available for personal, non-commercial u
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read the contributing guidelines before submitting PRs.
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+This is a personal project under a Personal Use License, which does not permit
+redistribution or derivative works -- so there is no open contribution process. Bug reports
+and suggestions are welcome as issues.
 
 ## 📚 Documentation
 
 Additional documentation is available in the `docs/` folder:
 
 - [TodoModel Usage Guide](docs/todomodel-usage-guide.md)
+- [PersonModel and ProjectModel](docs/personmodel-projectmodel-summary.md)
 - [Storage Architecture](docs/storage-architecture.md)
-- [Auto-Detection Features](docs/auto-date-detection.md)
+- [Date Auto-Detection](docs/auto-date-detection.md)
+- [Person Mentions](docs/person-mention-auto-detection.md) and [Project References](docs/project-reference-auto-detection.md)
 - [Recurring Tasks](docs/recurring-tasks.md)
+- [E2E Testing](docs/e2e-testing.md)
