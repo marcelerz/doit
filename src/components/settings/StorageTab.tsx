@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useNotification } from "@/hooks/useNotification";
 import { STORAGE_KEYS, getStorageAdapter, getStorageType, isIndexedDBAvailable, estimateStorageQuota, migrateToIndexedDB, migrateToLocalStorage, clearAllAppData, checkPersistentStorage, requestPersistentStorage, type StorageType, type PersistentStorageInfo, BACKUP_KEY_PREFIX, STORAGE_KEY_PREFIX } from "@/storage/storage";
 import { WarningTriangleIcon } from "@/components/shared/Icons";
 import { SettingsHeader } from "./components/SettingsHeader";
@@ -27,6 +28,7 @@ interface StorageItem {
 type SubTab = "current" | "switch";
 
 export function StorageTab() {
+  const { showNotification, NotificationComponent } = useNotification();
   const [storageItems, setStorageItems] = useState<StorageItem[]>([]);
   const [totalUsed, setTotalUsed] = useState(0);
   const [totalAvailable, setTotalAvailable] = useState(0);
@@ -197,7 +199,10 @@ export function StorageTab() {
       setMigrationStatus(`Successfully migrated ${result.migratedCount} items to IndexedDB. Please reload the page.`);
       await refreshStorageInfo("indexedDB");
     } else {
-      setMigrationStatus("Migration failed. Please try again.");
+      // MigrationResult carries the reason. Discarding it left the only
+      // diagnostic in the console and told the user to retry something that
+      // would fail again the same way.
+      setMigrationStatus(result.error ? `Migration failed: ${result.error}` : "Migration failed.");
     }
 
     setIsMigrating(false);
@@ -214,7 +219,10 @@ export function StorageTab() {
       );
       await refreshStorageInfo("localStorage");
     } else {
-      setMigrationStatus("Migration failed. Please try again.");
+      // MigrationResult carries the reason. Discarding it left the only
+      // diagnostic in the console and told the user to retry something that
+      // would fail again the same way.
+      setMigrationStatus(result.error ? `Migration failed: ${result.error}` : "Migration failed.");
     }
 
     setIsMigrating(false);
@@ -231,7 +239,8 @@ export function StorageTab() {
       setClearConfirmText("");
       window.location.reload();
     } else {
-      alert("Failed to clear data. Please try again.");
+      // Was the app's only native dialog; everything else reports in-app.
+      showNotification("Failed to clear data. Please try again.", "error");
     }
 
     setIsClearing(false);
@@ -819,6 +828,7 @@ export function StorageTab() {
           </div>
         </div>
       )}
+      {NotificationComponent}
     </div>
   );
 }

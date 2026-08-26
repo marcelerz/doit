@@ -1,6 +1,6 @@
 "use client";
 
-import { useBackups, type BackupData } from "@/hooks/useBackups";
+import { useBackups, type BackupData, getBackupSize } from "@/hooks/useBackups";
 import { useNotification } from "@/hooks/useNotification";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { IconButton } from "@/components/shared/IconButton";
@@ -308,7 +308,7 @@ export function BackupTab() {
                       </span>
                     </div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 space-y-0.5">
-                      <div>Size: {formatSize((backup.todos?.length || 0) + (backup.settings?.length || 0))}</div>
+                      <div>Size: {formatSize(getBackupSize(backup))}</div>
                       {backup.uploadedAt && <div>Uploaded: {formatDate(backup.uploadedAt)}</div>}
                     </div>
                   </div>
@@ -328,10 +328,10 @@ export function BackupTab() {
         title="Important Notes"
         variant="warning"
         items={[
-          "Backups are stored in your browser's local storage",
+          "Backups are stored in this browser, alongside your data",
           "Clearing browser data will delete all backups",
           "Export backups to save them outside the browser",
-          "Restoring a backup will replace all current data",
+          "Restoring replaces all current data. Backups made before this app captured every key restore only todos and settings, leaving the rest as it is",
         ]}
       />
 

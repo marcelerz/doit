@@ -137,12 +137,24 @@ async function importBackupFromFile(file: File): Promise<{ success: boolean; err
   });
 }
 
+/**
+ * How much a backup actually occupies.
+ *
+ * This used to count only todos and settings. Backups have captured every
+ * doit- key since the `keys` field was added, so the reported figure was a
+ * large under-count and disagreed with the per-key usage shown in Storage.
+ */
+export function getBackupSize(backup: BackupData): number {
+  if (backup.keys) {
+    return Object.entries(backup.keys).reduce((sum, [key, value]) => sum + key.length + value.length, 0);
+  }
+  const todosSize = typeof backup.todos === "string" ? backup.todos.length : 0;
+  const settingsSize = typeof backup.settings === "string" ? backup.settings.length : 0;
+  return todosSize + settingsSize;
+}
+
 function getBackupStats(backups: BackupData[]): BackupStats {
-  const totalSize = backups.reduce((sum, b) => {
-    const todosSize = typeof b.todos === "string" ? b.todos.length : 0;
-    const settingsSize = typeof b.settings === "string" ? b.settings.length : 0;
-    return sum + todosSize + settingsSize;
-  }, 0);
+  const totalSize = backups.reduce((sum, b) => sum + getBackupSize(b), 0);
 
   // Find the last auto-backup date
   const autoBackups = backups.filter((b) => b.source === "auto");
