@@ -1,26 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { PersonModel } from "@/models/PersonModel";
 import { Person, PersonId } from "@/types/person";
 import { MarkerColors, defaultMarkerColors } from "@/types/markerColors";
 import { LinkPattern } from "@/types/linkPattern";
-import { getColor, CommentId } from "@/types/types";
-import RichTextEditor from "@/components/input/RichTextEditor";
-import { ActivitySection } from "@/components/shared/ActivitySection";
-import { ColorPicker } from "@/components/shared/ColorPicker";
-import { AlternativesInput } from "@/components/shared/AlternativesInput";
-import { ActionButtons } from "@/components/shared/ActionButtons";
-import { Modal } from "@/components/shared/Modal";
-import { CloseIcon } from "@/components/shared/Icons";
-import { NoteListItem } from "@/components/items/NoteListItem";
-import { TodoListItem } from "@/components/items/TodoListItem";
+import { CommentId } from "@/types/types";
 import { NoteModel } from "@/models/NoteModel";
 import { TodoModel } from "@/models/TodoModel";
 import { NoteId } from "@/types/note";
 import { TodoId } from "@/types/todo";
 import { Priority } from "@/types/priority";
+import { EntityDetailsOverlay, EntityTodoGroup } from "./EntityDetailsOverlay";
 
 interface PersonDetailsOverlayProps {
   person: PersonModel;
@@ -30,7 +20,11 @@ interface PersonDetailsOverlayProps {
   onArchive?: (id: PersonId) => void;
   onUnarchive?: (id: PersonId) => void;
   onAddComment: (personId: PersonId, content: string) => void;
-  onEditComment: (personId: PersonId, commentId: CommentId, content: string) => void;
+  onEditComment: (
+    personId: PersonId,
+    commentId: CommentId,
+    content: string,
+  ) => void;
   onDeleteComment: (personId: PersonId, commentId: CommentId) => void;
   onCreateNote?: (personId: PersonId) => void;
   markerColors?: MarkerColors;
@@ -46,320 +40,67 @@ interface PersonDetailsOverlayProps {
 
 export function PersonDetailsOverlay({
   person,
-  onClose,
-  onUpdate,
-  onDelete,
-  onArchive,
-  onUnarchive,
-  onAddComment,
-  onEditComment,
-  onDeleteComment,
-  onCreateNote,
   markerColors = defaultMarkerColors,
   linkPatterns = [],
   notes = [],
-  onOpenNote,
   todos = [],
-  onOpenTodo,
   availablePriorities = [],
+  ...callbacks
 }: PersonDetailsOverlayProps) {
-  const [editingName, setEditingName] = useState(person.name);
-  const [editingAlternatives, setEditingAlternatives] = useState(person.alternatives);
-  const [editingColor, setEditingColor] = useState(person.color);
-  const [editingContext, setEditingContext] = useState(person.context || "");
+  // Todo ids hold names, so match on the person's name and all their alternatives
+  const personNames = [
+    person.name.toLowerCase(),
+    ...person.alternatives.map((a) => a.toLowerCase()),
+  ];
+  const matchesPerson = (ids: readonly string[]) =>
+    ids.some((id) => personNames.includes(id.toLowerCase()));
 
-  // Get all names that could match this person (name + alternatives)
-  const personNames = [person.name.toLowerCase(), ...person.alternatives.map((a) => a.toLowerCase())];
-
-  // Sync local state when person changes (after updates)
-  // Legitimate prop sync pattern for editable form fields
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    setEditingName(person.name);
-    setEditingAlternatives(person.alternatives);
-    setEditingColor(person.color);
-    setEditingContext(person.context || "");
-  }, [person]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  // Auto-save when fields change (except context - saved on blur)
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (
-        editingName.trim() !== person.name ||
-        JSON.stringify(editingAlternatives) !== JSON.stringify(person.alternatives) ||
-        editingColor !== person.color
-      ) {
-        onUpdate(person.id, {
-          name: editingName.trim(),
-          alternatives: editingAlternatives,
-          color: editingColor ? getColor(editingColor) : undefined,
-          context: editingContext.trim() || undefined,
-        });
-      }
-    }, 500);
-
-    return () => clearTimeout(handler);
-  }, [editingName, editingAlternatives, editingColor, person, onUpdate, editingContext]);
-
-  useEscapeKey(onClose);
-
-  const handleDelete = () => {
-    onDelete(person.id);
-    onClose();
-  };
+  // A person's todos group by how the person relates to each one, not by state
+  const todoGroups: EntityTodoGroup[] = [
+    {
+      label: "Assigned",
+      headingClass: "text-blue-600 dark:text-blue-400",
+      todos: todos.filter((t) => matchesPerson(t.assignedPeopleIds)),
+    },
+    {
+      label: "Sourced",
+      headingClass: "text-green-600 dark:text-green-400",
+      todos: todos.filter((t) => matchesPerson(t.sourcePeopleIds)),
+    },
+    {
+      label: "Mentioned",
+      headingClass: "text-yellow-600 dark:text-yellow-400",
+      todos: todos.filter((t) => matchesPerson(t.mentionedPeopleIds)),
+    },
+  ];
 
   return (
-    <Modal isOpen={true} onClose={onClose} maxWidth="3xl" label="Person details">
-      <div className="p-6 space-y-6">
-        {/* Header with Close Button */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-md"
-              style={{ backgroundColor: editingColor || markerColors.assigned }}
-            >
-              {editingName.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{editingName || "Person"}</h2>
-              <div className="flex gap-1.5 mt-1">
-                <span className="text-xs px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium">
-                  @{person.name}
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">
-                  ${person.name}
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium">
-                  {person.name}
-                </span>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-            aria-label="Close"
-          >
-            <CloseIcon className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Details Section */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            {/* Name Field */}
-            <div>
-              <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Name</label>
-              <input
-                type="text"
-                value={editingName}
-                onChange={(e) => setEditingName(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Person name"
-              />
-            </div>
-
-            {/* Alternatives Field */}
-            <AlternativesInput
-              value={editingAlternatives}
-              onChange={setEditingAlternatives}
-              placeholder="e.g., Johnny, JD, John D."
-            />
-
-            {/* Color Field */}
-            <ColorPicker value={editingColor} onChange={setEditingColor} defaultColor={markerColors.assigned} />
-          </div>
-
-          {/* Context */}
-          <div>
-            <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">📝 Context</label>
-            <RichTextEditor
-              value={editingContext}
-              onChange={(html) => setEditingContext(html || "")}
-              onBlur={(html) => {
-                // Commit context change on blur
-                if ((html.trim() || undefined) !== person.context) {
-                  onUpdate(person.id, {
-                    name: editingName.trim(),
-                    alternatives: editingAlternatives,
-                    color: editingColor ? getColor(editingColor) : undefined,
-                    context: html.trim() || undefined,
-                  });
-                }
-              }}
-              placeholder="Add context..."
-              minHeight="100px"
-              maxHeight="300px"
-              noBorderInViewMode={true}
-              linkPatterns={linkPatterns}
-            />
-          </div>
-
-          {/* Action Buttons */}
-          <div className="pt-4">
-            <ActionButtons
-              isArchived={person.archived || false}
-              onCreateNote={
-                onCreateNote
-                  ? () => {
-                      onCreateNote(person.id);
-                      onClose();
-                    }
-                  : undefined
-              }
-              onArchive={
-                onArchive
-                  ? () => {
-                      onArchive(person.id);
-                      onClose();
-                    }
-                  : undefined
-              }
-              onUnarchive={
-                onUnarchive
-                  ? () => {
-                      onUnarchive(person.id);
-                      onClose();
-                    }
-                  : undefined
-              }
-              onDelete={handleDelete}
-              createNoteLabel="Create 1:1 Note"
-              archiveLabel="Archive person"
-              unarchiveLabel="Unarchive person"
-              deleteLabel="Delete person"
-            />
-          </div>
-        </div>
-
-        {/* Todos Section */}
-        {todos.length > 0 && onOpenTodo && (() => {
-          // Helper to check if a todo's person IDs match this person (by name, since IDs are stored as names)
-          const matchesPerson = (ids: string[]) =>
-            ids.some((id) => personNames.includes(id.toLowerCase()));
-
-          // Filter todos by relationship type
-          const assignedTodos = todos.filter((t) => matchesPerson(t.assignedPeopleIds.map((id) => id as string)));
-          const sourcedTodos = todos.filter((t) => matchesPerson(t.sourcePeopleIds.map((id) => id as string)));
-          const mentionedTodos = todos.filter((t) => matchesPerson(t.mentionedPeopleIds.map((id) => id as string)));
-          const hasTodos = assignedTodos.length > 0 || sourcedTodos.length > 0 || mentionedTodos.length > 0;
-
-          if (!hasTodos) return null;
-
-          return (
-            <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
-              <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">
-                ✅ Todos ({assignedTodos.length + sourcedTodos.length + mentionedTodos.length})
-              </h4>
-              <div className="space-y-4 max-h-64 overflow-y-auto">
-                {/* Assigned Todos */}
-                {assignedTodos.length > 0 && (
-                  <div>
-                    <h5 className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-2">
-                      Assigned ({assignedTodos.length})
-                    </h5>
-                    <div className="space-y-2">
-                      {assignedTodos.map((todo) => (
-                        <TodoListItem
-                          key={todo.id}
-                          todo={todo}
-                          onClick={() => {
-                            onOpenTodo(todo.id);
-                            onClose();
-                          }}
-                          markerColors={markerColors}
-                          linkPatterns={linkPatterns}
-                          availablePriorities={availablePriorities}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Sourced Todos */}
-                {sourcedTodos.length > 0 && (
-                  <div>
-                    <h5 className="text-[10px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">
-                      Sourced ({sourcedTodos.length})
-                    </h5>
-                    <div className="space-y-2">
-                      {sourcedTodos.map((todo) => (
-                        <TodoListItem
-                          key={todo.id}
-                          todo={todo}
-                          onClick={() => {
-                            onOpenTodo(todo.id);
-                            onClose();
-                          }}
-                          markerColors={markerColors}
-                          linkPatterns={linkPatterns}
-                          availablePriorities={availablePriorities}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Mentioned Todos */}
-                {mentionedTodos.length > 0 && (
-                  <div>
-                    <h5 className="text-[10px] font-semibold text-yellow-600 dark:text-yellow-400 uppercase tracking-wide mb-2">
-                      Mentioned ({mentionedTodos.length})
-                    </h5>
-                    <div className="space-y-2">
-                      {mentionedTodos.map((todo) => (
-                        <TodoListItem
-                          key={todo.id}
-                          todo={todo}
-                          onClick={() => {
-                            onOpenTodo(todo.id);
-                            onClose();
-                          }}
-                          markerColors={markerColors}
-                          linkPatterns={linkPatterns}
-                          availablePriorities={availablePriorities}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Notes Section */}
-        {notes.length > 0 && onOpenNote && (
-          <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
-            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">
-              📝 Notes ({notes.length})
-            </h4>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {notes.map((note) => (
-                <NoteListItem
-                  key={note.id}
-                  note={note}
-                  onClick={() => {
-                    onOpenNote(note.id);
-                    onClose();
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Activity Section */}
-        <ActivitySection
-          activities={person.activity || []}
-          comments={person.comments}
-          linkPatterns={linkPatterns}
-          onAddComment={(content) => onAddComment(person.id, content)}
-          onEditComment={(commentId, content) => onEditComment(person.id, commentId, content)}
-          onDeleteComment={(commentId) => onDeleteComment(person.id, commentId)}
-        />
-      </div>
-    </Modal>
+    <EntityDetailsOverlay<PersonId, Person>
+      entity={person}
+      entityTypeName="Person"
+      focusRingClass="focus:ring-blue-500"
+      defaultColor={markerColors.assigned}
+      alternativesPlaceholder="e.g., Johnny, JD, John D."
+      createNoteLabel="Create 1:1 Note"
+      todoGroups={todoGroups}
+      markerBadges={
+        <>
+          <span className="text-xs px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium">
+            @{person.name}
+          </span>
+          <span className="text-xs px-2 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">
+            ${person.name}
+          </span>
+          <span className="text-xs px-2 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium">
+            {person.name}
+          </span>
+        </>
+      }
+      markerColors={markerColors}
+      linkPatterns={linkPatterns}
+      notes={notes}
+      availablePriorities={availablePriorities}
+      {...callbacks}
+    />
   );
 }
