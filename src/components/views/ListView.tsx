@@ -177,7 +177,7 @@ interface ListViewProps {
  *
  * Each was 22 lines of JSX that differed only in these three fields; the
  * remaining props were copied verbatim eleven times, which is how "Tags (&)"
- * came to sit next to a tag marker of `#`. Categories is the one section that
+ * had named a marker of `&` while the app used `#`. Categories is the one section that
  * needs more -- it colours and names its chips from the category record -- and
  * says so at the point of use rather than by being written out longhand.
  */
@@ -192,11 +192,11 @@ const FILTER_SECTIONS: ReadonlyArray<{
   { key: "sourcePeople", label: "Source ($)", prefix: "$" },
   { key: "mentionedPeople", label: "Mentioned", prefix: "" },
   { key: "priorities", label: "Priority (!!)", prefix: "!!" },
-  { key: "dueDates", label: "Due Date (~)", prefix: "~" },
-  { key: "durations", label: "Duration (*)", prefix: "*" },
-  { key: "tags", label: "Tags (&)", prefix: "&" },
-  { key: "recurring", label: "Recurring (%)", prefix: "%" },
-  { key: "dependencies", label: "Dependencies (>)", prefix: ">" },
+  { key: "dueDates", label: "Due Date", prefix: "" },
+  { key: "durations", label: "Duration", prefix: "" },
+  { key: "tags", label: "Tags (#)", prefix: "#" },
+  { key: "recurring", label: "Recurring", prefix: "" },
+  { key: "dependencies", label: "Dependencies", prefix: "" },
 ];
 
 export function ListView({
