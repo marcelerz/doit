@@ -270,7 +270,7 @@ export function FocusTab() {
                   max="120"
                   value={minutes}
                   onChange={(e) => handleUpdateExtendOptions(index, parseInt(e.target.value) || 5)}
-                  className="w-12 text-center bg-transparent text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                  className="w-12 text-center bg-transparent text-zinc-900 dark:text-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 rounded"
                 />
                 <span className="text-xs text-zinc-500">m</span>
                 {focus.extendOptions.length > 1 && (

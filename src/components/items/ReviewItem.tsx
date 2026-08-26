@@ -290,7 +290,7 @@ export function ReviewItem({
             </button>
 
             {/* Open arrow */}
-            <ChevronRightIcon className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
+            <ChevronRightIcon className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
           </div>
         </div>
       </div>

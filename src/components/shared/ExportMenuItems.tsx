@@ -41,7 +41,7 @@ export function ExportMenuItems({
         <CodeIcon className="w-4 h-4" />
         JSON (.json)
       </button>
-      <div className="px-4 py-1 text-xs text-zinc-400 dark:text-zinc-500 border-t border-zinc-200 dark:border-zinc-700 mt-1">
+      <div className="px-4 py-1 text-xs text-zinc-500 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-700 mt-1">
         {hasActiveFilters ? `Exports filtered ${noun}` : `Exports all ${noun}`}
       </div>
     </>

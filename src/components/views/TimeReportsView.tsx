@@ -614,7 +614,7 @@ export default function TimeReportsView({ todos, people, projects, settings, spr
                         <span className="text-sm text-zinc-600 dark:text-zinc-400 truncate" title={group.displayName}>
                           {group.displayName}
                         </span>
-                        <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-auto">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400 ml-auto">
                           {Math.round((group.totalMinutes / totalMinutes) * 100)}%
                         </span>
                       </div>

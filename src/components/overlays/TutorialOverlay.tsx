@@ -595,7 +595,7 @@ export function TutorialOverlay({
 
         {/* Keyboard hint */}
         {!isLastStep && (
-          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-3 text-center">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-3 text-center">
             Use ← → arrow keys or Enter to navigate
           </div>
         )}

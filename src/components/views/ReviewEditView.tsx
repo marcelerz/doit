@@ -311,7 +311,7 @@ export function ReviewEditView({
         {review.entries.length === 0 ? (
           <div className="text-center py-8 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700">
             <p className="text-zinc-500 dark:text-zinc-400 mb-2">No entries yet</p>
-            <p className="text-sm text-zinc-400 dark:text-zinc-500">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Add completed tasks or child reviews to include in this review
             </p>
           </div>

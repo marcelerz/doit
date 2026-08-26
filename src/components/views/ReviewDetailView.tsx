@@ -270,7 +270,7 @@ export function ReviewDetailView({
                 key={entry.id}
                 className="flex items-start gap-2 text-zinc-500 dark:text-zinc-400"
               >
-                <span className="text-xs text-zinc-400 dark:text-zinc-500 min-w-[100px]">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 min-w-[100px]">
                   {new Date(entry.timestamp).toLocaleString(undefined, {
                     month: "short",
                     day: "numeric",

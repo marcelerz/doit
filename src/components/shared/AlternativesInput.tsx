@@ -92,7 +92,7 @@ export function AlternativesInput({
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           placeholder={value.length === 0 ? placeholder : ""}
-          className="flex-1 min-w-[120px] bg-transparent text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none py-0.5"
+          className="flex-1 min-w-[120px] bg-transparent text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 rounded py-0.5"
         />
       </div>
       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">

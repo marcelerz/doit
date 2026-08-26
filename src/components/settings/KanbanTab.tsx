@@ -559,7 +559,7 @@ export function KanbanTab() {
                       return (
                         <td key={toState.id} className="p-2 text-center">
                           {isSame ? (
-                            <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                            <span className="text-zinc-500 dark:text-zinc-400">—</span>
                           ) : (
                             <button
                               onClick={() => handleToggleTransition(fromState.id, toState.id)}

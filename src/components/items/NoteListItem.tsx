@@ -62,7 +62,7 @@ export function NoteListItem({
           </div>
 
           {/* Metadata */}
-          <div className="flex items-center gap-2 mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
+          <div className="flex items-center gap-2 mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
             <span>{note.ageDisplay}</span>
             {note.hasComments && <span>💬 {note.commentCount}</span>}
             {note.pendingActionItemCount > 0 && (

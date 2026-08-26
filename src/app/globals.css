@@ -323,3 +323,33 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================================
+   Touch targets
+   ============================================================================
+   The shared icon-button scale is 20px (sm), 28px (md) and 36px (lg), and the
+   hand-rolled copies in rows and overlays are 28-32px. All are under the 44px
+   that a finger reliably hits, which is why the row actions are fiddly on a
+   phone even once they are visible.
+
+   Enforced only where the pointer is coarse, so desktop layout -- where these
+   sizes are fine and space is tight -- is unchanged.
+   ========================================================================== */
+
+@media (pointer: coarse) {
+  button,
+  [role="button"],
+  a[href],
+  label:has(> input[type="checkbox"]) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Buttons that only wrap text in a line of prose should not become blocks. */
+  p button,
+  span button,
+  li button {
+    min-width: 0;
+    min-height: 0;
+  }
+}

@@ -156,7 +156,7 @@ function TemplateEditor({ title, description, items, defaultItems, onChange }: T
               <span
                 onClick={() => handleStartEdit(item)}
                 className={`flex-1 text-sm cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 ${
-                  item.enabled ? "text-zinc-800 dark:text-zinc-200" : "text-zinc-400 dark:text-zinc-500 line-through"
+                  item.enabled ? "text-zinc-800 dark:text-zinc-200" : "text-zinc-500 dark:text-zinc-400 line-through"
                 }`}
               >
                 {item.label}

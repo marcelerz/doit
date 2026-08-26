@@ -768,7 +768,7 @@ export function KanbanView({
             {/* Sprint filter */}
             {sprints.length > 0 && (
               <>
-                <span className="text-zinc-300 dark:text-zinc-600 hidden sm:inline">|</span>
+                <span className="text-zinc-500 dark:text-zinc-400 hidden sm:inline">|</span>
                 <label className="text-sm text-zinc-600 dark:text-zinc-400 hidden sm:inline">Sprint:</label>
                 <select
                   value={viewOptions.sprintId ?? "all"}
@@ -1087,7 +1087,7 @@ export function KanbanView({
                     ))}
                     {hasActiveFilters && activePresetId === null && (
                       <>
-                        <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                        <span className="text-zinc-500 dark:text-zinc-400">|</span>
                         <span className="px-2 py-1 text-xs font-medium rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
                           Custom
                         </span>
@@ -1255,7 +1255,7 @@ export function KanbanView({
                 {/* Cards Container */}
                 <div className="flex-1 overflow-y-auto p-2 space-y-2">
                   {columnTodos.length === 0 && kanban.showEmptyColumns && (
-                    <div className="text-center py-8 text-zinc-400 dark:text-zinc-500 text-sm">No tasks</div>
+                    <div className="text-center py-8 text-zinc-500 dark:text-zinc-400 text-sm">No tasks</div>
                   )}
 
                   {columnTodos.map((todo) => {

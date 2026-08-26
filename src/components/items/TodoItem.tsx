@@ -403,7 +403,7 @@ export function TodoItem({
         <div className="flex items-start gap-3">
           {/* Drag handle shown when draggable */}
           {isDraggable && !isSelectionMode && (
-            <div className="flex-shrink-0 text-zinc-400 dark:text-zinc-500 cursor-grab active:cursor-grabbing mt-0.5">
+            <div className="flex-shrink-0 text-zinc-500 dark:text-zinc-400 cursor-grab active:cursor-grabbing mt-0.5">
               <DragHandleIcon className="w-5 h-5" />
             </div>
           )}
@@ -485,7 +485,7 @@ export function TodoItem({
                     {todo.metadata.assignedPeople.length > 1 && ` +${todo.metadata.assignedPeople.length - 1}`}
                   </span>
                 ) : (
-                  <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">—</span>
+                  <span className="hidden sm:inline text-zinc-500 dark:text-zinc-400">—</span>
                 )}
                 {/* Project shown inline on mobile */}
                 <span className="sm:hidden">
@@ -519,7 +519,7 @@ export function TodoItem({
                     {todo.metadata.projects.length > 1 && ` +${todo.metadata.projects.length - 1}`}
                   </span>
                 ) : (
-                  <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                  <span className="text-zinc-500 dark:text-zinc-400">—</span>
                 )}
                 {todo.metadata.sprint &&
                   (() => {
@@ -559,7 +559,7 @@ export function TodoItem({
                     {todo.dueDateDisplay}
                   </span>
                 ) : (
-                  <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">—</span>
+                  <span className="hidden sm:inline text-zinc-500 dark:text-zinc-400">—</span>
                 )}
                 {todo.metadata.duration && (
                   <span
@@ -587,7 +587,7 @@ export function TodoItem({
                     {todo.metadata.priority}
                   </span>
                 ) : (
-                  <span className="hidden sm:inline text-zinc-300 dark:text-zinc-600">—</span>
+                  <span className="hidden sm:inline text-zinc-500 dark:text-zinc-400">—</span>
                 )}
               </div>
             </div>

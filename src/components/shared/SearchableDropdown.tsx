@@ -117,7 +117,7 @@ export function SearchableDropdown({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           autoFocus
-          className="w-full text-xs px-3 py-2 border-b border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+          className="w-full text-xs px-3 py-2 border-b border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
         />
         <div className="max-h-48 overflow-y-auto">
           {filteredItems.map((item, idx) => (

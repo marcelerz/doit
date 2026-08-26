@@ -587,7 +587,7 @@ export function CalendarView({
         {/* Quick add hint on hover for empty days */}
         {day.todos.length === 0 && onQuickAdd && (
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <span className="text-zinc-400 dark:text-zinc-500 text-lg">+</span>
+            <span className="text-zinc-500 dark:text-zinc-400 text-lg">+</span>
           </div>
         )}
       </button>
@@ -710,7 +710,7 @@ export function CalendarView({
         </div>
 
         {/* Keyboard hint */}
-        <div className="text-xs text-zinc-400 dark:text-zinc-500 mb-2 print:hidden">
+        <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-2 print:hidden">
           <span className="hidden md:inline">Use arrow keys to navigate, Enter to select, T for today</span>
         </div>
 
@@ -720,7 +720,7 @@ export function CalendarView({
             {/* Day headers */}
             <div className={`grid gap-1 mb-2 ${calendarSettings.showWeekNumbers ? "grid-cols-8" : "grid-cols-7"}`}>
               {calendarSettings.showWeekNumbers && (
-                <div className="text-center text-xs font-medium text-zinc-400 dark:text-zinc-500 py-2">Wk</div>
+                <div className="text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 py-2">Wk</div>
               )}
               {dayHeaders.map((day) => (
                 <div
@@ -742,7 +742,7 @@ export function CalendarView({
               {calendarDays.map((day, i) => (
                 <Fragment key={day.dateKey}>
                   {calendarSettings.showWeekNumbers && i % 7 === 0 && (
-                    <div className="flex items-center justify-center text-xs text-zinc-400 dark:text-zinc-500">
+                    <div className="flex items-center justify-center text-xs text-zinc-500 dark:text-zinc-400">
                       {day.weekNumber}
                     </div>
                   )}
@@ -843,7 +843,7 @@ export function CalendarView({
                         ? "Today"
                         : day.date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                     </div>
-                    <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
                       {day.todos.length} task{day.todos.length !== 1 ? "s" : ""}
                     </span>
                   </div>
@@ -871,7 +871,7 @@ export function CalendarView({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-zinc-400 dark:text-zinc-500 ml-4">No tasks</p>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 ml-4">No tasks</p>
                   )}
                 </div>
               ))
@@ -961,7 +961,7 @@ export function CalendarView({
               <div className="text-4xl mb-3">📅</div>
               <p className="text-lg text-zinc-600 dark:text-zinc-400">No tasks planned for this day</p>
               {onQuickAdd && (
-                <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-2">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">
                   Double-click on a day or click &quot;Add Task&quot; to create one
                 </p>
               )}

@@ -191,7 +191,7 @@ export function TimeTracking({
                   {entry.note && <span className="text-xs text-zinc-500 dark:text-zinc-400">— {entry.note}</span>}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
                     {new Date(entry.startTime).toLocaleString(undefined, {
                       month: "short",
                       day: "numeric",

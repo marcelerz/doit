@@ -1195,7 +1195,7 @@ export function GanttView({
               <span className="sm:hidden">c</span>
             </p>
             {/* Keyboard shortcuts hint */}
-            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 print:hidden hidden sm:block">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 print:hidden hidden sm:block">
               <span className="inline-flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 text-[10px] bg-zinc-100 dark:bg-zinc-800 rounded">↑↓</kbd> navigate
                 <kbd className="px-1.5 py-0.5 text-[10px] bg-zinc-100 dark:bg-zinc-800 rounded ml-2">Enter</kbd> open
@@ -1295,7 +1295,7 @@ export function GanttView({
                           className={`mt-1 whitespace-nowrap ${
                             marker.isHour
                               ? "text-xs text-zinc-600 dark:text-zinc-300 font-medium"
-                              : "text-[10px] text-zinc-400 dark:text-zinc-500"
+                              : "text-[10px] text-zinc-500 dark:text-zinc-400"
                           }`}
                         >
                           {formatTime(marker.time)}
@@ -1772,7 +1772,7 @@ export function GanttView({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                           <span>Completed ({completedTasks.length})</span>
-                          <span className="text-xs text-zinc-400 dark:text-zinc-500">(Press C to toggle)</span>
+                          <span className="text-xs text-zinc-500 dark:text-zinc-400">(Press C to toggle)</span>
                         </button>
 
                         {!completedCollapsed &&
@@ -2076,7 +2076,7 @@ export function GanttView({
                     })}
                   </div>
                 ) : (
-                  <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                  <span className="text-zinc-500 dark:text-zinc-400">—</span>
                 )}
 
                 {/* Project row */}
@@ -2097,7 +2097,7 @@ export function GanttView({
                     })}
                   </div>
                 ) : (
-                  <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                  <span className="text-zinc-500 dark:text-zinc-400">—</span>
                 )}
 
                 {/* Due date + Duration row (time-related fields together) */}
@@ -2116,7 +2116,7 @@ export function GanttView({
                       {hoveredTodo.dueDateDisplay}
                     </span>
                   ) : (
-                    <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                    <span className="text-zinc-500 dark:text-zinc-400">—</span>
                   )}
                   {hoveredTodo.hasDuration && (
                     <span className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
@@ -2138,7 +2138,7 @@ export function GanttView({
                     {hoveredTodo.priority}
                   </span>
                 ) : (
-                  <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                  <span className="text-zinc-500 dark:text-zinc-400">—</span>
                 )}
               </div>
             </div>,

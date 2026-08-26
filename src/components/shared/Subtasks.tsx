@@ -112,7 +112,7 @@ export function Subtasks({ subtasks, onAdd, onToggle, onEdit, onDelete, readOnly
                 <span
                   className={`flex-1 text-sm ${
                     subtask.completed
-                      ? "line-through text-zinc-400 dark:text-zinc-500"
+                      ? "line-through text-zinc-500 dark:text-zinc-400"
                       : "text-zinc-900 dark:text-zinc-100"
                   }`}
                   data-testid="subtask-text"

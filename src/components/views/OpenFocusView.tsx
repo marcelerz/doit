@@ -779,7 +779,7 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
               {state.breakEndTime ? (
                 <>Continue at {formatClockTime(state.breakEndTime)}</>
               ) : (
-                <span className="text-zinc-400 dark:text-zinc-500">Paused</span>
+                <span className="text-zinc-500 dark:text-zinc-400">Paused</span>
               )}
             </p>
 
