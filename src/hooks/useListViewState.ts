@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useViewPresets } from "@/hooks/useViewPresets";
 import { TodoModel } from "@/models/TodoModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { Settings } from "@/types/settings";
@@ -10,11 +11,7 @@ import {
   saveToStorage,
 } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
-import {
-  setToSortedArray,
-  arrayHasAnyFromSet,
-  setHasValue,
-} from "@/utils/filterHelpers";
+import { setToSortedArray, arrayHasAnyFromSet, setHasValue, arraysEqual } from "@/utils/filterHelpers";
 import { parseLocalDate } from "@/utils/dateUtils";
 
 // Types
@@ -88,13 +85,6 @@ export interface ViewPreset {
 }
 
 // Helper function to compare arrays
-const arraysEqual = (a: string[], b: string[]) => {
-  if (a.length !== b.length) return false;
-  const sortedA = [...a].sort();
-  const sortedB = [...b].sort();
-  return sortedA.every((val, idx) => val === sortedB[idx]);
-};
-
 // Empty filters constant
 const emptyFilters: TodoFilters = {
   searchText: "",
@@ -143,31 +133,19 @@ export function useListViewState({
   const [archivedExpanded, setArchivedExpanded] = useState(false);
 
   // Preset state
-  const [viewPresets, setViewPresets] = useState<ViewPreset[]>([]);
-  const [activePreset, setActivePreset] = useState<string>("custom");
-  const [isSavePresetOpen, setIsSavePresetOpen] = useState(false);
-  const [presetName, setPresetName] = useState("");
+  const {
+    viewPresets,
+    setViewPresets,
+    activePreset,
+    setActivePreset,
+    isSavePresetOpen,
+    setIsSavePresetOpen,
+    presetName,
+    setPresetName,
+  } = useViewPresets<ViewPreset>(STORAGE_KEYS.VIEW_PRESETS);
 
   // Loading states
   const [viewOptionsLoaded, setViewOptionsLoaded] = useState(false);
-  const [viewPresetsLoaded, setViewPresetsLoaded] = useState(false);
-
-  // Load view presets from storage on mount
-  useEffect(() => {
-    waitForStorageInit()
-      .then(() => loadFromStorage<ViewPreset[]>(STORAGE_KEYS.VIEW_PRESETS, []))
-      .then((saved) => {
-        setViewPresets(saved);
-        setViewPresetsLoaded(true);
-      });
-  }, []);
-
-  // Save view presets to storage when they change
-  useEffect(() => {
-    if (viewPresetsLoaded) {
-      saveToStorage(STORAGE_KEYS.VIEW_PRESETS, viewPresets);
-    }
-  }, [viewPresets, viewPresetsLoaded]);
 
   // Load view options from storage on mount
   useEffect(() => {
@@ -316,9 +294,9 @@ export function useListViewState({
       );
     });
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: sync active preset with current filter state
     setActivePreset(matchingPreset ? matchingPreset.name : "custom");
   }, [
+    setActivePreset,
     viewOptionsLoaded,
     filters,
     sortField,
@@ -866,7 +844,7 @@ export function useListViewState({
       setArchivedExpanded(preset.sections.archivedExpanded);
     }
     setActivePreset(preset.name);
-  }, []);
+  }, [setActivePreset]);
 
   const savePreset = useCallback(
     (name: string) => {
@@ -912,6 +890,10 @@ export function useListViewState({
       setPresetName("");
     },
     [
+      setViewPresets,
+      setActivePreset,
+      setIsSavePresetOpen,
+      setPresetName,
       filters,
       sortField,
       sortDirection,
@@ -930,7 +912,7 @@ export function useListViewState({
         setActivePreset("custom");
       }
     },
-    [activePreset],
+    [activePreset, setViewPresets, setActivePreset],
   );
 
   return {

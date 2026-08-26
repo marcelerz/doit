@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useViewPresets } from "@/hooks/useViewPresets";
 import { NoteModel } from "@/models/NoteModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { PersonModel } from "@/models/PersonModel";
@@ -10,7 +11,7 @@ import {
   saveToStorage,
 } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
-import { setToSortedArray, arrayHasAnyFromSet } from "@/utils/filterHelpers";
+import { setToSortedArray, arrayHasAnyFromSet, arraysEqual } from "@/utils/filterHelpers";
 
 // Types
 export interface NotesFilters {
@@ -52,13 +53,6 @@ export interface NotesViewPreset {
 }
 
 // Helper function to compare arrays
-const arraysEqual = (a: string[], b: string[]) => {
-  if (a.length !== b.length) return false;
-  const sortedA = [...a].sort();
-  const sortedB = [...b].sort();
-  return sortedA.every((val, idx) => val === sortedB[idx]);
-};
-
 // Empty filters constant
 const emptyFilters: NotesFilters = {
   searchText: "",
@@ -103,14 +97,19 @@ export function useNotesViewState({
   const [archivedExpanded, setArchivedExpanded] = useState(false);
 
   // Preset state
-  const [viewPresets, setViewPresets] = useState<NotesViewPreset[]>([]);
-  const [activePreset, setActivePreset] = useState<string>("custom");
-  const [isSavePresetOpen, setIsSavePresetOpen] = useState(false);
-  const [presetName, setPresetName] = useState("");
+  const {
+    viewPresets,
+    setViewPresets,
+    activePreset,
+    setActivePreset,
+    isSavePresetOpen,
+    setIsSavePresetOpen,
+    presetName,
+    setPresetName,
+  } = useViewPresets<NotesViewPreset>(STORAGE_KEYS.NOTES_VIEW_PRESETS);
 
   // Loading states
   const [viewOptionsLoaded, setViewOptionsLoaded] = useState(false);
-  const [viewPresetsLoaded, setViewPresetsLoaded] = useState(false);
 
   // Drag mode state
   const [isDragMode, setIsDragMode] = useState(false);
@@ -126,24 +125,6 @@ export function useNotesViewState({
     new Set(),
   );
 
-  // Load view presets from storage on mount
-  useEffect(() => {
-    waitForStorageInit()
-      .then(() =>
-        loadFromStorage<NotesViewPreset[]>(STORAGE_KEYS.NOTES_VIEW_PRESETS, []),
-      )
-      .then((saved) => {
-        setViewPresets(saved);
-        setViewPresetsLoaded(true);
-      });
-  }, []);
-
-  // Save view presets to storage when they change
-  useEffect(() => {
-    if (viewPresetsLoaded) {
-      saveToStorage(STORAGE_KEYS.NOTES_VIEW_PRESETS, viewPresets);
-    }
-  }, [viewPresets, viewPresetsLoaded]);
 
   // Load view options from storage on mount
   useEffect(() => {
@@ -251,9 +232,9 @@ export function useNotesViewState({
       );
     });
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: sync active preset with current filter state
     setActivePreset(matchingPreset ? matchingPreset.name : "custom");
   }, [
+    setActivePreset,
     viewOptionsLoaded,
     filters,
     sortField,
@@ -583,7 +564,7 @@ export function useNotesViewState({
       setArchivedExpanded(preset.sections.archivedExpanded);
     }
     setActivePreset(preset.name);
-  }, []);
+  }, [setActivePreset]);
 
   const savePreset = useCallback(
     (name: string) => {
@@ -622,6 +603,10 @@ export function useNotesViewState({
       setPresetName("");
     },
     [
+      setViewPresets,
+      setActivePreset,
+      setIsSavePresetOpen,
+      setPresetName,
       filters,
       sortField,
       sortDirection,
@@ -639,7 +624,7 @@ export function useNotesViewState({
         setActivePreset("custom");
       }
     },
-    [activePreset],
+    [activePreset, setViewPresets, setActivePreset],
   );
 
   // Selection handlers

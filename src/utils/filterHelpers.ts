@@ -80,3 +80,16 @@ export function filterByNameOrAlternatives<T extends NamedWithAlternatives>(
       item.alternatives.some((alt) => alt.toLowerCase().includes(lowerSearch))
   );
 }
+
+/**
+ * Whether two arrays hold the same values, regardless of order.
+ *
+ * Used to decide whether the current filter set still matches a saved preset.
+ * Both view-state hooks had a byte-identical private copy of this.
+ */
+export function arraysEqual<T>(a: T[], b: T[]): boolean {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((value, index) => value === sortedB[index]);
+}
