@@ -1,6 +1,7 @@
 "use client";
 
 import { TodoModel } from "@/models/TodoModel";
+import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { Settings } from "@/types/settings";
@@ -13,8 +14,7 @@ import { TodoItem } from "@/components/items/TodoItem";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { Priority } from "@/types/priority";
 import { LinkPattern } from "@/types/linkPattern";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storage";
+import { STORAGE_KEYS } from "@/storage/storage";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { getWeekNumber } from "@/utils/dateUtils";
 import {
@@ -159,45 +159,39 @@ export function CalendarView({
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<TodoModel | null>(null);
 
   // View options state - initialized with defaults, loaded from storage in useEffect
-  const [viewMode, setViewMode] = useState<CalendarViewType>(calendarSettings.defaultView);
-  const [sortField, setSortField] = useState<"priority" | "duration" | "created">("created");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [showTasksWithoutDates, setShowTasksWithoutDates] = useState(true);
-  const [calendarOptionsLoaded, setCalendarOptionsLoaded] = useState(false);
+
+  // Persisted view options, previously a useState per option plus a load
+  // effect, a loaded flag and a save effect. The per-field copying it used also
+  // discarded any stored key it did not name; the shared hook merges over the
+  // defaults instead.
+  const [calendarOptions, setCalendarOptions] = usePersistedViewOptions(
+    STORAGE_KEYS.CALENDAR_VIEW_OPTIONS,
+    {
+      viewMode: calendarSettings.defaultView as CalendarViewType,
+      sortField: "created" as "priority" | "duration" | "created",
+      sortDirection: "asc" as "asc" | "desc",
+      showTasksWithoutDates: true,
+    },
+  );
+  const { viewMode, sortField, sortDirection, showTasksWithoutDates } = calendarOptions;
+  const setViewMode = useCallback(
+    (mode: CalendarViewType) => setCalendarOptions({ viewMode: mode }),
+    [setCalendarOptions],
+  );
+  const setSortField = useCallback(
+    (field: "priority" | "duration" | "created") => setCalendarOptions({ sortField: field }),
+    [setCalendarOptions],
+  );
+  const setSortDirection = useCallback(
+    (direction: "asc" | "desc") => setCalendarOptions({ sortDirection: direction }),
+    [setCalendarOptions],
+  );
+  const setShowTasksWithoutDates = useCallback(
+    (show: boolean) => setCalendarOptions({ showTasksWithoutDates: show }),
+    [setCalendarOptions],
+  );
   const [focusedDateIndex, setFocusedDateIndex] = useState<number | null>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
-
-  // Load persisted view options from storage
-  useEffect(() => {
-    waitForStorageInit()
-      .then(() => {
-        return loadFromStorage<{
-          viewMode?: CalendarViewType;
-          sortField?: "priority" | "duration" | "created";
-          sortDirection?: "asc" | "desc";
-          showTasksWithoutDates?: boolean;
-        }>(STORAGE_KEYS.CALENDAR_VIEW_OPTIONS, {});
-      })
-      .then((saved) => {
-        if (saved.viewMode !== undefined) setViewMode(saved.viewMode);
-        if (saved.sortField !== undefined) setSortField(saved.sortField);
-        if (saved.sortDirection !== undefined) setSortDirection(saved.sortDirection);
-        if (saved.showTasksWithoutDates !== undefined) setShowTasksWithoutDates(saved.showTasksWithoutDates);
-        setCalendarOptionsLoaded(true);
-      });
-  }, []);
-
-  // Persist Calendar view options to storage (only after initial load)
-  useEffect(() => {
-    if (!calendarOptionsLoaded) return;
-    const viewOptions = {
-      viewMode,
-      sortField,
-      sortDirection,
-      showTasksWithoutDates,
-    };
-    saveToStorage(STORAGE_KEYS.CALENDAR_VIEW_OPTIONS, viewOptions);
-  }, [calendarOptionsLoaded, viewMode, sortField, sortDirection, showTasksWithoutDates]);
 
   // Get day headers based on week start
   const dayHeaders = useMemo(() => {

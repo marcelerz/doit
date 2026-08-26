@@ -3,6 +3,7 @@
 import React from "react";
 import { TodoMetadata, TodoId, SubtaskId, TimeEntryId } from "@/types/todo";
 import { TodoModel } from "@/models/TodoModel";
+import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
 import { WorkHoursSettings, Settings } from "@/types/settings";
 import { MarkerColors } from "@/types/markerColors";
 import { GanttZoomLevel, Gantt } from "@/types/gantt";
@@ -13,8 +14,7 @@ import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
-import { waitForStorageInit } from "@/storage/storage";
+import { STORAGE_KEYS } from "@/storage/storage";
 import { MarkedText } from "@/components/shared/MarkedText";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
@@ -200,12 +200,34 @@ export function GanttView({
 
   // View options state - initialized with defaults, loaded from storage in useEffect
 
-  const [schedulingMode, setSchedulingMode] = useState<"asap" | "dueDate" | "duration">("asap");
+
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
   const [detailsOverlayTodo, setDetailsOverlayTodo] = useState<TodoModel | null>(null);
-  const [completedCollapsed, setCompletedCollapsed] = useState(settings.gantt.collapseCompleted ?? false);
-  const [ganttOptionsLoaded, setGanttOptionsLoaded] = useState(false);
+  // Persisted view options. These were hand-rolled: a useState per option, a
+  // load effect copying each field across one `if (saved.x !== undefined)` at a
+  // time, a loaded flag, and a save effect. That per-field copying also dropped
+  // any stored key it did not name; the shared hook merges over the defaults,
+  // so an option added later survives a downgrade.
+  const [ganttOptions, setGanttOptions] = usePersistedViewOptions(
+    STORAGE_KEYS.GANTT_VIEW_OPTIONS,
+    {
+      schedulingMode: "asap" as "asap" | "dueDate" | "duration",
+      completedCollapsed: settings.gantt.collapseCompleted ?? false,
+    },
+  );
+  const { schedulingMode, completedCollapsed } = ganttOptions;
+  const setSchedulingMode = useCallback(
+    (mode: "asap" | "dueDate" | "duration") => setGanttOptions({ schedulingMode: mode }),
+    [setGanttOptions],
+  );
+  const setCompletedCollapsed = useCallback(
+    (next: boolean | ((prev: boolean) => boolean)) =>
+      setGanttOptions({
+        completedCollapsed: typeof next === "function" ? next(ganttOptions.completedCollapsed) : next,
+      }),
+    [setGanttOptions, ganttOptions.completedCollapsed],
+  );
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedTaskIndex, setSelectedTaskIndex] = useState<number>(-1);
   const [showClickHint, setShowClickHint] = useState(true); // Shows "Click to edit" hint
@@ -231,32 +253,6 @@ export function GanttView({
     }, 60000); // Update every minute
     return () => clearInterval(interval);
   }, []);
-
-  // Load persisted view options from storage
-  useEffect(() => {
-    waitForStorageInit()
-      .then(() => {
-        return loadFromStorage<{
-          schedulingMode?: "asap" | "dueDate" | "duration";
-          completedCollapsed?: boolean;
-        }>(STORAGE_KEYS.GANTT_VIEW_OPTIONS, {});
-      })
-      .then((saved) => {
-        if (saved.schedulingMode !== undefined) setSchedulingMode(saved.schedulingMode);
-        if (saved.completedCollapsed !== undefined) setCompletedCollapsed(saved.completedCollapsed);
-        setGanttOptionsLoaded(true);
-      });
-  }, []);
-
-  // Persist Gantt view options to storage (only after initial load)
-  useEffect(() => {
-    if (!ganttOptionsLoaded) return;
-    const viewOptions = {
-      schedulingMode,
-      completedCollapsed,
-    };
-    saveToStorage(STORAGE_KEYS.GANTT_VIEW_OPTIONS, viewOptions);
-  }, [ganttOptionsLoaded, schedulingMode, completedCollapsed]);
 
   // Update zoom level and persist to settings
   const handleZoomChange = useCallback(
@@ -565,7 +561,16 @@ export function GanttView({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [detailsOverlayTodo, selectedTaskIndex, scheduledTasks, activeTasks, completedCollapsed, onToggle, navigateDate]);
+  }, [
+    detailsOverlayTodo,
+    selectedTaskIndex,
+    scheduledTasks,
+    activeTasks,
+    completedCollapsed,
+    setCompletedCollapsed,
+    onToggle,
+    navigateDate,
+  ]);
 
   // Reset selection when date changes
   useEffect(() => {
