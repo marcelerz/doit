@@ -1,6 +1,7 @@
 "use client";
 
-import { TodoMetadata, TodoId, SubtaskId, TimeEntryId } from "@/types/todo";
+import { TodoMetadata, TodoId } from "@/types/todo";
+import { TodoActionProps } from "@/components/overlays/todoActionProps";
 import { TodoModel } from "@/models/TodoModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
@@ -110,7 +111,7 @@ export const kanbanViewTutorialSteps: TutorialStep[] = [
   },
 ];
 
-interface KanbanViewProps {
+interface KanbanViewProps extends TodoActionProps {
   todos: TodoModel[];
   markerColors: MarkerColors;
   kanban: KanbanSettings;
@@ -132,21 +133,11 @@ interface KanbanViewProps {
   availablePriorities: Priority[];
   onAddPerson: (person: string) => void;
   onAddProject: (project: string) => void;
-  onAddPriority: (priority: string) => void;
   onAddComment?: (todoId: TodoId, content: string) => void;
   onUpdateKanbanSettings?: (kanban: KanbanSettings) => void;
   // Subtask handlers
-  onAddSubtask?: (todoId: TodoId, text: string) => void;
-  onToggleSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
-  onEditSubtask?: (todoId: TodoId, subtaskId: SubtaskId, text: string) => void;
-  onDeleteSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
   // Time tracking handlers
-  onStartTimeTracking?: (todoId: TodoId, note?: string) => void;
-  onStopTimeTracking?: (todoId: TodoId) => void;
-  onAddManualTimeEntry?: (todoId: TodoId, minutes: number, note?: string) => void;
-  onDeleteTimeEntry?: (todoId: TodoId, entryId: TimeEntryId) => void;
   // Template handler
-  onCreateTemplate?: (todoId: TodoId) => void;
   // Duplicate handler
   onDuplicate?: (id: TodoId) => TodoId | undefined;
   // Sprints data

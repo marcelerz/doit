@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { TodoMetadata, TodoId, SubtaskId, TimeEntryId } from "@/types/todo";
+import { TodoActionProps } from "@/components/overlays/todoActionProps";
+import { TodoMetadata, TodoId } from "@/types/todo";
 import { TodoModel } from "@/models/TodoModel";
 import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
 import { WorkHoursSettings, Settings } from "@/types/settings";
@@ -100,7 +101,7 @@ export const ganttViewTutorialSteps: TutorialStep[] = [
   },
 ];
 
-interface GanttViewProps {
+interface GanttViewProps extends TodoActionProps {
   todos: TodoModel[];
   markerColors: MarkerColors;
   workHours: WorkHoursSettings;
@@ -116,21 +117,11 @@ interface GanttViewProps {
   availablePriorities: Priority[];
   onAddPerson: (person: string) => void;
   onAddProject: (project: string) => void;
-  onAddPriority: (priority: string) => void;
   onAddComment?: (todoId: TodoId, content: string) => void;
   onUpdateGanttSettings?: (gantt: Gantt) => void;
   // Subtask handlers
-  onAddSubtask?: (todoId: TodoId, text: string) => void;
-  onToggleSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
-  onEditSubtask?: (todoId: TodoId, subtaskId: SubtaskId, text: string) => void;
-  onDeleteSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
   // Time tracking handlers
-  onStartTimeTracking?: (todoId: TodoId, note?: string) => void;
-  onStopTimeTracking?: (todoId: TodoId) => void;
-  onAddManualTimeEntry?: (todoId: TodoId, minutes: number, note?: string) => void;
-  onDeleteTimeEntry?: (todoId: TodoId, entryId: TimeEntryId) => void;
   // Template handler
-  onCreateTemplate?: (todoId: TodoId) => void;
   // Duplicate handler
   onDuplicate?: (id: TodoId) => TodoId | undefined;
   // Focus mode handler

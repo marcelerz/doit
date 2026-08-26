@@ -1,6 +1,7 @@
 "use client";
 
 import { TodoModel } from "@/models/TodoModel";
+import { TodoActionProps } from "@/components/overlays/todoActionProps";
 import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
@@ -8,7 +9,7 @@ import { Settings } from "@/types/settings";
 import { MarkerColors } from "@/types/markerColors";
 import { CalendarView as CalendarViewType, Calendar } from "@/types/calendar";
 import { CommentId } from "@/types/types";
-import { TodoId, SubtaskId, TimeEntryId, TodoMetadata } from "@/types/todo";
+import { TodoId, TodoMetadata } from "@/types/todo";
 import { useState, useMemo, useEffect, useRef, Fragment, useCallback } from "react";
 import { TodoItem } from "@/components/items/TodoItem";
 import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
@@ -72,7 +73,7 @@ export const calendarViewTutorialSteps: TutorialStep[] = [
   },
 ];
 
-interface CalendarViewProps {
+interface CalendarViewProps extends TodoActionProps {
   todos: TodoModel[];
   markerColors: MarkerColors;
   settings: Settings;
@@ -87,23 +88,13 @@ interface CalendarViewProps {
   onEdit: (id: TodoId, text: string, plainText: string, metadata: TodoMetadata) => void;
   onAddPerson: (name: string) => void;
   onAddProject: (name: string) => void;
-  onAddPriority: (name: string) => void;
   onAddComment: (todoId: TodoId, content: string) => void;
   onEditComment: (todoId: TodoId, commentId: CommentId, content: string) => void;
   onDeleteComment: (todoId: TodoId, commentId: CommentId) => void;
   onQuickAdd?: (dueDate: string) => void;
   // Subtask handlers
-  onAddSubtask?: (todoId: TodoId, text: string) => void;
-  onToggleSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
-  onEditSubtask?: (todoId: TodoId, subtaskId: SubtaskId, text: string) => void;
-  onDeleteSubtask?: (todoId: TodoId, subtaskId: SubtaskId) => void;
   // Time tracking handlers
-  onStartTimeTracking?: (todoId: TodoId, note?: string) => void;
-  onStopTimeTracking?: (todoId: TodoId) => void;
-  onAddManualTimeEntry?: (todoId: TodoId, minutes: number, note?: string) => void;
-  onDeleteTimeEntry?: (todoId: TodoId, entryId: TimeEntryId) => void;
   // Template handler
-  onCreateTemplate?: (todoId: TodoId) => void;
   // Duplicate handler
   onDuplicate?: (id: TodoId) => TodoId | undefined;
 }
