@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { EntityMetadataFields } from "@/components/shared/EntityMetadataFields";
 import { escapeRegex } from "@/utils/linkPatternUtils";
 import { sanitizeUrl } from "@/utils/sanitize";
 import { NoteModel } from "@/models/NoteModel";
@@ -45,18 +46,6 @@ const tooltipContent = {
   actionItems: "Create follow-up todos from your notes.",
   activity: "History of changes and comments for this note.",
 };
-
-// Color helper functions
-function getTextColor(bgColor: string): string {
-  // Convert hex to RGB
-  const hex = bgColor.replace("#", "");
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  // Calculate luminance
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? "#000000" : "#ffffff";
-}
 
 interface NoteDetailViewProps {
   note: NoteModel;
@@ -676,145 +665,15 @@ export function NoteDetailView({
 
         {/* Note Details Grid */}
         <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          {/* Assigned People */}
-          <MetadataSection
-            title="Assigned"
-            icon="👤"
-            values={editingMetadata.assignedPeople}
-            onRemove={(person) => {
-              handleMetadataChange({
-                ...editingMetadata,
-                assignedPeople: editingMetadata.assignedPeople.filter((p) => p !== person),
-              });
-            }}
-            onAdd={(name) => {
-              if (onAddPerson && !availablePeople.find((p) => p.name === name)) {
-                onAddPerson(name);
-              }
-              handleMetadataChange({
-                ...editingMetadata,
-                assignedPeople: [...editingMetadata.assignedPeople, name],
-              });
-            }}
-            availableItems={availablePeople.map((p) => ({
-              id: p.name,
-              label: p.name,
-              prefix: "@",
-              alternatives: p.alternatives,
-            }))}
-            dropdownId="assigned"
-            placeholder="Search people..."
-            highlightColor="blue"
-            emptyMessage="All people already assigned"
-            getColor={getPersonColor}
-            getTextColor={getTextColor}
-            prefix="@"
-            tooltip={tooltipContent.assignedPeople}
-          />
-
-          {/* Projects */}
-          <MetadataSection
-            title="Projects"
-            icon="📁"
-            values={editingMetadata.projects}
-            onRemove={(project) => {
-              handleMetadataChange({
-                ...editingMetadata,
-                projects: editingMetadata.projects.filter((p) => p !== project),
-              });
-            }}
-            onAdd={(name) => {
-              if (onAddProject && !availableProjects.find((p) => p.name === name)) {
-                onAddProject(name);
-              }
-              handleMetadataChange({
-                ...editingMetadata,
-                projects: [...editingMetadata.projects, name],
-              });
-            }}
-            availableItems={availableProjects.map((p) => ({
-              id: p.name,
-              label: `%${p.name}`,
-              alternatives: p.alternatives,
-            }))}
-            dropdownId="project"
-            placeholder="Search projects..."
-            highlightColor="purple"
-            emptyMessage="All projects already added"
-            getColor={getProjectColor}
-            getTextColor={getTextColor}
-            prefix="%"
-            tooltip={tooltipContent.projects}
-          />
-
-          {/* Source People */}
-          <MetadataSection
-            title="Source"
-            icon="💼"
-            values={editingMetadata.sourcePeople}
-            onRemove={(person) => {
-              handleMetadataChange({
-                ...editingMetadata,
-                sourcePeople: editingMetadata.sourcePeople.filter((p) => p !== person),
-              });
-            }}
-            onAdd={(name) => {
-              if (onAddPerson && !availablePeople.find((p) => p.name === name)) {
-                onAddPerson(name);
-              }
-              handleMetadataChange({
-                ...editingMetadata,
-                sourcePeople: [...editingMetadata.sourcePeople, name],
-              });
-            }}
-            availableItems={availablePeople.map((p) => ({
-              id: p.name,
-              label: `$${p.name}`,
-              alternatives: p.alternatives,
-            }))}
-            dropdownId="source"
-            placeholder="Search people..."
-            highlightColor="green"
-            emptyMessage="All people already added"
-            getColor={getPersonColor}
-            getTextColor={getTextColor}
-            prefix="$"
-            tooltip={tooltipContent.sourcePeople}
-          />
-
-          {/* Mentioned People */}
-          <MetadataSection
-            title="Mentioned"
-            icon="💬"
-            values={editingMetadata.mentionedPeople}
-            onRemove={(person) => {
-              handleMetadataChange({
-                ...editingMetadata,
-                mentionedPeople: editingMetadata.mentionedPeople.filter((p) => p !== person),
-              });
-            }}
-            onAdd={(name) => {
-              if (onAddPerson && !availablePeople.find((p) => p.name === name)) {
-                onAddPerson(name);
-              }
-              handleMetadataChange({
-                ...editingMetadata,
-                mentionedPeople: [...editingMetadata.mentionedPeople, name],
-              });
-            }}
-            availableItems={availablePeople.map((p) => ({
-              id: p.name,
-              label: p.name,
-              alternatives: p.alternatives,
-            }))}
-            dropdownId="mentioned"
-            placeholder="Search people..."
-            highlightColor="pink"
-            emptyMessage="All people already mentioned"
-            getColor={getPersonColor}
-            getTextColor={getTextColor}
-            showPrefix={false}
-            tooltip={tooltipContent.mentionedPeople}
+          <EntityMetadataFields
+            metadata={editingMetadata}
+            onChange={handleMetadataChange}
+            availablePeople={availablePeople}
+            availableProjects={availableProjects}
+            onAddPerson={onAddPerson}
+            onAddProject={onAddProject}
+            getPersonColor={getPersonColor}
+            getProjectColor={getProjectColor}
           />
 
           {/* Tags */}
