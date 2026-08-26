@@ -1,7 +1,7 @@
 import { Todo, TodoId, TodoState, Tag, TodoMetadata, getTodoId } from "@/types/todo";
 import { latestComment, CommentSummary } from "@/utils/commentMutations";
-import type { PersonId } from "@/types/person";
-import type { ProjectId } from "@/types/project";
+import { type PersonId, getPersonId } from "@/types/person";
+import { type ProjectId, getProjectId } from "@/types/project";
 import type { PriorityId } from "@/types/priority";
 import type { SprintId } from "@/types/sprint";
 import type { Timestamp, DurationSec } from "@/types/time";
@@ -117,7 +117,7 @@ export class TodoModel {
     // left this setting doing nothing at all.
     const defaultName = this._settingsModel.defaultAssignedPerson;
     if (defaultName) {
-      return [defaultName as PersonId];
+      return [getPersonId(defaultName)];
     }
     return [];
   }
@@ -136,7 +136,7 @@ export class TodoModel {
     // left this setting doing nothing at all.
     const defaultName = this._settingsModel.defaultSourcePerson;
     if (defaultName) {
-      return [defaultName as PersonId];
+      return [getPersonId(defaultName)];
     }
     return [];
   }
@@ -161,7 +161,7 @@ export class TodoModel {
     // Same as the people defaults above: projects are stored by name.
     const defaultName = this._settingsModel.defaultProject;
     if (defaultName) {
-      return [defaultName as ProjectId];
+      return [getProjectId(defaultName)];
     }
     return [];
   }

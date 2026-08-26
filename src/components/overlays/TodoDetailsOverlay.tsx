@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { EntityMetadataFields } from "@/components/shared/EntityMetadataFields";
 import { escapeRegex } from "@/utils/linkPatternUtils";
 import { sanitizeUrl } from "@/utils/sanitize";
-import { TodoMetadata, TodoId, SubtaskId, TimeEntryId } from "@/types/todo";
+import { TodoMetadata, TodoId, SubtaskId, TimeEntryId, getTodoId } from "@/types/todo";
 import { Settings } from "@/types/settings";
 import { MarkerColors } from "@/types/markerColors";
 import { LinkPattern } from "@/types/linkPattern";
@@ -1189,7 +1189,7 @@ export function TodoDetailsOverlay({
           <Activity
             activities={todo.activity}
             comments={todo.comments}
-            onNavigateToTask={onSelectTodo ? (taskId) => onSelectTodo(taskId as TodoId) : undefined}
+            onNavigateToTask={onSelectTodo ? (taskId) => onSelectTodo(getTodoId(taskId)) : undefined}
             onNavigateToNote={onOpenNote}
             linkPatterns={linkPatterns}
           />

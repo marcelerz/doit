@@ -15,7 +15,9 @@ describe("activityLogger", () => {
     it("should create an activity entry with required fields", () => {
       const activity = createActivity("created", "Task created");
 
-      expect(activity.id).toMatch(/^activity_\d+_[a-z0-9]+$/);
+      // Same "act-<uuid>" shape as every other id in the app; nothing sorts
+      // by activity id, so the old timestamp format bought nothing.
+      expect(activity.id).toMatch(/^act-[0-9a-f-]{36}$/);
       expect(activity.timestamp).toBeGreaterThan(0);
       expect(activity.type).toBe("created");
       expect(activity.description).toBe("Task created");

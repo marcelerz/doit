@@ -6,18 +6,21 @@
 
 import { ActivityEntry, getActivityId, ActivityId } from "@/types/types";
 import { getTimestamp } from "@/types/time";
+import { createActivityId } from "@/utils/idGenerator";
 
 /**
  * Generate a unique ID for an activity entry.
- * Format: "activity_{timestamp}_{random9chars}"
  *
- * This uses a timestamp-based ID (rather than UUID) for chronological ordering
- * and to enable simple sorting of activities by their ID.
+ * Delegates to createActivityId, so every activity entry in the app gets the
+ * same "act-<uuid>" shape as every other id. The previous timestamp format
+ * justified itself by "chronological ordering and simple sorting by ID", but
+ * nothing sorts by activity id -- Activity.tsx sorts the timeline by
+ * timestamp, and the id is only ever a React key.
  *
  * @returns A branded ActivityId
  */
 export function generateActivityId(): ActivityId {
-  return getActivityId(`activity_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`);
+  return getActivityId(createActivityId());
 }
 
 /**

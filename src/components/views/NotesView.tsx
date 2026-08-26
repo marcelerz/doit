@@ -24,7 +24,7 @@ import { SectionHeader } from "@/components/shared/SectionHeader";
 import { NoteModel } from "@/models/NoteModel";
 import { PersonModel } from "@/models/PersonModel";
 import { ProjectModel } from "@/models/ProjectModel";
-import { NoteId } from "@/types/note";
+import { NoteId, getNoteId } from "@/types/note";
 import { TodoModel } from "@/models/TodoModel";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { useNotesViewState, NotesFilters } from "@/hooks/useNotesViewState";
@@ -312,7 +312,7 @@ export function NotesView({
     selectedNoteIds.forEach((id) => {
       const note = notes.find((n) => n.id === id);
       if (note?.isActive) {
-        onArchiveNote(id as NoteId);
+        onArchiveNote(getNoteId(id));
       }
     });
     clearSelection();
@@ -322,7 +322,7 @@ export function NotesView({
     selectedNoteIds.forEach((id) => {
       const note = notes.find((n) => n.id === id);
       if (note?.isArchived) {
-        onUnarchiveNote(id as NoteId);
+        onUnarchiveNote(getNoteId(id));
       }
     });
     clearSelection();
@@ -330,7 +330,7 @@ export function NotesView({
 
   const bulkDelete = useCallback(() => {
     selectedNoteIds.forEach((id) => {
-      onDeleteNote(id as NoteId);
+      onDeleteNote(getNoteId(id));
     });
     clearSelection();
   }, [selectedNoteIds, onDeleteNote, clearSelection]);
@@ -367,7 +367,7 @@ export function NotesView({
     (e: React.DragEvent, targetNoteId: NoteId) => {
       if (!isDragMode || !onReorderNotes) return;
       e.preventDefault();
-      const draggedId = e.dataTransfer.getData("text/plain") as NoteId;
+      const draggedId = getNoteId(e.dataTransfer.getData("text/plain"));
       if (draggedId === targetNoteId) return;
 
       // Build new order

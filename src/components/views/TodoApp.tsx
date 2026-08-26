@@ -42,8 +42,8 @@ import { ReviewEditView } from "@/components/views/ReviewEditView";
 import { ReviewDetailView } from "@/components/views/ReviewDetailView";
 import { NoteDetailView } from "@/components/views/NoteDetailView";
 import { NoteAddModal } from "@/components/overlays/NoteAddModal";
-import { NoteId } from "@/types/note";
-import { ReviewId, ReviewLevel } from "@/types/review";
+import { NoteId, getNoteId } from "@/types/note";
+import { ReviewId, ReviewLevel, getReviewId } from "@/types/review";
 import { useSelectionHistory, sortByUsage, sortStringsByUsage } from "@/hooks/useSelectionHistory";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { normalizeDateValue } from "@/utils/dateUtils";
@@ -1478,7 +1478,7 @@ export function TodoApp() {
               }
             }}
             onOpenChildReview={(reviewId) => {
-              setSelectedReviewId(reviewId as ReviewId);
+              setSelectedReviewId(getReviewId(reviewId));
             }}
             onToggleEntryCollapsed={toggleReviewEntryCollapsed}
           />
@@ -1569,7 +1569,7 @@ export function TodoApp() {
                   // Close the todo overlay and navigate to the note
                   setDetailsOverlayTodo(null);
                   setActiveView("notes");
-                  setSelectedNoteId(noteId as NoteId);
+                  setSelectedNoteId(getNoteId(noteId));
                 }}
               />
             );
