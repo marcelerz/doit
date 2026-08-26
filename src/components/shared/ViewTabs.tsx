@@ -110,7 +110,11 @@ export function ViewTabs({ activeView, onViewChange, features, runningSprint, on
 
   return (
     <div className="mb-6 overflow-x-auto -mx-2 sm:-mx-0 px-2 sm:px-0" data-tutorial="view-tabs">
-      <div className="flex gap-1 sm:gap-2 border-b border-zinc-200 dark:border-zinc-800 min-w-max">
+      <div
+        role="tablist"
+        aria-label="Views"
+        className="flex gap-1 sm:gap-2 border-b border-zinc-200 dark:border-zinc-800 min-w-max"
+      >
         {tabs.map((tab) => {
           const isActive = activeView === tab.id;
 
@@ -118,13 +122,21 @@ export function ViewTabs({ activeView, onViewChange, features, runningSprint, on
             <button
               key={tab.id}
               data-testid={tab.testId}
+              role="tab"
+              aria-selected={isActive}
               onClick={() => onViewChange(tab.id)}
               className={getTabClassName(isActive)}
               title={`${tab.label} view`}
             >
               <div className="flex items-center gap-1 lg:gap-2">
                 {VIEW_ICONS[tab.id]}
-                <span className="hidden lg:inline">{tab.label}</span>
+                {/* Labels used to appear only at lg, so every tablet and phone
+                    got a row of unlabelled icons with no way to tell List from
+                    Kanban from Notes -- title= never fires on touch. They now
+                    show at every width, smaller below lg; the bar already
+                    scrolls horizontally, so the ones that no longer fit are
+                    reached the same way they were before. */}
+                <span className="max-lg:text-xs">{tab.label}</span>
                 {isActive && <ViewTutorialButton view={tab.id} onOpenTutorial={onOpenTutorial} />}
                 {tab.id === "sprints" && runningSprint && (
                   <span className="hidden lg:inline w-2 h-2 rounded-full bg-green-500 animate-pulse" />
