@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirmationRepeat, useTimerTick } from "@/hooks/usePomodoroTimer";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { TodoModel } from "@/models/TodoModel";
 import { Settings } from "@/types/settings";
@@ -175,8 +176,6 @@ export function FocusView({
   const [pendingAutoComplete, setPendingAutoComplete] = useState<TodoId | null>(null);
 
   // Refs
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const confirmationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const timeTrackingActiveRef = useRef<TodoId | null>(null);
   const onStopTimeTrackingRef = useRef(onStopTimeTracking);
   useEffect(() => {
@@ -194,8 +193,6 @@ export function FocusView({
     return () => {
       clearSoundQueue();
       stopAmbientSound();
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (confirmationTimerRef.current) clearInterval(confirmationTimerRef.current);
       if (timeTrackingActiveRef.current && onStopTimeTrackingRef.current) {
         onStopTimeTrackingRef.current(timeTrackingActiveRef.current);
         timeTrackingActiveRef.current = null;
@@ -315,6 +312,12 @@ export function FocusView({
   // Confirm transition handler
   const confirmPhaseTransition = useCallback(
     (s: FocusState): FocusState => {
+      // Nothing pending means this already ran -- from the button and the
+      // reminder timer in the same tick, say. Advancing twice would skip a
+      // schedule item, which the timer-clearing this used to do only made
+      // unlikely rather than impossible.
+      if (!s.pendingPhase) return s;
+
       const nextIndex = s.currentItemIndex + 1;
       const nextItem = getCurrentItem(nextIndex);
 
@@ -347,67 +350,23 @@ export function FocusView({
 
   // Confirm button handler
   const confirmTransition = useCallback(() => {
-    if (confirmationTimerRef.current) {
-      clearInterval(confirmationTimerRef.current);
-      confirmationTimerRef.current = null;
-    }
     setState((s) => confirmPhaseTransition(s));
   }, [confirmPhaseTransition]);
 
-  // Confirmation repeat timer
-  useEffect(() => {
-    if (state.pendingPhase && focusSettings.requireConfirmation) {
-      const maxRepeats = focusSettings.confirmationMaxRepeats ?? 5;
-      const interval = (focusSettings.confirmationRepeatInterval ?? 30) * 1000;
-
-      confirmationTimerRef.current = setInterval(() => {
-        setState((s) => {
-          const newRepeats = s.confirmationRepeats + 1;
-
-          if (soundEnabled) {
-            if (s.pendingPhase === "break") {
-              playNotificationSound("short-break");
-            } else {
-              playNotificationSound("break-end");
-            }
-          }
-
-          if (maxRepeats > 0 && newRepeats >= maxRepeats) {
-            return confirmPhaseTransition(s);
-          }
-
-          return { ...s, confirmationRepeats: newRepeats };
-        });
-      }, interval);
-
-      return () => {
-        if (confirmationTimerRef.current) {
-          clearInterval(confirmationTimerRef.current);
-          confirmationTimerRef.current = null;
-        }
-      };
-    }
-  }, [
-    state.pendingPhase,
-    focusSettings.requireConfirmation,
-    focusSettings.confirmationRepeatInterval,
-    focusSettings.confirmationMaxRepeats,
+  useConfirmationRepeat({
+    pendingPhase: state.pendingPhase,
+    requireConfirmation: focusSettings.requireConfirmation ?? false,
+    repeatIntervalSeconds: focusSettings.confirmationRepeatInterval ?? 30,
+    maxRepeats: focusSettings.confirmationMaxRepeats ?? 5,
     soundEnabled,
+    soundFor: (pending) => (pending === "break" ? "short-break" : "break-end"),
+    setState,
     confirmPhaseTransition,
-  ]);
+  });
 
   // Timer tick
-  useEffect(() => {
-    if (!state.isRunning || state.pendingPhase) {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      return;
-    }
-
-    timerRef.current = setInterval(() => {
-      setState((s) => {
+  useTimerTick(state.isRunning && !state.pendingPhase, () => {
+    setState((s) => {
         const newTime = s.timeRemaining - 1;
 
         const newTotalWork = s.phase === "work" ? s.totalWorkTime + 1 : s.totalWorkTime;
@@ -517,14 +476,7 @@ export function FocusView({
           actualTimeSpent: newActualTime,
         };
       });
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [state.isRunning, state.pendingPhase, soundEnabled, notificationsEnabled, focusSettings.requireConfirmation]);
+  });
 
   // Toggle timer
   const toggleTimer = useCallback(() => {
