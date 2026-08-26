@@ -172,6 +172,33 @@ interface ListViewProps {
   dependencyBlockNotification: string | null;
 }
 
+/**
+ * The eleven filter sections, in the order they appear.
+ *
+ * Each was 22 lines of JSX that differed only in these three fields; the
+ * remaining props were copied verbatim eleven times, which is how "Tags (&)"
+ * came to sit next to a tag marker of `#`. Categories is the one section that
+ * needs more -- it colours and names its chips from the category record -- and
+ * says so at the point of use rather than by being written out longhand.
+ */
+const FILTER_SECTIONS: ReadonlyArray<{
+  key: keyof Omit<TodoFilters, "searchText">;
+  label: string;
+  prefix: string;
+}> = [
+  { key: "assignedPeople", label: "Assigned (@)", prefix: "@" },
+  { key: "projects", label: "Projects (%)", prefix: "%" },
+  { key: "categories", label: "Categories", prefix: "" },
+  { key: "sourcePeople", label: "Source ($)", prefix: "$" },
+  { key: "mentionedPeople", label: "Mentioned", prefix: "" },
+  { key: "priorities", label: "Priority (!!)", prefix: "!!" },
+  { key: "dueDates", label: "Due Date (~)", prefix: "~" },
+  { key: "durations", label: "Duration (*)", prefix: "*" },
+  { key: "tags", label: "Tags (&)", prefix: "&" },
+  { key: "recurring", label: "Recurring (%)", prefix: "%" },
+  { key: "dependencies", label: "Dependencies (>)", prefix: ">" },
+];
+
 export function ListView({
   todos,
   settings,
@@ -603,220 +630,46 @@ export function ListView({
           >
             {/* Grid layout for filters on larger screens */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 lg:gap-x-6 lg:gap-y-4 [&>*]:lg:pl-6 [&>*]:lg:border-l [&>*]:lg:border-zinc-200 [&>*]:dark:lg:border-zinc-700 [&>*:first-child]:lg:pl-0 [&>*:first-child]:lg:border-l-0 [&>*:nth-child(2n+1)]:lg:pl-0 [&>*:nth-child(2n+1)]:lg:border-l-0 [&>*:nth-child(2n+1)]:xl:pl-6 [&>*:nth-child(2n+1)]:xl:border-l [&>*:nth-child(3n+1)]:xl:pl-0 [&>*:nth-child(3n+1)]:xl:border-l-0">
-              {/* Assigned People Filter */}
-              <FilterSection
-                label="Assigned (@)"
-                activeCount={filters.assignedPeople.size}
-                options={filterOptions.assignedPeople}
-                selectedValues={filters.assignedPeople}
-                onToggle={(value) => handleFilterClick("assignedPeople", value)}
-                onSelectAll={() => handleSelectAll("assignedPeople")}
-                onClear={() => handleClearAll("assignedPeople")}
-                getButtonColor={(value, isSelected) =>
-                  getFilterButtonColor("assignedPeople", value, isSelected)
-                }
-                getButtonStyle={(value, isSelected) =>
-                  getFilterButtonStyle("assignedPeople", value, isSelected)
-                }
-                formatLabel={(value) => `@${value}`}
-              />
-
-              {/* Projects Filter */}
-              <FilterSection
-                label="Projects (%)"
-                activeCount={filters.projects.size}
-                options={filterOptions.projects}
-                selectedValues={filters.projects}
-                onToggle={(value) => handleFilterClick("projects", value)}
-                onSelectAll={() => handleSelectAll("projects")}
-                onClear={() => handleClearAll("projects")}
-                getButtonColor={(value, isSelected) =>
-                  getFilterButtonColor("projects", value, isSelected)
-                }
-                getButtonStyle={(value, isSelected) =>
-                  getFilterButtonStyle("projects", value, isSelected)
-                }
-                formatLabel={(value) => `%${value}`}
-              />
-
-              {/* Categories Filter */}
-              <FilterSection
-                label="Categories"
-                activeCount={filters.categories.size}
-                options={filterOptions.categories}
-                selectedValues={filters.categories}
-                onToggle={(value) => handleFilterClick("categories", value)}
-                onSelectAll={() => handleSelectAll("categories")}
-                onClear={() => handleClearAll("categories")}
-                getButtonColor={(value, isSelected) =>
-                  getFilterButtonColor("categories", value, isSelected)
-                }
-                getButtonStyle={(value, isSelected) => {
-                  if (!isSelected) return undefined;
-                  // Use category's own color
-                  const category = settings.categories.find(
-                    (c) => c.id === value,
-                  );
-                  const bgColor =
-                    category?.color || settings.markerColors.project;
-                  return {
-                    backgroundColor: bgColor,
-                    color: getTextColor(bgColor),
-                  };
-                }}
-                formatLabel={(value) => {
-                  const category = settings.categories.find(
-                    (c) => c.id === value,
-                  );
-                  return category?.name || value;
-                }}
-              />
-
-              {/* Source People Filter */}
-              <FilterSection
-                label="Source ($)"
-                activeCount={filters.sourcePeople.size}
-                options={filterOptions.sourcePeople}
-                selectedValues={filters.sourcePeople}
-                onToggle={(value) => handleFilterClick("sourcePeople", value)}
-                onSelectAll={() => handleSelectAll("sourcePeople")}
-                onClear={() => handleClearAll("sourcePeople")}
-                getButtonColor={(value, isSelected) =>
-                  getFilterButtonColor("sourcePeople", value, isSelected)
-                }
-                getButtonStyle={(value, isSelected) =>
-                  getFilterButtonStyle("sourcePeople", value, isSelected)
-                }
-                formatLabel={(value) => `$${value}`}
-              />
-
-              {/* Mentioned People Filter */}
-              <FilterSection
-                label="Mentioned"
-                activeCount={filters.mentionedPeople.size}
-                options={filterOptions.mentionedPeople}
-                selectedValues={filters.mentionedPeople}
-                onToggle={(value) =>
-                  handleFilterClick("mentionedPeople", value)
-                }
-                onSelectAll={() => handleSelectAll("mentionedPeople")}
-                onClear={() => handleClearAll("mentionedPeople")}
-                getButtonColor={(value, isSelected) =>
-                  getFilterButtonColor("mentionedPeople", value, isSelected)
-                }
-                getButtonStyle={(value, isSelected) =>
-                  getFilterButtonStyle("mentionedPeople", value, isSelected)
-                }
-                formatLabel={(value) => value}
-              />
-
-              {/* Priority Filter */}
-              <FilterSection
-                label="Priority (!!)"
-                activeCount={filters.priorities.size}
-                options={filterOptions.priorities}
-                selectedValues={filters.priorities}
-                onToggle={(value) => handleFilterClick("priorities", value)}
-                onSelectAll={() => handleSelectAll("priorities")}
-                onClear={() => handleClearAll("priorities")}
-                getButtonColor={(value, isSelected) =>
-                  getFilterButtonColor("priorities", value, isSelected)
-                }
-                getButtonStyle={(value, isSelected) =>
-                  getFilterButtonStyle("priorities", value, isSelected)
-                }
-                formatLabel={(value) => `!!${value}`}
-              />
-
-              {/* Due Date Filter */}
-              <FilterSection
-                label="Due Date (~)"
-                activeCount={filters.dueDates.size}
-                options={filterOptions.dueDates}
-                selectedValues={filters.dueDates}
-                onToggle={(value) => handleFilterClick("dueDates", value)}
-                onSelectAll={() => handleSelectAll("dueDates")}
-                onClear={() => handleClearAll("dueDates")}
-                getButtonColor={(value, isSelected) =>
-                  getFilterButtonColor("dueDates", value, isSelected)
-                }
-                getButtonStyle={(value, isSelected) =>
-                  getFilterButtonStyle("dueDates", value, isSelected)
-                }
-                formatLabel={(value) => `~${value}`}
-              />
-
-              {/* Duration Filter */}
-              <FilterSection
-                label="Duration (*)"
-                activeCount={filters.durations.size}
-                options={filterOptions.durations}
-                selectedValues={filters.durations}
-                onToggle={(value) => handleFilterClick("durations", value)}
-                onSelectAll={() => handleSelectAll("durations")}
-                onClear={() => handleClearAll("durations")}
-                getButtonColor={(value, isSelected) =>
-                  getFilterButtonColor("durations", value, isSelected)
-                }
-                getButtonStyle={(value, isSelected) =>
-                  getFilterButtonStyle("durations", value, isSelected)
-                }
-                formatLabel={(value) => `*${value}`}
-              />
-
-              {/* Tags Filter */}
-              <FilterSection
-                label="Tags (&)"
-                activeCount={filters.tags.size}
-                options={filterOptions.tags}
-                selectedValues={filters.tags}
-                onToggle={(value) => handleFilterClick("tags", value)}
-                onSelectAll={() => handleSelectAll("tags")}
-                onClear={() => handleClearAll("tags")}
-                getButtonColor={(value, isSelected) =>
-                  getFilterButtonColor("tags", value, isSelected)
-                }
-                getButtonStyle={(value, isSelected) =>
-                  getFilterButtonStyle("tags", value, isSelected)
-                }
-                formatLabel={(value) => `&${value}`}
-              />
-
-              {/* Recurring Filter */}
-              <FilterSection
-                label="Recurring (%)"
-                activeCount={filters.recurring.size}
-                options={filterOptions.recurring}
-                selectedValues={filters.recurring}
-                onToggle={(value) => handleFilterClick("recurring", value)}
-                onSelectAll={() => handleSelectAll("recurring")}
-                onClear={() => handleClearAll("recurring")}
-                getButtonColor={(value, isSelected) =>
-                  getFilterButtonColor("recurring", value, isSelected)
-                }
-                getButtonStyle={(value, isSelected) =>
-                  getFilterButtonStyle("recurring", value, isSelected)
-                }
-                formatLabel={(value) => `%${value}`}
-              />
-
-              {/* Dependencies Filter */}
-              <FilterSection
-                label="Dependencies (>)"
-                activeCount={filters.dependencies.size}
-                options={filterOptions.dependencies}
-                selectedValues={filters.dependencies}
-                onToggle={(value) => handleFilterClick("dependencies", value)}
-                onSelectAll={() => handleSelectAll("dependencies")}
-                onClear={() => handleClearAll("dependencies")}
-                getButtonColor={(value, isSelected) =>
-                  getFilterButtonColor("dependencies", value, isSelected)
-                }
-                getButtonStyle={(value, isSelected) =>
-                  getFilterButtonStyle("dependencies", value, isSelected)
-                }
-                formatLabel={(value) => `>${value}`}
-              />
+              {FILTER_SECTIONS.map(({ key, label, prefix }) => (
+                <FilterSection
+                  key={key}
+                  label={label}
+                  activeCount={filters[key].size}
+                  options={filterOptions[key]}
+                  selectedValues={filters[key]}
+                  onToggle={(value) => handleFilterClick(key, value)}
+                  onSelectAll={() => handleSelectAll(key)}
+                  onClear={() => handleClearAll(key)}
+                  getButtonColor={(value, isSelected) =>
+                    getFilterButtonColor(key, value, isSelected)
+                  }
+                  getButtonStyle={
+                    key === "categories"
+                      ? (value, isSelected) => {
+                          if (!isSelected) return undefined;
+                          // Categories colour their chip from the category itself
+                          const category = settings.categories.find(
+                            (c) => c.id === value,
+                          );
+                          const bgColor =
+                            category?.color || settings.markerColors.project;
+                          return {
+                            backgroundColor: bgColor,
+                            color: getTextColor(bgColor),
+                          };
+                        }
+                      : (value, isSelected) =>
+                          getFilterButtonStyle(key, value, isSelected)
+                  }
+                  formatLabel={
+                    key === "categories"
+                      ? (value) =>
+                          settings.categories.find((c) => c.id === value)
+                            ?.name || value
+                      : (value) => `${prefix}${value}`
+                  }
+                />
+              ))}
             </div>
           </div>
         )}
