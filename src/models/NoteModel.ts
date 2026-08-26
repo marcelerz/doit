@@ -250,8 +250,11 @@ export class NoteModel {
   // ===== Metadata Operations =====
 
   /**
-   * Get the raw underlying note object
-   * WARNING: Returns reference to internal state - do not modify
+   * Get the raw underlying note object.
+   *
+   * Returns a deep clone, so the caller may modify it freely. The previous
+   * warning said the opposite -- that this hands back internal state -- which
+   * steered callers away from a getter that is safe.
    */
   get raw(): Note {
     return structuredClone(this._raw);

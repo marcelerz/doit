@@ -1,6 +1,6 @@
 # Recurring Pattern Auto-Detection
 
-This document describes the automatic recurring pattern detection feature that parses natural language recurring patterns without requiring the `%` marker.
+This document describes the automatic recurring pattern detection feature that parses natural language recurring patterns without requiring any marker.
 
 ## Overview
 
@@ -110,17 +110,6 @@ export interface DetectedDate {
 }
 ```
 
-## Console Logging
-
-When typing in SmartInput, you'll see:
-
-```
-🔁 [Recurring Patterns] Scanning text: review every monday
-  ✅ Found recurring pattern "every monday" at position 7-19
-     Pattern: { type: 'weekday', weekday: 1, raw: 'every monday' }
-     First occurrence: 12/8/2025, 12:00:00 PM
-🔁 [Recurring Patterns] Found 1 recurring patterns
-```
 
 ## Visual Styling
 

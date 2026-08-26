@@ -31,7 +31,9 @@ const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "
 const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "last"];
 const ORDINAL_WORDS = ["first", "second", "third", "fourth", "fifth", "last"];
 
-// Constant for "last" weekday of month (6th index in ORDINALS array, representing "last")
+// Sentinel for the "last" weekday of a month. One-based, matching the ordinal
+// words: ORDINAL_WORDS[nthWeek - 1] is "last" at 6. Reading it as an index
+// into that six-entry array would put it out of bounds.
 const NTH_WEEK_LAST = 6;
 
 // Helper to normalize ordinal words to numeric form

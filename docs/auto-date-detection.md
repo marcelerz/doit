@@ -130,10 +130,10 @@ Chrono-node supports a wide variety of natural language date formats, enhanced w
 
 **Time of Day:**
 
-- **morning** - configured morning time (default 9am)
-- **noon**, **midday** - configured noon time (default 12pm)
-- **afternoon** - configured afternoon time (default 2pm)
-- **evening** - configured evening time (default 6pm)
+- **morning** - configured morning time (default 08:00)
+- **noon**, **midday** - configured noon time (default 12:00)
+- **afternoon** - configured afternoon time (default 15:00)
+- **evening** - configured evening time (default 19:00)
 - **midnight** - 00:00
 
 **Day Boundaries:**

@@ -565,8 +565,11 @@ export class TodoModel {
   // ===== Metadata Operations =====
 
   /**
-   * Get the raw underlying todo object
-   * WARNING: Returns reference to internal state - do not modify
+   * Get the raw underlying todo object.
+   *
+   * Returns a deep clone, so the caller may modify it freely. The previous
+   * warning said the opposite -- that this hands back internal state -- which
+   * steered callers away from a getter that is safe.
    */
   get raw(): Todo {
     return structuredClone(this._raw);

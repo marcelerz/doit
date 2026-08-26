@@ -8,7 +8,7 @@ The app now automatically detects mentioned people in text without requiring the
 
 ### Detection Algorithm
 
-The `detectMentionedPeople()` function in `src/utils/chronoDateParser.ts`:
+The `detectMentionedPeople()` function in `src/utils/autoDetection.ts`:
 
 1. **Builds a searchable name map** from all people and their alternatives
 2. **Filters out common words** using a blacklist (e.g., "me", "i", "the", "and")
@@ -147,7 +147,7 @@ Note: Alternatives resolve to canonical names
 
 1. **SmartInput** detects people in input text
 2. Creates `TokenMatch` with `type: "mentioned"` and `isAutoDetected: true`
-3. **metadataParser** converts tokens to `mentionedPeople` array
+3. **tokenParser** converts tokens to `mentionedPeople` array
 4. **MarkedText** displays mentioned names with highlighting
 
 ### Settings Preservation

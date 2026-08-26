@@ -8,7 +8,7 @@ The app now automatically detects project references in text when they appear wi
 
 ### Detection Algorithm
 
-The `detectMentionedProjects()` function in `src/utils/chronoDateParser.ts`:
+The `detectMentionedProjects()` function in `src/utils/autoDetection.ts`:
 
 1. **Builds a searchable project map** from all projects and their alternatives
 2. **Filters out common words** using a blacklist (e.g., "work", "project", "time")
@@ -207,7 +207,7 @@ All auto-detected without markers!
 
 1. **SmartInput** detects projects in input text with context patterns
 2. Creates `TokenMatch` with `type: "project"` and `isAutoDetected: true`
-3. **metadataParser** converts tokens to `projects` array
+3. **tokenParser** converts tokens to `projects` array
 4. **MarkedText** displays project references with highlighting
 
 ### Settings Preservation
