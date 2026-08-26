@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { ReviewItem } from "@/components/items/ReviewItem";
+import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
+import { STORAGE_KEYS } from "@/storage/storage";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { UndoNotificationStack } from "@/components/shared/UndoNotificationStack";
 import { PlusIcon, CalendarIcon } from "@/components/shared/Icons";
@@ -99,12 +101,37 @@ export function ReviewsView({
   undo = () => {},
   dismissUndo = () => {},
 }: ReviewsViewProps) {
-  // Section expanded states
-  const [incompleteExpanded, setIncompleteExpanded] = useState(true);
-  const [daysExpanded, setDaysExpanded] = useState(true);
-  const [weeksExpanded, setWeeksExpanded] = useState(true);
-  const [monthsExpanded, setMonthsExpanded] = useState(true);
-  const [halvesExpanded, setHalvesExpanded] = useState(true);
+  // Section expanded states. Reviews was the only view whose options were not
+  // persisted at all -- every section sprang back open on reload -- even though
+  // STORAGE_KEYS.REVIEWS_VIEW_OPTIONS had been reserved for it and sat unused.
+  const [reviewOptions, setReviewOptions] = usePersistedViewOptions(
+    STORAGE_KEYS.REVIEWS_VIEW_OPTIONS,
+    {
+      incompleteExpanded: true,
+      daysExpanded: true,
+      weeksExpanded: true,
+      monthsExpanded: true,
+      halvesExpanded: true,
+    },
+  );
+  const { incompleteExpanded, daysExpanded, weeksExpanded, monthsExpanded, halvesExpanded } = reviewOptions;
+  const setIncompleteExpanded = useCallback(
+    (value: boolean) => setReviewOptions({ incompleteExpanded: value }),
+    [setReviewOptions],
+  );
+  const setDaysExpanded = useCallback((value: boolean) => setReviewOptions({ daysExpanded: value }), [setReviewOptions]);
+  const setWeeksExpanded = useCallback(
+    (value: boolean) => setReviewOptions({ weeksExpanded: value }),
+    [setReviewOptions],
+  );
+  const setMonthsExpanded = useCallback(
+    (value: boolean) => setReviewOptions({ monthsExpanded: value }),
+    [setReviewOptions],
+  );
+  const setHalvesExpanded = useCallback(
+    (value: boolean) => setReviewOptions({ halvesExpanded: value }),
+    [setReviewOptions],
+  );
 
   // Custom date picker states
   const [customDatePickerOpen, setCustomDatePickerOpen] = useState<"day" | "week" | "month" | null>(null);
