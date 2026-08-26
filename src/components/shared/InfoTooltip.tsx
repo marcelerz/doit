@@ -328,67 +328,10 @@ export const tooltipContent = {
     </div>
   ),
 
-  // Archive
-  archiveDays: (
-    <div className="space-y-2">
-      <p>Completed tasks move to Archive after this many days.</p>
-      <ul className="space-y-1">
-        <li>• Set to 0 to archive immediately</li>
-        <li>• Archived tasks stay visible but collapsed</li>
-        <li>• Reduces clutter in your active list</li>
-      </ul>
-    </div>
-  ),
 
-  // Auto-Delete
-  autoDelete: (
-    <div className="space-y-2">
-      <p>Permanently remove old tasks automatically.</p>
-      <ul className="space-y-1">
-        <li>• Counts from completion date</li>
-        <li>• Affects both completed and archived tasks</li>
-        <li>• Cannot be undone - be careful!</li>
-      </ul>
-    </div>
-  ),
 
-  // Kanban States
-  kanbanStates: (
-    <div className="space-y-2">
-      <p>Workflow columns for the Kanban board.</p>
-      <ul className="space-y-1">
-        <li>• Drag tasks between states</li>
-        <li>• &quot;Backlog&quot;, &quot;Completed&quot;, and &quot;Archived&quot; are system states</li>
-        <li>• Set WIP (Work-In-Progress) limits on non-system states</li>
-        <li>• Columns turn red when over WIP limit</li>
-        <li>• Configure allowed transitions</li>
-      </ul>
-    </div>
-  ),
 
-  // Kanban Transitions
-  kanbanTransitions: (
-    <div className="space-y-2">
-      <p>Define allowed state-to-state transitions.</p>
-      <ul className="space-y-1">
-        <li>• Control which states can move to others</li>
-        <li>• Prevents invalid workflow jumps</li>
-        <li>• Check = transition allowed</li>
-      </ul>
-    </div>
-  ),
 
-  // Kanban Views
-  kanbanViews: (
-    <div className="space-y-2">
-      <p>Create filtered views of your Kanban board.</p>
-      <ul className="space-y-1">
-        <li>• Show only selected states</li>
-        <li>• Create views like &quot;Active Work&quot; or &quot;Done&quot;</li>
-        <li>• Set a default view</li>
-      </ul>
-    </div>
-  ),
 
   // Sprints
   sprints: (
@@ -473,141 +416,16 @@ export const tooltipContent = {
     </div>
   ),
 
-  // Work Hours
-  workHours: (
-    <div className="space-y-2">
-      <p>Define when you&apos;re available to work.</p>
-      <ul className="space-y-1">
-        <li>• Sets Beginning/End of Day times</li>
-        <li>• Used for &quot;eod&quot;, &quot;bod&quot; shortcuts</li>
-        <li>• Affects Gantt chart scheduling</li>
-        <li>• Configure per-day or weekday/weekend</li>
-      </ul>
-    </div>
-  ),
 
-  // Time Blocks
-  timeBlocks: (
-    <div className="space-y-2">
-      <p>Block out time for non-task activities.</p>
-      <ul className="space-y-1">
-        <li>• Meetings, lunch, focus time, etc.</li>
-        <li>• Shown on Gantt timeline</li>
-        <li>• Tasks scheduled around blocks</li>
-        <li>• Custom colors and icons</li>
-      </ul>
-    </div>
-  ),
 
-  // Backup
-  backup: (
-    <div className="space-y-2">
-      <p>Save and restore your data.</p>
-      <ul className="space-y-1">
-        <li>• Export all data as JSON</li>
-        <li>• Restore from backup file</li>
-        <li>• Includes tasks, people, projects, settings</li>
-      </ul>
-    </div>
-  ),
 
-  // Selection Mode
-  selectionMode: (
-    <div className="space-y-2">
-      <p>Select multiple tasks for batch operations.</p>
-      <ul className="space-y-1">
-        <li>• Click checkboxes to select</li>
-        <li>• Shift+click for range selection</li>
-        <li>• Batch complete, archive, delete, or edit</li>
-      </ul>
-    </div>
-  ),
 
-  // Filters
-  filters: (
-    <div className="space-y-2">
-      <p>Narrow down visible tasks.</p>
-      <ul className="space-y-1">
-        <li>• Filter by person, project, priority</li>
-        <li>• Due date ranges</li>
-        <li>• Tags, recurring, dependencies</li>
-        <li>• Combine multiple filters</li>
-      </ul>
-    </div>
-  ),
 
-  // Grouping
-  grouping: (
-    <div className="space-y-2">
-      <p>Organize tasks into sections.</p>
-      <ul className="space-y-1">
-        <li>• Group by person, project, priority</li>
-        <li>• Due date, sprint, category</li>
-        <li>• Collapse/expand groups</li>
-      </ul>
-    </div>
-  ),
 
-  // Categories
-  categories: (
-    <div className="space-y-2">
-      <p>Custom groupings for tasks.</p>
-      <ul className="space-y-1">
-        <li>• Create your own categories</li>
-        <li>• Different from projects</li>
-        <li>• Use for areas of life, contexts, etc.</li>
-      </ul>
-    </div>
-  ),
 
-  // Links
-  linkPatterns: (
-    <div className="space-y-2">
-      <p>Auto-link text patterns to URLs.</p>
-      <ul className="space-y-1">
-        <li>• Define patterns like &quot;JIRA-123&quot;</li>
-        <li>• Automatically creates clickable links</li>
-        <li>• Use $1, $2 for captured groups</li>
-      </ul>
-    </div>
-  ),
 
-  // Markers
-  markers: (
-    <div className="space-y-2">
-      <p>Customize colors for metadata markers.</p>
-      <ul className="space-y-1">
-        <li>• @assigned, $source people</li>
-        <li>• %project, !!priority, #tags</li>
-        <li>• Dates, durations, recurring</li>
-      </ul>
-    </div>
-  ),
 
-  // Auto-Assign
-  autoAssign: (
-    <div className="space-y-2">
-      <p>Default values for new tasks.</p>
-      <ul className="space-y-1">
-        <li>• Auto-assign person, project</li>
-        <li>• Default priority, due date</li>
-        <li>• Applied when not specified</li>
-      </ul>
-    </div>
-  ),
 
-  // Storage
-  storage: (
-    <div className="space-y-2">
-      <p>Where your data is stored.</p>
-      <ul className="space-y-1">
-        <li>• IndexedDB (preferred, larger capacity)</li>
-        <li>• LocalStorage (fallback)</li>
-        <li>• Data stays in your browser</li>
-        <li>• Use Backup for data portability</li>
-      </ul>
-    </div>
-  ),
 
   // Subtasks
   subtasks: (
@@ -621,17 +439,6 @@ export const tooltipContent = {
     </div>
   ),
 
-  // Comments
-  comments: (
-    <div className="space-y-2">
-      <p>Add notes and updates to tasks.</p>
-      <ul className="space-y-1">
-        <li>• Track progress and discussions</li>
-        <li>• Timestamped entries</li>
-        <li>• Visible in task detail</li>
-      </ul>
-    </div>
-  ),
 
   // Activity
   activity: (
@@ -658,129 +465,14 @@ export const tooltipContent = {
     </div>
   ),
 
-  // Date Time Settings
-  dateTimeSettings: (
-    <div className="space-y-2">
-      <p>Customize time shortcuts and calendar settings.</p>
-      <ul className="space-y-1">
-        <li>• Define what &quot;morning&quot;, &quot;noon&quot;, etc. mean</li>
-        <li>• Set your work week start day</li>
-        <li>• Configure fiscal year start</li>
-        <li>• BOD/EOD from Work Hours settings</li>
-      </ul>
-    </div>
-  ),
 
-  // View Modes
-  viewModes: (
-    <div className="space-y-2">
-      <p>Different ways to visualize your tasks.</p>
-      <ul className="space-y-1">
-        <li>
-          • <strong>List</strong>: Traditional todo list with filters
-        </li>
-        <li>
-          • <strong>Kanban</strong>: Visual board with drag-and-drop
-        </li>
-        <li>
-          • <strong>Gantt</strong>: Timeline for task planning
-        </li>
-        <li>
-          • <strong>Calendar</strong>: Monthly view with task dots
-        </li>
-      </ul>
-    </div>
-  ),
 
-  // Gantt View
-  ganttView: (
-    <div className="space-y-2">
-      <p>Timeline visualization for task planning.</p>
-      <ul className="space-y-1">
-        <li>• View tasks on a horizontal timeline</li>
-        <li>• Auto-schedule based on due dates & durations</li>
-        <li>• Respects work hours and time blocks</li>
-        <li>• Group by project or view all tasks</li>
-      </ul>
-    </div>
-  ),
 
-  // Calendar View
-  calendarView: (
-    <div className="space-y-2">
-      <p>Monthly calendar view of your tasks.</p>
-      <ul className="space-y-1">
-        <li>• Dots indicate tasks due on each day</li>
-        <li>• Click a day to see task details</li>
-        <li>• Navigate between months easily</li>
-        <li>• Quick overview of upcoming deadlines</li>
-      </ul>
-    </div>
-  ),
 
-  // Features
-  features: (
-    <div className="space-y-2">
-      <p>Enable or disable app features.</p>
-      <ul className="space-y-1">
-        <li>• Toggle views you don&apos;t use</li>
-        <li>• Simplify the interface</li>
-        <li>• Disabled features hide their tabs</li>
-        <li>• Re-enable anytime in Settings</li>
-      </ul>
-    </div>
-  ),
 
-  // Search
-  search: (
-    <div className="space-y-2">
-      <p>Find tasks quickly across all your data.</p>
-      <ul className="space-y-1">
-        <li>• Search task text, people, projects</li>
-        <li>• Search tags, comments, and context</li>
-        <li>• Recent searches saved automatically</li>
-        <li>• Press Escape to clear</li>
-      </ul>
-    </div>
-  ),
 
-  // Import
-  importData: (
-    <div className="space-y-2">
-      <p>Import tasks from external sources.</p>
-      <ul className="space-y-1">
-        <li>• CSV, including Todoist and Things exports</li>
-        <li>• Apple Reminders exports</li>
-        <li>• JSON, including this app&apos;s own export</li>
-        <li>• Existing people, projects and priorities are matched by name</li>
-      </ul>
-    </div>
-  ),
 
-  // Export
-  exportData: (
-    <div className="space-y-2">
-      <p>Export your tasks for use elsewhere.</p>
-      <ul className="space-y-1">
-        <li>• Markdown format with checkboxes</li>
-        <li>• CSV for spreadsheets</li>
-        <li>• JSON for full data backup</li>
-        <li>• Choose which tasks to include</li>
-      </ul>
-    </div>
-  ),
 
-  // Undo
-  undoRedo: (
-    <div className="space-y-2">
-      <p>Take back a completion, archive or deletion.</p>
-      <ul className="space-y-1">
-        <li>• An Undo button appears for ten seconds after the action</li>
-        <li>• Creating and editing are not undoable</li>
-        <li>• There is no keyboard shortcut</li>
-      </ul>
-    </div>
-  ),
 
   // Focus Mode
   focusMode: (
@@ -809,76 +501,10 @@ export const tooltipContent = {
     </div>
   ),
 
-  // Links Section
-  links: (
-    <div className="space-y-2">
-      <p>Auto-detected links in your task.</p>
-      <ul className="space-y-1">
-        <li>• Pattern-based link detection</li>
-        <li>• Click to open in new tab</li>
-        <li>• Configure patterns in Settings → Links</li>
-      </ul>
-    </div>
-  ),
 
-  // Theme
-  theme: (
-    <div className="space-y-2">
-      <p>Choose your preferred appearance.</p>
-      <ul className="space-y-1">
-        <li>
-          • <strong>Light</strong>: Bright, clean interface
-        </li>
-        <li>
-          • <strong>Dark</strong>: Easy on the eyes at night
-        </li>
-        <li>
-          • <strong>System</strong>: Matches your device setting
-        </li>
-      </ul>
-    </div>
-  ),
 
-  // Reordering
-  reordering: (
-    <div className="space-y-2">
-      <p>Manually order your tasks.</p>
-      <ul className="space-y-1">
-        <li>• Drag and drop to reorder</li>
-        <li>• Manual order persists</li>
-        <li>• Disable to use automatic sorting</li>
-      </ul>
-    </div>
-  ),
 
-  // Focus Sounds
-  focusSounds: (
-    <div className="space-y-2">
-      <p>Audio cues for Focus Mode transitions.</p>
-      <ul className="space-y-1">
-        <li>• 🎯 Task Start - begin work</li>
-        <li>• ✅ Task Complete - finished</li>
-        <li>• ☕ Short Break - quick rest</li>
-        <li>• 🧘 Long Break - extended rest</li>
-        <li>• ⏰ Break End - back to work</li>
-      </ul>
-      <p className="text-zinc-400 dark:text-zinc-600 pt-1">3 second delay between sounds for natural flow.</p>
-    </div>
-  ),
 
-  // Ambient Sounds
-  ambientSounds: (
-    <div className="space-y-2">
-      <p>Background sounds for focus sessions.</p>
-      <ul className="space-y-1">
-        <li>• Choose different sounds for work & breaks</li>
-        <li>• Rain, nature, city ambiance, and more</li>
-        <li>• Sounds loop continuously</li>
-        <li>• Separate volume control</li>
-      </ul>
-      <p className="text-zinc-400 dark:text-zinc-600 pt-1">Only plays during active Focus Mode.</p>
-    </div>
-  ),
 
   // Batch Processing
   batchProcessing: (
@@ -893,44 +519,8 @@ export const tooltipContent = {
     </div>
   ),
 
-  // Notifications
-  notifications: (
-    <div className="space-y-2">
-      <p>Get browser notifications for due tasks.</p>
-      <ul className="space-y-1">
-        <li>• Enable browser notifications permission</li>
-        <li>• Get notified when tasks become overdue</li>
-        <li>• Alerts for tasks due today or soon</li>
-        <li>• Customize check interval and timing</li>
-      </ul>
-    </div>
-  ),
 
-  // Priorities
-  priorities: (
-    <div className="space-y-2">
-      <p>Define priority levels for your tasks.</p>
-      <ul className="space-y-1">
-        <li>• Create custom priority levels</li>
-        <li>• Assign colors to each priority</li>
-        <li>• Add alternative names (e.g., &quot;critical&quot; = &quot;urgent&quot;)</li>
-        <li>• Priority colors show on task checkboxes</li>
-      </ul>
-    </div>
-  ),
 
-  // Sorting
-  sorting: (
-    <div className="space-y-2">
-      <p>Order tasks in the list.</p>
-      <ul className="space-y-1">
-        <li>• Sort by due date, priority, created date</li>
-        <li>• Ascending or descending order</li>
-        <li>• Combined with grouping for organization</li>
-        <li>• Manual order also available</li>
-      </ul>
-    </div>
-  ),
 
   // View Presets
   viewPresets: (
