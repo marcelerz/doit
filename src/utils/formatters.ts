@@ -163,3 +163,27 @@ export function formatClockTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+/**
+ * What to tell the user before deleting a person or project.
+ *
+ * PersonModel.canDelete and ProjectModel.canDelete have always refused while
+ * the entity is still referenced, and nothing ever called them: both deletes
+ * went straight to the confirm dialog with a generic message. They still can
+ * be deleted -- that is the user's call -- but the dialog now says what will
+ * happen, because these ids are names. A todo assigned to "@Marcel" keeps that
+ * text after Marcel is deleted; it simply stops resolving to anyone.
+ */
+export function describeEntityDelete(
+  name: string,
+  kind: "person" | "project",
+  check: { canDelete: boolean; reason?: string } | undefined,
+): string {
+  if (check && !check.canDelete) {
+    const marker = kind === "person" ? "@" : "%";
+    return (
+      `${check.reason}. Deleting the ${kind} leaves those todos with the text ` +
+      `"${marker}${name}", which will no longer resolve to anything. This action cannot be undone.`
+    );
+  }
+  return `Are you sure you want to delete "${name}"? This action cannot be undone.`;
+}

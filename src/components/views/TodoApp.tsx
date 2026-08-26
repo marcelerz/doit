@@ -59,6 +59,7 @@ import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { exportNotes } from "@/utils/export";
 import { StorageRecoveryScreen } from "@/components/shared/StorageRecoveryScreen";
 import { StorageErrorBanner } from "@/components/shared/StorageErrorBanner";
+import { describeEntityDelete } from "@/utils/formatters";
 import {
   generateOneOnOneNoteTitle,
   generateMeetingNoteTitle,
@@ -1148,7 +1149,11 @@ export function TodoApp() {
             onRequestDeleteConfirm={(id, name) => {
               showConfirmDialog({
                 title: "Delete Person",
-                message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+                message: describeEntityDelete(
+                  name,
+                  "person",
+                  allPeople.find((p) => p.id === id)?.canDelete(todos),
+                ),
                 confirmText: "Delete",
                 confirmVariant: "danger",
                 onConfirm: () => {
@@ -1174,7 +1179,11 @@ export function TodoApp() {
             onRequestDeleteConfirm={(id, name) => {
               showConfirmDialog({
                 title: "Delete Project",
-                message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+                message: describeEntityDelete(
+                  name,
+                  "project",
+                  allProjects.find((p) => p.id === id)?.canDelete(todos),
+                ),
                 confirmText: "Delete",
                 confirmVariant: "danger",
                 onConfirm: () => {
