@@ -621,14 +621,16 @@ Components are organized by purpose:
 - **views/** - Main application views: TodoApp (the container), ListView, KanbanView,
   GanttView, CalendarView, NotesView, NoteDetailView, PeopleView, ProjectsView,
   SprintsView, ReviewsView, ReviewDetailView, ReviewEditView, StatisticsView,
-  TimeReportsView, FocusView, OpenFocusView, and EntityListView (the shared shell behind
+  TimeReportsView, and EntityListView (the shared shell behind
   the people and projects lists)
 - **items/** - List item components: TodoItem, TodoListItem, NoteItem, NoteListItem,
   PersonItem, ProjectItem, SprintItem, ReviewItem, and EntityItem (the shared body of the
   person and project rows)
-- **overlays/** - Modal/detail views: TodoDetailsOverlay, PersonDetailsOverlay,
-  ProjectDetailsOverlay, SprintDetailsOverlay, BatchEditModal, NoteAddModal, HelpOverlay,
-  TutorialOverlay
+- **overlays/** - Modal/detail views: TodoDetailsOverlay, EntityDetailsOverlay with its
+  PersonDetailsOverlay and ProjectDetailsOverlay wrappers, SprintDetailsOverlay,
+  BatchEditModal, NoteAddModal, TutorialOverlay, HelpOverlay with its twelve sections
+  under `help/`, and the two full-screen focus modes (FocusView, OpenFocusView), which are
+  `fixed inset-0` overlays with an onClose rather than registered views
 - **input/** - Input components (SmartInput, RichTextEditor)
 - **shared/** - 36 reusable components; see the directory listing rather than a copy of it here
 - **settings/** - Settings tab components

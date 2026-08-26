@@ -76,7 +76,7 @@ Parses natural language in task input:
 - `ListView.tsx` - Filterable/sortable list with grouping
 - `KanbanView.tsx` - Drag-and-drop board with workflow states
 - `GanttView.tsx` - Timeline with scheduling algorithms
-- `CalendarView.tsx`, `FocusView.tsx`, `OpenFocusView.tsx`, `StatisticsView.tsx`
+- `CalendarView.tsx`, `StatisticsView.tsx`
 - `SprintsView.tsx`, `ProjectsView.tsx`, `PeopleView.tsx`, `TimeReportsView.tsx`
 - `NotesView.tsx`, `NoteDetailView.tsx`, `ReviewsView.tsx`, `ReviewDetailView.tsx`, `ReviewEditView.tsx`
 - `EntityListView.tsx` - shared shell behind PeopleView and ProjectsView
@@ -88,7 +88,7 @@ digit shortcuts and the Help documentation all derive from it.
 
 - `views/` - Large view containers
 - `items/` - List item components (TodoItem, TodoListItem, PersonItem, ProjectItem, SprintItem, NoteItem, NoteListItem, ReviewItem, EntityItem)
-- `overlays/` - Modals and detail views
+- `overlays/` - Modals, detail views, and the two full-screen focus modes
 - `input/` - SmartInput, RichTextEditor
 - `shared/` - reusable components (36 files)
 - `settings/` - Settings tab components
