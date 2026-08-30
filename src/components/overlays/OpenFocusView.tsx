@@ -1,12 +1,23 @@
 "use client";
 
-import { useConfirmationRepeat, useTimerTick } from "@/hooks/usePomodoroTimer";
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useDialogFocus, isTypingTarget, isActivationTarget } from "@/hooks/useDialogFocus";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Settings } from "@/types/settings";
+import { FocusMode, FocusModeId } from "@/types/focusMode";
+import {
+  completionCount,
+  elapsedSeconds,
+  findMode,
+  modeSeconds,
+  nextModeAfter,
+  remainingSeconds,
+  sortedModes,
+  defaultStartMode,
+} from "@/utils/focusModes";
+import { useTimerTick } from "@/hooks/usePomodoroTimer";
+import { useFocusSession } from "@/hooks/useFocusSession";
+import { useDialogFocus, isTypingTarget, isActivationTarget } from "@/hooks/useDialogFocus";
 import {
   playNotificationSound,
-  queueSounds,
   clearSoundQueue,
   sendNotification,
   requestNotificationPermission,
@@ -14,113 +25,75 @@ import {
   playAmbientSound,
   stopAmbientSound,
   getAmbientSoundFile,
+  SoundType,
 } from "@/utils/notifications";
-import { CloseIcon, VolumeOnIcon, VolumeOffIcon, BellIcon, PlayIcon, PauseIcon } from "@/components/shared/Icons";
+import {
+  CloseIcon,
+  VolumeOnIcon,
+  VolumeOffIcon,
+  BellIcon,
+  PlayIcon,
+  PauseIcon,
+  SettingsIcon,
+  StopSolidIcon,
+} from "@/components/shared/Icons";
 import { formatTime, formatClockTime } from "@/utils/formatters";
+import { OpenFocusSetup } from "@/components/overlays/OpenFocusSetup";
+
+/**
+ * The ad-hoc timer: a session built from the user's own modes.
+ *
+ * It used to be a fixed work/break loop whose durations were read out of
+ * settings.gantt, which meant the only way to change its length was to edit the
+ * numbers that also reschedule the Gantt chart. It now runs on the mode list in
+ * settings.focus, and the running time lives in a session of wall-clock
+ * segments rather than in a set of counters -- so the totals survive a
+ * throttled tab, a reload can pick the session back up, and a finished session
+ * is something the reports can read.
+ */
 
 interface OpenFocusViewProps {
   settings: Settings;
   onClose: () => void;
+  /** Persists edits made on the setup screen. */
+  onUpdateFocusSettings: (focus: Settings["focus"]) => void;
 }
 
-type OpenFocusPhase = "work" | "short-break" | "long-break" | "pending-break" | "pending-work";
+export function OpenFocusView({ settings, onClose, onUpdateFocusSettings }: OpenFocusViewProps) {
+  const focusSettings = settings.focus;
+  const modes = useMemo(() => sortedModes(focusSettings.modes ?? []), [focusSettings.modes]);
 
-interface OpenFocusState {
-  phase: OpenFocusPhase;
-  workTimeRemaining: number; // seconds
-  breakTimeRemaining: number; // seconds
-  breakEndTime: Date | null;
-  sessionCount: number; // Sessions completed
-  breakSessionCount: number; // Break sessions completed
-  totalWorkTime: number; // Total seconds worked
-  totalBreakTime: number; // Total seconds on break
-  totalIdleTime: number; // Total seconds idle (not working or breaking)
-  isRunning: boolean;
-  lastPauseTime: Date | null; // When timer was last paused (for idle tracking)
-  // Confirmation state
-  pendingPhase: "short-break" | "long-break" | "work" | null;
-  confirmationRepeats: number;
-}
+  const { session, activeSegment, isLoaded, start, switchTo, pause, resume, end, discard, totals } =
+    useFocusSession();
 
-// Format seconds to MM:SS or HH:MM:SS
-export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
-  // Get scheduling settings from gantt
-  const ganttSettings = settings.gantt ?? {};
-  const focusSettings = settings.focus ?? {};
-  const technique = ganttSettings.schedulingTechnique ?? "pomodoro";
-
-  // Technique-specific settings
-  const pomodoroWorkMinutes = ganttSettings.pomodoroWorkDuration ?? 25;
-  const pomodoroShortBreak = ganttSettings.pomodoroShortBreak ?? 5;
-  const pomodoroLongBreak = ganttSettings.pomodoroLongBreak ?? 15;
-  const pomodoroLongBreakInterval = ganttSettings.pomodoroLongBreakInterval ?? 4;
-
-  // Flow settings
-  const flowWorkMinutes = ganttSettings.flowWorkDuration ?? 52;
-  const flowBreakMinutes = ganttSettings.flowBreakDuration ?? 17;
-
-  // Sequential settings (use default task duration for work, context switch time for break)
-  const sequentialWorkMinutes = ganttSettings.defaultTaskDuration ?? 30;
-  const sequentialBreakMinutes = ganttSettings.contextSwitchingTime ?? 5;
-
-  // Calculate work duration based on technique
-  const getWorkDuration = useCallback(() => {
-    switch (technique) {
-      case "pomodoro":
-        return pomodoroWorkMinutes * 60;
-      case "flow":
-        return flowWorkMinutes * 60;
-      case "sequential":
-      default:
-        return sequentialWorkMinutes * 60;
-    }
-  }, [technique, pomodoroWorkMinutes, flowWorkMinutes, sequentialWorkMinutes]);
-
-  // Calculate break duration based on technique and session count
-  const getBreakDuration = useCallback(
-    (sessionCount: number, isLongBreak: boolean) => {
-      switch (technique) {
-        case "pomodoro":
-          return isLongBreak ? pomodoroLongBreak * 60 : pomodoroShortBreak * 60;
-        case "flow":
-          return flowBreakMinutes * 60;
-        case "sequential":
-        default:
-          return sequentialBreakMinutes * 60;
-      }
-    },
-    [technique, pomodoroShortBreak, pomodoroLongBreak, flowBreakMinutes, sequentialBreakMinutes],
-  );
-
-  // Focus state
-  const [state, setState] = useState<OpenFocusState>(() => ({
-    phase: "work",
-    workTimeRemaining: getWorkDuration(),
-    breakTimeRemaining: 0,
-    breakEndTime: null,
-    sessionCount: 0,
-    breakSessionCount: 0,
-    totalWorkTime: 0,
-    totalBreakTime: 0,
-    totalIdleTime: 0,
-    isRunning: false,
-    lastPauseTime: null,
-    pendingPhase: null,
-    confirmationRepeats: 0,
-  }));
-
-  // UI state
+  const [now, setNow] = useState(() => Date.now());
+  const [showSetup, setShowSetup] = useState(false);
+  const [selectedModeId, setSelectedModeId] = useState<FocusModeId | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(focusSettings.soundEnabled ?? true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(getNotificationPermission() === "granted");
 
-  // This view is rendered as a sibling of the whole app, so without a trap the
-  // Gantt view behind it stays in the tab order.
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogFocus(true, dialogRef);
 
-  // Refs
+  const currentMode = useMemo(
+    () => (activeSegment ? findMode(modes, activeSegment.modeId) : null),
+    [activeSegment, modes],
+  );
 
-  // Cleanup on unmount
+  // Derived rather than seeded by an effect: until the user picks one, the
+  // selection simply is the default, and storing that would only add a render.
+  const effectiveSelectedId = useMemo(
+    () => selectedModeId ?? defaultStartMode(modes)?.id ?? null,
+    [selectedModeId, modes],
+  );
+
+  // Only a repaint driver now: every displayed number is derived from the
+  // clock, so a throttled wake corrects itself instead of losing time. It runs
+  // for the whole session rather than only while a segment is open, because the
+  // idle total keeps growing while the timer is paused and would otherwise sit
+  // frozen at whatever it read when the user hit pause.
+  useTimerTick(session !== null, () => setNow(Date.now()));
+
   useEffect(() => {
     return () => {
       clearSoundQueue();
@@ -128,690 +101,161 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
     };
   }, []);
 
-  // Ambient sound management
+  // The ambient loop follows whichever mode is running. playAmbientSound stops
+  // the previous track and no-ops when the id has not changed, so a switch
+  // needs nothing more than this.
   useEffect(() => {
-    if (!soundEnabled) {
+    const ambientAllowed = soundEnabled && (focusSettings.ambientSoundEnabled ?? false);
+    if (!ambientAllowed || !currentMode || currentMode.ambientSound === "") {
       stopAmbientSound();
       return;
     }
-
-    const isWorkPhase = state.phase === "work";
-    const isBreakPhase = state.phase === "short-break" || state.phase === "long-break";
-
-    if (state.isRunning && isWorkPhase && focusSettings.ambientWorkSound) {
-      const soundFile = getAmbientSoundFile(focusSettings.ambientWorkSound);
-      if (soundFile) {
-        playAmbientSound(soundFile, focusSettings.ambientVolume ?? 0.3);
-      }
-    } else if (state.isRunning && isBreakPhase && focusSettings.ambientBreakSound) {
-      const soundFile = getAmbientSoundFile(focusSettings.ambientBreakSound);
-      if (soundFile) {
-        playAmbientSound(soundFile, focusSettings.ambientVolume ?? 0.3);
-      }
-    } else {
+    const file = getAmbientSoundFile(currentMode.ambientSound);
+    if (file === "") {
       stopAmbientSound();
+      return;
     }
-  }, [
-    state.phase,
-    state.isRunning,
-    soundEnabled,
-    focusSettings.ambientWorkSound,
-    focusSettings.ambientBreakSound,
-    focusSettings.ambientVolume,
-  ]);
+    playAmbientSound(file, focusSettings.ambientVolume ?? 0.3);
+  }, [currentMode, soundEnabled, focusSettings.ambientSoundEnabled, focusSettings.ambientVolume]);
 
-  // Helper to complete phase transition
-  const confirmPhaseTransition = useCallback(
-    (s: OpenFocusState): OpenFocusState => {
-      // Nothing pending means this already ran -- from the button and the
-      // reminder timer in the same tick, say.
-      if (!s.pendingPhase) return s;
-
-      if (s.pendingPhase === "short-break" || s.pendingPhase === "long-break") {
-        const isLongBreak = s.pendingPhase === "long-break";
-        const breakDuration = getBreakDuration(s.sessionCount, isLongBreak);
-        const breakEndTime = new Date();
-        breakEndTime.setSeconds(breakEndTime.getSeconds() + breakDuration);
-
-        return {
-          ...s,
-          phase: s.pendingPhase,
-          pendingPhase: null,
-          confirmationRepeats: 0,
-          breakTimeRemaining: breakDuration,
-          breakEndTime,
-          isRunning: true,
-        };
-      } else if (s.pendingPhase === "work") {
-        return {
-          ...s,
-          phase: "work",
-          pendingPhase: null,
-          confirmationRepeats: 0,
-          workTimeRemaining: getWorkDuration(),
-          breakTimeRemaining: 0,
-          breakEndTime: null,
-          isRunning: true,
-          breakSessionCount: s.breakSessionCount + 1, // Count completed break
-        };
-      }
-      return s;
+  const notify = useCallback(
+    (title: string, body: string) => {
+      if (!notificationsEnabled || focusSettings.notificationsEnabled === false) return;
+      sendNotification(title, { body, silent: true });
     },
-    [getWorkDuration, getBreakDuration],
+    [notificationsEnabled, focusSettings.notificationsEnabled],
   );
 
-  // Confirm transition button handler
-  const confirmTransition = useCallback(() => {
-    setState((s) => confirmPhaseTransition(s));
-  }, [confirmPhaseTransition]);
+  // Fires once per finished segment. Keyed on the segment rather than the mode,
+  // so running the same mode twice is two completions.
+  const completedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!session || !activeSegment || !currentMode) return;
+    const total = modeSeconds(currentMode);
+    if (total === undefined) return; // counts up: never completes on its own
+    if (remainingSeconds(currentMode, activeSegment, now)! > 0) return;
 
-  useConfirmationRepeat({
-    pendingPhase: state.pendingPhase,
-    requireConfirmation: focusSettings.requireConfirmation ?? false,
-    repeatIntervalSeconds: focusSettings.confirmationRepeatInterval ?? 30,
-    maxRepeats: focusSettings.confirmationMaxRepeats ?? 5,
-    soundEnabled,
-    soundFor: (pending) =>
-      pending === "long-break" ? "long-break" : pending === "short-break" ? "short-break" : "break-end",
-    setState,
-    confirmPhaseTransition,
-  });
+    const key = `${activeSegment.modeId}-${activeSegment.startedAt}`;
+    if (completedRef.current === key) return;
+    completedRef.current = key;
 
-  // Timer tick
-  useTimerTick(state.isRunning && !state.pendingPhase, (elapsed) => {
-    setState((s) => {
-        if (s.phase === "work") {
-          const newWorkTime = s.workTimeRemaining - elapsed;
-          // A throttled tab reports the whole gap it slept through, which can
-          // exceed what the phase had left. Only the part inside this phase is
-          // real work, or a backgrounded session reports hours that never
-          // happened.
-          const newTotalWorkTime = s.totalWorkTime + Math.min(elapsed, Math.max(0, s.workTimeRemaining));
+    if (soundEnabled) playNotificationSound((currentMode.endSound || "break-end") as SoundType);
 
-          // Work session complete
-          if (newWorkTime <= 0) {
-            const newSessionCount = s.sessionCount + 1;
+    // Hand over at the moment it was actually due, not whenever the browser got
+    // round to waking us, so a throttled tab does not quietly stretch the day.
+    const dueAt = activeSegment.startedAt + total * 1000;
+    const next = nextModeAfter(currentMode, completionCount(session, currentMode.id) + 1, modes);
 
-            // Determine break type
-            let isLongBreak = false;
-            let pendingPhase: "short-break" | "long-break" = "short-break";
-
-            if (technique === "pomodoro") {
-              isLongBreak = newSessionCount > 0 && newSessionCount % pomodoroLongBreakInterval === 0;
-              pendingPhase = isLongBreak ? "long-break" : "short-break";
-            } else {
-              // Flow and Sequential just use short break
-              pendingPhase = "short-break";
-            }
-
-            const breakDuration = getBreakDuration(newSessionCount, isLongBreak);
-
-            // Play sound
-            if (soundEnabled) {
-              queueSounds([isLongBreak ? "long-break" : "short-break"]);
-            }
-            if (notificationsEnabled) {
-              sendNotification(isLongBreak ? "🍅 Time for a long break!" : "☕ Time for a break!", {
-                body: `Session ${newSessionCount} complete! Take a ${Math.ceil(breakDuration / 60)} minute break.`,
-                silent: true,
-              });
-            }
-
-            // If confirmation required, go to pending state
-            if (focusSettings.requireConfirmation) {
-              return {
-                ...s,
-                phase: "pending-break",
-                pendingPhase,
-                workTimeRemaining: 0,
-                sessionCount: newSessionCount,
-                totalWorkTime: newTotalWorkTime,
-                isRunning: false,
-                confirmationRepeats: 0,
-                lastPauseTime: new Date(), // Start tracking idle time
-              };
-            }
-
-            // Otherwise transition immediately
-            const breakEndTime = new Date();
-            breakEndTime.setSeconds(breakEndTime.getSeconds() + breakDuration);
-
-            return {
-              ...s,
-              phase: pendingPhase,
-              workTimeRemaining: 0,
-              breakTimeRemaining: breakDuration,
-              breakEndTime,
-              sessionCount: newSessionCount,
-              totalWorkTime: newTotalWorkTime,
-            };
-          }
-
-          return {
-            ...s,
-            workTimeRemaining: newWorkTime,
-            totalWorkTime: newTotalWorkTime,
-          };
-        } else if (s.phase === "short-break" || s.phase === "long-break") {
-          const newBreakTime = s.breakTimeRemaining - elapsed;
-          const newTotalBreakTime = s.totalBreakTime + Math.min(elapsed, Math.max(0, s.breakTimeRemaining));
-
-          // Break complete
-          if (newBreakTime <= 0) {
-            // Play sound
-            if (soundEnabled) {
-              queueSounds(["break-end", "task-start"]);
-            }
-            if (notificationsEnabled) {
-              sendNotification("🍅 Break over - back to work!", {
-                body: "Time to focus!",
-                silent: true,
-              });
-            }
-
-            // If confirmation required, go to pending state
-            if (focusSettings.requireConfirmation) {
-              return {
-                ...s,
-                phase: "pending-work",
-                pendingPhase: "work",
-                breakTimeRemaining: 0,
-                breakEndTime: null,
-                isRunning: false,
-                confirmationRepeats: 0,
-                totalBreakTime: newTotalBreakTime,
-                lastPauseTime: new Date(), // Start tracking idle time
-              };
-            }
-
-            // Otherwise transition immediately
-            return {
-              ...s,
-              phase: "work",
-              workTimeRemaining: getWorkDuration(),
-              breakTimeRemaining: 0,
-              breakEndTime: null,
-              totalBreakTime: newTotalBreakTime,
-              breakSessionCount: s.breakSessionCount + 1,
-            };
-          }
-
-          return {
-            ...s,
-            breakTimeRemaining: newBreakTime,
-            totalBreakTime: newTotalBreakTime,
-          };
-        }
-
-        return s;
-      });
-  });
-
-  // Toggle timer
-  const toggleTimer = useCallback(() => {
-    setState((s) => {
-      // Calculate idle time if resuming from pause
-      let idleTimeToAdd = 0;
-      if (!s.isRunning && s.lastPauseTime) {
-        idleTimeToAdd = Math.floor((Date.now() - s.lastPauseTime.getTime()) / 1000);
-      }
-
-      // Starting work
-      if (!s.isRunning && s.phase === "work") {
-        if (soundEnabled) {
-          playNotificationSound("task-start");
-        }
-        return {
-          ...s,
-          isRunning: true,
-          lastPauseTime: null,
-          totalIdleTime: s.totalIdleTime + idleTimeToAdd,
-        };
-      }
-
-      // Resuming break - recalculate breakEndTime
-      if (!s.isRunning && (s.phase === "short-break" || s.phase === "long-break")) {
-        const newBreakEndTime = new Date();
-        newBreakEndTime.setSeconds(newBreakEndTime.getSeconds() + s.breakTimeRemaining);
-        return {
-          ...s,
-          isRunning: true,
-          breakEndTime: newBreakEndTime,
-          lastPauseTime: null,
-          totalIdleTime: s.totalIdleTime + idleTimeToAdd,
-        };
-      }
-
-      // Pausing work
-      if (s.isRunning && s.phase === "work") {
-        if (soundEnabled) {
-          playNotificationSound("pause");
-        }
-        return {
-          ...s,
-          isRunning: false,
-          lastPauseTime: new Date(),
-        };
-      }
-
-      // Pausing break - clear breakEndTime
-      if (s.isRunning && (s.phase === "short-break" || s.phase === "long-break")) {
-        return {
-          ...s,
-          isRunning: false,
-          breakEndTime: null,
-          lastPauseTime: new Date(),
-        };
-      }
-
-      return { ...s, isRunning: !s.isRunning };
-    });
-  }, [soundEnabled]);
-
-  // Skip break
-  const skipBreak = useCallback(() => {
-    if (soundEnabled) {
-      playNotificationSound("task-start");
-    }
-    setState((s) => ({
-      ...s,
-      phase: "work",
-      workTimeRemaining: getWorkDuration(),
-      breakTimeRemaining: 0,
-      breakEndTime: null,
-      isRunning: true,
-      breakSessionCount: s.breakSessionCount + 1, // Count skipped breaks too
-      lastPauseTime: null,
-    }));
-  }, [soundEnabled, getWorkDuration]);
-
-  // Skip to break (end work early)
-  const skipToBreak = useCallback(() => {
-    const newSessionCount = state.sessionCount + 1;
-
-    // Determine break type
-    let isLongBreak = false;
-    let breakPhase: "short-break" | "long-break" = "short-break";
-
-    if (technique === "pomodoro") {
-      isLongBreak = newSessionCount > 0 && newSessionCount % pomodoroLongBreakInterval === 0;
-      breakPhase = isLongBreak ? "long-break" : "short-break";
+    if (!next) {
+      notify(`${currentMode.name} finished`, "Nothing queued next -- pick a mode when you are ready.");
+      pause(dueAt);
+      return;
     }
 
-    const breakDuration = getBreakDuration(newSessionCount, isLongBreak);
-
-    if (soundEnabled) {
-      playNotificationSound(isLongBreak ? "long-break" : "short-break");
+    // If the user has been away long enough that the next mode would also be
+    // over, stop rather than replaying hours of sessions nobody sat through.
+    const nextTotal = modeSeconds(next);
+    if (nextTotal !== undefined && now >= dueAt + nextTotal * 1000) {
+      notify(`${currentMode.name} finished`, "You were away, so the timer stopped.");
+      pause(dueAt);
+      return;
     }
 
-    const breakEndTime = new Date();
-    breakEndTime.setSeconds(breakEndTime.getSeconds() + breakDuration);
+    notify(`${currentMode.name} finished`, `Starting ${next.name}.`);
+    switchTo(next, dueAt);
+  }, [session, activeSegment, currentMode, now, modes, soundEnabled, notify, pause, switchTo]);
 
-    setState((s) => ({
-      ...s,
-      phase: breakPhase,
-      workTimeRemaining: 0,
-      breakTimeRemaining: breakDuration,
-      breakEndTime,
-      sessionCount: newSessionCount,
-      isRunning: true,
-      lastPauseTime: null,
-    }));
-  }, [state.sessionCount, technique, pomodoroLongBreakInterval, getBreakDuration, soundEnabled]);
-
-  // Reset session
-  const _resetSession = useCallback(() => {
-    setState({
-      phase: "work",
-      workTimeRemaining: getWorkDuration(),
-      breakTimeRemaining: 0,
-      breakEndTime: null,
-      sessionCount: 0,
-      breakSessionCount: 0,
-      totalWorkTime: 0,
-      totalBreakTime: 0,
-      totalIdleTime: 0,
-      isRunning: false,
-      lastPauseTime: null,
-      pendingPhase: null,
-      confirmationRepeats: 0,
-    });
-  }, [getWorkDuration]);
-
-  // Enable notifications
   const enableNotifications = useCallback(async () => {
     const result = await requestNotificationPermission();
     setNotificationsEnabled(result === "granted");
   }, []);
 
+  const handleStart = useCallback(() => {
+    const mode = findMode(modes, effectiveSelectedId ?? undefined);
+    if (!mode) return;
+    completedRef.current = null;
+    setShowSetup(false);
+    setNow(Date.now());
+    start(mode);
+  }, [modes, effectiveSelectedId, start]);
+
+  const handleSwitch = useCallback(
+    (mode: FocusMode) => {
+      completedRef.current = null;
+      setNow(Date.now());
+      if (activeSegment) {
+        switchTo(mode);
+      } else {
+        resume(mode);
+      }
+    },
+    [activeSegment, switchTo, resume],
+  );
+
+  const togglePause = useCallback(() => {
+    if (activeSegment) {
+      if (soundEnabled) playNotificationSound("pause");
+      pause();
+    } else if (currentMode ?? modes[0]) {
+      const mode = currentMode ?? modes[0];
+      completedRef.current = null;
+      setNow(Date.now());
+      resume(mode);
+    }
+  }, [activeSegment, currentMode, modes, pause, resume, soundEnabled]);
+
+  const handleEnd = useCallback(() => {
+    end();
+    completedRef.current = null;
+    setShowSetup(false);
+  }, [end]);
+
+  // The mode of the last segment, so a paused session still says what it was
+  // doing and what Resume will pick back up.
+  const pausedMode = useMemo(() => {
+    if (activeSegment || !session) return null;
+    const last = session.segments[session.segments.length - 1];
+    return last ? findMode(modes, last.modeId) : null;
+  }, [activeSegment, session, modes]);
+
+  const running = session !== null && !showSetup;
+  const sessionTotals = totals(now);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't handle if the keystroke belongs to something being typed into.
-      if (isTypingTarget(e.target)) {
-        return;
-      }
+      if (isTypingTarget(e.target)) return;
+      if ((e.key === " " || e.key === "Enter") && isActivationTarget(e.target)) return;
 
-      // Space and Enter activate whatever control has focus. Swallowing them
-      // here meant tabbing to this view's own Close button and pressing Space
-      // started the timer instead of closing it.
-      if ((e.key === " " || e.key === "Enter") && isActivationTarget(e.target)) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
         return;
       }
+      if (!running) return;
 
       switch (e.key) {
-        case "Escape":
-          e.preventDefault();
-          onClose();
-          break;
         case " ":
           e.preventDefault();
-          if (state.phase === "pending-break" || state.phase === "pending-work") {
-            confirmTransition();
-          } else {
-            toggleTimer();
-          }
-          break;
-        case "Enter":
-          e.preventDefault();
-          if (state.phase === "pending-break" || state.phase === "pending-work") {
-            confirmTransition();
-          }
-          break;
-        case "s":
-        case "S":
-          e.preventDefault();
-          if (state.phase === "short-break" || state.phase === "long-break") {
-            skipBreak();
-          } else if (state.phase === "work") {
-            skipToBreak();
-          }
+          togglePause();
           break;
         case "m":
         case "M":
           e.preventDefault();
-          setSoundEnabled((prev) => !prev);
+          setSoundEnabled((previous) => !previous);
+          break;
+        case "e":
+        case "E":
+          e.preventDefault();
+          setShowSetup(true);
           break;
       }
     };
-
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, toggleTimer, confirmTransition, skipBreak, skipToBreak, state.phase]);
+  }, [onClose, running, togglePause]);
 
-  // Calculate progress
-  const progress = (() => {
-    if (state.phase === "work") {
-      const totalWork = getWorkDuration();
-      return ((totalWork - state.workTimeRemaining) / totalWork) * 100;
-    } else if (state.phase === "short-break" || state.phase === "long-break") {
-      const isLongBreak = state.phase === "long-break";
-      const totalBreak = getBreakDuration(state.sessionCount, isLongBreak);
-      return ((totalBreak - state.breakTimeRemaining) / totalBreak) * 100;
-    }
-    return 0;
-  })();
-
-  // Technique display info
-  const techniqueIcon = technique === "pomodoro" ? "🍅" : technique === "flow" ? "🌊" : "📋";
-  const techniqueName = technique === "pomodoro" ? "Pomodoro" : technique === "flow" ? "Flow" : "Sequential";
-
-  // Pending confirmation state
-  if (state.phase === "pending-break" || state.phase === "pending-work") {
-    const isBreakPending = state.phase === "pending-break";
-    const isLongBreak = state.pendingPhase === "long-break";
-    const maxRepeats = focusSettings.confirmationMaxRepeats ?? 5;
-    const repeatInterval = focusSettings.confirmationRepeatInterval ?? 30;
-
-    return (
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Open focus timer"
-        className={`fixed inset-0 z-50 flex flex-col ${
-          isBreakPending
-            ? isLongBreak
-              ? "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-emerald-950 dark:to-zinc-900"
-              : "bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-cyan-950 dark:to-zinc-900"
-            : "bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950 dark:to-zinc-900"
-        }`}
-      >
-        {/* Header */}
-        <header className="flex items-center justify-between p-4 border-b border-zinc-200/50 dark:border-zinc-800/50">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/50 dark:hover:bg-zinc-700/50 rounded-lg transition-colors"
-              title="Exit (Esc)"
-            >
-              <CloseIcon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
-            </button>
-            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              {techniqueIcon} Open Focus ({techniqueName})
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`p-2 rounded-lg transition-colors ${
-                soundEnabled
-                  ? "bg-white/50 dark:bg-zinc-700/50 text-zinc-900 dark:text-zinc-100"
-                  : "text-zinc-400 dark:text-zinc-600"
-              }`}
-              title={soundEnabled ? "Mute sounds (M)" : "Enable sounds (M)"}
-            >
-              {soundEnabled ? <VolumeOnIcon className="w-5 h-5" /> : <VolumeOffIcon className="w-5 h-5" />}
-            </button>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center">
-            <div className="text-8xl mb-6">{isBreakPending ? (isLongBreak ? "☕" : "💆") : "🎯"}</div>
-            <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">
-              {isBreakPending
-                ? isLongBreak
-                  ? "Time for a long break!"
-                  : "Time for a short break!"
-                : "Break complete!"}
-            </h2>
-            <p className="text-xl text-zinc-600 dark:text-zinc-400 mb-8">
-              {isBreakPending
-                ? `Session ${state.sessionCount} complete! Great work!`
-                : "Ready to start the next session?"}
-            </p>
-
-            {/* Confirmation info */}
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-              {maxRepeats > 0 ? (
-                <>
-                  Reminder {state.confirmationRepeats} of {maxRepeats}
-                  {" • "}Sound plays every {repeatInterval}s
-                </>
-              ) : (
-                <>Sound plays every {repeatInterval}s</>
-              )}
-            </p>
-
-            {/* Confirm Button */}
-            <button
-              onClick={confirmTransition}
-              className={`px-8 py-4 rounded-full font-semibold text-lg transition-all shadow-lg hover:shadow-xl ${
-                isBreakPending
-                  ? isLongBreak
-                    ? "bg-green-600 hover:bg-green-700 text-white"
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
-                  : "bg-orange-600 hover:bg-orange-700 text-white"
-              }`}
-            >
-              {isBreakPending ? "Start Break" : "Start Working"} (Space/Enter)
-            </button>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="p-4 border-t border-zinc-200/50 dark:border-zinc-800/50">
-          <div className="flex justify-center gap-6 text-sm text-zinc-600 dark:text-zinc-400 flex-wrap">
-            <span>
-              🎯 Work: {state.sessionCount} sessions • {formatTime(state.totalWorkTime)}
-            </span>
-            <span>
-              ☕ Break: {state.breakSessionCount} sessions • {formatTime(state.totalBreakTime)}
-            </span>
-            {state.totalIdleTime > 0 && <span>⏸️ Idle: {formatTime(state.totalIdleTime)}</span>}
-          </div>
-        </div>
-
-        {/* Keyboard Hints */}
-        <div className="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/50 dark:border-zinc-800/50">
-          <span className="inline-flex items-center gap-4 flex-wrap justify-center">
-            <span>Space/Enter Confirm</span>
-            <span>M Mute</span>
-            <span>Esc Exit</span>
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  // Break phase
-  if (state.phase === "short-break" || state.phase === "long-break") {
-    const isLongBreak = state.phase === "long-break";
-
-    return (
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Open focus timer"
-        className={`fixed inset-0 z-50 flex flex-col ${
-          isLongBreak
-            ? "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-emerald-950 dark:to-zinc-900"
-            : "bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-cyan-950 dark:to-zinc-900"
-        }`}
-      >
-        {/* Header */}
-        <header className="flex items-center justify-between p-4 border-b border-zinc-200/50 dark:border-zinc-800/50">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/50 dark:hover:bg-zinc-700/50 rounded-lg transition-colors"
-              title="Exit (Esc)"
-            >
-              <CloseIcon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
-            </button>
-            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              {techniqueIcon} Open Focus ({techniqueName})
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`p-2 rounded-lg transition-colors ${
-                soundEnabled
-                  ? "bg-white/50 dark:bg-zinc-700/50 text-zinc-900 dark:text-zinc-100"
-                  : "text-zinc-400 dark:text-zinc-600"
-              }`}
-              title={soundEnabled ? "Mute sounds (M)" : "Enable sounds (M)"}
-            >
-              {soundEnabled ? <VolumeOnIcon className="w-5 h-5" /> : <VolumeOffIcon className="w-5 h-5" />}
-            </button>
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">Session {state.sessionCount}</span>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center">
-            <div className="text-8xl mb-6">{isLongBreak ? "☕" : "💆"}</div>
-            <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">
-              {isLongBreak ? "Take a long break!" : "Take a short break!"}
-            </h2>
-
-            {/* Timer */}
-            <div className="text-7xl font-mono font-bold text-zinc-900 dark:text-zinc-100 mb-4">
-              {formatTime(state.breakTimeRemaining)}
-            </div>
-
-            {/* Continue time */}
-            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8">
-              {state.breakEndTime ? (
-                <>Continue at {formatClockTime(state.breakEndTime)}</>
-              ) : (
-                <span className="text-zinc-500 dark:text-zinc-400">Paused</span>
-              )}
-            </p>
-
-            {/* Actions */}
-            <div className="flex items-center justify-center gap-4">
-              <button
-                onClick={toggleTimer}
-                className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-                  state.isRunning
-                    ? "bg-yellow-500 hover:bg-yellow-600 text-white"
-                    : "bg-green-600 hover:bg-green-700 text-white"
-                }`}
-              >
-                {state.isRunning ? (
-                  <>
-                    <PauseIcon className="w-5 h-5" />
-                    Pause
-                  </>
-                ) : (
-                  <>
-                    <PlayIcon className="w-5 h-5" />
-                    Resume
-                  </>
-                )}
-              </button>
-              <button
-                onClick={skipBreak}
-                className="px-6 py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
-              >
-                Skip Break
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="p-4 border-t border-zinc-200/50 dark:border-zinc-800/50">
-          <div className="flex justify-center gap-6 text-sm text-zinc-600 dark:text-zinc-400 flex-wrap">
-            <span>
-              🎯 Work: {state.sessionCount} sessions • {formatTime(state.totalWorkTime)}
-            </span>
-            <span>
-              ☕ Break: {state.breakSessionCount} sessions • {formatTime(state.totalBreakTime)}
-            </span>
-            {state.totalIdleTime > 0 && <span>⏸️ Idle: {formatTime(state.totalIdleTime)}</span>}
-          </div>
-        </div>
-
-        {/* Keyboard Hints */}
-        <div className="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/50 dark:border-zinc-800/50">
-          <span className="inline-flex items-center gap-4 flex-wrap justify-center">
-            <span>Space {state.isRunning ? "Pause" : "Resume"}</span>
-            <span>S Skip</span>
-            <span>M Mute</span>
-            <span>Esc Exit</span>
-          </span>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="h-2 bg-zinc-200/50 dark:bg-zinc-700/50">
-          <div
-            className={`h-full transition-all duration-1000 ${isLongBreak ? "bg-green-500" : "bg-blue-500"}`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // Work phase (default)
-  return (
+  const shell = (children: React.ReactNode) => (
     <div
       ref={dialogRef}
       role="dialog"
@@ -819,21 +263,85 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
       aria-label="Open focus timer"
       className="fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800"
     >
-      {/* Header */}
+      {children}
+    </div>
+  );
+
+  if (!isLoaded) {
+    return shell(
+      <div className="flex-1 flex items-center justify-center text-zinc-500 dark:text-zinc-400">Loading…</div>,
+    );
+  }
+
+  if (!running) {
+    const resumable =
+      session !== null
+        ? { workSeconds: sessionTotals.work, breakSeconds: sessionTotals.break }
+        : null;
+    return shell(
+      <OpenFocusSetup
+        modes={modes}
+        selectedModeId={effectiveSelectedId}
+        onSelectMode={setSelectedModeId}
+        onChangeModes={(next) => onUpdateFocusSettings({ ...focusSettings, modes: next })}
+        onStart={handleStart}
+        onClose={onClose}
+        soundEnabled={soundEnabled}
+        onToggleSound={() => setSoundEnabled((previous) => !previous)}
+        resumable={resumable}
+        onResume={() => {
+          setShowSetup(false);
+          setNow(Date.now());
+        }}
+        onDiscardResumable={() => {
+          discard();
+          completedRef.current = null;
+        }}
+      />,
+    );
+  }
+
+  const displayMode = currentMode ?? pausedMode;
+  const remaining = displayMode && activeSegment ? remainingSeconds(displayMode, activeSegment, now) : undefined;
+  const elapsed = activeSegment ? elapsedSeconds(activeSegment, now) : 0;
+  const countsUp = displayMode !== null && modeSeconds(displayMode) === undefined;
+  const total = displayMode ? modeSeconds(displayMode) : undefined;
+  const progress =
+    total === undefined || total === 0 || remaining === undefined
+      ? 0
+      : Math.min(100, Math.max(0, ((total - remaining) / total) * 100));
+  const endsAt = remaining !== undefined && remaining > 0 ? new Date(now + remaining * 1000) : null;
+
+  return shell(
+    <>
       <header className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-4">
           <button
             onClick={onClose}
             className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
             title="Exit (Esc)"
+            aria-label="Exit timer"
           >
             <CloseIcon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
           </button>
           <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            {techniqueIcon} Open Focus ({techniqueName})
+            {displayMode?.name ?? "Timer"}
+            {displayMode && (
+              <span className="ml-2 text-xs font-normal px-2 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200">
+                {displayMode.kind === "work" ? "Work" : "Break"}
+              </span>
+            )}
           </h1>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowSetup(true)}
+            className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 transition-colors"
+            title="Change modes (E)"
+            aria-label="Change modes"
+          >
+            <SettingsIcon className="w-5 h-5" />
+          </button>
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={`p-2 rounded-lg transition-colors ${
@@ -842,6 +350,7 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
                 : "text-zinc-400 dark:text-zinc-600"
             }`}
             title={soundEnabled ? "Mute sounds (M)" : "Enable sounds (M)"}
+            aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
           >
             {soundEnabled ? <VolumeOnIcon className="w-5 h-5" /> : <VolumeOffIcon className="w-5 h-5" />}
           </button>
@@ -850,40 +359,49 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
               onClick={enableNotifications}
               className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg transition-colors"
               title="Enable notifications"
+              aria-label="Enable notifications"
             >
               <BellIcon className="w-5 h-5" />
             </button>
           )}
-          <span className="text-sm text-zinc-600 dark:text-zinc-400">Session {state.sessionCount + 1}</span>
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center p-8">
-        {/* Focus Icon */}
-        <div className="text-8xl mb-6">🎯</div>
+        <div
+          className="w-3 h-3 rounded-full mb-6"
+          style={{ backgroundColor: displayMode?.color ?? "#71717a" }}
+          aria-hidden="true"
+        />
 
-        {/* Timer */}
         <div className="text-center mb-8">
-          <div className="text-8xl font-mono font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-            {formatTime(state.workTimeRemaining)}
+          <div
+            className="text-8xl font-mono font-bold text-zinc-900 dark:text-zinc-100 mb-2"
+            data-testid="focus-timer-display"
+          >
+            {countsUp ? formatTime(elapsed) : formatTime(remaining ?? 0)}
           </div>
           <p className="text-zinc-500 dark:text-zinc-400">
-            {state.isRunning ? "Time remaining" : "Press Space to start"}
+            {activeSegment === null
+              ? "Paused"
+              : countsUp
+                ? "Counting up"
+                : endsAt
+                  ? `Until ${formatClockTime(endsAt)}`
+                  : "Overtime"}
           </p>
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mb-8 flex-wrap justify-center">
           <button
-            onClick={toggleTimer}
+            onClick={togglePause}
             className={`px-8 py-4 rounded-full font-semibold text-lg transition-all shadow-lg hover:shadow-xl flex items-center gap-3 ${
-              state.isRunning
+              activeSegment
                 ? "bg-yellow-500 hover:bg-yellow-600 text-white"
                 : "bg-blue-600 hover:bg-blue-700 text-white"
             }`}
           >
-            {state.isRunning ? (
+            {activeSegment ? (
               <>
                 <PauseIcon className="w-6 h-6" />
                 Pause
@@ -891,46 +409,63 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
             ) : (
               <>
                 <PlayIcon className="w-6 h-6" />
-                Start
+                Resume
               </>
             )}
           </button>
           <button
-            onClick={skipToBreak}
-            className="px-6 py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
+            onClick={handleEnd}
+            className="px-6 py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors flex items-center gap-2"
           >
-            Skip to Break
+            <StopSolidIcon className="w-4 h-4" />
+            End session
           </button>
         </div>
+
+        {modes.length > 1 && (
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">Switch to</span>
+            {modes
+              .filter((mode) => mode.id !== displayMode?.id)
+              .map((mode) => (
+                <button
+                  key={mode.id}
+                  onClick={() => handleSwitch(mode)}
+                  className="px-3 py-1.5 rounded-full text-sm font-medium border transition-colors hover:bg-white/70 dark:hover:bg-zinc-700/70"
+                  style={{ borderColor: mode.color, color: mode.color }}
+                >
+                  {mode.name}
+                </button>
+              ))}
+          </div>
+        )}
       </div>
 
-      {/* Stats */}
       <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
         <div className="flex justify-center gap-6 text-sm text-zinc-600 dark:text-zinc-400 flex-wrap">
-          <span>
-            🎯 Work: {state.sessionCount} sessions • {formatTime(state.totalWorkTime)}
-          </span>
-          <span>
-            ☕ Break: {state.breakSessionCount} sessions • {formatTime(state.totalBreakTime)}
-          </span>
-          {state.totalIdleTime > 0 && <span>⏸️ Idle: {formatTime(state.totalIdleTime)}</span>}
+          <span>🎯 Work: {formatTime(sessionTotals.work)}</span>
+          <span>☕ Break: {formatTime(sessionTotals.break)}</span>
+          {sessionTotals.idle > 0 && <span>⏸️ Idle: {formatTime(sessionTotals.idle)}</span>}
         </div>
       </div>
 
-      {/* Keyboard Hints */}
-      <div className="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800">
-        <span className="inline-flex items-center gap-4 flex-wrap justify-center">
-          <span>Space {state.isRunning ? "Pause" : "Start"}</span>
-          <span>S Skip</span>
-          <span>M Mute</span>
-          <span>Esc Exit</span>
-        </span>
-      </div>
+      {(focusSettings.showKeyboardHints ?? true) && (
+        <div className="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800">
+          <span className="inline-flex items-center gap-4 flex-wrap justify-center">
+            <span>Space {activeSegment ? "Pause" : "Resume"}</span>
+            <span>E Modes</span>
+            <span>M Mute</span>
+            <span>Esc Exit</span>
+          </span>
+        </div>
+      )}
 
-      {/* Progress Bar */}
       <div className="h-2 bg-zinc-200 dark:bg-zinc-700">
-        <div className="h-full bg-blue-600 transition-all duration-1000" style={{ width: `${progress}%` }} />
+        <div
+          className="h-full bg-blue-600 transition-all duration-1000"
+          style={{ width: `${progress}%`, backgroundColor: displayMode?.color }}
+        />
       </div>
-    </div>
+    </>,
   );
 }

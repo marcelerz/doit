@@ -32,7 +32,7 @@ interface OpenFocusSetupProps {
   onClose: () => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
-  /** Set when a session was left open by a reload and can be picked back up. */
+  /** Set while a session is open, whether reached mid-session or after a reload. */
   resumable?: { workSeconds: number; breakSeconds: number } | null;
   onResume?: () => void;
   onDiscardResumable?: () => void;
@@ -129,7 +129,7 @@ export function OpenFocusSetup({
         {resumable && (
           <div className="rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
             <p className="text-sm text-amber-900 dark:text-amber-100">
-              A session from earlier is still open — {formatTime(resumable.workSeconds)} worked,{" "}
+              A session is open — {formatTime(resumable.workSeconds)} worked,{" "}
               {formatTime(resumable.breakSeconds)} on break.
             </p>
             <div className="mt-3 flex gap-2">
@@ -137,7 +137,7 @@ export function OpenFocusSetup({
                 onClick={onResume}
                 className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors"
               >
-                Resume it
+                Back to session
               </button>
               <button
                 onClick={onDiscardResumable}
@@ -183,8 +183,8 @@ export function OpenFocusSetup({
                       backgroundColor: isSelected ? mode.color : "transparent",
                       borderColor: mode.color,
                     }}
-                    title={`Start in ${mode.name}`}
-                    aria-label={`Start in ${mode.name}`}
+                    title={`Begin the session in ${mode.name}`}
+                    aria-label={`Begin the session in ${mode.name}`}
                   />
                   <input
                     value={mode.name}

@@ -188,6 +188,14 @@ describe("OpenFocusSetup", () => {
     expect(onChangeModes).toHaveBeenCalledTimes(2);
   });
 
+  it("names the per-mode start control distinctly from the Start button", () => {
+    // Both were "Start in ...", which made getByRole("button", {name: "Start"})
+    // ambiguous for anything driving this by accessible name.
+    setup();
+    expect(screen.getByLabelText("Begin the session in Deep work")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Start$/ })).toBeTruthy();
+  });
+
   it("starts, closes and toggles sound", () => {
     const { onStart, onClose, onToggleSound } = setup();
 
@@ -207,7 +215,7 @@ describe("OpenFocusSetup", () => {
     expect(screen.getByText("Add a mode to get started")).toBeTruthy();
   });
 
-  it("offers to pick up a session a reload left open", () => {
+  it("offers a way back to an open session, and a way to throw it away", () => {
     const { onResume, onDiscardResumable } = setup({
       resumable: { workSeconds: 1500, breakSeconds: 300 },
       onResume: jest.fn(),
@@ -215,7 +223,7 @@ describe("OpenFocusSetup", () => {
     });
 
     expect(screen.getByText(/25:00 worked/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Resume it" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to session" }));
     expect(onResume).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Discard" }));
@@ -224,6 +232,6 @@ describe("OpenFocusSetup", () => {
 
   it("says nothing about resuming when there is nothing to resume", () => {
     setup();
-    expect(screen.queryByRole("button", { name: "Resume it" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Back to session" })).toBeNull();
   });
 });

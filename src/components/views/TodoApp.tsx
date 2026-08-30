@@ -104,8 +104,14 @@ export function TodoApp() {
     dismissUndo,
     renameEntityReferences: renameTodoReferences,
   } = useTodos();
-  const { settings, addPriority, updateGanttSettings, updateKanbanSettings, updateAutoAssignSettings } =
-    useSettings();
+  const {
+    settings,
+    addPriority,
+    updateGanttSettings,
+    updateKanbanSettings,
+    updateAutoAssignSettings,
+    updateFocusSettings,
+  } = useSettings();
 
   // Task notifications for due/overdue tasks
   useTaskNotifications(todos, settings.notifications);
@@ -2184,7 +2190,13 @@ export function TodoApp() {
       )}
 
       {/* Open Focus Mode (task-free) */}
-      {isOpenFocusMode && <OpenFocusView settings={settings} onClose={() => setIsOpenFocusMode(false)} />}
+      {isOpenFocusMode && (
+        <OpenFocusView
+          settings={settings}
+          onClose={() => setIsOpenFocusMode(false)}
+          onUpdateFocusSettings={updateFocusSettings}
+        />
+      )}
 
       {/* Templates Manager */}
       {showTemplatesManager && (
