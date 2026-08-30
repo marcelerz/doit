@@ -13,6 +13,9 @@ import { STORAGE_KEYS } from "@/storage/storage";
 import { PrintIcon } from "@/components/shared/Icons";
 import { formatDateKey, parseLocalDate } from "@/utils/dateUtils";
 import { usePersistedViewOptions } from "@/hooks/usePersistedViewOptions";
+import { FocusSession } from "@/types/focusMode";
+import { formatTime } from "@/utils/formatters";
+import { focusTotalsInPeriod, focusTotalsByMode } from "@/utils/focusReport";
 
 type TimePeriod = "today" | "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "all" | "custom";
 type GroupBy = "assigned" | "source" | "project" | "category" | "sprint" | "day";
@@ -30,6 +33,8 @@ interface TimeReportsViewProps {
   projects: ProjectModel[];
   settings: Settings;
   sprints: SprintModel[];
+  /** Finished ad-hoc timer sessions, newest first. */
+  focusSessions?: FocusSession[];
 }
 
 interface TimeEntry {
@@ -111,7 +116,14 @@ const CHART_COLORS = [
   "#6366f1", // indigo
 ];
 
-export default function TimeReportsView({ todos, people, projects, settings, sprints }: TimeReportsViewProps) {
+export default function TimeReportsView({
+  todos,
+  people,
+  projects,
+  settings,
+  sprints,
+  focusSessions = [],
+}: TimeReportsViewProps) {
   const [options, setOptions] = usePersistedViewOptions<TimeReportOptions>(
     STORAGE_KEYS.TIME_REPORT_OPTIONS,
     DEFAULT_OPTIONS
@@ -177,6 +189,21 @@ export default function TimeReportsView({ todos, people, projects, settings, spr
         return { start: new Date(0), end: new Date(9999, 11, 31) };
     }
   }, [timePeriod, settings.dateTime?.workWeekStart, customStartDate, customEndDate]);
+
+  // Ad-hoc timer time, over the same period. Kept out of the grouping machinery
+  // above on purpose: that is shaped around tasks -- assignee, project, sprint
+  // -- and a task-free session has none of those to be grouped by.
+  const focus = useMemo(() => {
+    // new Date() rather than Date.now() to match how this file already reads
+    // the clock inside a memo.
+    const now = new Date().getTime();
+    const from = dateRange.start.getTime();
+    const to = dateRange.end.getTime();
+    return {
+      totals: focusTotalsInPeriod(focusSessions, from, to, now),
+      byMode: focusTotalsByMode(focusSessions, from, to, now),
+    };
+  }, [focusSessions, dateRange]);
 
   // Extract time entries from todos
   const timeEntries = useMemo(() => {
@@ -458,6 +485,36 @@ export default function TimeReportsView({ todos, people, projects, settings, spr
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Time Reports</h2>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{getPeriodLabel()}</p>
         </div>
+
+        {/* Ad-hoc timer time. Reported separately because it has no task, and
+            therefore nothing the groupings above could group it by. */}
+        {focus.byMode.length > 0 && (
+          <div className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-baseline justify-between gap-4 flex-wrap mb-3">
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">🎯 Focus Timer</h3>
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                {formatTime(focus.totals.work)} work
+                {" · "}
+                {formatTime(focus.totals.break)} break
+              </div>
+            </div>
+            <div className="space-y-2">
+              {focus.byMode.map((total) => (
+                <div key={total.modeId} className="flex justify-between items-center text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-400 truncate mr-2">
+                    {total.modeName}
+                    <span className="ml-1.5 text-xs text-zinc-400 dark:text-zinc-500">
+                      {total.kind === "work" ? "work" : "break"}
+                    </span>
+                  </span>
+                  <span className="font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+                    {formatTime(total.seconds)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Key Metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

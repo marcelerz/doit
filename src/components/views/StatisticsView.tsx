@@ -4,14 +4,43 @@ import { useMemo } from "react";
 import { TodoModel } from "@/models/TodoModel";
 import { ProjectModel } from "@/models/ProjectModel";
 import { ProjectCategory } from "@/types/project";
+import { FocusSession } from "@/types/focusMode";
+import { focusTotalsInPeriod, focusTotalsByMode } from "@/utils/focusReport";
+import { formatTime } from "@/utils/formatters";
 
 interface StatisticsViewProps {
   todos: TodoModel[];
   projects?: ProjectModel[];
   categories?: ProjectCategory[];
+  /** Finished ad-hoc timer sessions, newest first. */
+  focusSessions?: FocusSession[];
 }
 
-export function StatisticsView({ todos, projects = [], categories = [] }: StatisticsViewProps) {
+export function StatisticsView({
+  todos,
+  projects = [],
+  categories = [],
+  focusSessions = [],
+}: StatisticsViewProps) {
+  // Time spent in the ad-hoc timer, which task-based tracking cannot see: the
+  // whole point of that timer is that it is not attached to a task.
+  const focus = useMemo(() => {
+    // new Date() rather than Date.now() to match how this file already reads
+    // the clock inside a memo.
+    const now = new Date().getTime();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const weekAgo = new Date(startOfToday);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    return {
+      today: focusTotalsInPeriod(focusSessions, startOfToday.getTime(), now, now),
+      week: focusTotalsInPeriod(focusSessions, weekAgo.getTime(), now, now),
+      byMode: focusTotalsByMode(focusSessions, weekAgo.getTime(), now, now),
+      sessions: focusSessions.length,
+    };
+  }, [focusSessions]);
+
   const stats = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -327,6 +356,63 @@ export function StatisticsView({ todos, projects = [], categories = [] }: Statis
           </div>
         </div>
       </div>
+
+      {/* Ad-hoc timer sessions. Separate from task time tracking on purpose --
+          this is the time that has no task attached to it. */}
+      {focus.sessions > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">🎯 Focus Timer</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-600 dark:text-zinc-400">Focused Today</span>
+                <span className="font-semibold text-blue-600 dark:text-blue-400">
+                  {formatTime(focus.today.work)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-600 dark:text-zinc-400">On Break Today</span>
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  {formatTime(focus.today.break)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-600 dark:text-zinc-400">Focused This Week</span>
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  {formatTime(focus.week.work)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-600 dark:text-zinc-400">Sessions Recorded</span>
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">{focus.sessions}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">🎨 Time by Mode (7 days)</h3>
+            {focus.byMode.length === 0 ? (
+              <p className="text-zinc-500 dark:text-zinc-500 text-sm">No focus time this week</p>
+            ) : (
+              <div className="space-y-2">
+                {focus.byMode.slice(0, 6).map((total) => (
+                  <div key={total.modeId} className="flex justify-between items-center text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-400 truncate mr-2">
+                      {total.modeName}
+                      <span className="ml-1.5 text-xs text-zinc-400 dark:text-zinc-500">
+                        {total.kind === "work" ? "work" : "break"}
+                      </span>
+                    </span>
+                    <span className="font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+                      {formatTime(total.seconds)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Time Tracking Stats */}
       {stats.tasksWithTracking > 0 && (

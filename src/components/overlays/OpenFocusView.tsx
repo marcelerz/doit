@@ -14,7 +14,7 @@ import {
   defaultStartMode,
 } from "@/utils/focusModes";
 import { useTimerTick } from "@/hooks/usePomodoroTimer";
-import { useFocusSession } from "@/hooks/useFocusSession";
+import { UseFocusSessionResult } from "@/hooks/useFocusSession";
 import { useDialogFocus, isTypingTarget, isActivationTarget } from "@/hooks/useDialogFocus";
 import {
   playNotificationSound,
@@ -57,14 +57,28 @@ interface OpenFocusViewProps {
   onClose: () => void;
   /** Persists edits made on the setup screen. */
   onUpdateFocusSettings: (focus: Settings["focus"]) => void;
+  /**
+   * The session store, owned by TodoApp.
+   *
+   * Deliberately passed in rather than called here: usePersistedViewOptions
+   * keeps per-instance state, so a second useFocusSession() would load its own
+   * copy at mount and never see this one's writes. That is exactly what
+   * happened -- Statistics and Time Reports stayed empty however many sessions
+   * the timer recorded.
+   */
+  session: UseFocusSessionResult;
 }
 
-export function OpenFocusView({ settings, onClose, onUpdateFocusSettings }: OpenFocusViewProps) {
+export function OpenFocusView({
+  settings,
+  onClose,
+  onUpdateFocusSettings,
+  session: sessionStore,
+}: OpenFocusViewProps) {
   const focusSettings = settings.focus;
   const modes = useMemo(() => sortedModes(focusSettings.modes ?? []), [focusSettings.modes]);
 
-  const { session, activeSegment, isLoaded, start, switchTo, pause, resume, end, discard, totals } =
-    useFocusSession();
+  const { session, activeSegment, isLoaded, start, switchTo, pause, resume, end, discard, totals } = sessionStore;
 
   const [now, setNow] = useState(() => Date.now());
   const [showSetup, setShowSetup] = useState(false);

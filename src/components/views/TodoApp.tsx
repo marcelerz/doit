@@ -24,6 +24,7 @@ import { ListView, ListViewHandle } from "./ListView";
 import { StatisticsView } from "./StatisticsView";
 import { FocusView } from "@/components/overlays/FocusView";
 import { OpenFocusView } from "@/components/overlays/OpenFocusView";
+import { useFocusSession } from "@/hooks/useFocusSession";
 import TimeReportsView from "./TimeReportsView";
 import { ScheduledTask } from "@/utils/ganttScheduler";
 import { MarkerReference } from "@/components/shared/MarkerReference";
@@ -409,6 +410,12 @@ export function TodoApp() {
   // Focus mode state
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isOpenFocusMode, setIsOpenFocusMode] = useState(false);
+  // One owner for the ad-hoc timer's session store. It has to be a single
+  // instance: usePersistedViewOptions keeps per-instance state, so a second
+  // useFocusSession() inside the timer would never see this one's writes, and
+  // Statistics and Time Reports would stay empty.
+  const focusSession = useFocusSession();
+  const focusSessions = focusSession.log;
   const [focusTasks, setFocusTasks] = useState<ScheduledTask[]>([]);
   const [ganttRefreshKey, setGanttRefreshKey] = useState(0);
 
@@ -1345,12 +1352,24 @@ export function TodoApp() {
 
         {/* Statistics View */}
         {activeView === "stats" && (
-          <StatisticsView todos={todos} projects={projects} categories={settings.categories} />
+          <StatisticsView
+            todos={todos}
+            projects={projects}
+            categories={settings.categories}
+            focusSessions={focusSessions}
+          />
         )}
 
         {/* Time Reports View */}
         {activeView === "timereports" && (
-          <TimeReportsView todos={todos} people={people} projects={projects} settings={settings} sprints={sprints} />
+          <TimeReportsView
+            todos={todos}
+            people={people}
+            projects={projects}
+            settings={settings}
+            sprints={sprints}
+            focusSessions={focusSessions}
+          />
         )}
 
         {/* Sprints View */}
@@ -2195,6 +2214,7 @@ export function TodoApp() {
           settings={settings}
           onClose={() => setIsOpenFocusMode(false)}
           onUpdateFocusSettings={updateFocusSettings}
+          session={focusSession}
         />
       )}
 
