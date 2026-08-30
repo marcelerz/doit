@@ -44,6 +44,7 @@ module.exports = {
     // tested file is listed and carries its own threshold below.
     "src/components/overlays/TutorialOverlay.tsx",
     "src/components/overlays/EntityDetailsOverlay.tsx",
+    "src/components/overlays/OpenFocusSetup.tsx",
     "!src/**/*.d.ts",
     // Test files and fixtures are not production code; counting them in the
     // denominator let an unused 338-line helper drag the ratio down.
@@ -73,6 +74,12 @@ module.exports = {
       branches: 58,
       functions: 93,
       lines: 77,
+    },
+    "src/components/overlays/OpenFocusSetup.tsx": {
+      statements: 97,
+      branches: 84,
+      functions: 93,
+      lines: 97,
     },
     "src/components/overlays/EntityDetailsOverlay.tsx": {
       statements: 87,
