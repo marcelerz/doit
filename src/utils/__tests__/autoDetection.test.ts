@@ -97,6 +97,18 @@ describe("autoDetection", () => {
       jest.useRealTimers();
     });
 
+    it("should not claim 'urgent' or 'asap' as dates", () => {
+      // These are priority names. While they were date shorthands the date
+      // parser matched first, stripped the word from the text and made the
+      // priority match look like an overlap -- so the priority was never set.
+      expect(detectDatesInText("This task is urgent")).toHaveLength(0);
+      expect(detectDatesInText("ASAP needed for deployment")).toHaveLength(0);
+    });
+
+    it("should still claim 'immediately' as a date", () => {
+      expect(detectDatesInText("Ship immediately")).toHaveLength(1);
+    });
+
     it("should detect 'tomorrow'", () => {
       const result = detectDatesInText("Meet tomorrow");
       expect(result).toHaveLength(1);

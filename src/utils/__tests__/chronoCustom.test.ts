@@ -299,26 +299,35 @@ describe("chronoCustom", () => {
   });
 
   describe("urgency shorthands", () => {
-    it("should parse asap", () => {
+    it("should NOT treat asap as a date -- it is a priority name", () => {
       const result = parseDateWithCustomChrono(
         "asap",
         referenceDate,
         defaultDateTimeSettings,
         defaultWorkHoursSettings,
       );
-      expect(result).toBeInstanceOf(Date);
-      // Should be today at EOD
-      expect(result?.getDate()).toBe(referenceDate.getDate());
+      expect(result).toBeNull();
     });
 
-    it("should parse urgent", () => {
+    it("should NOT treat urgent as a date -- it is a priority name", () => {
       const result = parseDateWithCustomChrono(
         "urgent",
         referenceDate,
         defaultDateTimeSettings,
         defaultWorkHoursSettings,
       );
+      expect(result).toBeNull();
+    });
+
+    it("should still parse immediately as today EOD", () => {
+      const result = parseDateWithCustomChrono(
+        "immediately",
+        referenceDate,
+        defaultDateTimeSettings,
+        defaultWorkHoursSettings,
+      );
       expect(result).toBeInstanceOf(Date);
+      expect(result?.getDate()).toBe(referenceDate.getDate());
     });
 
     it("should parse now", () => {

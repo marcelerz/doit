@@ -224,9 +224,11 @@ const SHORTHAND_PATTERNS: Record<
   tonight: (ref, dt) => setTime(ref, dt?.evening || "18:00"),
   tonite: (ref, dt) => setTime(ref, dt?.evening || "18:00"),
 
-  // Urgency shorthands - map to today EOD (use work hours)
-  asap: (ref, _dt, wh) => setTime(ref, getEodFromWorkHours(ref, wh)),
-  urgent: (ref, _dt, wh) => setTime(ref, getEodFromWorkHours(ref, wh)),
+  // Urgency shorthands - map to today EOD (use work hours).
+  // "asap" and "urgent" are deliberately absent: they are priority names (see
+  // defaultPriorities), and claiming them as dates here made the date parser
+  // swallow the word before detectPriorities could see it -- stripping it from
+  // the text and leaving the priority unset.
   immediately: (ref, _dt, wh) => setTime(ref, getEodFromWorkHours(ref, wh)),
   now: (ref) => ref, // Current time
 
