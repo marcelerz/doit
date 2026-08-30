@@ -273,11 +273,14 @@ function createTodoApp(page: Page): TodoAppFixture {
     },
 
     switchView: async (view: string) => {
+      // Previously this silently did nothing when the tab was not visible, so a
+      // test could go on asserting against whatever view happened to be open --
+      // including filing a screenshot of the list view as another view's
+      // baseline. Failing here is the point.
       const tab = page.getByTestId(`view-tab-${view}`);
-      if (await tab.isVisible()) {
-        await tab.click();
-        await page.waitForTimeout(300);
-      }
+      await tab.click();
+      await expect(tab).toHaveAttribute("aria-selected", "true");
+      await page.waitForTimeout(300);
     },
 
     search: async (text: string) => {

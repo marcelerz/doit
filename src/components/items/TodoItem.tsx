@@ -344,7 +344,12 @@ export function TodoItem({
   }
 
   return (
-    <div ref={containerRef} className={`relative rounded-lg ${showDelayedDropdown ? "z-30" : ""}`} data-testid="todo-item">
+    <div
+      ref={containerRef}
+      className={`relative rounded-lg ${showDelayedDropdown ? "z-30" : ""}`}
+      data-testid="todo-item"
+      data-completed={todo.isCompleted}
+    >
       {/* Swipe action backgrounds (mobile only) */}
       {swipeOffset !== 0 && (
         <>

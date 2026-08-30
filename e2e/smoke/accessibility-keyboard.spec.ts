@@ -32,11 +32,10 @@ test.describe("Accessibility and Keyboard Workflow", () => {
       await page.keyboard.press("/");
       await page.waitForTimeout(300);
 
-      // Check if search input is focused
+      // "/" must actually focus the search box. This used to assert
+      // `isFocused || true`, which cannot fail and so verified nothing.
       const searchInput = page.getByTestId("search-input");
-      const isFocused = await searchInput.evaluate((el) => document.activeElement === el);
-      // This may not work if shortcut isn't implemented, but we verify no errors
-      expect(isFocused || true).toBe(true);
+      await expect(searchInput).toBeFocused();
 
       // Press Escape to clear focus
       await page.keyboard.press("Escape");

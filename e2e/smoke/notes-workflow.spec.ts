@@ -110,13 +110,13 @@ test.describe("Notes Workflow", () => {
       // The testid sits on a wrapper div; the editable surface is the
       // contenteditable RichTextEditor inside it.
       const contentArea = page.locator('[data-testid="note-content-editor"] [contenteditable="true"]');
-      if (await contentArea.isVisible()) {
-        await contentArea.click();
-        await contentArea.fill("This is the meeting content with important details.");
-        // Blur to save
-        await page.keyboard.press("Escape");
-        await page.waitForTimeout(500);
-      }
+      // Asserted rather than guarded: a missing editor is a failure, not a step to skip.
+      await expect(contentArea).toBeVisible();
+      await contentArea.click();
+      await contentArea.fill("This is the meeting content with important details.");
+      // Blur to save
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(500);
 
       // Go back to notes list. Escape above may already have done it:
       // NoteDetailView binds Escape to onBack, so it navigates rather than

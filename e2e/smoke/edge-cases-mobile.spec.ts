@@ -123,17 +123,14 @@ test.describe("Edge Cases and Mobile Workflow", () => {
       await page.goto("/");
       await todoApp.waitForAppLoad();
 
-      // Try to switch views (might be in hamburger menu on mobile)
-      const menuButton = page.locator('[data-testid="mobile-menu"]');
-      if (await menuButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await menuButton.click();
-        await page.waitForTimeout(300);
-        await page.keyboard.press("Escape");
-      }
-
-      // Verify app is still functional
-      const count = await todoApp.getTodoCount();
-      expect(count).toBeGreaterThanOrEqual(0);
+      // There is no hamburger menu -- the tab bar is a scrolling tablist at
+      // every width -- so switch views through it and assert it actually
+      // happened. The old version looked for a "mobile-menu" that does not
+      // exist and then asserted a count >= 0, which is always true.
+      await todoApp.switchView("kanban");
+      await expect(page.getByTestId("kanban-view")).toBeVisible();
+      await todoApp.switchView("list");
+      await expect(page.getByTestId("todo-item").first()).toBeVisible();
     });
   });
 });

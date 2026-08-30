@@ -25,6 +25,8 @@ export interface EntityListConfig {
   addLabel: string;
   /** data-tutorial value on the add button. */
   addTutorialId: string;
+  /** data-testid on the list container, e.g. "people-view". */
+  viewTestId: string;
   searchPlaceholder: string;
   storageKey: string;
   emptyEmoji: string;
@@ -85,7 +87,7 @@ export function EntityListView<TModel extends ListableEntity<TId>, TId>({
   }, [entities, search, showArchived]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid={config.viewTestId}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div>
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{config.title}</h2>

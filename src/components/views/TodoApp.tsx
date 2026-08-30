@@ -964,6 +964,7 @@ export function TodoApp() {
                 className="px-2 sm:px-4 py-2 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
                 title="Settings"
                 data-tutorial="settings-button"
+                data-testid="settings-button"
               >
                 <SettingsIcon className="w-5 h-5" />
                 <span className="hidden sm:inline">Settings</span>

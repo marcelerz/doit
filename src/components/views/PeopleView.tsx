@@ -88,6 +88,7 @@ export function PeopleView({
         pluralNoun: "people",
         addLabel: "Add Person",
         addTutorialId: "add-person-button",
+        viewTestId: "people-view",
         searchPlaceholder: "Search people... (press / to focus)",
         storageKey: STORAGE_KEYS.PEOPLE_VIEW_OPTIONS,
         emptyEmoji: "\u{1F465}",

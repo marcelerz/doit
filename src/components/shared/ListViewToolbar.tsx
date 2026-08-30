@@ -199,6 +199,7 @@ export function ListViewToolbar({
           }`}
           title={showFilters ? "Hide filters" : "Show filters"}
           data-tutorial="filter-button"
+          data-testid="filter-button"
         >
           <FilterIcon className="w-5 h-5" />
           {hasActiveFilters && (
@@ -239,6 +240,7 @@ export function ListViewToolbar({
             onChange={(e) => setSortField(e.target.value as SortField)}
             className="px-2 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             title="Sort by"
+            data-testid="sort-button"
           >
             <option value="manual">Manual</option>
             <option value="created">Created</option>

@@ -88,6 +88,7 @@ export function ProjectsView({
         pluralNoun: "projects",
         addLabel: "Add Project",
         addTutorialId: "add-project-button",
+        viewTestId: "projects-view",
         searchPlaceholder: "Search projects... (press / to focus)",
         storageKey: STORAGE_KEYS.PROJECTS_VIEW_OPTIONS,
         emptyEmoji: "\u{1F4C1}",
