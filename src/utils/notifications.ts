@@ -13,8 +13,9 @@ function getBasePath(): string {
   return pathname.startsWith("/doit") ? "/doit" : "";
 }
 
-const _SOUND_TYPES = ["short-break", "long-break", "task-complete", "task-start", "break-end", "pause"] as const;
-export type SoundType = (typeof _SOUND_TYPES)[number];
+/** Exported so a picker can offer the real list rather than a hand-copied one. */
+export const SOUND_TYPES = ["short-break", "long-break", "task-complete", "task-start", "break-end", "pause"] as const;
+export type SoundType = (typeof SOUND_TYPES)[number];
 
 // Audio context for playing sounds (cached)
 let audioContext: AudioContext | null = null;

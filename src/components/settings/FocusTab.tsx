@@ -9,6 +9,7 @@ import { InfoTooltip } from "@/components/shared/InfoTooltip";
 import { CloseIcon } from "@/components/shared/Icons";
 import { SettingsLoading } from "./components/SettingsLoading";
 import { SettingsHeader } from "./components/SettingsHeader";
+import { FocusModesSection } from "./components/FocusModesSection";
 
 const focusSoundsTooltip = (
   <div className="space-y-2">
@@ -295,6 +296,11 @@ export function FocusTab() {
           </p>
         </div>
       </div>
+
+      <FocusModesSection
+        modes={focus.modes ?? defaultFocusSettings.modes}
+        onChange={(modes) => updateFocusSettings({ ...focus, modes })}
+      />
 
       {/* Notifications & Sound Settings Section */}
       <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 space-y-4">
