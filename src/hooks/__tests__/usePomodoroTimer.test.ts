@@ -23,7 +23,12 @@ beforeEach(() => {
   jest.useFakeTimers();
   playNotificationSound.mockClear();
 });
-afterEach(() => jest.useRealTimers());
+afterEach(() => {
+  jest.useRealTimers();
+  // The clock spies below outlive the test that installed them otherwise --
+  // there is no restoreMocks in the jest config.
+  jest.restoreAllMocks();
+});
 
 describe("useTimerTick", () => {
   it("does not tick while inactive", () => {
@@ -64,6 +69,75 @@ describe("useTimerTick", () => {
     act(() => void jest.advanceTimersByTime(5000));
 
     expect(onTick).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports one second per ordinary tick", () => {
+    const onTick = jest.fn();
+    renderHook(() => useTimerTick(true, onTick));
+
+    act(() => void jest.advanceTimersByTime(2000));
+    expect(onTick.mock.calls).toEqual([[1], [1]]);
+  });
+
+  it("reports the whole gap when the browser throttled the interval", () => {
+    // The reason this hook exists. Chrome drops a hidden tab to roughly one
+    // wake per minute, so counting ticks made a 25 minute session run for
+    // hours. One late wake has to carry all the time it slept through.
+    const onTick = jest.fn();
+    let now = 1_000_000;
+    jest.spyOn(Date, "now").mockImplementation(() => now);
+    renderHook(() => useTimerTick(true, onTick));
+
+    now += 600_000; // ten minutes passed; the tab got a single wake
+    act(() => void jest.advanceTimersByTime(1000));
+
+    expect(onTick).toHaveBeenCalledTimes(1);
+    expect(onTick).toHaveBeenCalledWith(600);
+  });
+
+  it("does not report a wake that lands inside the same second", () => {
+    const onTick = jest.fn();
+    let now = 1_000_000;
+    jest.spyOn(Date, "now").mockImplementation(() => now);
+    renderHook(() => useTimerTick(true, onTick));
+
+    now += 400; // an early wake has nothing to add yet
+    act(() => void jest.advanceTimersByTime(1000));
+
+    expect(onTick).not.toHaveBeenCalled();
+  });
+
+  it("carries the sub-second remainder into the next report", () => {
+    // Dropping the remainder each tick loses a fraction of a second every
+    // second, which is how a long session drifts even in a foreground tab.
+    const onTick = jest.fn();
+    let now = 1_000_000;
+    jest.spyOn(Date, "now").mockImplementation(() => now);
+    renderHook(() => useTimerTick(true, onTick));
+
+    now += 1500;
+    act(() => void jest.advanceTimersByTime(1000));
+    now += 500; // 2000ms total, so the second whole second is now due
+    act(() => void jest.advanceTimersByTime(1000));
+
+    expect(onTick.mock.calls).toEqual([[1], [1]]);
+  });
+
+  it("does not bill the paused stretch to the next report", () => {
+    const onTick = jest.fn();
+    let now = 1_000_000;
+    jest.spyOn(Date, "now").mockImplementation(() => now);
+    const { rerender } = renderHook(({ active }) => useTimerTick(active, onTick), {
+      initialProps: { active: true },
+    });
+
+    rerender({ active: false });
+    now += 300_000; // five minutes paused
+    rerender({ active: true });
+    now += 1000;
+    act(() => void jest.advanceTimersByTime(1000));
+
+    expect(onTick).toHaveBeenCalledWith(1);
   });
 
   it("calls the newest callback without restarting the interval", () => {

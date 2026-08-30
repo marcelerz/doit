@@ -15,12 +15,26 @@ import { playNotificationSound, SoundType } from "@/utils/notifications";
  */
 
 /**
- * Run `onTick` once a second while `active`.
+ * Report elapsed wall-clock seconds about once a second while `active`.
+ *
+ * `onTick` receives the seconds that really passed since the previous report,
+ * which is almost always 1 and is the whole point of this hook. It used to
+ * take no argument and callers decremented by one per call, which made the
+ * timer a tick counter rather than a clock: browsers throttle a hidden tab's
+ * intervals to roughly one wake per minute, so a 25 minute session left in a
+ * background tab -- exactly what a focus timer is for -- ran for hours. The
+ * session totals were wrong by the same factor.
+ *
+ * Reporting the real gap makes a late wake self-correcting: one tick carries
+ * the whole missed interval, so the countdown lands where the clock says it
+ * should.
  *
  * The interval is cleared whenever `active` goes false and on unmount, so a
- * view left mounted behind an overlay does not keep counting down.
+ * view left mounted behind an overlay does not keep counting down, and the
+ * paused stretch is not billed to the next tick because the baseline is taken
+ * fresh each time the effect runs.
  */
-export function useTimerTick(active: boolean, onTick: () => void): void {
+export function useTimerTick(active: boolean, onTick: (elapsedSeconds: number) => void): void {
   // Held in a ref so a new callback identity each render does not restart the
   // interval. Assigned in an effect, not during render.
   const tick = useRef(onTick);
@@ -30,7 +44,18 @@ export function useTimerTick(active: boolean, onTick: () => void): void {
 
   useEffect(() => {
     if (!active) return;
-    const id = setInterval(() => tick.current(), 1000);
+    let last = Date.now();
+    const id = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - last) / 1000);
+      // A wake less than a second after the last report has nothing to add.
+      // Returning here rather than reporting 0 keeps callers from having to
+      // guard against a no-op tick.
+      if (elapsed === 0) return;
+      // Advance by whole seconds only, so the sub-second remainder carries
+      // into the next tick instead of being dropped every time.
+      last += elapsed * 1000;
+      tick.current(elapsed);
+    }, 1000);
     return () => clearInterval(id);
   }, [active]);
 }

@@ -365,13 +365,19 @@ export function FocusView({
   });
 
   // Timer tick
-  useTimerTick(state.isRunning && !state.pendingPhase, () => {
+  useTimerTick(state.isRunning && !state.pendingPhase, (elapsed) => {
     setState((s) => {
-        const newTime = s.timeRemaining - 1;
+        const newTime = s.timeRemaining - elapsed;
 
-        const newTotalWork = s.phase === "work" ? s.totalWorkTime + 1 : s.totalWorkTime;
-        const newTotalBreak = s.phase === "break" ? s.totalBreakTime + 1 : s.totalBreakTime;
-        const newActualTime = s.phase === "work" ? s.actualTimeSpent + 1 : s.actualTimeSpent;
+        // A throttled tab reports the whole gap it slept through, which can be
+        // longer than the phase had left to run. Only the part that fell inside
+        // this phase belongs in the totals, or a session left in a background
+        // tab would report hours of work that never happened.
+        const counted = Math.min(elapsed, Math.max(0, s.timeRemaining));
+
+        const newTotalWork = s.phase === "work" ? s.totalWorkTime + counted : s.totalWorkTime;
+        const newTotalBreak = s.phase === "break" ? s.totalBreakTime + counted : s.totalBreakTime;
+        const newActualTime = s.phase === "work" ? s.actualTimeSpent + counted : s.actualTimeSpent;
 
         // Item complete
         if (newTime <= 0) {

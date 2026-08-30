@@ -212,11 +212,15 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
   });
 
   // Timer tick
-  useTimerTick(state.isRunning && !state.pendingPhase, () => {
+  useTimerTick(state.isRunning && !state.pendingPhase, (elapsed) => {
     setState((s) => {
         if (s.phase === "work") {
-          const newWorkTime = s.workTimeRemaining - 1;
-          const newTotalWorkTime = s.totalWorkTime + 1;
+          const newWorkTime = s.workTimeRemaining - elapsed;
+          // A throttled tab reports the whole gap it slept through, which can
+          // exceed what the phase had left. Only the part inside this phase is
+          // real work, or a backgrounded session reports hours that never
+          // happened.
+          const newTotalWorkTime = s.totalWorkTime + Math.min(elapsed, Math.max(0, s.workTimeRemaining));
 
           // Work session complete
           if (newWorkTime <= 0) {
@@ -283,8 +287,8 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
             totalWorkTime: newTotalWorkTime,
           };
         } else if (s.phase === "short-break" || s.phase === "long-break") {
-          const newBreakTime = s.breakTimeRemaining - 1;
-          const newTotalBreakTime = s.totalBreakTime + 1;
+          const newBreakTime = s.breakTimeRemaining - elapsed;
+          const newTotalBreakTime = s.totalBreakTime + Math.min(elapsed, Math.max(0, s.breakTimeRemaining));
 
           // Break complete
           if (newBreakTime <= 0) {
