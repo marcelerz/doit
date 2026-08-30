@@ -51,13 +51,13 @@ module.exports = {
   // `npm run validate` printed a number and always passed.
   // Raised to just under what the suite currently reaches, so a commit that
   // drops coverage fails rather than quietly spending the headroom. Measured
-  // at 67.02 / 57.30 / 61.78 / 68.48.
+  // at 67.49 / 57.66 / 61.99 / 68.98.
   coverageThreshold: {
     global: {
-      statements: 67,
-      branches: 57,
-      functions: 61,
-      lines: 68,
+      statements: 67.4,
+      branches: 57.6,
+      functions: 61.9,
+      lines: 68.9,
     },
   },
 };
