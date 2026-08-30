@@ -68,8 +68,10 @@ export class ProjectModel extends BaseEntityModel<Project> {
    */
   canDelete(allTodos?: Array<{ projectIds: ProjectId[] }>): { canDelete: boolean; reason?: string } {
     if (allTodos) {
-      // Use projectIds which includes auto-assigned defaults, not raw projects
-      const isUsed = allTodos.some((todo) => todo.projectIds.includes(this.id));
+      // Match by name, not by this.id: projectIds hold entity NAMES while
+      // this.id is a generated "project-<uuid>", so an id comparison never
+      // matched and every project looked deletable.
+      const isUsed = allTodos.some((todo) => this.matchesAnyName(todo.projectIds));
       if (isUsed) {
         return { canDelete: false, reason: "Project is used in active todos" };
       }

@@ -97,9 +97,9 @@ describe("ProjectModel", () => {
     });
 
     it("should allow deletion when project not in any todos", () => {
-      const model = new ProjectModel(createTestProject({ id: getProjectId("project-1") }));
+      const model = new ProjectModel(createTestProject({ name: "Test Project" }));
       // Use projectIds (not raw projects) to match TodoModel interface
-      const todos = [{ projectIds: [getProjectId("project-2")] }, { projectIds: [getProjectId("project-3")] }];
+      const todos = [{ projectIds: [getProjectId("Another Project")] }, { projectIds: [getProjectId("project-3")] }];
 
       const result = model.canDelete(todos);
 
@@ -107,8 +107,8 @@ describe("ProjectModel", () => {
     });
 
     it("should not allow deletion when project is used in todo", () => {
-      const model = new ProjectModel(createTestProject({ id: getProjectId("project-1") }));
-      const todos = [{ projectIds: [getProjectId("project-1")] }];
+      const model = new ProjectModel(createTestProject({ name: "Test Project" }));
+      const todos = [{ projectIds: [getProjectId("Test Project")] }];
 
       const result = model.canDelete(todos);
 
@@ -117,10 +117,10 @@ describe("ProjectModel", () => {
     });
 
     it("should not allow deletion when project is in multiple todos", () => {
-      const model = new ProjectModel(createTestProject({ id: getProjectId("project-1") }));
+      const model = new ProjectModel(createTestProject({ name: "Test Project" }));
       const todos = [
-        { projectIds: [getProjectId("project-1"), getProjectId("project-2")] },
-        { projectIds: [getProjectId("project-1")] },
+        { projectIds: [getProjectId("Test Project"), getProjectId("Another Project")] },
+        { projectIds: [getProjectId("Test Project")] },
         { projectIds: [getProjectId("project-3")] },
       ];
 
@@ -130,8 +130,8 @@ describe("ProjectModel", () => {
     });
 
     it("should handle todos with empty projectIds", () => {
-      const model = new ProjectModel(createTestProject({ id: getProjectId("project-1") }));
-      const todos = [{ projectIds: [] }, { projectIds: [getProjectId("project-2")] }];
+      const model = new ProjectModel(createTestProject({ name: "Test Project" }));
+      const todos = [{ projectIds: [] }, { projectIds: [getProjectId("Another Project")] }];
 
       const result = model.canDelete(todos);
 

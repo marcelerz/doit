@@ -97,9 +97,9 @@ describe("PersonModel", () => {
 
     it("should allow deletion when person not in any todos", () => {
       const model = new PersonModel(createTestPerson({ id: getPersonId("person-1") }));
-      // Use assignedPeopleIds (not raw assignedPeople) to match TodoModel interface
+      // assignedPeopleIds hold entity NAMES in production, not generated ids
       const todos = [
-        { assignedPeopleIds: [getPersonId("person-2")] },
+        { assignedPeopleIds: [getPersonId("Someone Else")] },
         { assignedPeopleIds: [] },
       ];
 
@@ -109,13 +109,20 @@ describe("PersonModel", () => {
     });
 
     it("should not allow deletion when person is assigned to todo", () => {
-      const model = new PersonModel(createTestPerson({ id: getPersonId("person-1") }));
-      const todos = [{ assignedPeopleIds: [getPersonId("person-1")] }];
+      const model = new PersonModel(createTestPerson({ name: "John Doe" }));
+      const todos = [{ assignedPeopleIds: [getPersonId("John Doe")] }];
 
       const result = model.canDelete(todos);
 
       expect(result.canDelete).toBe(false);
       expect(result.reason).toContain("assigned to active todos");
+    });
+
+    it("should match an alternative name as well as the canonical one", () => {
+      const model = new PersonModel(createTestPerson({ name: "John Doe", alternatives: ["JD"] }));
+      const todos = [{ assignedPeopleIds: [getPersonId("JD")] }];
+
+      expect(model.canDelete(todos).canDelete).toBe(false);
     });
 
     it("should allow deletion when person is source of todo (sourcePeopleIds not checked)", () => {
@@ -129,9 +136,9 @@ describe("PersonModel", () => {
     });
 
     it("should not allow deletion when person is in multiple todos", () => {
-      const model = new PersonModel(createTestPerson({ id: getPersonId("person-1") }));
+      const model = new PersonModel(createTestPerson({ name: "John Doe" }));
       const todos = [
-        { assignedPeopleIds: [getPersonId("person-1"), getPersonId("person-2")] },
+        { assignedPeopleIds: [getPersonId("John Doe"), getPersonId("Someone Else")] },
         { assignedPeopleIds: [] },
       ];
 

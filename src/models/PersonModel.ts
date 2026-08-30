@@ -60,8 +60,10 @@ export class PersonModel extends BaseEntityModel<Person> {
     reason?: string;
   } {
     if (allTodos) {
-      // Use assignedPeopleIds which includes auto-assigned defaults, not raw assignedPeople
-      const isAssigned = allTodos.some((todo) => todo.assignedPeopleIds.includes(this.id));
+      // Match by name, not by this.id: assignedPeopleIds hold entity NAMES while
+      // this.id is a generated "person-<uuid>", so an id comparison never
+      // matched and every person looked deletable.
+      const isAssigned = allTodos.some((todo) => this.matchesAnyName(todo.assignedPeopleIds));
       if (isAssigned) {
         return { canDelete: false, reason: "Person is assigned to active todos" };
       }
