@@ -333,14 +333,14 @@ export function TodoApp() {
       updateAutoAssignSettings(autoAssignUpdates);
     }
 
-    // Keep the old name as an alternative so anything the rewrite could not
-    // reach -- a bare name in prose, an old backup -- still resolves.
-    const alternatives = updates.alternatives ?? current.alternatives;
-    const withOldName = alternatives.some((alt) => alt.toLowerCase() === previousName.toLowerCase())
-      ? alternatives
-      : [...alternatives, previousName];
-
-    update(id, { ...updates, name: nextName, alternatives: withOldName });
+    // The old name is deliberately NOT kept as an alternative. Doing so made
+    // isNameTaken reserve it forever, so no other entity could ever be renamed
+    // to it; it also left the entity permanently displayed as "Marc (Marcel)",
+    // and -- since addEntity has no uniqueness check -- a second real "Marcel"
+    // would then be matched by the first-match-wins resolvers as the renamed
+    // one. Anyone who wants the old name to keep resolving can add it as an
+    // alternative by hand.
+    update(id, { ...updates, name: nextName });
   };
 
   const handleUpdatePerson = (id: PersonId, updates: Partial<Person>) =>

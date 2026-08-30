@@ -40,6 +40,22 @@ async function addEntity(
   await page.waitForTimeout(500);
 }
 
+/** Rename an entity through its details overlay, which auto-saves on a debounce. */
+async function renamePerson(
+  page: import("@playwright/test").Page,
+  todoApp: { switchView: (v: "people" | "projects") => Promise<void> },
+  from: string,
+  to: string,
+): Promise<void> {
+  await todoApp.switchView("people");
+  await page.getByText(from, { exact: true }).first().click();
+  const dialog = page.locator("div.fixed.inset-0").last();
+  await dialog.locator('input[type="text"]').first().fill(to);
+  await page.waitForTimeout(1200);
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(500);
+}
+
 const storedTodos = async (todoApp: { getStoredValue: (k: string) => Promise<string | null> }) =>
   JSON.parse((await todoApp.getStoredValue("doit-todos")) ?? "[]");
 
@@ -143,6 +159,29 @@ test.describe("Regressions from the manual sweep", () => {
     // the People row still counts the todo
     await todoApp.switchView("people");
     await expect(page.getByText(/1\s*\/\s*0/)).toBeVisible();
+  });
+
+  test("a rename does not reserve the old name or relabel the entity", async ({ page, todoApp }) => {
+    // The rename used to keep the old name as an alternative. That made
+    // isNameTaken reserve it forever, so no other entity could be renamed to
+    // it, and it left the entity permanently displayed as "Marc (Marcel)".
+    await addEntity(page, todoApp, "people", "Add Person", "Marcel");
+    await addEntity(page, todoApp, "people", "Add Person", "Someone Else");
+
+    await renamePerson(page, todoApp, "Marcel", "Marc");
+
+    const people = JSON.parse((await todoApp.getStoredValue("doit-people")) ?? "[]");
+    const marc = people.find((p: { name: string }) => p.name === "Marc");
+    expect(marc.alternatives).toEqual([]);
+
+    // the People list shows the plain name, not "Marc (Marcel)"
+    await todoApp.switchView("people");
+    await expect(page.getByText("Marc (Marcel)")).toHaveCount(0);
+
+    // ...and the freed name can now be taken by a different person
+    await renamePerson(page, todoApp, "Someone Else", "Marcel");
+    const after = JSON.parse((await todoApp.getStoredValue("doit-people")) ?? "[]");
+    expect(after.map((p: { name: string }) => p.name).sort()).toEqual(["Marc", "Marcel"]);
   });
 
   test("renaming onto an existing name is refused", async ({ page, todoApp }) => {
