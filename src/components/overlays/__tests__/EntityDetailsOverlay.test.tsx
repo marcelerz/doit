@@ -180,3 +180,85 @@ describe("todo groups", () => {
     expect(screen.queryByText(/✅ Todos/)).toBeNull();
   });
 });
+
+describe("actions close the overlay after running", () => {
+  // Every action is wrapped in closeAfter(), so a caller that forgets to close
+  // would leave the overlay over a deleted entity.
+  it("creates a note and closes", () => {
+    const onCreateNote = jest.fn();
+    const onClose = jest.fn();
+    render(
+      <EntityDetailsOverlay
+        entity={makePerson()}
+        onUpdate={noop}
+        {...baseProps}
+        onCreateNote={onCreateNote}
+        onClose={onClose}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("action-create-note"));
+
+    expect(onCreateNote).toHaveBeenCalledWith(getPersonId("Marcel"));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("archives and closes", () => {
+    const onArchive = jest.fn();
+    const onClose = jest.fn();
+    render(
+      <EntityDetailsOverlay
+        entity={makePerson()}
+        onUpdate={noop}
+        {...baseProps}
+        onArchive={onArchive}
+        onClose={onClose}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("action-archive"));
+
+    expect(onArchive).toHaveBeenCalledWith(getPersonId("Marcel"));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("unarchives and closes", () => {
+    const onUnarchive = jest.fn();
+    const onClose = jest.fn();
+    render(
+      <EntityDetailsOverlay
+        entity={makePerson({ archived: true })}
+        onUpdate={noop}
+        {...baseProps}
+        onUnarchive={onUnarchive}
+        onClose={onClose}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("action-unarchive"));
+
+    expect(onUnarchive).toHaveBeenCalledWith(getPersonId("Marcel"));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("deletes and closes", () => {
+    const onDelete = jest.fn();
+    const onClose = jest.fn();
+    render(
+      <EntityDetailsOverlay entity={makePerson()} onUpdate={noop} {...baseProps} onDelete={onDelete} onClose={onClose} />,
+    );
+
+    fireEvent.click(screen.getByTestId("action-delete"));
+
+    expect(onDelete).toHaveBeenCalledWith(getPersonId("Marcel"));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("omits the actions it was given no handler for", () => {
+    render(<EntityDetailsOverlay entity={makePerson()} onUpdate={noop} {...baseProps} />);
+
+    expect(screen.queryByTestId("action-create-note")).toBeNull();
+    expect(screen.queryByTestId("action-archive")).toBeNull();
+    expect(screen.queryByTestId("action-unarchive")).toBeNull();
+  });
+});
