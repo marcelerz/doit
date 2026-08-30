@@ -150,7 +150,10 @@ export function OpenFocusSetup({
         )}
 
         <div className="text-center">
-          <div className="text-6xl font-mono font-bold text-zinc-900 dark:text-zinc-100">
+          <div
+            className="text-6xl font-mono font-bold text-zinc-900 dark:text-zinc-100"
+            data-testid="focus-timer-preview"
+          >
             {previewSeconds === undefined ? "∞" : formatTime(previewSeconds)}
           </div>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">

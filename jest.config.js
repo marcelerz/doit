@@ -62,13 +62,13 @@ module.exports = {
   // 67.66 / 57.80 / 62.18 / 69.14.
   coverageThreshold: {
     // Files with their own threshold below are subtracted from this group, so
-    // the two overlays are ratcheted individually rather than being able to
-    // hide a regression behind gains elsewhere.
+    // each of them is ratcheted individually rather than being able to hide a
+    // regression behind gains elsewhere.
     global: {
-      statements: 67.6,
-      branches: 57.7,
-      functions: 62.1,
-      lines: 69.1,
+      statements: 68.6,
+      branches: 59.2,
+      functions: 63.4,
+      lines: 70.0,
     },
     "src/components/overlays/TutorialOverlay.tsx": {
       statements: 78,
