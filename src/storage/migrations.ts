@@ -9,6 +9,7 @@ import { Person } from "@/types/person";
 import { Project } from "@/types/project";
 import { Priority } from "@/types/priority";
 import { getTimestamp } from "@/types/time";
+import { seedModesFromGantt } from "@/utils/focusModes";
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
 import { STORAGE_KEYS, saveToStorage, loadFromStorage, getStorageAdapter } from "./storage";
 
@@ -237,6 +238,14 @@ export function migrateSettings(loadedSettings: any): Settings {
     focus: {
       ...defaultSettings.focus,
       ...(loadedSettings.focus || {}),
+      // The ad-hoc timer used to read its durations from the gantt block, so a
+      // user arriving without a mode list has to be seeded from whatever
+      // technique they were already on. Taking defaultSettings.focus.modes here
+      // would hand a flow user a 25 minute pomodoro instead of their 52.
+      modes:
+        loadedSettings.focus?.modes && loadedSettings.focus.modes.length > 0
+          ? loadedSettings.focus.modes
+          : seedModesFromGantt({ ...defaultSettings.gantt, ...gantt }),
     },
     notes: {
       ...defaultSettings.notes,

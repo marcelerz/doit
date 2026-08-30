@@ -1,4 +1,5 @@
 import { createSettingsModel, resetSettingsModel_DONOTUSE } from "../SettingsModel";
+import { getFocusModeId } from "@/types/focusMode";
 import { Settings, defaultSettings, defaultWorkHoursSettings } from "@/types/settings";
 import { getPriorityId } from "@/types/priority";
 import { getKanbanStateId } from "@/types/kanbanState";
@@ -395,6 +396,25 @@ describe("SettingsModel", () => {
       expect(model.isAutoTimeTrackingEnabled).toBe(defaultSettings.focus.autoTimeTracking);
       expect(model.isFocusSoundEnabled).toBe(defaultSettings.focus.soundEnabled);
       expect(model.focusSoundVolume).toBe(defaultSettings.focus.soundVolume);
+    });
+
+    it("returns the timer's modes in order", () => {
+      const model = createSettingsModel(defaultSettings);
+      expect(model.focusModes.map((mode) => mode.order)).toEqual([0, 1]);
+    });
+
+    it("returns a copy of the modes, so sorting the result cannot reorder storage", () => {
+      const model = createSettingsModel(defaultSettings);
+      const first = model.focusModes;
+      first.reverse();
+      expect(model.focusModes.map((mode) => mode.order)).toEqual([0, 1]);
+    });
+
+    it("finds one mode by id, and reports a deleted one as missing", () => {
+      const model = createSettingsModel(defaultSettings);
+      const target = defaultSettings.focus.modes[0];
+      expect(model.getFocusMode(target.id)?.name).toBe(target.name);
+      expect(model.getFocusMode(getFocusModeId("gone"))).toBeNull();
     });
   });
 });

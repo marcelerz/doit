@@ -17,6 +17,7 @@ import {
   StorageAdapter,
 } from "@/storage/storage";
 import { Settings, defaultSettings } from "@/types/settings";
+import { getFocusModeId } from "@/types/focusMode";
 import { getColor } from "@/types/types";
 import { getDurationDay } from "@/types/time";
 import { getPriorityId } from "@/types/priority";
@@ -44,6 +45,59 @@ describe("migrations", () => {
       expect(result.kanban).toBeDefined();
       expect(result.sprints).toBeDefined();
       expect(result.autoAssign).toBeDefined();
+    });
+
+    it("seeds the ad-hoc timer's modes from the technique the user is already on", () => {
+      // The timer used to read its durations out of the gantt block. A flow
+      // user arriving without a mode list must keep their 52/17, not inherit
+      // the pomodoro that happens to be the fresh-install default.
+      const result = migrateSettings({
+        gantt: { schedulingTechnique: "flow", flowWorkDuration: 52, flowBreakDuration: 17 },
+      } as Parameters<typeof migrateSettings>[0]);
+
+      expect(result.focus.modes.map((m) => [m.name, m.durationMinutes])).toEqual([
+        ["Flow", 52],
+        ["Break", 17],
+      ]);
+    });
+
+    it("seeds from the merged gantt block, not from the view's dead fallbacks", () => {
+      // Worth pinning because it is easy to get backwards. OpenFocusView reads
+      // `schedulingTechnique ?? "pomodoro"`, which reads like the default --
+      // but migrateSettings always populates the block, so the ?? never fires
+      // and a default profile's timer actually runs sequential. Its break comes
+      // from contextSwitchingTime, which defaults to 15, not from the view's
+      // unreachable ?? 5.
+      const result = migrateSettings({});
+
+      expect(result.focus.modes.map((m) => [m.name, m.durationMinutes])).toEqual([
+        ["Focus", 30],
+        ["Break", 15],
+      ]);
+    });
+
+    it("leaves a mode list the user already has alone", () => {
+      const mine = [
+        {
+          id: getFocusModeId("mine"),
+          name: "Email",
+          kind: "work" as const,
+          ambientSound: "rain-window",
+          endSound: "short-break",
+          color: getColor("#123456"),
+          order: 0,
+          nextEvery: 0,
+        },
+      ];
+      const result = migrateSettings({ focus: { modes: mine } } as Parameters<typeof migrateSettings>[0]);
+
+      expect(result.focus.modes).toEqual(mine);
+    });
+
+    it("reseeds when the stored mode list is empty, so the timer is never modeless", () => {
+      const result = migrateSettings({ focus: { modes: [] } } as Parameters<typeof migrateSettings>[0]);
+
+      expect(result.focus.modes.length).toBeGreaterThan(0);
     });
 
     it("should preserve existing priorities", () => {

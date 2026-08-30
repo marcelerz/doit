@@ -25,6 +25,8 @@ import { defaultKanbanViews, KanbanView } from "./kanbanView";
 import { defaultKanbanTransitions, KanbanTransition } from "./kanbanTransition";
 import { defaultMarkerColors, MarkerColors } from "./markerColors";
 import { defaultGantt, Gantt } from "./gantt";
+import { FocusMode } from "./focusMode";
+import { seedModesFromGantt } from "@/utils/focusModes";
 import { Calendar, defaultCalendar } from "./calendar";
 
 // General Tab Settings
@@ -226,6 +228,15 @@ export interface FocusSettings {
 
   // Display Settings
   showKeyboardHints: boolean; // Show keyboard shortcut hints
+
+  // Ad-hoc Timer Modes
+  /**
+   * The named stretches the ad-hoc timer can run, in the user's own terms.
+   *
+   * Configuration, like kanban states and priorities, rather than last-used
+   * state -- which is why it lives here and the running session does not.
+   */
+  modes: FocusMode[];
 }
 
 export const defaultFocusSettings: FocusSettings = {
@@ -255,6 +266,11 @@ export const defaultFocusSettings: FocusSettings = {
 
   // Display Settings
   showKeyboardHints: true,
+
+  // Ad-hoc Timer Modes -- seeded from the default technique, which is
+  // sequential, so a fresh install's timer runs exactly what it runs today.
+  // Existing users are seeded from their own gantt block in migrations.
+  modes: seedModesFromGantt(defaultGantt),
 };
 
 // Feature Toggles - Allow users to simplify the interface by disabling features

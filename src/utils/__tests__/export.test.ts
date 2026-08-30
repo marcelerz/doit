@@ -15,7 +15,7 @@ import { TodoModel } from "@/models/TodoModel";
 import { Comment, getCommentId } from "@/types/types";
 import { createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { Todo, TodoState, getTodoId, getTag } from "@/types/todo";
-import { Settings } from "@/types/settings";
+import { Settings, defaultFocusSettings } from "@/types/settings";
 import { getColor } from "@/types/types";
 import { getPriorityId } from "@/types/priority";
 import { getPersonId } from "@/types/person";
@@ -183,6 +183,7 @@ describe("export", () => {
         ambientBreakSound: "",
         ambientVolume: 0.3,
         showKeyboardHints: true,
+        modes: defaultFocusSettings.modes,
       },
       notifications: {
         enabled: false,

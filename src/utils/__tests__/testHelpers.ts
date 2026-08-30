@@ -6,7 +6,7 @@
 
 import { TodoModel } from "@/models/TodoModel";
 import { SettingsModel, createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
-import { Settings } from "@/types/settings";
+import { Settings, defaultFocusSettings } from "@/types/settings";
 import { Todo, TodoId, getTodoId, Tag } from "@/types/todo";
 import { PersonId } from "@/types/person";
 import { ProjectId } from "@/types/project";
@@ -189,6 +189,7 @@ export function createTestSettings(overrides: Partial<Settings> = {}): SettingsM
       ambientBreakSound: "",
       ambientVolume: 0.3,
       showKeyboardHints: true,
+      modes: defaultFocusSettings.modes,
     },
     categories: [],
     notifications: {

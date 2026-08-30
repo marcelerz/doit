@@ -6,7 +6,7 @@ import { createRawTodo as createTodo } from "@/utils/__tests__/testHelpers";
 import { TodoModel, createTodoModel, createTodoModels } from "@/models/TodoModel";
 import { SettingsModel, createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { getTodoId, getSubtaskId, getTag } from "@/types/todo";
-import { Settings } from "@/types/settings";
+import { Settings, defaultFocusSettings } from "@/types/settings";
 import { getPriorityId } from "@/types/priority";
 import { getPersonId } from "@/types/person";
 import { getProjectId } from "@/types/project";
@@ -134,6 +134,7 @@ const createSettings = (overrides: Partial<Settings> = {}): SettingsModel =>
       ambientBreakSound: "",
       ambientVolume: 0.3,
       showKeyboardHints: true,
+      modes: defaultFocusSettings.modes,
     },
     categories: [],
     notifications: {

@@ -11,6 +11,8 @@
  */
 
 import type { Settings, DaySchedule, WorkHoursSettings, DateTimeSettings, ThemeMode } from "@/types/settings";
+import { FocusMode, FocusModeId } from "@/types/focusMode";
+import { sortedModes } from "@/utils/focusModes";
 import type { Priority, PriorityId } from "@/types/priority";
 import { getPriorityId } from "@/types/priority";
 import type { KanbanState, KanbanStateId } from "@/types/kanbanState";
@@ -786,6 +788,26 @@ export class SettingsModel {
    */
   get ambientBreakSound(): string {
     return this._raw.focus.ambientBreakSound;
+  }
+
+  /**
+   * The ad-hoc timer's modes, in the order they should be offered.
+   *
+   * A copy, so a caller cannot reorder the stored list by sorting what it got
+   * back.
+   */
+  get focusModes(): FocusMode[] {
+    return sortedModes(structuredClone(this._raw.focus.modes ?? []));
+  }
+
+  /**
+   * Look up one focus mode by id.
+   *
+   * @returns the mode, or null when it has been deleted
+   */
+  getFocusMode(id: FocusModeId): FocusMode | null {
+    const found = (this._raw.focus.modes ?? []).find((mode) => mode.id === id);
+    return found ? structuredClone(found) : null;
   }
 
   // ============================================================================
