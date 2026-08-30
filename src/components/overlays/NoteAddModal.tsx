@@ -9,6 +9,7 @@ import { ProjectModel } from "@/models/ProjectModel";
 import SmartEditableInput, { TokenMatch, SmartEditableInputHandle } from "@/components/input/SmartInput";
 import { Modal } from "@/components/shared/Modal";
 import { CloseIcon, PlusIcon } from "@/components/shared/Icons";
+import { resolveTodoTitle } from "@/utils/tokenParser";
 
 interface NoteAddModalProps {
   isOpen: boolean;
@@ -107,10 +108,13 @@ export function NoteAddModal({
 
   // Handle create
   const handleCreate = useCallback(() => {
-    if (plainTitle.trim() === "") return;
+    // Auto-detection may consume the whole title, so fall back to the raw text
+    // rather than refusing to create a note called e.g. "urgent".
+    const resolvedTitle = resolveTodoTitle(title, plainTitle);
+    if (resolvedTitle === "") return;
 
     const metadata = buildMetadata();
-    const noteId = onAdd(title, plainTitle, metadata);
+    const noteId = onAdd(title, resolvedTitle, metadata);
 
     // Clear and close
     setTitle("");
@@ -180,7 +184,7 @@ export function NoteAddModal({
           <button
             onClick={handleCreate}
             data-testid="note-create-submit"
-            disabled={plainTitle.trim() === ""}
+            disabled={title.trim() === ""}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center gap-2"
           >
             <PlusIcon className="w-5 h-5" />

@@ -23,12 +23,15 @@ test.describe("Edge Cases and Mobile Workflow", () => {
 
       await page.waitForSelector('[data-testid="smart-input"]', { timeout: 5000 });
 
-      // Try to submit empty
+      // An empty input must not be submittable at all -- the button is disabled
+      // rather than silently accepting and discarding the entry.
       const submitButton = page.getByTestId("add-todo-submit");
-      await submitButton.click();
+      await expect(submitButton).toBeDisabled();
 
-      // Should not crash, input should still be visible or validation shown
-      await page.waitForTimeout(300);
+      // ...and it enables as soon as there is something to add
+      await page.getByTestId("smart-input").click();
+      await page.keyboard.type("Not empty");
+      await expect(submitButton).toBeEnabled();
 
       // Close overlay
       await page.keyboard.press("Escape");

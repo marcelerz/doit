@@ -61,3 +61,15 @@ export function parseTokensToMetadata(tokens: TokenMatch[]): TodoMetadata {
 
   return metadata;
 }
+
+/**
+ * The text a todo should be titled with.
+ *
+ * Auto-detection strips what it consumes, so an input made entirely of
+ * detectable tokens -- "Payday", "Someday", "tomorrow" -- leaves an empty
+ * plainText. Falling back to the raw text keeps the user's words instead of
+ * dropping the todo, while the detected metadata still applies.
+ */
+export function resolveTodoTitle(fullText: string, plainText: string): string {
+  return plainText.trim() !== "" ? plainText.trim() : fullText.trim();
+}

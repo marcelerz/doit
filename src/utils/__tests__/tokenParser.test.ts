@@ -2,7 +2,7 @@
  * Tests for Token Parser
  */
 
-import { parseTokensToMetadata } from "@/utils/tokenParser";
+import { parseTokensToMetadata, resolveTodoTitle } from "@/utils/tokenParser";
 import { TokenMatch } from "@/types/token";
 
 describe("tokenParser", () => {
@@ -171,6 +171,34 @@ describe("tokenParser", () => {
       const result = parseTokensToMetadata(tokens);
 
       expect(result.assignedPeople).toEqual(["Charlie", "Alice", "Bob"]);
+    });
+  });
+  describe("resolveTodoTitle", () => {
+    it("keeps the parsed text when auto-detection left something behind", () => {
+      expect(resolveTodoTitle("Pay the rent tomorrow", "Pay the rent")).toBe("Pay the rent");
+    });
+
+    it("falls back to the raw text when auto-detection consumed the whole title", () => {
+      // "Payday" and "Someday" are date shorthands, "Monday" a weekday -- each
+      // is stripped entirely, which used to discard the todo silently.
+      expect(resolveTodoTitle("Payday", "")).toBe("Payday");
+      expect(resolveTodoTitle("Someday", "")).toBe("Someday");
+      expect(resolveTodoTitle("Monday", "")).toBe("Monday");
+      expect(resolveTodoTitle("tomorrow", "")).toBe("tomorrow");
+    });
+
+    it("treats whitespace-only parsed text as empty", () => {
+      expect(resolveTodoTitle("2h", "   ")).toBe("2h");
+    });
+
+    it("trims both the parsed and the raw fallback", () => {
+      expect(resolveTodoTitle("  spaced  ", "  parsed  ")).toBe("parsed");
+      expect(resolveTodoTitle("  spaced  ", "")).toBe("spaced");
+    });
+
+    it("returns an empty string only when there was no input at all", () => {
+      expect(resolveTodoTitle("", "")).toBe("");
+      expect(resolveTodoTitle("   ", "")).toBe("");
     });
   });
 });

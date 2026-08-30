@@ -53,7 +53,7 @@ import { TemplatesManager, CreateTemplateModal } from "@/components/shared/Templ
 import { TodoTemplate, TodoTemplateId } from "@/types/todoTemplate";
 import { TodoId } from "@/types/todo";
 import { getColor } from "@/types/types";
-import { parseTokensToMetadata } from "@/utils/tokenParser";
+import { parseTokensToMetadata, resolveTodoTitle } from "@/utils/tokenParser";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
 import { CloseIcon, SettingsIcon, HelpIcon, DocumentIcon, CheckCircleIcon } from "@/components/shared/Icons";
@@ -511,6 +511,21 @@ export function TodoApp() {
   }, [isAddOverlayOpen]);
 
   // Global keyboard shortcuts
+  /**
+   * Close the add-todo overlay and drop whatever is still in the input.
+   *
+   * The input state outlives the overlay otherwise, so a cancelled entry would
+   * still be there on the next open -- and would satisfy the submit button's
+   * enabled check even though the field looks empty.
+   */
+  const closeAddOverlay = useCallback(() => {
+    setIsAddOverlayOpen(false);
+    smartInputRef.current?.clear();
+    setCurrentTokens([]);
+    setCurrentFullText("");
+    setCurrentPlainText("");
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Skip if user is typing in an input, textarea, or contenteditable
@@ -548,7 +563,7 @@ export function TodoApp() {
           return;
         }
         if (isAddOverlayOpen) {
-          setIsAddOverlayOpen(false);
+          closeAddOverlay();
           return;
         }
         if (isAddPersonOverlayOpen) {
@@ -710,6 +725,7 @@ export function TodoApp() {
     selectedNoteId,
     selectedReviewId,
     features,
+    closeAddOverlay,
   ]);
 
   const handleTokensChange = (tokens: TokenMatch[], fullText: string, plainText: string) => {
@@ -718,9 +734,12 @@ export function TodoApp() {
     setCurrentPlainText(plainText);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent): boolean => {
     e.preventDefault();
-    if (currentPlainText.trim() === "") return;
+    // Auto-detection may consume the whole input, so fall back to the raw text
+    // rather than silently dropping what was typed.
+    const title = resolveTodoTitle(currentFullText, currentPlainText);
+    if (title === "") return false;
 
     // Parse tokens into metadata
     const metadata = parseTokensToMetadata(currentTokens);
@@ -751,7 +770,7 @@ export function TodoApp() {
       metadata.duration = autoAssign.duration;
     }
 
-    addTodo(currentFullText, currentPlainText, metadata);
+    addTodo(currentFullText, title, metadata);
 
     // Record selections for usage history
     recordSelections({
@@ -767,14 +786,9 @@ export function TodoApp() {
       sprints: metadata.sprint,
     });
 
-    // Clear the smart input
-    smartInputRef.current?.clear();
-    setCurrentTokens([]);
-    setCurrentFullText("");
-    setCurrentPlainText("");
-
     // Clear active template after creating todo
     setActiveTemplateId(null);
+    return true;
   };
 
   // Determine container width based on active view
@@ -1665,8 +1679,7 @@ export function TodoApp() {
                 {/* Add Form */}
                 <form
                   onSubmit={(e) => {
-                    handleSubmit(e);
-                    setIsAddOverlayOpen(false);
+                    if (handleSubmit(e)) closeAddOverlay();
                   }}
                   data-tutorial="smart-input"
                 >
@@ -1684,15 +1697,16 @@ export function TodoApp() {
                       onAddPriority={handleAddPriority}
                       onTokensChange={handleTokensChange}
                       onEnterPress={() => {
-                        handleSubmit({ preventDefault: () => {} } as React.FormEvent);
-                        setIsAddOverlayOpen(false);
+                        if (handleSubmit({ preventDefault: () => {} } as React.FormEvent)) {
+                          closeAddOverlay();
+                        }
                       }}
                     />
                   </div>
                   <div className="flex gap-3 justify-end">
                     <button
                       type="button"
-                      onClick={() => setIsAddOverlayOpen(false)}
+                      onClick={closeAddOverlay}
                       className="px-6 py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100 rounded-lg font-medium transition-colors"
                     >
                       Cancel
@@ -1700,7 +1714,8 @@ export function TodoApp() {
                     <button
                       type="submit"
                       data-testid="add-todo-submit"
-                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
+                      disabled={currentFullText.trim() === ""}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
                     >
                       Add Todo
                     </button>
