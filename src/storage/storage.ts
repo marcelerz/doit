@@ -281,6 +281,8 @@ export const STORAGE_KEYS = {
   KANBAN_FILTER_PRESETS: "doit-kanban-filter-presets",
   NOTES_VIEW_PRESETS: "doit-notes-view-presets",
   NOTIFIED_TASKS: "doit-notified-tasks",
+  FOCUS_SESSION: "doit-focus-session",
+  FOCUS_SESSION_LOG: "doit-focus-sessions",
 } as const;
 
 /**

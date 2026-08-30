@@ -138,7 +138,7 @@ which is the authoritative list -- no literal key strings elsewhere:
   `people-`, `projects-`, `sprints-view-options`, `time-report-options`, `ui-options`
 - Presets: `view-presets`, `notes-view-presets`, `kanban-filter-presets`
 - Other: `version`, `backup-settings`, `search-history`, `selection-history`,
-  `tutorial-preferences`, `notified-tasks`
+  `tutorial-preferences`, `notified-tasks`, `focus-session`, `focus-sessions`
 
 Backups use the `doit-backup-` prefix. `STORAGE_KEY_PREFIX` and `BACKUP_KEY_PREFIX`
 are exported for code that has to match on the namespace rather than a single key.
