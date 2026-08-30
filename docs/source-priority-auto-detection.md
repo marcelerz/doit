@@ -143,12 +143,18 @@ When multiple detection systems overlap, the priority order is:
 
 1. **Dates** (highest priority - auto-detected)
 2. **Explicit markers** (@, $, %, !!, #) - assigned/source people, projects, priorities, tags
-3. **Auto-detected people** (mentioned)
-4. **Auto-detected projects**
-5. **Auto-detected sources**
+3. **Auto-detected sources** (`from X`, `via X`, `per X`, `sent by X`)
+4. **Auto-detected people** (mentioned)
+5. **Auto-detected projects**
 6. **Auto-detected priorities** (lowest priority)
 
-This ensures that explicit markers always take precedence and prevents false positives.
+Explicit markers always take precedence, which prevents false positives.
+
+Sources rank above mentions because a source only matches behind a context word,
+making it the more specific of the two. When it ran second, its wider match
+(`from Marcel`) always overlapped the bare-name mention token that had already
+claimed `Marcel`, and was discarded -- so `from X` was recorded as a mention and
+source auto-detection never fired at all.
 
 ## PlainText Output
 

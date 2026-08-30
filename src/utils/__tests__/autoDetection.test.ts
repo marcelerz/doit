@@ -520,6 +520,20 @@ describe("autoDetection", () => {
       },
     ];
 
+    it("overlaps the bare-name mention for the same person", () => {
+      // Both detectors claim the same name; source's match is wider because it
+      // includes the context word. SmartInput/MarkedText resolve this by running
+      // source FIRST -- if mentioned wins the range, source is dropped and the
+      // source is never recorded.
+      const source = detectSourcePeople("Email from Manager about it", people);
+      const mentioned = detectMentionedPeople("Email from Manager about it", people);
+      expect(source).toHaveLength(1);
+      expect(mentioned).toHaveLength(1);
+      const overlaps = !(source[0].end <= mentioned[0].start || source[0].start >= mentioned[0].end);
+      expect(overlaps).toBe(true);
+      expect(source[0].start).toBeLessThan(mentioned[0].start);
+    });
+
     it("should detect source with 'from' context", () => {
       const result = detectSourcePeople("Request from Manager", people);
       expect(result).toHaveLength(1);

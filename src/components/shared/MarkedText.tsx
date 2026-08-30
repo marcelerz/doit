@@ -202,6 +202,41 @@ export function MarkedText({
     }
   });
 
+  // Auto-detect source people BEFORE mentioned people, matching the order in
+  // SmartInput. Source is the more specific match (it needs a context word), and
+  // if the two disagree the rendered chip contradicts the stored metadata.
+  const detectedSourcePeople = detectSourcePeople(text, availablePeople);
+  const explicitSourceRanges = allMatches
+    .filter((m) => m.type === "source")
+    .map((m) => ({ start: m.start, end: m.end }));
+
+  for (const detected of detectedSourcePeople) {
+    // Skip if this position overlaps with an explicit $ marker
+    const overlapsExplicit = explicitSourceRanges.some(
+      (range) => !(detected.end <= range.start || detected.start >= range.end),
+    );
+
+    if (overlapsExplicit) {
+      continue;
+    }
+
+    // Skip if this position overlaps with any existing match
+    const overlapsOther = allMatches.some((m) => !(detected.end <= m.start || detected.start >= m.end));
+
+    if (overlapsOther) {
+      continue;
+    }
+
+    // Add as source
+    allMatches.push({
+      start: detected.start,
+      end: detected.end,
+      text: detected.text,
+      type: "source",
+      name: detected.personName,
+    });
+  }
+
   // Auto-detect mentioned people (skip areas covered by @ or $ markers)
   const detectedPeople = detectMentionedPeople(text, availablePeople);
   const explicitPeopleRanges = allMatches
@@ -265,39 +300,6 @@ export function MarkedText({
       text: detected.text,
       type: "project",
       name: detected.projectName,
-    });
-  }
-
-  // Auto-detect source people (skip areas covered by $ markers)
-  const detectedSourcePeople = detectSourcePeople(text, availablePeople);
-  const explicitSourceRanges = allMatches
-    .filter((m) => m.type === "source")
-    .map((m) => ({ start: m.start, end: m.end }));
-
-  for (const detected of detectedSourcePeople) {
-    // Skip if this position overlaps with an explicit $ marker
-    const overlapsExplicit = explicitSourceRanges.some(
-      (range) => !(detected.end <= range.start || detected.start >= range.end),
-    );
-
-    if (overlapsExplicit) {
-      continue;
-    }
-
-    // Skip if this position overlaps with any existing match
-    const overlapsOther = allMatches.some((m) => !(detected.end <= m.start || detected.start >= m.end));
-
-    if (overlapsOther) {
-      continue;
-    }
-
-    // Add as source
-    allMatches.push({
-      start: detected.start,
-      end: detected.end,
-      text: detected.text,
-      type: "source",
-      name: detected.personName,
     });
   }
 

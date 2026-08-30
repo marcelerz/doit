@@ -533,7 +533,49 @@ function SmartEditableInput({
       }
     }
 
-    // Third, detect mentioned people using auto-detection (skip areas covered by @ or $ markers)
+    // Detect source people BEFORE mentioned people. Source only matches behind a
+    // context word ("from Marcel"), so it is the more specific match; running it
+    // after meant its wider range always overlapped the bare-name mention token
+    // and was discarded, leaving "from X" recorded as a mention.
+    const detectedSourcePeople = detectSourcePeople(text, availablePeople);
+
+    // Get all ranges already covered by explicit $ markers
+    const explicitSourceRanges = tokens
+      .filter((t) => t.type === "source")
+      .map((t) => ({ start: t.start, end: t.end }));
+
+    for (const detected of detectedSourcePeople) {
+      // Skip if this position overlaps with an explicit $ marker
+      const overlapsExplicit = explicitSourceRanges.some(
+        (range) =>
+          !(detected.end <= range.start || detected.start >= range.end),
+      );
+
+      if (overlapsExplicit) {
+        continue;
+      }
+
+      // Skip if this position overlaps with any existing token (dates, people, projects take precedence)
+      const overlapsExisting = tokens.some(
+        (t) => !(detected.end <= t.start || detected.start >= t.end),
+      );
+
+      if (overlapsExisting) {
+        continue;
+      }
+
+      tokens.push({
+        type: "source",
+        value: detected.personName, // Use canonical name
+        raw: detected.text, // Original text as it appears
+        start: detected.start,
+        end: detected.end,
+        isAutoDetected: true,
+      });
+    }
+
+    // Then detect mentioned people (skips areas covered by @ or $ markers,
+    // which now includes the auto-detected source tokens above)
     const detectedPeople = detectMentionedPeople(text, availablePeople);
 
     // Get all ranges already covered by explicit @ or $ markers
@@ -619,44 +661,6 @@ function SmartEditableInput({
       tokens.push({
         type: "project",
         value: detected.projectName, // Use canonical name
-        raw: detected.text, // Original text as it appears
-        start: detected.start,
-        end: detected.end,
-        isAutoDetected: true,
-      });
-    }
-
-    // Fifth, detect source people using auto-detection (skip areas covered by $ markers)
-    const detectedSourcePeople = detectSourcePeople(text, availablePeople);
-
-    // Get all ranges already covered by explicit $ markers
-    const explicitSourceRanges = tokens
-      .filter((t) => t.type === "source")
-      .map((t) => ({ start: t.start, end: t.end }));
-
-    for (const detected of detectedSourcePeople) {
-      // Skip if this position overlaps with an explicit $ marker
-      const overlapsExplicit = explicitSourceRanges.some(
-        (range) =>
-          !(detected.end <= range.start || detected.start >= range.end),
-      );
-
-      if (overlapsExplicit) {
-        continue;
-      }
-
-      // Skip if this position overlaps with any existing token (dates, people, projects take precedence)
-      const overlapsExisting = tokens.some(
-        (t) => !(detected.end <= t.start || detected.start >= t.end),
-      );
-
-      if (overlapsExisting) {
-        continue;
-      }
-
-      tokens.push({
-        type: "source",
-        value: detected.personName, // Use canonical name
         raw: detected.text, // Original text as it appears
         start: detected.start,
         end: detected.end,
