@@ -105,3 +105,19 @@ export function createViewPresetId(): string {
 export function createSprintId(): string {
   return generatePrefixedUUID("sprint");
 }
+
+/**
+ * Generate a prefixed ID for focus modes.
+ * @returns A focus mode ID like "focus-mode-xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
+ */
+export function createFocusModeId(): string {
+  return generatePrefixedUUID("focus-mode");
+}
+
+/**
+ * Generate a prefixed ID for focus sessions.
+ * @returns A focus session ID like "focus-session-xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
+ */
+export function createFocusSessionId(): string {
+  return generatePrefixedUUID("focus-session");
+}
