@@ -45,6 +45,7 @@ module.exports = {
     "src/components/overlays/TutorialOverlay.tsx",
     "src/components/overlays/EntityDetailsOverlay.tsx",
     "src/components/overlays/OpenFocusSetup.tsx",
+    "src/components/shared/CommandPalette.tsx",
     "!src/**/*.d.ts",
     // Test files and fixtures are not production code; counting them in the
     // denominator let an unused 338-line helper drag the ratio down.
@@ -74,6 +75,12 @@ module.exports = {
       branches: 58,
       functions: 93,
       lines: 77,
+    },
+    "src/components/shared/CommandPalette.tsx": {
+      statements: 100,
+      branches: 91,
+      functions: 100,
+      lines: 100,
     },
     "src/components/overlays/OpenFocusSetup.tsx": {
       statements: 97,

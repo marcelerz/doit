@@ -25,6 +25,8 @@ import { StatisticsView } from "./StatisticsView";
 import { FocusView } from "@/components/overlays/FocusView";
 import { OpenFocusView } from "@/components/overlays/OpenFocusView";
 import { useFocusSession } from "@/hooks/useFocusSession";
+import { CommandPalette } from "@/components/shared/CommandPalette";
+import { SearchResult } from "@/utils/globalSearch";
 import TimeReportsView from "./TimeReportsView";
 import { ScheduledTask } from "@/utils/ganttScheduler";
 import { MarkerReference } from "@/components/shared/MarkerReference";
@@ -527,6 +529,7 @@ export function TodoApp() {
   const [focusNoteContentOnOpen, setFocusNoteContentOnOpen] = useState(false);
   const notesSearchInputRef = useRef<HTMLInputElement>(null);
   const [selectedReviewId, setSelectedReviewId] = useState<ReviewId | null>(null);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isHelpOverlayOpen, setIsHelpOverlayOpen] = useState(false);
 
   // Handler for creating a 1:1 note from a person
@@ -631,6 +634,15 @@ export function TodoApp() {
         target.tagName === "TEXTAREA" ||
         target.isContentEditable ||
         target.closest('[contenteditable="true"]');
+
+      // Cmd/Ctrl+K, tested before the isInputFocused bail below: a palette that
+      // will not open while the search box has focus is a palette you cannot
+      // reach from where you most want it.
+      if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsCommandPaletteOpen((previous) => !previous);
+        return;
+      }
 
       // Allow Escape to work even when input is focused
       if (e.key === "Escape") {
@@ -851,6 +863,34 @@ export function TodoApp() {
     isFocusMode,
     isOpenFocusMode,
   ]);
+
+  // Selecting a search result switches to the view that owns it and opens it,
+  // so the palette is a way to reach something rather than just to find it.
+  const handleSearchResult = (result: SearchResult) => {
+    setActiveView(result.view);
+    switch (result.kind) {
+      case "todo": {
+        const todo = todos.find((candidate) => candidate.id === result.id);
+        if (todo) setDetailsOverlayTodo(todo);
+        break;
+      }
+      case "note":
+        setSelectedNoteId(getNoteId(result.id));
+        break;
+      case "review":
+        setSelectedReviewId(getReviewId(result.id));
+        break;
+      case "person":
+        setDetailsOverlayPersonId(result.id);
+        break;
+      case "project":
+        setDetailsOverlayProjectId(result.id);
+        break;
+      case "sprint":
+        setDetailsOverlaySprintId(result.id);
+        break;
+    }
+  };
 
   const handleTokensChange = (tokens: TokenMatch[], fullText: string, plainText: string) => {
     setCurrentTokens(tokens);
@@ -2231,6 +2271,13 @@ export function TodoApp() {
       )}
 
       {/* Open Focus Mode (task-free) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        collections={{ todos, notes, people, projects, sprints, reviews }}
+        onSelect={handleSearchResult}
+      />
+
       {isOpenFocusMode && (
         <OpenFocusView
           settings={settings}
