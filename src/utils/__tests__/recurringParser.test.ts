@@ -511,18 +511,59 @@ describe("recurringParser", () => {
       expect(result?.monthDay).toBe(25);
     });
 
-    it("should parse multiple weekdays 'every mon and wed'", () => {
+    it("should keep every weekday in 'every mon and wed'", () => {
       const result = parseRecurringPattern("every mon and wed");
       expect(result).not.toBeNull();
       expect(result?.type).toBe("weekday");
-      // First mentioned weekday is used
-      expect(result?.weekday).toBe(1); // Monday
+      expect(result?.weekdays).toEqual([1, 3]);
+      // weekday stays populated so consumers reading a single day still work
+      expect(result?.weekday).toBe(1);
     });
 
-    it("should parse multiple weekdays 'every tue, thu'", () => {
+    it("should keep every weekday in 'every tue, thu'", () => {
       const result = parseRecurringPattern("every tue, thu");
       expect(result).not.toBeNull();
       expect(result?.type).toBe("weekday");
+      expect(result?.weekdays).toEqual([2, 4]);
+    });
+
+    it("should parse full day names, which the old alternation could not match", () => {
+      // "wed" + an optional "day" cannot spell "wednesday", so this used to
+      // return null and the recurrence was dropped entirely.
+      expect(parseRecurringPattern("every monday and wednesday")?.weekdays).toEqual([1, 3]);
+      expect(parseRecurringPattern("every tuesday and thursday")?.weekdays).toEqual([2, 4]);
+      // the order the user named them is preserved
+      expect(parseRecurringPattern("every saturday and sunday")?.weekdays).toEqual([6, 0]);
+    });
+
+    it("should parse three or more days with mixed separators", () => {
+      expect(parseRecurringPattern("every monday, wednesday and friday")?.weekdays).toEqual([1, 3, 5]);
+    });
+
+    it("should still parse a single weekday without a weekdays list", () => {
+      const result = parseRecurringPattern("every monday");
+      expect(result?.type).toBe("weekday");
+      expect(result?.weekday).toBe(1);
+      expect(result?.weekdays).toBeUndefined();
+    });
+
+    it("should advance to whichever of the days comes next", () => {
+      const pattern = parseRecurringPattern("every monday and wednesday");
+      // 2025-12-09 is a Tuesday, so the next occurrence is Wednesday the 10th
+      const fromTuesday = calculateNextOccurrence(pattern!, new Date("2025-12-09T10:00:00").getTime());
+      expect(new Date(fromTuesday).getDay()).toBe(3);
+      // ...and from that Wednesday the next is the following Monday
+      const fromWednesday = calculateNextOccurrence(pattern!, fromTuesday);
+      expect(new Date(fromWednesday).getDay()).toBe(1);
+    });
+
+    it("should format every named day", () => {
+      expect(formatRecurringPattern(parseRecurringPattern("every monday and wednesday")!)).toBe(
+        "Every Monday and Wednesday",
+      );
+      expect(formatRecurringPattern(parseRecurringPattern("every monday, wednesday and friday")!)).toBe(
+        "Every Monday, Wednesday and Friday",
+      );
     });
   });
 

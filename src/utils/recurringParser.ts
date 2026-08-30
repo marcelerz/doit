@@ -14,6 +14,7 @@ export interface RecurringPattern {
   interval?: number; // for interval type (e.g., 2 for "every 2 days")
   unit?: "day" | "week" | "month" | "quarter" | "half" | "year"; // for interval type
   weekday?: number; // 0-6 for Sunday-Saturday
+  weekdays?: number[]; // 0-6, in the order named, for patterns naming several days
   monthDay?: number; // 1-31 for day of month
   month?: number; // 1-12 for month of year
   nthWeek?: number; // 1-5 for "1st monday", "2nd tuesday", etc.
@@ -27,6 +28,31 @@ export interface RecurringPattern {
 }
 
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+/**
+ * Matches any weekday, full name or common abbreviation.
+ *
+ * Spelled out per day because a shared `(?:day)?` suffix only completes
+ * sun/mon/fri -- "wednesday" is "wed" + "nesday".
+ */
+const WEEKDAY_ALTERNATION =
+  "(?:sun(?:day)?|mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nes(?:day)?)?|thu(?:r(?:s(?:day)?)?)?|fri(?:day)?|sat(?:ur(?:day)?)?)";
+
+/** The weekday indices named in a string, in the order given, without duplicates. */
+function matchWeekdayIndices(daysStr: string): number[] {
+  const found = daysStr.match(/sun|mon|tue|wed|thu|fri|sat/gi) ?? [];
+  const indices = found
+    .map((d) => WEEKDAYS.findIndex((w) => w.startsWith(d.toLowerCase())))
+    .filter((i) => i !== -1);
+  return [...new Set(indices)];
+}
+
+/** "Monday, Wednesday and Friday" */
+function formatWeekdayList(weekdays: number[]): string {
+  const names = weekdays.map((d) => WEEKDAYS[d].charAt(0).toUpperCase() + WEEKDAYS[d].slice(1));
+  if (names.length === 1) return names[0];
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "last"];
 const ORDINAL_WORDS = ["first", "second", "third", "fourth", "fifth", "last"];
@@ -208,25 +234,22 @@ export function parseRecurringPattern(pattern: string): RecurringPattern | null 
     };
   }
 
-  // Multiple weekdays: every monday and wednesday, every tue and thu
+  // Multiple weekdays: every monday and wednesday, every tue, thu and fri.
+  // The day alternation has to spell out each full name -- "wed" + "(day)?"
+  // cannot match "wednesday", which is why this branch never fired for four of
+  // the seven days.
   const multiWeekdayMatch = normalized.match(
-    /^(?:every|each)\s+((?:sun|mon|tue|wed|thu|fri|sat)(?:day)?(?:\s*(?:,|and)\s*(?:sun|mon|tue|wed|thu|fri|sat)(?:day)?)+)$/,
+    new RegExp(`^(?:every|each)\\s+(${WEEKDAY_ALTERNATION}(?:\\s*(?:,|and|, and)\\s*${WEEKDAY_ALTERNATION})+)$`),
   );
   if (multiWeekdayMatch) {
-    // Store as raw - this would need special handling for multiple weekdays
-    // For now, treat as first weekday mentioned
-    const daysStr = multiWeekdayMatch[1];
-    const dayMatches = daysStr.match(/sun|mon|tue|wed|thu|fri|sat/gi);
-    if (dayMatches && dayMatches.length > 0) {
-      const firstDay = dayMatches[0].toLowerCase();
-      const weekdayIndex = WEEKDAYS.findIndex((w) => w.startsWith(firstDay));
-      if (weekdayIndex !== -1) {
-        return {
-          type: "weekday",
-          weekday: weekdayIndex,
-          raw: pattern,
-        };
-      }
+    const weekdays = matchWeekdayIndices(multiWeekdayMatch[1]);
+    if (weekdays.length > 0) {
+      return {
+        type: "weekday",
+        weekday: weekdays[0], // kept so consumers reading a single day still work
+        weekdays,
+        raw: pattern,
+      };
     }
   }
 
@@ -309,13 +332,15 @@ export function calculateNextOccurrence(pattern: RecurringPattern, fromDate: Dat
       }
       break;
 
-    case "weekday":
-      // Find next occurrence of this weekday
+    case "weekday": {
+      // Find the next occurrence of any of the pattern's weekdays
+      const targetDays = pattern.weekdays?.length ? pattern.weekdays : [pattern.weekday];
       next.setDate(next.getDate() + 1);
-      while (next.getDay() !== pattern.weekday) {
+      while (!targetDays.includes(next.getDay())) {
         next.setDate(next.getDate() + 1);
       }
       break;
+    }
 
     case "nth-weekday":
       // Find nth occurrence of weekday in the next available month that has it
@@ -483,6 +508,9 @@ export function formatRecurringPattern(pattern: RecurringPattern): string {
       return "Every workday";
 
     case "weekday":
+      if (pattern.weekdays && pattern.weekdays.length > 1) {
+        return `Every ${formatWeekdayList(pattern.weekdays)}`;
+      }
       return `Every ${WEEKDAYS[pattern.weekday || 0]}`;
 
     case "nth-weekday":

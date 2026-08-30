@@ -97,6 +97,21 @@ describe("autoDetection", () => {
       jest.useRealTimers();
     });
 
+    it("should consume every day of a multi-weekday recurrence", () => {
+      // Only "every monday" used to be consumed; chrono then claimed
+      // "wednesday" separately and stripped it, leaving "Sync and".
+      const result = detectDatesInText("Sync every monday and wednesday");
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe("every monday and wednesday");
+      expect(result[0].recurring?.weekdays).toEqual([1, 3]);
+    });
+
+    it("should not let the multi-weekday tail swallow a separate date", () => {
+      const result = detectDatesInText("Sync every monday and next friday");
+      expect(result[0].text).toBe("every monday");
+      expect(result[0].recurring?.weekdays).toBeUndefined();
+    });
+
     it("should not claim 'urgent' or 'asap' as dates", () => {
       // These are priority names. While they were date shorthands the date
       // parser matched first, stripped the word from the text and made the

@@ -165,8 +165,12 @@ function detectRecurringPatterns(text: string, referenceDate: Date = new Date())
       "\\bevery\\s+other\\s+(day|week|month|quarter|half|year)\\b|" +
       // Every X (number) unit patterns
       "\\b(?:every|each|repeat)\\s+(?:(\\d+)\\s+)?(day|week|month|quarter|half|year)s?\\b|" +
-      // Every weekday patterns
-      "\\b(?:every|each)\\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\\b|" +
+      // Every weekday patterns, including several days at once ("every monday
+      // and wednesday"). Without the repeated tail only the first day was
+      // consumed, chrono claimed the rest as a separate date and stripped it,
+      // and the literal "and" was left stranded in the title.
+      "\\b(?:every|each)\\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)" +
+      "(?:\\s*(?:,\\s*and|,|and)\\s*(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday))*\\b|" +
       // Nth weekday patterns
       "\\b(?:every|each)\\s+(1st|2nd|3rd|4th|5th|last|first|second|third|fourth|fifth)\\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\\b|" +
       // Every month on the Xth
