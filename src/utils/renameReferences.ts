@@ -71,6 +71,23 @@ export interface NameReferenceFields {
 
 export type EntityKind = "person" | "project";
 
+/**
+ * The reference fields that hold a name, per entity kind.
+ *
+ * One declaration because three modules need the same answer -- this file, the
+ * stored-filter rewrite and the mounted-view remap -- and three copies of it
+ * would drift silently: a new reference field would be rewritten in one place
+ * and missed in the others, with no compile error.
+ *
+ * Typed as `keyof NameReferenceFields` rather than `string` so indexing a
+ * record with it stays checked; consumers that want the wider type get it for
+ * free.
+ */
+export const NAME_REFERENCE_FIELDS: Record<EntityKind, readonly (keyof NameReferenceFields)[]> = {
+  person: ["assignedPeople", "sourcePeople", "mentionedPeople"],
+  project: ["projects"],
+};
+
 /** The marker symbols that can introduce a reference to each entity kind. */
 const MARKERS: Record<EntityKind, readonly string[]> = {
   person: ["@", "$"],
@@ -87,10 +104,7 @@ export function renameInReferenceFields<T extends NameReferenceFields>(
   const updated: T = { ...record };
   let changed = false;
 
-  const fields: (keyof NameReferenceFields)[] =
-    kind === "person" ? ["assignedPeople", "sourcePeople", "mentionedPeople"] : ["projects"];
-
-  for (const field of fields) {
+  for (const field of NAME_REFERENCE_FIELDS[kind]) {
     const next = renameInNames(record[field], name, nextName);
     if (next !== record[field]) {
       (updated as NameReferenceFields)[field] = next;

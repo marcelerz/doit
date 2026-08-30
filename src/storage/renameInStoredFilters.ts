@@ -13,7 +13,7 @@
  */
 
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "./storage";
-import { renameInFilters, EntityKind, NameReferenceFields } from "@/utils/renameReferences";
+import { renameInFilters, EntityKind, NameReferenceFields, NAME_REFERENCE_FIELDS } from "@/utils/renameReferences";
 
 /** Fired on window after a rename, so mounted views can remap in-memory filters. */
 export const ENTITY_RENAMED_EVENT = "doit:entity-renamed";
@@ -56,9 +56,8 @@ async function renameInSelectionHistory(kind: EntityKind, previousName: string, 
   );
   if (!history) return;
 
-  const fields = kind === "person"
-    ? ["assignedPeople", "sourcePeople", "mentionedPeople"]
-    : ["projects"];
+  // SelectionHistory keys the same reference fields the records do.
+  const fields = NAME_REFERENCE_FIELDS[kind];
 
   let changed = false;
   const updated: Record<string, Array<{ value: string }>> = { ...history };

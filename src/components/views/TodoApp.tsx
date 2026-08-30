@@ -70,7 +70,8 @@ import {
 } from "@/utils/noteTemplates";
 import { Person, PersonId } from "@/types/person";
 import { Project, ProjectId } from "@/types/project";
-import { isNameTaken, EntityKind } from "@/utils/renameReferences";
+import { EntityKind } from "@/utils/renameReferences";
+import { cascadeEntityRename, rejectRename } from "@/utils/cascadeEntityRename";
 import { renameInStoredFilters } from "@/storage/renameInStoredFilters";
 
 export function TodoApp() {
@@ -306,41 +307,33 @@ export function TodoApp() {
       return;
     }
 
-    if (isNameTaken(entities, nextName, id)) {
-      setRenameError(`A ${kind} named "${nextName}" already exists.`);
+    const rejection = rejectRename(entities, kind, nextName, id);
+    if (rejection !== null) {
+      setRenameError(rejection);
       return;
     }
     setRenameError(null);
 
-    const previousName = current.name;
-    renameTodoReferences(kind, previousName, nextName);
-    renameNoteReferences(kind, previousName, nextName);
-    renameReviewReferences(kind, previousName, nextName);
-    renameTemplateReferences(kind, previousName, nextName);
-    renameInStoredFilters(kind, previousName, nextName);
-
-    // The auto-assign defaults are live: a todo with no explicit assignee still
-    // resolves through them, so a stale name here re-points every such todo.
-    const autoAssign = settings.autoAssign;
-    const autoAssignUpdates: Partial<typeof autoAssign> = {};
-    if (kind === "person") {
-      if (autoAssign.assignedPerson === previousName) autoAssignUpdates.assignedPerson = nextName;
-      if (autoAssign.sourcePerson === previousName) autoAssignUpdates.sourcePerson = nextName;
-    } else if (autoAssign.project === previousName) {
-      autoAssignUpdates.project = nextName;
-    }
-    if (Object.keys(autoAssignUpdates).length > 0) {
-      updateAutoAssignSettings(autoAssignUpdates);
-    }
-
-    // The old name is deliberately NOT kept as an alternative. Doing so made
-    // isNameTaken reserve it forever, so no other entity could ever be renamed
-    // to it; it also left the entity permanently displayed as "Marc (Marcel)",
-    // and -- since addEntity has no uniqueness check -- a second real "Marcel"
-    // would then be matched by the first-match-wins resolvers as the renamed
-    // one. Anyone who wants the old name to keep resolving can add it as an
-    // alternative by hand.
-    update(id, { ...updates, name: nextName });
+    // References are rewritten before the entity is renamed, and the rename is
+    // awaited rather than fired alongside, so the ordering actually holds --
+    // renameInStoredFilters is async and used to run as a floating promise.
+    // The old name is deliberately not kept as an alternative; see commit 120.
+    void cascadeEntityRename({
+      kind,
+      previousName: current.name,
+      nextName,
+      participants: [
+        renameTodoReferences,
+        renameNoteReferences,
+        renameReviewReferences,
+        renameTemplateReferences,
+        renameInStoredFilters,
+      ],
+      autoAssign: settings.autoAssign,
+      updateAutoAssign: updateAutoAssignSettings,
+    }).then(() => {
+      update(id, { ...updates, name: nextName });
+    });
   };
 
   const handleUpdatePerson = (id: PersonId, updates: Partial<Person>) =>

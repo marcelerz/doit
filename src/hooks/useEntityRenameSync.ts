@@ -9,13 +9,7 @@
 
 import { useEffect } from "react";
 import { ENTITY_RENAMED_EVENT, EntityRenamedDetail } from "@/storage/renameInStoredFilters";
-import { EntityKind } from "@/utils/renameReferences";
-
-/** The filter fields that hold names, per entity kind. */
-const FIELDS: Record<EntityKind, readonly string[]> = {
-  person: ["assignedPeople", "sourcePeople", "mentionedPeople"],
-  project: ["projects"],
-};
+import { NAME_REFERENCE_FIELDS } from "@/utils/renameReferences";
 
 /** Replace a name inside a Set, returning the same Set when it was not present. */
 function renameInSet(value: Set<string>, previousName: string, nextName: string): Set<string> {
@@ -39,7 +33,7 @@ export function useEntityRenameSync<T>(setFilters: (updater: (prev: T) => T) => 
         const current = prev as unknown as Record<string, unknown>;
         let changed = false;
         const next = { ...current };
-        for (const field of FIELDS[kind]) {
+        for (const field of NAME_REFERENCE_FIELDS[kind]) {
           const value = current[field];
           if (!(value instanceof Set)) continue;
           const updated = renameInSet(value as Set<string>, previousName, nextName);
