@@ -57,7 +57,7 @@ import { getColor } from "@/types/types";
 import { parseTokensToMetadata, resolveTodoTitle } from "@/utils/tokenParser";
 import { STORAGE_KEYS, loadFromStorage, saveToStorage } from "@/storage/storage";
 import { InfoTooltip, tooltipContent } from "@/components/shared/InfoTooltip";
-import { CloseIcon, SettingsIcon, HelpIcon, DocumentIcon, CheckCircleIcon } from "@/components/shared/Icons";
+import { CloseIcon, SettingsIcon, HelpIcon, DocumentIcon, CheckCircleIcon, ClockIcon } from "@/components/shared/Icons";
 import { AlternativesInput } from "@/components/shared/AlternativesInput";
 import { exportNotes } from "@/utils/export";
 import { StorageRecoveryScreen } from "@/components/shared/StorageRecoveryScreen";
@@ -766,6 +766,17 @@ export function TodoApp() {
         return;
       }
 
+      // 't' - Focus timer. It had no shortcut and no entry point outside the
+      // Gantt toolbar, so turning the Gantt view off left features.focusMode
+      // enabling nothing at all.
+      if (e.key === "t" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (features?.focusMode === true) {
+          e.preventDefault();
+          setIsOpenFocusMode(true);
+        }
+        return;
+      }
+
       // 'f' - Toggle filters (list and notes views)
       if (e.key === "f" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
@@ -954,6 +965,17 @@ export function TodoApp() {
                 >
                   <DocumentIcon className="w-5 h-5" />
                   <span className="hidden sm:inline">Note</span>
+                </button>
+              )}
+              {features?.focusMode && (
+                <button
+                  onClick={() => setIsOpenFocusMode(true)}
+                  className="px-2 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
+                  title="Start the focus timer (T)"
+                  data-testid="open-focus-button"
+                >
+                  <ClockIcon className="w-5 h-5" />
+                  <span className="hidden sm:inline">Timer</span>
                 </button>
               )}
               <button

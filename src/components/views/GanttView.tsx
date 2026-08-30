@@ -906,7 +906,8 @@ export function GanttView({
               <button
                 onClick={onStartOpenFocusMode}
                 className="px-2 sm:px-3 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors text-xs sm:text-sm flex items-center gap-1.5"
-                title="Start open focus mode (task-free timer using selected technique)"
+                title="Start the focus timer (T)"
+                aria-label="Start the focus timer"
               >
                 <ClockIcon className="w-4 h-4" />
                 <span className="hidden sm:inline">Timer</span>

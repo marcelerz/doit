@@ -42,6 +42,12 @@ export function KeyboardSection({ shortcuts }: { shortcuts: ViewShortcuts }) {
                 </tr>
                 <tr>
                   <td className="py-2 px-3">
+                    <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">T</kbd>
+                  </td>
+                  <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">Open the focus timer</td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-3">
                     <kbd className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded text-xs font-mono">Esc</kbd>
                   </td>
                   <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">

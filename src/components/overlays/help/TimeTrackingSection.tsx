@@ -37,6 +37,20 @@ export function TimeTrackingSection() {
         </div>
 
         <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-lg">
+          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">⏱️ Focus Timer</h4>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            A timer that is not attached to any task. Press <strong>T</strong>, or use the Timer button in the header:
+          </p>
+          <ul className="text-sm text-zinc-600 dark:text-zinc-400 mt-2 list-disc list-inside space-y-1">
+            <li>Runs on your own modes -- name them, give each one a length and its own ambient sound</li>
+            <li>A mode with no length counts up instead of down</li>
+            <li>Switch modes at any time; work and break totals are kept apart</li>
+            <li>Sessions survive a reload, and the time shows up in Statistics and Time Reports</li>
+            <li>Set the modes up in Settings → Focus, or edit them on the timer&apos;s own screen</li>
+          </ul>
+        </div>
+
+        <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-lg">
           <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">🍅 Scheduling Techniques</h4>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             The Gantt view supports three scheduling techniques:
