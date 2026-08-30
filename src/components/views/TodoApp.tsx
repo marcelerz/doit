@@ -623,6 +623,21 @@ export function TodoApp() {
       // Don't handle other shortcuts if user is typing
       if (isInputFocused) return;
 
+      // The focus views own the keyboard while they are up -- they bind their
+      // own n/s/space handlers, so letting these run too would fire both.
+      if (isFocusMode || isOpenFocusMode) return;
+
+      // 'Shift+N' - New note, as advertised on the Add Note button. Must be
+      // tested before 'n': the browser reports "N" for a shifted key, so the
+      // lowercase branch below can never match it.
+      if (e.key === "N" && e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (features?.notesView === true) {
+          e.preventDefault();
+          setIsAddNoteOverlayOpen(true);
+        }
+        return;
+      }
+
       // 'n' - New task (open add overlay)
       if (e.key === "n" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
@@ -726,6 +741,8 @@ export function TodoApp() {
     selectedReviewId,
     features,
     closeAddOverlay,
+    isFocusMode,
+    isOpenFocusMode,
   ]);
 
   const handleTokensChange = (tokens: TokenMatch[], fullText: string, plainText: string) => {
@@ -2134,7 +2151,6 @@ export function TodoApp() {
       {/* Tutorial Overlay */}
       <TutorialOverlay
         isOpen={isTutorialOpen}
-        onClose={() => setIsTutorialOpen(false)}
         onComplete={handleTutorialComplete}
         steps={mainTutorialSteps}
         showRememberChoice={true}
@@ -2145,7 +2161,6 @@ export function TodoApp() {
       {viewTutorialOpen && (
         <TutorialOverlay
           isOpen={true}
-          onClose={() => setViewTutorialOpen(null)}
           onComplete={handleViewTutorialComplete}
           steps={getViewTutorialSteps(viewTutorialOpen)}
           showRememberChoice={false}

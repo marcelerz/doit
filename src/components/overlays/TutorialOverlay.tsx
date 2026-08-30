@@ -125,7 +125,12 @@ export const mainTutorialSteps: TutorialStep[] = [
 
 interface TutorialOverlayProps {
   isOpen: boolean;
-  onClose: () => void;
+  /**
+   * Called with the user's "show this again" choice whenever the tutorial is
+   * dismissed, however it is dismissed. There is deliberately no separate
+   * onClose: routing Escape through a close-only path meant the dismissal was
+   * never persisted and the tour reopened on every reload.
+   */
   onComplete: (showAgain: boolean) => void;
   steps?: TutorialStep[];
   showRememberChoice?: boolean; // Show "show again" option on last step
@@ -134,7 +139,6 @@ interface TutorialOverlayProps {
 
 export function TutorialOverlay({
   isOpen,
-  onClose,
   onComplete,
   steps = mainTutorialSteps,
   showRememberChoice = true,
@@ -365,7 +369,9 @@ export function TutorialOverlay({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        // Same as "Skip tutorial" -- persist the dismissal, or the tour comes
+        // back on every reload.
+        onComplete(false);
       } else if (e.key === "ArrowRight" || e.key === "Enter") {
         if (!isLastStep) {
           setCurrentStep((prev) => prev + 1);
@@ -379,7 +385,7 @@ export function TutorialOverlay({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isLastStep, isFirstStep, onClose]);
+  }, [isOpen, isLastStep, isFirstStep, onComplete]);
 
   // Reset step when opening
   // Intentional reset on overlay open

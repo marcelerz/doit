@@ -550,11 +550,11 @@ describe("recurringParser", () => {
     it("should advance to whichever of the days comes next", () => {
       const pattern = parseRecurringPattern("every monday and wednesday");
       // 2025-12-09 is a Tuesday, so the next occurrence is Wednesday the 10th
-      const fromTuesday = calculateNextOccurrence(pattern!, new Date("2025-12-09T10:00:00").getTime());
-      expect(new Date(fromTuesday).getDay()).toBe(3);
+      const fromTuesday = calculateNextOccurrence(pattern!, new Date("2025-12-09T10:00:00"));
+      expect(fromTuesday.getDay()).toBe(3);
       // ...and from that Wednesday the next is the following Monday
       const fromWednesday = calculateNextOccurrence(pattern!, fromTuesday);
-      expect(new Date(fromWednesday).getDay()).toBe(1);
+      expect(fromWednesday.getDay()).toBe(1);
     });
 
     it("should format every named day", () => {
