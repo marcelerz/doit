@@ -12,6 +12,7 @@ import {
 } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
 import { setToSortedArray, arrayHasAnyFromSet, arraysEqual } from "@/utils/filterHelpers";
+import { useEntityRenameSync } from "./useEntityRenameSync";
 
 // Types
 export interface NotesFilters {
@@ -79,6 +80,9 @@ export function useNotesViewState({
 }: UseNotesViewStateProps) {
   // Filter state
   const [filters, setFilters] = useState<NotesFilters>({ ...emptyFilters });
+
+  // A rename rewrites saved filters in storage; remap what we hold too.
+  useEntityRenameSync(setFilters);
   const [showFilters, setShowFilters] = useState(false);
 
   // Sort state

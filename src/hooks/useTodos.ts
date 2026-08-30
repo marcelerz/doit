@@ -51,6 +51,7 @@ import { createSettingsModel } from "@/models/SettingsModel";
 import { parseDate } from "@/utils/dateUtils";
 import { useUndoableActions, UndoableAction } from "./useUndoableActions";
 import { settingsStore, useSharedSettings } from "@/storage/settingsStore";
+import { renameInRecord, EntityKind } from "@/utils/renameReferences";
 
 /**
  * Find a priority ID by its name or alternatives.
@@ -814,6 +815,18 @@ export function useTodos() {
     });
   };
 
+  /**
+   * Rewrite person/project references after that entity was renamed.
+   *
+   * Deliberately not routed through editTodo: that generates metadata activity
+   * entries, which would stamp a spurious assign/unassign pair on every touched
+   * todo. updatedAt is left alone too -- a rename is not a user edit and should
+   * not reshuffle "recently updated" ordering.
+   */
+  const renameEntityReferences = (kind: EntityKind, name: string, nextName: string) => {
+    setRawTodos((prev) => prev.map((todo) => renameInRecord(todo, kind, name, nextName) ?? todo));
+  };
+
   // Subtask management functions
   const addSubtask = (todoId: TodoId, text: string) => {
     const now = getTimestamp(Date.now());
@@ -1189,6 +1202,7 @@ export function useTodos() {
     editTodoComment,
     deleteTodoComment,
     reorderTodos,
+    renameEntityReferences,
     addSubtask,
     toggleSubtask,
     editSubtask,

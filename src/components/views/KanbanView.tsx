@@ -21,6 +21,7 @@ import { TodoDetailsOverlay } from "@/components/overlays/TodoDetailsOverlay";
 import { findPersonColor, findProjectColor, findPriorityColor } from "@/utils/colors";
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { FilterIcon } from "@/components/shared/Icons";
+import { useEntityRenameSync } from "@/hooks/useEntityRenameSync";
 
 // Kanban filter types
 interface KanbanFilters {
@@ -217,6 +218,9 @@ export function KanbanView({
 
   // Filter and preset state
   const [filters, setFilters] = useState<KanbanFilters>(defaultKanbanFilters);
+
+  // A rename rewrites saved filters in storage; remap what we hold too.
+  useEntityRenameSync(setFilters);
   const [showFilters, setShowFilters] = useState(false);
   const [filterPresets, setFilterPresets] = useState<KanbanFilterPreset[]>([]);
   const [presetsLoaded, setPresetsLoaded] = useState(false);

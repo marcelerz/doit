@@ -61,6 +61,8 @@ interface EntityDetailsOverlayProps<
   /** Colour used for the avatar and as the ColorPicker's default. */
   defaultColor: string;
   alternativesPlaceholder: string;
+  /** Shown under the name field when a rename was refused, e.g. a duplicate name. */
+  nameError?: string | null;
   extra?: EntityExtraField<TEntity>;
   todoGroups: EntityTodoGroup[];
   createNoteLabel: string;
@@ -103,6 +105,7 @@ export function EntityDetailsOverlay<
   focusRingClass,
   defaultColor,
   alternativesPlaceholder,
+  nameError,
   extra,
   todoGroups,
   createNoteLabel,
@@ -237,9 +240,19 @@ export function EntityDetailsOverlay<
                 type="text"
                 value={editingName}
                 onChange={(e) => setEditingName(e.target.value)}
-                className={`w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 ${focusRingClass}`}
+                aria-invalid={nameError ? true : undefined}
+                className={`w-full px-3 py-2 text-sm rounded-lg border bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 ${
+                  nameError
+                    ? "border-red-500 dark:border-red-500 focus:ring-red-500"
+                    : `border-zinc-300 dark:border-zinc-700 ${focusRingClass}`
+                }`}
                 placeholder={`${entityTypeName} name`}
               />
+              {nameError && (
+                <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">
+                  {nameError}
+                </p>
+              )}
             </div>
 
             {/* Alternatives Field */}

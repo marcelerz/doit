@@ -22,6 +22,7 @@ import { createSettingsModel } from "@/models/SettingsModel";
 import { createActivityEntry } from "@/utils/activityUtils";
 import { useUndoableActions, UndoableAction } from "./useUndoableActions";
 import { useSharedSettings } from "@/storage/settingsStore";
+import { renameInRecord, EntityKind } from "@/utils/renameReferences";
 
 /**
  * Create a new activity entry for reviews
@@ -157,6 +158,16 @@ export function useReviews() {
   );
 
   // Edit a review (only if pending)
+  /**
+   * Rewrite project references after that project was renamed.
+   *
+   * Not routed through editReview, which only accepts pending reviews -- a
+   * completed or archived review would otherwise keep the stale name forever.
+   */
+  const renameEntityReferences = (kind: EntityKind, name: string, nextName: string) => {
+    setRawReviews((prev) => prev.map((review) => renameInRecord(review, kind, name, nextName) ?? review));
+  };
+
   const editReview = useCallback(
     (
       id: ReviewId,
@@ -384,6 +395,7 @@ export function useReviews() {
 
 
   return {
+    renameEntityReferences,
     reviews,
     rawReviews,
     find,

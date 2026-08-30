@@ -26,6 +26,7 @@ import { generatePrefixedUUID } from "@/utils/idGenerator";
 import { useUndoableActions, UndoableAction } from "./useUndoableActions";
 import { createActivityEntry } from "@/utils/activityUtils";
 import { useSharedSettings } from "@/storage/settingsStore";
+import { renameInRecord, EntityKind } from "@/utils/renameReferences";
 
 /**
  * Create a new activity entry for notes
@@ -255,6 +256,24 @@ export function useNotes() {
     };
     setRawNotes((prev) => [newNote, ...prev]);
     return newNote.id;
+  }, []);
+
+  /**
+   * Rewrite person/project references after that entity was renamed.
+   *
+   * Covers the note's own fields and marker text plus each action item, which
+   * carries its own SmartInput text until it is converted to a todo.
+   */
+  const renameEntityReferences = useCallback((kind: EntityKind, name: string, nextName: string) => {
+    setRawNotes((prev) =>
+      prev.map((note) => {
+        const renamed = renameInRecord(note, kind, name, nextName);
+        const actionItems = note.actionItems?.map((item) => renameInRecord(item, kind, name, nextName) ?? item);
+        const itemsChanged = actionItems?.some((item, i) => item !== note.actionItems?.[i]) ?? false;
+        if (!renamed && !itemsChanged) return note;
+        return { ...(renamed ?? note), ...(itemsChanged ? { actionItems } : {}) };
+      }),
+    );
   }, []);
 
   // Edit a note
@@ -677,6 +696,7 @@ export function useNotes() {
   );
 
   return {
+    renameEntityReferences,
     notes,
     find,
     addNote,

@@ -21,6 +21,8 @@ import { EntityDetailsOverlay, EntityTodoGroup } from "./EntityDetailsOverlay";
 interface ProjectDetailsOverlayProps {
   project: ProjectModel;
   onClose: () => void;
+  /** Shown under the name field when a rename was refused. */
+  nameError?: string | null;
   onUpdate: (id: ProjectId, updates: Partial<Project>) => void;
   onDelete: (id: ProjectId) => void;
   onArchive?: (id: ProjectId) => void;

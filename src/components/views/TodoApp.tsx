@@ -68,6 +68,10 @@ import {
   generateOneOnOneNoteContent,
   generateMeetingNoteContent,
 } from "@/utils/noteTemplates";
+import { Person, PersonId } from "@/types/person";
+import { Project, ProjectId } from "@/types/project";
+import { isNameTaken, EntityKind } from "@/utils/renameReferences";
+import { renameInStoredFilters } from "@/storage/renameInStoredFilters";
 
 export function TodoApp() {
   const {
@@ -97,8 +101,10 @@ export function TodoApp() {
     dependencyBlockNotification,
     undo,
     dismissUndo,
+    renameEntityReferences: renameTodoReferences,
   } = useTodos();
-  const { settings, addPriority, updateGanttSettings, updateKanbanSettings } = useSettings();
+  const { settings, addPriority, updateGanttSettings, updateKanbanSettings, updateAutoAssignSettings } =
+    useSettings();
 
   // Task notifications for due/overdue tasks
   useTaskNotifications(todos, settings.notifications);
@@ -172,6 +178,7 @@ export function TodoApp() {
     fadingOutIds: noteFadingOutIds,
     undo: undoNote,
     dismissUndo: dismissNoteUndo,
+    renameEntityReferences: renameNoteReferences,
   } = useNotes();
 
   // Reviews hook
@@ -193,10 +200,17 @@ export function TodoApp() {
     fadingOutIds: reviewFadingOutIds,
     undo: undoReview,
     dismissUndo: dismissReviewUndo,
+    renameEntityReferences: renameReviewReferences,
   } = useReviews();
 
   // Templates and search history hooks
-  const { templates, addTemplate, deleteTemplate, incrementUsage } = useTemplates();
+  const {
+    templates,
+    addTemplate,
+    deleteTemplate,
+    incrementUsage,
+    renameEntityReferences: renameTemplateReferences,
+  } = useTemplates();
 
   const {
     history: searchHistory,
@@ -259,6 +273,82 @@ export function TodoApp() {
   const countsByProject = useProjectCounts(todos, notes, projects);
 
   // Wrapper functions to convert name string to object format
+  // A refused rename (duplicate name) is reported under the overlay's name field.
+  const [renameError, setRenameError] = useState<string | null>(null);
+
+  /**
+   * Apply an entity update, cascading a rename across everything that refers to
+   * the entity by name.
+   *
+   * People and projects are referenced by name rather than by id, so renaming
+   * without rewriting those references orphans every todo, note, review,
+   * template and saved filter that mentioned the entity.
+   *
+   * References are rewritten BEFORE the entity itself is renamed. There is no
+   * transaction here -- each store persists independently -- so this ordering
+   * means every intermediate state still resolves under one name or the other,
+   * and a failure part-way through leaves nothing dangling.
+   */
+  const applyEntityUpdate = <TId extends string, TEntity extends { name: string; alternatives: string[] }>(
+    kind: EntityKind,
+    entities: Array<{ id: string; name: string; alternatives: string[] }>,
+    update: (id: TId, updates: Partial<TEntity>) => void,
+    id: TId,
+    updates: Partial<TEntity>,
+  ) => {
+    const current = entities.find((entity) => entity.id === id);
+    const nextName = updates.name?.trim();
+
+    // Not a rename: nothing to cascade.
+    if (!current || nextName === undefined || nextName === "" || nextName === current.name) {
+      setRenameError(null);
+      update(id, updates);
+      return;
+    }
+
+    if (isNameTaken(entities, nextName, id)) {
+      setRenameError(`A ${kind} named "${nextName}" already exists.`);
+      return;
+    }
+    setRenameError(null);
+
+    const previousName = current.name;
+    renameTodoReferences(kind, previousName, nextName);
+    renameNoteReferences(kind, previousName, nextName);
+    renameReviewReferences(kind, previousName, nextName);
+    renameTemplateReferences(kind, previousName, nextName);
+    renameInStoredFilters(kind, previousName, nextName);
+
+    // The auto-assign defaults are live: a todo with no explicit assignee still
+    // resolves through them, so a stale name here re-points every such todo.
+    const autoAssign = settings.autoAssign;
+    const autoAssignUpdates: Partial<typeof autoAssign> = {};
+    if (kind === "person") {
+      if (autoAssign.assignedPerson === previousName) autoAssignUpdates.assignedPerson = nextName;
+      if (autoAssign.sourcePerson === previousName) autoAssignUpdates.sourcePerson = nextName;
+    } else if (autoAssign.project === previousName) {
+      autoAssignUpdates.project = nextName;
+    }
+    if (Object.keys(autoAssignUpdates).length > 0) {
+      updateAutoAssignSettings(autoAssignUpdates);
+    }
+
+    // Keep the old name as an alternative so anything the rewrite could not
+    // reach -- a bare name in prose, an old backup -- still resolves.
+    const alternatives = updates.alternatives ?? current.alternatives;
+    const withOldName = alternatives.some((alt) => alt.toLowerCase() === previousName.toLowerCase())
+      ? alternatives
+      : [...alternatives, previousName];
+
+    update(id, { ...updates, name: nextName, alternatives: withOldName });
+  };
+
+  const handleUpdatePerson = (id: PersonId, updates: Partial<Person>) =>
+    applyEntityUpdate("person", people, updatePerson, id, updates);
+
+  const handleUpdateProject = (id: ProjectId, updates: Partial<Project>) =>
+    applyEntityUpdate("project", projects, updateProject, id, updates);
+
   const handleAddPerson = (name: string) => {
     addPerson({
       name,
@@ -1475,7 +1565,8 @@ export function TodoApp() {
               <PersonDetailsOverlay
                 person={person}
                 onClose={() => setDetailsOverlayPersonId(null)}
-                onUpdate={updatePerson}
+                onUpdate={handleUpdatePerson}
+                nameError={renameError}
                 onDelete={deletePerson}
                 onArchive={archivePerson}
                 onUnarchive={unarchivePerson}
@@ -1522,7 +1613,8 @@ export function TodoApp() {
               <ProjectDetailsOverlay
                 project={project}
                 onClose={() => setDetailsOverlayProjectId(null)}
-                onUpdate={updateProject}
+                onUpdate={handleUpdateProject}
+                nameError={renameError}
                 onDelete={deleteProject}
                 onArchive={archiveProject}
                 onUnarchive={unarchiveProject}

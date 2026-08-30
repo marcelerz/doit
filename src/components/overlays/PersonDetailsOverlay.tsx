@@ -15,6 +15,8 @@ import { EntityDetailsOverlay, EntityTodoGroup } from "./EntityDetailsOverlay";
 interface PersonDetailsOverlayProps {
   person: PersonModel;
   onClose: () => void;
+  /** Shown under the name field when a rename was refused. */
+  nameError?: string | null;
   onUpdate: (id: PersonId, updates: Partial<Person>) => void;
   onDelete: (id: PersonId) => void;
   onArchive?: (id: PersonId) => void;

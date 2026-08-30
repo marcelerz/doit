@@ -6,6 +6,7 @@ import { TodoTemplate, getTodoTemplateId } from "@/types/todoTemplate";
 import { getTimestamp } from "@/types/time";
 import { STORAGE_KEYS } from "@/storage/storage";
 import { usePersistedState } from "./usePersistedState";
+import { renameInRecord, renameInReferenceFields, EntityKind } from "@/utils/renameReferences";
 
 export function useTemplates() {
   const [templates, setTemplates, isLoaded] = usePersistedState<TodoTemplate[]>(
@@ -47,6 +48,26 @@ export function useTemplates() {
     [setTemplates],
   );
 
+  /**
+   * Rewrite person/project references after that entity was renamed.
+   *
+   * A template keeps its references inside metadata as well as in its marker
+   * text, so both are rewritten.
+   */
+  const renameEntityReferences = useCallback(
+    (kind: EntityKind, name: string, nextName: string) => {
+      setTemplates((prev) =>
+        prev.map((template) => {
+          const byText = renameInRecord(template, kind, name, nextName);
+          const metadata = renameInReferenceFields(template.metadata, kind, name, nextName);
+          if (!byText && !metadata) return template;
+          return { ...(byText ?? template), ...(metadata ? { metadata } : {}) };
+        }),
+      );
+    },
+    [setTemplates],
+  );
+
   const deleteTemplate = useCallback((id: string) => {
     setTemplates((prev) => prev.filter((t) => t.id !== id));
   }, [setTemplates]);
@@ -59,6 +80,7 @@ export function useTemplates() {
   const sortedTemplates = [...templates].sort((a, b) => b.usageCount - a.usageCount);
 
   return {
+    renameEntityReferences,
     templates: sortedTemplates,
     isLoaded,
     addTemplate,
