@@ -22,6 +22,7 @@ import { findPersonColor, findProjectColor, findPriorityColor } from "@/utils/co
 import { TutorialStep } from "@/components/overlays/TutorialOverlay";
 import { FilterIcon } from "@/components/shared/Icons";
 import { useEntityRenameSync } from "@/hooks/useEntityRenameSync";
+import { useEntityRenamePresetSync } from "@/hooks/useEntityRenamePresetSync";
 
 // Kanban filter types
 interface KanbanFilters {
@@ -223,6 +224,10 @@ export function KanbanView({
   useEntityRenameSync(setFilters);
   const [showFilters, setShowFilters] = useState(false);
   const [filterPresets, setFilterPresets] = useState<KanbanFilterPreset[]>([]);
+
+  // Kanban keeps its own preset state rather than using useViewPresets, so it
+  // needs the same rename remap the shared hook gets.
+  useEntityRenamePresetSync(setFilterPresets);
   const [presetsLoaded, setPresetsLoaded] = useState(false);
   const [showSavePresetModal, setShowSavePresetModal] = useState(false);
   const [newPresetName, setNewPresetName] = useState("");

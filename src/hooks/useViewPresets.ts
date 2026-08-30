@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { loadFromStorage, saveToStorage, waitForStorageInit } from "@/storage/storage";
+import { useEntityRenamePresetSync } from "./useEntityRenamePresetSync";
+import { NameReferenceFields } from "@/utils/renameReferences";
 
 /**
  * Saved view presets, persisted to storage.
@@ -16,12 +18,16 @@ import { loadFromStorage, saveToStorage, waitForStorageInit } from "@/storage/st
  * already emptied it, so an un-awaited read returns nothing and the write-back
  * effect then persists that nothing.
  */
-export function useViewPresets<TPreset>(storageKey: string) {
+export function useViewPresets<TPreset extends { filters: NameReferenceFields }>(storageKey: string) {
   const [viewPresets, setViewPresets] = useState<TPreset[]>([]);
   const [activePreset, setActivePreset] = useState<string>("custom");
   const [isSavePresetOpen, setIsSavePresetOpen] = useState(false);
   const [presetName, setPresetName] = useState("");
   const [viewPresetsLoaded, setViewPresetsLoaded] = useState(false);
+
+  // A rename rewrites these presets in storage; remap the copy we hold, or
+  // applying one filters on a dead name and the next save clobbers the rewrite.
+  useEntityRenamePresetSync(setViewPresets);
 
   useEffect(() => {
     let cancelled = false;

@@ -199,6 +199,47 @@ test.describe("Regressions from the manual sweep", () => {
     expect(people.map((p: { name: string }) => p.name).sort()).toEqual(["John Doe", "Marcel"]);
   });
 
+  test("a saved preset follows a rename, even after the list is mutated", async ({ page, todoApp }) => {
+    // Pins the storage rewrite end-to-end, including that a later preset save
+    // does not resurrect the old name.
+    //
+    // Note this does NOT exercise the in-memory remap in
+    // useEntityRenamePresetSync: renaming is only reachable from the People
+    // tab, which unmounts ListView and its preset state, so the presets are
+    // always re-read from storage afterwards. That hook is defence for a rename
+    // path that does not exist yet; it is covered by its own unit tests.
+    await addEntity(page, todoApp, "people", "Add Person", "Marcel");
+    await todoApp.switchView("list");
+    await addTodo(page, "Task one @Marcel");
+
+    // filter by the person, so the preset captures their name
+    await page.getByTestId("filter-button").click();
+    await page.getByRole("button", { name: "@Marcel", exact: true }).click();
+    await page.waitForTimeout(300);
+
+    const savePreset = async (name: string) => {
+      await page.getByRole("button", { name: /save current view|save view/i }).first().click();
+      const dialog = page.locator("div.fixed.inset-0").last();
+      await dialog.locator('input[type="text"]').first().fill(name);
+      await dialog.getByRole("button", { name: /^(save|create|add)/i }).last().click();
+      await page.waitForTimeout(600);
+    };
+    await savePreset("Mine");
+
+    const before = JSON.parse((await todoApp.getStoredValue("doit-view-presets")) ?? "[]");
+    expect(before[0].filters.assignedPeople).toEqual(["Marcel"]);
+
+    await renamePerson(page, todoApp, "Marcel", "Marc");
+    await todoApp.switchView("list");
+
+    // mutate the preset list, which is what triggers the stale write-back
+    await savePreset("Second");
+
+    const after = JSON.parse((await todoApp.getStoredValue("doit-view-presets")) ?? "[]");
+    const mine = after.find((p: { name: string }) => p.name === "Mine");
+    expect(mine.filters.assignedPeople).toEqual(["Marc"]);
+  });
+
   test("Escape dismisses the tutorial for good", async ({ page }) => {
     // beforeEach dismisses the tour (waitForAppLoad clicks Skip, and
     // clearStorage writes a completed flag), so put it back: the preference is
