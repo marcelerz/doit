@@ -1,7 +1,8 @@
 "use client";
 
 import { useConfirmationRepeat, useTimerTick } from "@/hooks/usePomodoroTimer";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useDialogFocus, isTypingTarget, isActivationTarget } from "@/hooks/useDialogFocus";
 import { Settings } from "@/types/settings";
 import {
   playNotificationSound,
@@ -111,6 +112,11 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
   // UI state
   const [soundEnabled, setSoundEnabled] = useState(focusSettings.soundEnabled ?? true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(getNotificationPermission() === "granted");
+
+  // This view is rendered as a sibling of the whole app, so without a trap the
+  // Gantt view behind it stays in the tab order.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(true, dialogRef);
 
   // Refs
 
@@ -481,8 +487,15 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't handle if in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      // Don't handle if the keystroke belongs to something being typed into.
+      if (isTypingTarget(e.target)) {
+        return;
+      }
+
+      // Space and Enter activate whatever control has focus. Swallowing them
+      // here meant tabbing to this view's own Close button and pressing Space
+      // started the timer instead of closing it.
+      if ((e.key === " " || e.key === "Enter") && isActivationTarget(e.target)) {
         return;
       }
 
@@ -552,6 +565,10 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
 
     return (
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Open focus timer"
         className={`fixed inset-0 z-50 flex flex-col ${
           isBreakPending
             ? isLongBreak
@@ -665,6 +682,10 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
 
     return (
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Open focus timer"
         className={`fixed inset-0 z-50 flex flex-col ${
           isLongBreak
             ? "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-emerald-950 dark:to-zinc-900"
@@ -791,7 +812,13 @@ export function OpenFocusView({ settings, onClose }: OpenFocusViewProps) {
 
   // Work phase (default)
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Open focus timer"
+      className="fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800"
+    >
       {/* Header */}
       <header className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-4">

@@ -2,6 +2,7 @@
 
 import { useConfirmationRepeat, useTimerTick } from "@/hooks/usePomodoroTimer";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useDialogFocus, isTypingTarget, isActivationTarget } from "@/hooks/useDialogFocus";
 import { TodoModel } from "@/models/TodoModel";
 import { Settings } from "@/types/settings";
 import { MarkerColors } from "@/types/markerColors";
@@ -177,6 +178,11 @@ export function FocusView({
 
   // Refs
   const timeTrackingActiveRef = useRef<TodoId | null>(null);
+
+  // Rendered as a sibling of the whole app, so without a trap the view behind
+  // stays in the tab order while the timer is up.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(true, dialogRef);
   const onStopTimeTrackingRef = useRef(onStopTimeTracking);
   useEffect(() => {
     onStopTimeTrackingRef.current = onStopTimeTracking;
@@ -642,7 +648,13 @@ export function FocusView({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (isTypingTarget(e.target)) {
+        return;
+      }
+
+      // Space and Enter activate the focused control. Swallowing them here
+      // meant the view's own buttons could not be used from the keyboard.
+      if ((e.key === " " || e.key === "Enter") && isActivationTarget(e.target)) {
         return;
       }
 
@@ -782,7 +794,13 @@ export function FocusView({
   // Empty state
   if (schedule.length === 0) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Focus mode"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800"
+      >
         <div className="text-center p-8">
           <div className="text-6xl mb-4">{activeTodosCount === 0 ? "🎉" : "⏰"}</div>
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
@@ -807,7 +825,13 @@ export function FocusView({
   // Completed state
   if (state.phase === "completed") {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 dark:from-zinc-900 dark:to-zinc-800">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Focus mode"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 dark:from-zinc-900 dark:to-zinc-800"
+      >
         <div className="text-center p-8">
           <div className="text-6xl mb-4">🎉</div>
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">All tasks completed!</h2>
@@ -836,6 +860,10 @@ export function FocusView({
 
     return (
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Focus mode"
         className={`fixed inset-0 z-50 flex flex-col ${
           isBreakPending
             ? "bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-cyan-950 dark:to-zinc-900"
@@ -916,7 +944,13 @@ export function FocusView({
   // Break phase
   if (state.phase === "break" && currentBreakInfo) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-cyan-950 dark:to-zinc-900">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Focus mode"
+        className="fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-cyan-950 dark:to-zinc-900"
+      >
         {/* Header */}
         <header className="flex items-center justify-between p-4 border-b border-zinc-200/50 dark:border-zinc-800/50">
           <div className="flex items-center gap-4">
@@ -1036,7 +1070,13 @@ export function FocusView({
 
   // Work phase (default)
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Focus mode"
+      className="fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800"
+    >
       {/* Header */}
       <header className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-4">

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useId, useRef } from "react";
+import { useDialogFocus } from "@/hooks/useDialogFocus";
 
 interface ModalProps {
   isOpen: boolean;
@@ -29,10 +30,6 @@ const maxWidthClasses = {
   full: "max-w-full",
 };
 
-/** Elements that can hold focus, for the trap below. */
-const FOCUSABLE =
-  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [contenteditable="true"], [tabindex]:not([tabindex="-1"])';
-
 /**
  * Reusable modal/overlay wrapper component.
  *
@@ -43,45 +40,11 @@ const FOCUSABLE =
  */
 export function Modal({ isOpen, onClose, children, maxWidth = "3xl", label, labelledBy }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
-  const restoreFocusTo = useRef<HTMLElement | null>(null);
   const fallbackLabelId = useId();
 
-  // Move focus in on open and put it back on close.
-  useEffect(() => {
-    if (!isOpen) return;
-    restoreFocusTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
-    const first = dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE);
-    (first ?? dialogRef.current)?.focus();
-
-    return () => {
-      restoreFocusTo.current?.focus();
-    };
-  }, [isOpen]);
-
-  // Keep Tab inside the dialog.
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Tab") return;
-      const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []).filter(
-        (element) => element.offsetParent !== null,
-      );
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
+  // The trap and focus restore are shared with the two full-screen focus
+  // views, which are not Modals but need the same semantics.
+  useDialogFocus(isOpen, dialogRef);
 
   if (!isOpen) return null;
 
