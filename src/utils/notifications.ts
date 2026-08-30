@@ -160,7 +160,7 @@ export function getAmbientSoundFile(soundId: string): string {
 }
 
 // Sound queue system
-const soundQueue: SoundType[] = [];
+const soundQueue: Array<{ type: SoundType; volume: number }> = [];
 let isProcessingQueue = false;
 const SOUND_DELAY_MS = 3000; // 3 seconds between sounds
 
@@ -187,7 +187,7 @@ function processQueue(): void {
   const apis = getBrowserApis();
   isProcessingQueue = true;
   const sound = soundQueue.shift()!;
-  playSound(sound);
+  playSound(sound.type, sound.volume);
 
   if (soundQueue.length > 0) {
     // Wait 3 seconds before playing next sound
@@ -203,9 +203,10 @@ function processQueue(): void {
 /**
  * Queue a sound to be played. If multiple sounds are queued, they play with 3s delays.
  * @param type - Type of sound to queue
+ * @param volume - 0-1 from the Focus settings; omit for the default
  */
-export function queueSound(type: SoundType): void {
-  soundQueue.push(type);
+export function queueSound(type: SoundType, volume: number = DEFAULT_SOUND_VOLUME): void {
+  soundQueue.push({ type, volume });
   processQueue();
 }
 
@@ -213,8 +214,8 @@ export function queueSound(type: SoundType): void {
  * Queue multiple sounds to be played in sequence with delays
  * @param types - Array of sound types to queue
  */
-export function queueSounds(types: SoundType[]): void {
-  soundQueue.push(...types);
+export function queueSounds(types: SoundType[], volume: number = DEFAULT_SOUND_VOLUME): void {
+  soundQueue.push(...types.map((type) => ({ type, volume })));
   processQueue();
 }
 
@@ -229,14 +230,37 @@ export function clearSoundQueue(): void {
  * Play a notification sound immediately (bypasses queue)
  * @param type - Type of sound
  */
-export function playNotificationSound(type: SoundType): void {
-  playSound(type);
+export function playNotificationSound(type: SoundType, volume?: number): void {
+  playSound(type, volume);
+}
+
+/** The soundVolume the Focus settings ship with. */
+export const DEFAULT_SOUND_VOLUME = 0.3;
+
+/**
+ * Ceiling on the volume scale, so turning the slider up cannot clip. The
+ * loudest envelope below peaks at 0.25, and 0.25 * 2.5 still leaves headroom.
+ */
+const MAX_SOUND_SCALE = 2.5;
+
+/**
+ * Turn the Focus tab's 0-1 volume into a multiplier for the sound envelopes.
+ *
+ * Relative to the default rather than absolute: the slider had never been wired
+ * to anything, so applying it directly would have made every existing user's
+ * sounds abruptly quieter the moment it started working. At the shipped default
+ * this returns exactly 1 and nothing changes.
+ */
+export function soundVolumeScale(volume: number): number {
+  if (Number.isNaN(volume)) return 1;
+  const clamped = Math.min(1, Math.max(0, volume));
+  return Math.min(MAX_SOUND_SCALE, clamped / DEFAULT_SOUND_VOLUME);
 }
 
 /**
  * Internal function to play a sound
  */
-function playSound(type: SoundType): void {
+function playSound(type: SoundType, volume: number = DEFAULT_SOUND_VOLUME): void {
   const ctx = getAudioContext();
   if (!ctx) return;
 
@@ -248,9 +272,14 @@ function playSound(type: SoundType): void {
   try {
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
+    // A second stage purely for the user's volume, so the per-sound envelopes
+    // below stay exactly as they were rather than being rewritten fifteen times.
+    const volumeNode = ctx.createGain();
 
     oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    gainNode.connect(volumeNode);
+    volumeNode.connect(ctx.destination);
+    volumeNode.gain.setValueAtTime(soundVolumeScale(volume), ctx.currentTime);
 
     // Different sound patterns for different notification types
     // Task sounds use square wave (more digital/focused feel)

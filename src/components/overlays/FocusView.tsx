@@ -173,6 +173,9 @@ export function FocusView({
   // UI state
   const [soundEnabled, setSoundEnabled] = useState(focusSettings.soundEnabled ?? true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(getNotificationPermission() === "granted");
+  // The permission is necessary but not sufficient: the Focus tab's own toggle
+  // was persisted and consulted by nobody.
+  const notificationsAllowed = notificationsEnabled && focusSettings.notificationsEnabled !== false;
   const [showExtendMenu, setShowExtendMenu] = useState(false);
   const [pendingAutoComplete, setPendingAutoComplete] = useState<TodoId | null>(null);
 
@@ -405,17 +408,17 @@ export function FocusView({
           if (soundEnabled) {
             if (completingTask) {
               // Task fully complete
-              playNotificationSound("task-complete");
+              playNotificationSound("task-complete", focusSettings.soundVolume);
             } else if (completingWorkSegment) {
               // Work segment done, but more segments remain for this task
-              playNotificationSound("short-break");
+              playNotificationSound("short-break", focusSettings.soundVolume);
             } else {
               // Break ending
-              queueSounds(["break-end", "task-start"]);
+              queueSounds(["break-end", "task-start"], focusSettings.soundVolume);
             }
           }
 
-          if (notificationsEnabled) {
+          if (notificationsAllowed) {
             if (completingWorkSegment && nextItem?.type === "break") {
               const breakLabel = nextItem.breakInfo?.label || "break";
               sendNotification(`☕ Time for a ${breakLabel}!`, {
@@ -495,7 +498,7 @@ export function FocusView({
     setState((s) => {
       if (!s.isRunning) {
         if (soundEnabled && s.phase === "work") {
-          playNotificationSound("task-start");
+          playNotificationSound("task-start", focusSettings.soundVolume);
         }
 
         return {
@@ -513,7 +516,7 @@ export function FocusView({
         };
       } else {
         if (soundEnabled && s.phase === "work") {
-          playNotificationSound("pause");
+          playNotificationSound("pause", focusSettings.soundVolume);
         }
         return {
           ...s,
@@ -522,7 +525,7 @@ export function FocusView({
         };
       }
     });
-  }, [soundEnabled]);
+  }, [soundEnabled, focusSettings.soundVolume]);
 
   // Open details (pauses timer if running)
   const openDetails = useCallback(
@@ -535,21 +538,21 @@ export function FocusView({
           breakEndTime: null,
         }));
         if (soundEnabled && state.phase === "work") {
-          playNotificationSound("pause");
+          playNotificationSound("pause", focusSettings.soundVolume);
         }
       }
       onOpenDetails(todo);
     },
-    [state.isRunning, state.phase, soundEnabled, onOpenDetails],
+    [state.isRunning, state.phase, soundEnabled, focusSettings.soundVolume, onOpenDetails],
   );
 
   // Skip break
   const skipBreak = useCallback(() => {
     if (soundEnabled) {
-      playNotificationSound("task-start");
+      playNotificationSound("task-start", focusSettings.soundVolume);
     }
     moveToNextItem();
-  }, [soundEnabled, moveToNextItem]);
+  }, [soundEnabled, focusSettings.soundVolume, moveToNextItem]);
 
   // Skip to next (end work early)
   const skipToNext = useCallback(() => {
@@ -559,7 +562,7 @@ export function FocusView({
     }
 
     if (soundEnabled) {
-      playNotificationSound("short-break");
+      playNotificationSound("short-break", focusSettings.soundVolume);
     }
 
     // Only increment tasksCompleted if this is the last segment of the task
@@ -572,7 +575,7 @@ export function FocusView({
     }
 
     moveToNextItem();
-  }, [soundEnabled, moveToNextItem, onStopTimeTracking, getCurrentItem, state.currentItemIndex]);
+  }, [soundEnabled, focusSettings.soundVolume, moveToNextItem, onStopTimeTracking, getCurrentItem, state.currentItemIndex]);
 
   // Complete current task manually
   const completeTask = useCallback(() => {
@@ -584,7 +587,7 @@ export function FocusView({
     }
 
     if (soundEnabled) {
-      playNotificationSound("task-complete");
+      playNotificationSound("task-complete", focusSettings.soundVolume);
     }
 
     // Toggle will handle duration update based on tracked time
@@ -600,7 +603,7 @@ export function FocusView({
     }
 
     moveToNextItem();
-  }, [currentTodo, soundEnabled, onToggle, moveToNextItem, onStopTimeTracking, getCurrentItem, state.currentItemIndex]);
+  }, [currentTodo, soundEnabled, focusSettings.soundVolume, onToggle, moveToNextItem, onStopTimeTracking, getCurrentItem, state.currentItemIndex]);
 
   // Skip task without completing
   const skipTask = useCallback(() => {
@@ -610,11 +613,11 @@ export function FocusView({
     }
 
     if (soundEnabled) {
-      playNotificationSound("task-start");
+      playNotificationSound("task-start", focusSettings.soundVolume);
     }
 
     moveToNextItem();
-  }, [soundEnabled, moveToNextItem, onStopTimeTracking]);
+  }, [soundEnabled, focusSettings.soundVolume, moveToNextItem, onStopTimeTracking]);
 
   // Extend time
   const extendTime = useCallback(

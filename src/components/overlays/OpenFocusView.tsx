@@ -153,7 +153,9 @@ export function OpenFocusView({
     if (completedRef.current === key) return;
     completedRef.current = key;
 
-    if (soundEnabled) playNotificationSound((currentMode.endSound || "break-end") as SoundType);
+    if (soundEnabled) {
+      playNotificationSound((currentMode.endSound || "break-end") as SoundType, focusSettings.soundVolume);
+    }
 
     // Hand over at the moment it was actually due, not whenever the browser got
     // round to waking us, so a throttled tab does not quietly stretch the day.
@@ -177,7 +179,7 @@ export function OpenFocusView({
 
     notify(`${currentMode.name} finished`, `Starting ${next.name}.`);
     switchTo(next, dueAt);
-  }, [session, activeSegment, currentMode, now, modes, soundEnabled, notify, pause, switchTo]);
+  }, [session, activeSegment, currentMode, now, modes, soundEnabled, focusSettings.soundVolume, notify, pause, switchTo]);
 
   const enableNotifications = useCallback(async () => {
     const result = await requestNotificationPermission();
@@ -208,7 +210,7 @@ export function OpenFocusView({
 
   const togglePause = useCallback(() => {
     if (activeSegment) {
-      if (soundEnabled) playNotificationSound("pause");
+      if (soundEnabled) playNotificationSound("pause", focusSettings.soundVolume);
       pause();
     } else if (currentMode ?? modes[0]) {
       const mode = currentMode ?? modes[0];
@@ -216,7 +218,7 @@ export function OpenFocusView({
       setNow(Date.now());
       resume(mode);
     }
-  }, [activeSegment, currentMode, modes, pause, resume, soundEnabled]);
+  }, [activeSegment, currentMode, modes, pause, resume, soundEnabled, focusSettings.soundVolume]);
 
   const handleEnd = useCallback(() => {
     end();

@@ -27,6 +27,8 @@ import {
   checkAndNotifyDueTasks,
   MAX_INDIVIDUAL_NOTIFICATIONS,
   resetNotificationState,
+  soundVolumeScale,
+  DEFAULT_SOUND_VOLUME,
 } from "@/utils/notifications";
 import { MockBrowserApis, setBrowserApis, resetBrowserApis } from "@/utils/browserApis";
 import { TodoModel } from "@/models/TodoModel";
@@ -869,5 +871,36 @@ describe("notifications with MockBrowserApis", () => {
 
       expect(mockApis.notificationsCreated).toHaveLength(0);
     });
+  });
+});
+
+describe("soundVolumeScale", () => {
+  it("leaves the shipped default sounding exactly as it did", () => {
+    // The slider had never been wired to anything. Applying it as an absolute
+    // gain would have made every existing user's sounds abruptly quieter the
+    // moment it started working, which is why this is relative to the default.
+    expect(soundVolumeScale(DEFAULT_SOUND_VOLUME)).toBe(1);
+  });
+
+  it("silences at zero", () => {
+    expect(soundVolumeScale(0)).toBe(0);
+  });
+
+  it("gets quieter below the default and louder above it", () => {
+    expect(soundVolumeScale(0.15)).toBeCloseTo(0.5);
+    expect(soundVolumeScale(0.6)).toBeCloseTo(2);
+  });
+
+  it("caps the scale so a full slider cannot clip", () => {
+    expect(soundVolumeScale(1)).toBe(2.5);
+  });
+
+  it("holds out-of-range values inside 0-1 before scaling", () => {
+    expect(soundVolumeScale(-1)).toBe(0);
+    expect(soundVolumeScale(99)).toBe(2.5);
+  });
+
+  it("falls back to unchanged rather than silent for an unreadable value", () => {
+    expect(soundVolumeScale(Number.NaN)).toBe(1);
   });
 });
