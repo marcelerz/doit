@@ -20,6 +20,9 @@ import {
   isCursorAtBlockStart,
   getTextAfterTrigger,
   clearCurrentLine,
+  getCaretOffset,
+  setCaretOffset,
+  placeCaretAtEnd,
 } from "../selection";
 
 /** Put the caret inside `node` at `offset` and return the live range. */
@@ -239,5 +242,136 @@ describe("clearCurrentLine", () => {
 
   it("does nothing when handed null", () => {
     expect(() => clearCurrentLine(null)).not.toThrow();
+  });
+});
+
+/**
+ * The offset pair exists so the editor can replace its content without
+ * throwing the user's place away. A saved Range points at nodes; the moment
+ * the editor writes new HTML those nodes are gone, and every guard the
+ * component grew around that is a symptom of storing the wrong thing.
+ */
+describe("getCaretOffset / setCaretOffset", () => {
+  it("counts characters, not nodes", () => {
+    const editor = editorWith("<div>abc<b>def</b>ghi</div>");
+    const bold = editor.querySelector("b")!;
+    placeCaret(bold.firstChild!, 2); // between "de" and "f"
+
+    expect(getCaretOffset(editor)).toBe(5);
+  });
+
+  it("counts across blocks, since block boundaries carry no character", () => {
+    const editor = editorWith("<div>one</div><div>two</div>");
+    placeCaret(editor.lastChild!.firstChild!, 3);
+
+    expect(getCaretOffset(editor)).toBe(6);
+  });
+
+  it("survives the content being rebuilt, which a saved Range does not", () => {
+    const editor = editorWith("<div>hello world</div>");
+    placeCaret(editor.firstChild!.firstChild!, 5);
+    const offset = getCaretOffset(editor)!;
+
+    // What the editor does when a new value arrives.
+    editor.innerHTML = "<div>hello world</div>";
+    setCaretOffset(editor, offset);
+
+    const range = window.getSelection()!.getRangeAt(0);
+    expect(range.startContainer.textContent).toBe("hello world");
+    expect(range.startOffset).toBe(5);
+    expect(range.collapsed).toBe(true);
+  });
+
+  it("lands in the right node when the offset spans several", () => {
+    const editor = editorWith("<div>abc</div><div>defgh</div>");
+
+    setCaretOffset(editor, 5);
+
+    const range = window.getSelection()!.getRangeAt(0);
+    expect(range.startContainer.textContent).toBe("defgh");
+    expect(range.startOffset).toBe(2);
+  });
+
+  it("clamps to the end when the content shrank under it", () => {
+    const editor = editorWith("<div>short</div>");
+
+    setCaretOffset(editor, 999);
+
+    const range = window.getSelection()!.getRangeAt(0);
+    expect(range.startContainer.textContent).toBe("short");
+    expect(range.startOffset).toBe(5);
+  });
+
+  it("falls back to the editor itself when there is no text to land in", () => {
+    const editor = editorWith("<div><br></div>");
+
+    setCaretOffset(editor, 3);
+
+    const range = window.getSelection()!.getRangeAt(0);
+    expect(range.startContainer).toBe(editor);
+    expect(range.startOffset).toBe(0);
+  });
+
+  it("reads null when the caret is in a different editor", () => {
+    const editor = editorWith("<div>mine</div>");
+    const other = editorWith("<div>theirs</div>");
+    placeCaret(other.firstChild!.firstChild!, 2);
+
+    expect(getCaretOffset(editor)).toBeNull();
+  });
+
+  it("reads null with no selection at all", () => {
+    const editor = editorWith("<div>text</div>");
+    window.getSelection()!.removeAllRanges();
+
+    expect(getCaretOffset(editor)).toBeNull();
+  });
+});
+
+describe("placeCaretAtEnd", () => {
+  it("puts the caret after the text, so typing continues the line", () => {
+    const editor = editorWith("<h1>existing</h1>");
+    const header = editor.querySelector("h1")!;
+
+    placeCaretAtEnd(header);
+
+    const range = window.getSelection()!.getRangeAt(0);
+    expect(range.startContainer).toBe(header.firstChild);
+    expect(range.startOffset).toBe(8);
+  });
+
+  it("uses the last child, not the first, when the block has several", () => {
+    const editor = editorWith("<li><b>Bold</b> tail</li>");
+    const li = editor.querySelector("li")!;
+
+    placeCaretAtEnd(li);
+
+    const range = window.getSelection()!.getRangeAt(0);
+    expect(range.startContainer.textContent).toBe(" tail");
+    expect(range.startOffset).toBe(5);
+  });
+
+  it("sits before a placeholder br rather than after it", () => {
+    // A block holding only <br> is empty; a caret after the br would show up
+    // on a second line the user never made.
+    const editor = editorWith("<blockquote><br></blockquote>");
+    const quote = editor.querySelector("blockquote")!;
+
+    placeCaretAtEnd(quote);
+
+    const range = window.getSelection()!.getRangeAt(0);
+    expect(range.startContainer).toBe(quote);
+    expect(range.startOffset).toBe(0);
+  });
+
+  it("sits at the end of an element with no children", () => {
+    const editor = editorWith("<div></div>");
+    const block = editor.querySelector("div")!;
+
+    placeCaretAtEnd(block);
+
+    const range = window.getSelection()!.getRangeAt(0);
+    expect(range.startContainer).toBe(block);
+    expect(range.startOffset).toBe(0);
   });
 });

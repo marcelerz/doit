@@ -135,3 +135,102 @@ export function clearCurrentLine(textNode: Text | null): void {
     textNode.textContent = "";
   }
 }
+
+/** Collapse the selection onto one position. */
+function collapseTo(selection: Selection, node: Node, offset: number): void {
+  const range = document.createRange();
+  try {
+    range.setStart(node, offset);
+  } catch {
+    return;
+  }
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+/**
+ * The caret as a character offset over the editor's text, or null if the caret
+ * is not in this editor.
+ *
+ * A saved Range holds node references, so any mutation between saving and
+ * restoring invalidates it -- which is why this editor carries isConnected
+ * guards on every stored selection and a thirty-second staleness rule on the
+ * link dialog. An offset survives the nodes being replaced wholesale, which is
+ * exactly what happens when a new value arrives while the user is typing.
+ *
+ * Counted the same way the DOM counts it: text only. Element boundaries and
+ * <br> contribute nothing, so a caret at the start of the second paragraph and
+ * one at the end of the first share an offset. Both restore to a position on
+ * the same character, which is what matters for keeping the user's place.
+ */
+export function getCaretOffset(editor: HTMLElement): number | null {
+  const validated = getValidatedSelection();
+  if (!validated) return null;
+
+  const { range } = validated;
+  if (!editor.contains(range.startContainer)) return null;
+
+  const measure = document.createRange();
+  measure.selectNodeContents(editor);
+  try {
+    measure.setEnd(range.startContainer, range.startOffset);
+  } catch {
+    return null;
+  }
+  return measure.toString().length;
+}
+
+/**
+ * Put the caret back at a character offset, clamping past the end rather than
+ * giving up -- content can shrink between the save and the restore.
+ */
+export function setCaretOffset(editor: HTMLElement, offset: number): void {
+  const selection = window.getSelection();
+  if (!selection) return;
+
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+  let remaining = Math.max(0, offset);
+  let last: Text | null = null;
+
+  let node = walker.nextNode() as Text | null;
+  while (node) {
+    if (remaining <= node.data.length) {
+      collapseTo(selection, node, remaining);
+      return;
+    }
+    remaining -= node.data.length;
+    last = node;
+    node = walker.nextNode() as Text | null;
+  }
+
+  if (last) {
+    collapseTo(selection, last, last.data.length);
+  } else {
+    collapseTo(selection, editor, 0);
+  }
+}
+
+/**
+ * Put the caret after an element's text, so typing continues the line.
+ *
+ * The block conversions each rebuild their block and then have to say where the
+ * caret went. They said it five different ways, and two of them said "at the
+ * start", which is why typing "# " in front of existing text used to leave the
+ * next character before it.
+ */
+export function placeCaretAtEnd(element: HTMLElement): void {
+  const selection = window.getSelection();
+  if (!selection) return;
+
+  const last = element.lastChild;
+  if (last && last.nodeType === Node.TEXT_NODE) {
+    collapseTo(selection, last, last.textContent?.length || 0);
+  } else if (last && last.nodeName === "BR") {
+    // A lone <br> is the placeholder keeping an empty block from collapsing.
+    // The caret belongs before it, or the block renders one line too tall.
+    collapseTo(selection, element, element.childNodes.length - 1);
+  } else {
+    collapseTo(selection, element, element.childNodes.length);
+  }
+}

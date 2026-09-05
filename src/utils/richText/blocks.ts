@@ -12,6 +12,7 @@ import {
   clearCurrentLine,
   getValidatedSelection,
   ensureEditable,
+  placeCaretAtEnd,
 } from "./selection";
 
 /** Whether a list item holds nothing but whitespace. */
@@ -92,21 +93,8 @@ export function convertToBulletList(editor: HTMLDivElement, initialText: string 
     range.insertNode(ul);
   }
 
-  // Position cursor inside the li - re-acquire selection after DOM mutation
   ensureEditable(li);
-  const freshSelection = window.getSelection();
-  if (!freshSelection) return;
-
-  const newRange = document.createRange();
-  const targetNode = li.firstChild;
-  if (targetNode) {
-    newRange.setStart(targetNode, targetNode.textContent?.length || 0);
-  } else {
-    newRange.setStart(li, 0);
-  }
-  newRange.collapse(true);
-  freshSelection.removeAllRanges();
-  freshSelection.addRange(newRange);
+  placeCaretAtEnd(li);
 }
 
 // Convert current line to an ordered list
@@ -134,21 +122,8 @@ export function convertToOrderedList(editor: HTMLDivElement, initialText: string
     range.insertNode(ol);
   }
 
-  // Position cursor inside the li - re-acquire selection after DOM mutation
   ensureEditable(li);
-  const freshSelection = window.getSelection();
-  if (!freshSelection) return;
-
-  const newRange = document.createRange();
-  const targetNode = li.firstChild;
-  if (targetNode) {
-    newRange.setStart(targetNode, targetNode.textContent?.length || 0);
-  } else {
-    newRange.setStart(li, 0);
-  }
-  newRange.collapse(true);
-  freshSelection.removeAllRanges();
-  freshSelection.addRange(newRange);
+  placeCaretAtEnd(li);
 }
 
 // Convert current line to a checkbox list
@@ -178,26 +153,14 @@ export function convertToCheckboxList(editor: HTMLDivElement, checked: boolean =
     range.insertNode(ul);
   }
 
-  // Position cursor inside the span - re-acquire selection after DOM mutation
-  const freshSelection = window.getSelection();
-  if (!freshSelection) return;
-
+  // The text lives in the span next to the checkbox, so the caret goes there.
   const span = li.querySelector("span");
-  const newRange = document.createRange();
   if (span) {
     ensureEditable(span);
-    const targetNode = span.firstChild;
-    if (targetNode) {
-      newRange.setStart(targetNode, targetNode.textContent?.length || 0);
-    } else {
-      newRange.setStart(span, 0);
-    }
+    placeCaretAtEnd(span);
   } else {
-    newRange.setStart(li, li.childNodes.length);
+    placeCaretAtEnd(li);
   }
-  newRange.collapse(true);
-  freshSelection.removeAllRanges();
-  freshSelection.addRange(newRange);
 }
 
 // Convert current line to a blockquote
@@ -205,7 +168,7 @@ export function convertToBlockquote(editor: HTMLDivElement, initialText: string 
   const validated = getValidatedSelection();
   if (!validated) return;
 
-  const { selection, range } = validated;
+  const { range } = validated;
 
   // Get remaining text BEFORE modifying the DOM
   const { remainingText, textNode } = triggerLength > 0
@@ -230,12 +193,7 @@ export function convertToBlockquote(editor: HTMLDivElement, initialText: string 
     range.insertNode(blockquote);
   }
 
-  // Position cursor at the start of the blockquote
-  const newRange = document.createRange();
-  newRange.setStart(blockquote, 0);
-  newRange.collapse(true);
-  selection.removeAllRanges();
-  selection.addRange(newRange);
+  placeCaretAtEnd(blockquote);
 }
 
 // Convert current line to a header
@@ -243,7 +201,7 @@ export function convertToHeader(editor: HTMLDivElement, level: number, initialTe
   const validated = getValidatedSelection();
   if (!validated) return;
 
-  const { selection, range } = validated;
+  const { range } = validated;
 
   // Get remaining text BEFORE modifying the DOM
   const { remainingText, textNode } = triggerLength > 0
@@ -268,11 +226,6 @@ export function convertToHeader(editor: HTMLDivElement, level: number, initialTe
     range.insertNode(header);
   }
 
-  // Position cursor at the start of the header
-  const newRange = document.createRange();
-  newRange.setStart(header, 0);
-  newRange.collapse(true);
-  selection.removeAllRanges();
-  selection.addRange(newRange);
+  placeCaretAtEnd(header);
 }
 

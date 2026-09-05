@@ -215,6 +215,19 @@ describe("convertToBlockquote", () => {
     expect(editor.querySelector("blockquote")?.textContent).toBe("quoted");
   });
 
+  it("leaves the caret after the text, not in front of it", () => {
+    // "> " typed ahead of an existing line used to drop the caret at offset 0
+    // of the blockquote, so the next character landed before the line.
+    const editor = editorWith("<div>&gt; existing</div>");
+    placeCaret(editor.firstChild!.firstChild!, 2); // just past "> "
+
+    convertToBlockquote(editor, "", 2);
+
+    const range = window.getSelection()!.getRangeAt(0);
+    expect(range.startContainer.textContent).toBe("existing");
+    expect(range.startOffset).toBe(8);
+  });
+
   it("gives an empty blockquote a br so it does not collapse", () => {
     const editor = editorWith("<div>x</div>");
     placeCaret(editor.firstChild!.firstChild!, 1);
@@ -235,6 +248,17 @@ describe("convertToHeader", () => {
     convertToHeader(editor, level, "title");
 
     expect(editor.querySelector(`h${level}`)?.textContent).toBe("title");
+  });
+
+  it("leaves the caret after the text, like the list conversions do", () => {
+    const editor = editorWith("<div># existing</div>");
+    placeCaret(editor.firstChild!.firstChild!, 2); // just past "# "
+
+    convertToHeader(editor, 1, "", 2);
+
+    const range = window.getSelection()!.getRangeAt(0);
+    expect(range.startContainer.textContent).toBe("existing");
+    expect(range.startOffset).toBe(8);
   });
 
   it("drops the trigger characters", () => {
