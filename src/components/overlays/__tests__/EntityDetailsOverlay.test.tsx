@@ -27,8 +27,20 @@ jest.mock("@/components/items/TodoListItem", () => ({
 // composer inside ActivitySection -- so key the stub on its placeholder.
 jest.mock("@/components/input/RichTextEditor", () => ({
   __esModule: true,
-  default: ({ onBlur, placeholder }: { onBlur?: (html: string) => void; placeholder?: string }) => (
-    <textarea data-testid={placeholder} onBlur={(e) => onBlur?.(e.target.value)} />
+  default: ({
+    onChange,
+    onBlur,
+    placeholder,
+  }: {
+    onChange?: (html: string) => void;
+    onBlur?: (html: string) => void;
+    placeholder?: string;
+  }) => (
+    <textarea
+      data-testid={placeholder}
+      onChange={(e) => onChange?.(e.target.value)}
+      onBlur={(e) => onBlur?.(e.target.value)}
+    />
   ),
 }));
 
@@ -88,6 +100,34 @@ describe("auto-save", () => {
 
     act(() => void jest.advanceTimersByTime(200));
     expect(onUpdate).toHaveBeenCalledWith(getPersonId("Marcel"), expect.objectContaining({ name: "Marcel E" }));
+  });
+
+  it("does not save context on its own -- that is what blur is for", () => {
+    // Context is deliberately outside the debounce's change test. Typing in it
+    // updates local state and nothing else; the editor's blur is what commits.
+    const onUpdate = jest.fn();
+    render(<EntityDetailsOverlay entity={makePerson()} onUpdate={onUpdate} {...baseProps} />);
+
+    fireEvent.change(screen.getByTestId("Add context..."), { target: { value: "typed context" } });
+    act(() => void jest.advanceTimersByTime(2000));
+
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it("carries unblurred context along when another field does save", () => {
+    // The save sends every field, so context typed but not yet blurred is
+    // written by whichever change triggers the debounce -- not left behind.
+    const onUpdate = jest.fn();
+    render(<EntityDetailsOverlay entity={makePerson()} onUpdate={onUpdate} {...baseProps} />);
+
+    fireEvent.change(screen.getByTestId("Add context..."), { target: { value: "typed context" } });
+    fireEvent.change(screen.getByPlaceholderText("Person name"), { target: { value: "Marcel E" } });
+    act(() => void jest.advanceTimersByTime(600));
+
+    expect(onUpdate).toHaveBeenCalledWith(
+      getPersonId("Marcel"),
+      expect.objectContaining({ name: "Marcel E", context: "typed context" }),
+    );
   });
 
   it("commits the context editor on blur without waiting for the debounce", () => {
