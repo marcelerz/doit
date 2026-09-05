@@ -1,9 +1,9 @@
 1:"$Sreact.fragment"
 2:I[47257,["/doit/_next/static/chunks/ff1a16fafef87110.js","/doit/_next/static/chunks/247eb132b7f7b574.js"],"ClientPageRoot"]
-3:I[13399,["/doit/_next/static/chunks/6c2fcd5c028e4119.js","/doit/_next/static/chunks/e2e8a62d70020b9e.js","/doit/_next/static/chunks/ff1a16fafef87110.js","/doit/_next/static/chunks/ccf226fd393a1a56.js","/doit/_next/static/chunks/3c582c27118f86a0.js"],"default"]
+3:I[13399,["/doit/_next/static/chunks/c14ffaad5827fbc6.js","/doit/_next/static/chunks/ff1a16fafef87110.js","/doit/_next/static/chunks/8c2dfcfd5bf5a5af.js","/doit/_next/static/chunks/c71b7147a4837e93.js"],"default"]
 6:I[97367,["/doit/_next/static/chunks/ff1a16fafef87110.js","/doit/_next/static/chunks/247eb132b7f7b574.js"],"OutletBoundary"]
 7:"$Sreact.suspense"
-0:{"buildId":"Q2I1znCwA7vSYDF3B1FaF","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/doit/_next/static/chunks/ff1a16fafef87110.js","async":true}],["$","script","script-1",{"src":"/doit/_next/static/chunks/ccf226fd393a1a56.js","async":true}],["$","script","script-2",{"src":"/doit/_next/static/chunks/3c582c27118f86a0.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
+0:{"buildId":"AiAkhg6T0XPLj3xOpbm0q","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/doit/_next/static/chunks/ff1a16fafef87110.js","async":true}],["$","script","script-1",{"src":"/doit/_next/static/chunks/8c2dfcfd5bf5a5af.js","async":true}],["$","script","script-2",{"src":"/doit/_next/static/chunks/c71b7147a4837e93.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
 4:{}
-5:"$0:rsc:props:children:0:props:serverProvidedParams:params"
+5:{}
 8:null

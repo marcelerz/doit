@@ -1,10 +1,20 @@
 // Service Worker for DoIt PWA
-const CACHE_NAME = "doit-cache-v3";
-const STATIC_CACHE_NAME = "doit-static-v3";
-const DYNAMIC_CACHE_NAME = "doit-dynamic-v3";
 
-// Base path for GitHub Pages deployment
-const BASE_PATH = "/doit";
+// Replaced at build time by scripts/fix-github-pages.js with the version from
+// version.json. Without this the file was byte-identical across every deploy,
+// so the browser never saw a new worker: no updatefound event, the "Update
+// available" toast was unreachable in production, and superseded caches were
+// never purged.
+const BUILD_VERSION = "0.1.165";
+
+const CACHE_NAME = `doit-cache-${BUILD_VERSION}`;
+const STATIC_CACHE_NAME = `doit-static-${BUILD_VERSION}`;
+const DYNAMIC_CACHE_NAME = `doit-dynamic-${BUILD_VERSION}`;
+
+// Derived from the registration scope rather than hardcoded, so the same file
+// works under the GitHub Pages basePath (/doit) and at the root in dev. The
+// hardcoded value meant dev precached /doit/, which does not exist there.
+const BASE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 
 // Static assets to cache immediately on install
 const STATIC_ASSETS = [
@@ -71,8 +81,15 @@ self.addEventListener("install", (event) => {
       }),
     ]).then(() => {
       console.log("[SW] Installation complete");
-      // Force activation of new service worker
-      return self.skipWaiting();
+      // Deliberately no skipWaiting() here.
+      //
+      // Activating immediately meant a new worker never entered the waiting
+      // state, so registration.waiting was always null -- and applyUpdate,
+      // which is guarded on exactly that, did nothing. The "Update" button in
+      // the update toast has therefore never worked.
+      //
+      // The new worker now waits, the toast offers the update, and the
+      // SKIP_WAITING message below activates it when the user accepts.
     }),
   );
 });
@@ -183,7 +200,7 @@ async function networkFirst(request, cacheName) {
 
     // If it's a navigation request and we have no cache, return offline page
     if (request.mode === "navigate") {
-      const offlineResponse = await caches.match("/");
+      const offlineResponse = await caches.match(`${BASE_PATH}/`);
       if (offlineResponse) {
         return offlineResponse;
       }
@@ -293,13 +310,6 @@ self.addEventListener("message", (event) => {
 });
 
 // Background sync for when coming back online
-self.addEventListener("sync", (event) => {
-  if (event.tag === "sync-data") {
-    console.log("[SW] Background sync triggered");
-    // Data is stored in IndexedDB, no sync needed
-  }
-});
-
 // Handle push notifications
 self.addEventListener("push", (event) => {
   if (event.data) {
@@ -308,8 +318,8 @@ self.addEventListener("push", (event) => {
     event.waitUntil(
       self.registration.showNotification(data.title || "DoIt", {
         body: data.body || "You have a notification",
-        icon: "/android-chrome-192x192.png",
-        badge: "/favicon-32x32.png",
+        icon: `${BASE_PATH}/android-chrome-192x192.png`,
+        badge: `${BASE_PATH}/favicon-32x32.png`,
         data: data.data,
       }),
     );
@@ -324,13 +334,13 @@ self.addEventListener("notificationclick", (event) => {
     clients.matchAll({ type: "window" }).then((clientList) => {
       // Focus existing window if available
       for (const client of clientList) {
-        if (client.url === "/" && "focus" in client) {
+        if (new URL(client.url).pathname === `${BASE_PATH}/` && "focus" in client) {
           return client.focus();
         }
       }
       // Otherwise open new window
       if (clients.openWindow) {
-        return clients.openWindow("/");
+        return clients.openWindow(`${BASE_PATH}/`);
       }
     }),
   );
