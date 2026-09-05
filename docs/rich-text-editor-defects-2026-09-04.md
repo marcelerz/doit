@@ -226,13 +226,32 @@ and button exits from a note.
   exercises none of the key handling, and the test then only asserts that the note still exists.
 - `EntityDetailsOverlay.test.tsx:28-34` stubs the editor out with a `<textarea>`.
 
-## 5. Suggested order of work
+---
 
-1. **R1** — flush on unmount. Silent data loss on the most natural exit.
-2. **R2** — clear the DOM on submit, and make the value→DOM sync work while focused. Same root
-   cause: the `hasFocus` guard is the entire sync contract.
-3. **R3** — add an `onPaste` handler that sanitises on the way in.
-4. **R4** — one shared `isHtmlEmpty` at all five call sites.
-5. **R5**, **R6** — a shared caret save/restore, and unwrap by moving nodes rather than text.
-6. Give the component its first tests and put it in the coverage ratchet, so none of the above can
-   come back.
+## 5. Outcome
+
+All seven are fixed, each re-verified in the browser the same way it was found.
+
+| # | Fix | Verified |
+|---|---|---|
+| R1 | `useDebouncedSave` runs the pending save on unmount rather than cancelling it, and the note body commits on blur with the html passed as an argument — Escape blurs before it closes | Type `ESCTAIL`, press Escape at once: stored `"ESCTAIL"`, before and after a reload. Was `""` |
+| R2 | The submit path empties the DOM and drops the queued change; the value→DOM sync applies while focused, with the caret saved as an offset | The box empties on Enter, and a second Enter posts nothing. Was a duplicate |
+| R3 | An `onPaste` handler that sanitises on entry, plus `insertHtmlAtCaret`/`insertTextAtCaret` replacing `execCommand("insertHTML")` | Editor and storage agree on `<b>bold</b> red`; `<font>`, `<img>` and `<table>` are gone at paste time, not later |
+| R4 | The shared `isHtmlEmpty` at all four composers — in the Enter handler, the click and the disabled state alike | An emptied box leaves Add disabled and Enter inert |
+| R5 | The unwrap handlers move child nodes instead of copying `textContent` | `<b>Bold</b> tail` survives Backspace, and so do links and code spans |
+| R6 | One `placeCaretAtEnd` behind all five block conversions | `# ` in front of existing text leaves the caret after it |
+| R7 | `insertBlockElement` reads the caret's block, or its text node when there is none | All six block buttons convert the line, with a selection and without |
+
+Two more were found on the way, both by writing tests rather than by reading code:
+
+- `insertInlineCode` read the selection *after* focusing the editor, so anything that moved focus
+  first turned "wrap this in code" into "insert an empty code span". jsdom collapses the selection
+  on `focus()`, which is what exposed it.
+- R7 itself was not on the original list at all.
+
+And the hole that let all of this live: `RichTextEditor.tsx` went from no test file and no place in
+`collectCoverageFrom` to 50 unit tests at 77% statements with its own ratchet entry, plus 12 e2e
+cases in `e2e/smoke/rich-text-editor.spec.ts` covering what jsdom cannot reach.
+
+The gaps in §3 are still gaps. Undo/redo remains untested, as do the Tab indentation depth limit
+and the link dialog's staleness rule beyond its unit test.
