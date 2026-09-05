@@ -9,6 +9,8 @@ A powerful, feature-rich todo and project management application built with Next
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwind-css)
 ![License](https://img.shields.io/badge/License-Personal_Use-orange)
 
+**Live app: [marcelerz.github.io/doit](https://marcelerz.github.io/doit/)**
+
 ## ✨ Features
 
 ### Core Functionality
@@ -115,12 +117,35 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 # Build for production
 npm run build
 
-# Static export for GitHub Pages (sets basePath and output: "export")
-npm run build:gh-pages
+# Static export for GitHub Pages. GITHUB_PAGES=true is what switches on
+# output: "export" and the /doit base path -- without it this build fails.
+GITHUB_PAGES=true npm run build:gh-pages
 ```
 
 The deployed app is a static export with no server: everything runs in the browser and all
 data stays in the browser's own storage.
+
+### Deployment
+
+The app is published at **https://marcelerz.github.io/doit/**.
+
+Pushing to `main` deploys it. `.github/workflows/deploy.yml` runs typecheck, lint and the unit
+tests, then builds and publishes `out/` to the `gh-pages` branch, which GitHub Pages serves.
+There is nothing to run by hand.
+
+Two things worth knowing if you build it yourself:
+
+- **`GITHUB_PAGES=true` has to be in the environment.** It is what switches on `output: "export"`
+  and the `/doit` base path in `next.config.ts`. Nothing in `package.json` or the build script
+  sets it -- only the workflow does -- so a bare `npm run build:gh-pages` produces an ordinary
+  server build with no `out/` directory and then fails on the next step.
+- After the export, `scripts/fix-github-pages.js` adds `.nojekyll`, copies `index.html` to
+  `404.html` for client-side routing, rewrites the web manifest to the `/doit/` base path, and
+  stamps the version from `version.json` into the service worker so each deploy ships a worker
+  the browser sees as new.
+
+The visual snapshots are macOS baselines and cannot run on the Linux CI runner, so run
+`npm run test:visual` locally before releasing.
 
 ## 🧪 Testing
 
