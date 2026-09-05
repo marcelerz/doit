@@ -234,3 +234,55 @@ export function placeCaretAtEnd(element: HTMLElement): void {
     collapseTo(selection, element, element.childNodes.length);
   }
 }
+
+/** Put a fragment where the caret is, replacing the selection, caret after it. */
+function insertFragmentAtCaret(editor: HTMLElement, fragment: DocumentFragment): boolean {
+  const validated = getValidatedSelection();
+  if (!validated) return false;
+
+  const { selection, range } = validated;
+  if (!editor.contains(range.commonAncestorContainer)) return false;
+
+  const lastNode = fragment.lastChild;
+  range.deleteContents();
+  range.insertNode(fragment);
+
+  if (lastNode) {
+    const after = document.createRange();
+    after.setStartAfter(lastNode);
+    after.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(after);
+  }
+  return true;
+}
+
+/**
+ * Insert HTML at the caret.
+ *
+ * The caller sanitises: this parses whatever it is handed. It replaces
+ * document.execCommand("insertHTML"), which is deprecated, normalises the
+ * markup on the way in, and gives no way to tell whether it did anything.
+ */
+export function insertHtmlAtCaret(editor: HTMLElement, html: string): boolean {
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  return insertFragmentAtCaret(editor, document.importNode(template.content, true));
+}
+
+/**
+ * Insert plain text at the caret, keeping its line breaks.
+ *
+ * Built out of text nodes rather than an escaped HTML string, so there is no
+ * escaping to get wrong -- text pasted from a terminal is full of angle
+ * brackets and ampersands that mean nothing.
+ */
+export function insertTextAtCaret(editor: HTMLElement, text: string): boolean {
+  const fragment = document.createDocumentFragment();
+  const lines = text.split(/\r\n|\r|\n/);
+  lines.forEach((line, index) => {
+    if (index > 0) fragment.appendChild(document.createElement("br"));
+    if (line !== "") fragment.appendChild(document.createTextNode(line));
+  });
+  return insertFragmentAtCaret(editor, fragment);
+}

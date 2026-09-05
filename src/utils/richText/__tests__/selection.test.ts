@@ -23,6 +23,8 @@ import {
   getCaretOffset,
   setCaretOffset,
   placeCaretAtEnd,
+  insertHtmlAtCaret,
+  insertTextAtCaret,
 } from "../selection";
 
 /** Put the caret inside `node` at `offset` and return the live range. */
@@ -373,5 +375,81 @@ describe("placeCaretAtEnd", () => {
     const range = window.getSelection()!.getRangeAt(0);
     expect(range.startContainer).toBe(block);
     expect(range.startOffset).toBe(0);
+  });
+});
+
+/**
+ * These replace document.execCommand("insertHTML"), which is deprecated and
+ * normalises whatever it is handed. Sanitising happens in the caller, so what
+ * arrives here is inserted as given.
+ */
+describe("insertHtmlAtCaret", () => {
+  it("inserts at the caret and leaves the caret after it", () => {
+    const editor = editorWith("<div>abcdef</div>");
+    placeCaret(editor.firstChild!.firstChild!, 3);
+
+    expect(insertHtmlAtCaret(editor, "<b>X</b>")).toBe(true);
+
+    expect(editor.innerHTML).toBe("<div>abc<b>X</b>def</div>");
+    // Typing continues after the insert, not inside it and not before it.
+    const range = window.getSelection()!.getRangeAt(0);
+    expect(range.collapsed).toBe(true);
+    const block = editor.firstChild!;
+    expect(range.startContainer).toBe(block);
+    expect(block.childNodes[range.startOffset].textContent).toBe("def");
+  });
+
+  it("replaces the selection rather than inserting beside it", () => {
+    const editor = editorWith("<div>abcdef</div>");
+    const text = editor.firstChild!.firstChild!;
+    const range = document.createRange();
+    range.setStart(text, 1);
+    range.setEnd(text, 4);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    insertHtmlAtCaret(editor, "<i>Z</i>");
+
+    expect(editor.innerHTML).toBe("<div>a<i>Z</i>ef</div>");
+  });
+
+  it("refuses when the caret is somewhere else entirely", () => {
+    const editor = editorWith("<div>mine</div>");
+    const other = editorWith("<div>theirs</div>");
+    placeCaret(other.firstChild!.firstChild!, 2);
+
+    expect(insertHtmlAtCaret(editor, "<b>X</b>")).toBe(false);
+    expect(editor.innerHTML).toBe("<div>mine</div>");
+  });
+
+  it("refuses with no selection", () => {
+    const editor = editorWith("<div>text</div>");
+    window.getSelection()!.removeAllRanges();
+
+    expect(insertHtmlAtCaret(editor, "<b>X</b>")).toBe(false);
+  });
+});
+
+describe("insertTextAtCaret", () => {
+  it("inserts text without interpreting it as markup", () => {
+    // Terminal output is full of angle brackets that mean nothing.
+    const editor = editorWith("<div>x</div>");
+    placeCaret(editor.firstChild!.firstChild!, 1);
+
+    insertTextAtCaret(editor, "a < b && c > d");
+
+    expect(editor.textContent).toBe("xa < b && c > d");
+    expect(editor.querySelectorAll("*").length).toBe(1); // still just the div
+  });
+
+  it("keeps line breaks as line breaks", () => {
+    const editor = editorWith("<div>x</div>");
+    placeCaret(editor.firstChild!.firstChild!, 1);
+
+    insertTextAtCaret(editor, "one\ntwo\r\nthree");
+
+    expect(editor.querySelectorAll("br").length).toBe(2);
+    expect(editor.textContent).toBe("xonetwothree");
   });
 });

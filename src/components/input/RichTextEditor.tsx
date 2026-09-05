@@ -1,6 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { sanitizeHtml, escapeHtmlAttribute, sanitizeUrl } from "@/utils/sanitize";
-import { isRangeValid, getLineTextBeforeCursor, getCaretOffset, setCaretOffset } from "@/utils/richText/selection";
+import {
+  isRangeValid,
+  getLineTextBeforeCursor,
+  getCaretOffset,
+  setCaretOffset,
+  placeCaretAtEnd,
+  insertHtmlAtCaret,
+  insertTextAtCaret,
+} from "@/utils/richText/selection";
 import {
   convertToBulletList,
   convertToOrderedList,
@@ -187,6 +195,25 @@ export default function RichTextEditor({
     };
   }, [fire]);
 
+  /**
+   * Bold, italic and underline -- the one place execCommand is still the right
+   * tool. It is the only browser primitive that splits and merges inline ranges
+   * correctly, and the only one that takes part in the native undo stack; hand
+   * rolling it would mean range surgery that breaks Cmd+Z rather than fixing it.
+   *
+   * styleWithCSS is pinned off so the output is <b>/<i>/<u> in every browser
+   * rather than <span style> or <font> depending on the day. The sanitiser's
+   * allow-list has those tags; it does not have <font> at all.
+   */
+  const execFormat = (command: string) => {
+    try {
+      document.execCommand("styleWithCSS", false, "false");
+    } catch {
+      // Not supported everywhere, and not worth failing the format over.
+    }
+    document.execCommand(command);
+  };
+
   const applyLink = () => {
     if (!linkUrl || !editorRef.current || !savedSelectionRef.current) return;
 
@@ -246,9 +273,7 @@ export default function RichTextEditor({
         // attribute and into the live contentEditable DOM.
         const linkHtml = `<a href="${escapeHtmlAttribute(sanitizedUrl)}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; cursor: pointer;">${sanitizedSelectedHtml}</a>`;
 
-        // Insert the link HTML without extra space
-        document.execCommand("insertHTML", false, linkHtml);
-
+        insertHtmlAtCaret(editorRef.current, linkHtml);
         emitChange();
 
         // Force re-style links after insertion
@@ -304,7 +329,7 @@ export default function RichTextEditor({
 
   // Toolbar button handler - applies formatting and refocuses editor
   const applyFormatting = (command: string) => {
-    document.execCommand(command);
+    execFormat(command);
     editorRef.current?.focus();
     emitChange();
   };
@@ -389,8 +414,12 @@ export default function RichTextEditor({
         selection.removeAllRanges();
         selection.addRange(newRange);
       } else {
-        // Insert empty code element with placeholder
-        document.execCommand("insertHTML", false, "<code>\u200B</code>");
+        // An empty code element with a zero-width space to sit in, and the
+        // caret inside it -- the point of the button is to type code next.
+        const code = document.createElement("code");
+        code.textContent = "\u200B";
+        selection.getRangeAt(0).insertNode(code);
+        placeCaretAtEnd(code);
       }
 
       emitChange();
@@ -675,6 +704,25 @@ export default function RichTextEditor({
                 return;
               }
             }}
+            onPaste={(e) => {
+              const editor = editorRef.current;
+              if (!editor) return;
+
+              // Sanitise on the way IN. There was no paste handler at all
+              // before, so the browser dropped whatever was on the clipboard
+              // straight into the document and it was stored verbatim -- <font>,
+              // <img>, <table> and all. None of those are in the allow-list, so
+              // the formatting the user could see disappeared the next time the
+              // content was rendered.
+              e.preventDefault();
+              const html = e.clipboardData.getData("text/html");
+              const text = e.clipboardData.getData("text/plain");
+
+              const inserted = html
+                ? insertHtmlAtCaret(editor, sanitizeHtml(html))
+                : insertTextAtCaret(editor, text);
+              if (inserted) emitChange();
+            }}
             onInput={() => emitChange()}
             onBlur={(e) => {
               // Commit now rather than on the debounce: a modal can close
@@ -708,17 +756,20 @@ export default function RichTextEditor({
             // Handle formatting shortcuts
             if (e.key === "b" && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
-              document.execCommand("bold");
+              execFormat("bold");
+              emitChange();
               return;
             }
             if (e.key === "i" && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
-              document.execCommand("italic");
+              execFormat("italic");
+              emitChange();
               return;
             }
             if (e.key === "u" && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
-              document.execCommand("underline");
+              execFormat("underline");
+              emitChange();
               return;
             }
             if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
