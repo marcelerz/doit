@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { sanitizeHtml, escapeHtmlAttribute, sanitizeUrl } from "@/utils/sanitize";
-import { isRangeValid, getLineTextBeforeCursor } from "@/utils/richText/selection";
+import { isRangeValid, getLineTextBeforeCursor, getCaretOffset, setCaretOffset } from "@/utils/richText/selection";
 import {
   convertToBulletList,
   convertToOrderedList,
@@ -53,9 +53,26 @@ export default function RichTextEditor({
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [isEditing, setIsEditing] = useState(alwaysEditable);
-  const editorRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLDivElement | null>(null);
   const displayRef = useRef<HTMLDivElement>(null);
-  const lastValueRef = useRef<string | undefined>(value);
+
+  /**
+   * This component's half of the contract with `value`.
+   *
+   * `domValueRef` is what the contenteditable is believed to hold -- either what
+   * the user last typed and we emitted, or what we last wrote into it. Incoming
+   * `value` is compared against that and never against innerHTML, which is the
+   * browser's own serialisation and differs from the string the parent stores
+   * for reasons that have nothing to do with anyone having edited anything.
+   *
+   * null means "this element is new and holds nothing", which is how a freshly
+   * mounted editor gets filled.
+   */
+  const domValueRef = useRef<string | null>(null);
+  /** HTML waiting on the debounce, so blur and unmount can still commit it. */
+  const pendingHtmlRef = useRef<string | null>(null);
+  /** The last HTML actually handed to onChange, for spotting our own echo. */
+  const lastEmittedRef = useRef<string | null>(null);
 
   // Selection with timestamp for staleness detection
   const savedSelectionRef = useRef<{ range: Range; timestamp: number } | null>(null);
@@ -67,45 +84,93 @@ export default function RichTextEditor({
   const isToolbarInteractionRef = useRef(false);
   const DEBOUNCE_MS = 150;
 
-  // Debounced onChange handler - captures latest onChange via ref to avoid stale callback issues
+  // onChange through a ref, so a debounce can never fire a stale callback
   const onChangeRef = useRef(onChange);
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
 
-  const debouncedOnChange = useCallback((html: string) => {
-    if (onChangeTimeoutRef.current) clearTimeout(onChangeTimeoutRef.current);
-    onChangeTimeoutRef.current = setTimeout(() => {
-      onChangeTimeoutRef.current = null;
-      onChangeRef.current(html);
-    }, DEBOUNCE_MS);
+  const fire = useCallback((html: string) => {
+    lastEmittedRef.current = html;
+    onChangeRef.current(html);
   }, []);
 
-  // Update content when value prop changes (e.g., when todo is loaded)
-  useEffect(() => {
-    // Only update if not currently editing
-    if (!isEditing && displayRef.current && value !== lastValueRef.current) {
-      lastValueRef.current = value;
+  /** A newly mounted contenteditable holds nothing, whatever `value` says. */
+  const attachEditor = useCallback((node: HTMLDivElement | null) => {
+    editorRef.current = node;
+    if (node) domValueRef.current = null;
+  }, []);
+
+  /**
+   * The one place an edit leaves this component.
+   *
+   * There were twenty copies of "read innerHTML, call onChange", one per key
+   * handler and toolbar button. Typing debounced; every other path fired
+   * immediately without cancelling the pending debounce, so typing and then
+   * clicking a toolbar button inside 150ms let the older text win. Now every
+   * path goes through here, and each one supersedes the last.
+   */
+  const emitChange = useCallback((immediate = false) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const html = editor.innerHTML || "";
+    domValueRef.current = html;
+    if (onChangeTimeoutRef.current) clearTimeout(onChangeTimeoutRef.current);
+
+    if (immediate) {
+      onChangeTimeoutRef.current = null;
+      pendingHtmlRef.current = null;
+      fire(html);
+      return;
     }
 
-    // Update editor content when value prop changes externally (e.g., loading a different todo)
-    // Skip if editor has focus - user is actively typing and we don't want to reset cursor
-    if (isEditing && editorRef.current) {
-      const hasFocus = document.activeElement === editorRef.current;
-      if (!hasFocus && editorRef.current.innerHTML !== value) {
-        // Sanitize only when actually setting content from external source
-        editorRef.current.innerHTML = sanitizeHtml(value || "");
-        lastValueRef.current = value;
-      }
-    }
+    pendingHtmlRef.current = html;
+    onChangeTimeoutRef.current = setTimeout(() => {
+      onChangeTimeoutRef.current = null;
+      pendingHtmlRef.current = null;
+      fire(html);
+    }, DEBOUNCE_MS);
+  }, [fire]);
+
+  /**
+   * Put an incoming `value` into the DOM, keeping the caret where it was.
+   *
+   * The old version refused to do this whenever the editor had focus, and its
+   * only trigger was [value, isEditing] -- so a change arriving mid-typing was
+   * not deferred, it was dropped for good. That is why a comment box would not
+   * empty after Enter: the caret was still in it, so the clear never landed and
+   * never came back.
+   *
+   * Writing while focused is safe now because the caret is saved as a character
+   * offset, which survives the nodes it pointed at being replaced.
+   */
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const next = value ?? "";
+    if (next === domValueRef.current) return;
+
+    // `value` lags a debounce behind the DOM, so a keystroke landing while the
+    // last change is still in flight makes the parent echo back text the user
+    // has already moved past. Writing that would undo the keystroke. An echo is
+    // only ignorable while the user is in the box; once focus is gone, whatever
+    // the parent says is the truth.
+    const focused = document.activeElement === editor;
+    if (focused && next === lastEmittedRef.current) return;
+
+    const caret = focused ? getCaretOffset(editor) : null;
+
+    editor.innerHTML = sanitizeHtml(next);
+    domValueRef.current = next;
+
+    if (caret !== null) setCaretOffset(editor, caret);
   }, [value, isEditing]);
 
-  // Track lastValueRef properly
-  useEffect(() => {
-    lastValueRef.current = value;
-  }, [value]);
-
-  // Cleanup on unmount
+  // Cleanup on unmount -- committing what is pending rather than dropping it.
+  // Closing a note with Escape used to throw away everything typed in the last
+  // 150ms, because this cleared the timer without running it.
   useEffect(() => {
     return () => {
       savedSelectionRef.current = null;
@@ -114,9 +179,13 @@ export default function RichTextEditor({
       }
       if (onChangeTimeoutRef.current) {
         clearTimeout(onChangeTimeoutRef.current);
+        onChangeTimeoutRef.current = null;
       }
+      const pending = pendingHtmlRef.current;
+      pendingHtmlRef.current = null;
+      if (pending !== null) fire(pending);
     };
-  }, []);
+  }, [fire]);
 
   const applyLink = () => {
     if (!linkUrl || !editorRef.current || !savedSelectionRef.current) return;
@@ -180,10 +249,7 @@ export default function RichTextEditor({
         // Insert the link HTML without extra space
         document.execCommand("insertHTML", false, linkHtml);
 
-        // Trigger change
-        const html = editorRef.current.innerHTML;
-        lastValueRef.current = html;
-        onChange(html);
+        emitChange();
 
         // Force re-style links after insertion
         requestAnimationFrame(() => {
@@ -240,11 +306,7 @@ export default function RichTextEditor({
   const applyFormatting = (command: string) => {
     document.execCommand(command);
     editorRef.current?.focus();
-    if (editorRef.current) {
-      const html = editorRef.current.innerHTML;
-      lastValueRef.current = html;
-      onChange(html);
-    }
+    emitChange();
   };
 
   // Toolbar button handler - inserts block element at cursor, preserving selected text
@@ -292,20 +354,15 @@ export default function RichTextEditor({
         break;
     }
 
-    const html = editorRef.current.innerHTML;
-    lastValueRef.current = html;
-    onChange(html);
+    emitChange();
   };
 
   // Handle list indentation from toolbar
   const handleToolbarIndent = (indent: boolean) => {
     if (!editorRef.current) return;
     editorRef.current.focus();
-    const handled = handleListIndent(editorRef.current, indent);
-    if (handled) {
-      const html = editorRef.current.innerHTML;
-      lastValueRef.current = html;
-      onChange(html);
+    if (handleListIndent(editorRef.current, indent)) {
+      emitChange();
     }
   };
 
@@ -336,9 +393,7 @@ export default function RichTextEditor({
         document.execCommand("insertHTML", false, "<code>\u200B</code>");
       }
 
-      const html = editorRef.current.innerHTML;
-      lastValueRef.current = html;
-      onChange(html);
+      emitChange();
     }
   };
 
@@ -576,7 +631,7 @@ export default function RichTextEditor({
 
           {/* Editor */}
           <div
-            ref={editorRef}
+            ref={attachEditor}
             contentEditable
             suppressContentEditableWarning
             data-testid="rich-text-editor"
@@ -590,7 +645,9 @@ export default function RichTextEditor({
                 // Use requestAnimationFrame and validate element is still connected
                 requestAnimationFrame(() => {
                   if (checkbox.isConnected) {
-                    toggleCheckbox(checkbox, onChange, onBlur, editorRef.current);
+                    // Through emitChange, so the DOM and `value` stay agreed --
+                    // otherwise the next render writes the editor back out.
+                    toggleCheckbox(checkbox, () => emitChange(true), onBlur, editorRef.current);
                   }
                 });
                 return;
@@ -618,30 +675,13 @@ export default function RichTextEditor({
                 return;
               }
             }}
-            onInput={(_e) => {
-              // Call debounced onChange when content changes
-              if (editorRef.current) {
-                const html = editorRef.current.innerHTML;
-                lastValueRef.current = html || "";
-                debouncedOnChange(html || "");
-              }
-            }}
+            onInput={() => emitChange()}
             onBlur={(e) => {
-              // Flush any pending debounced changes on blur
-              if (onChangeTimeoutRef.current) {
-                clearTimeout(onChangeTimeoutRef.current);
-                onChangeTimeoutRef.current = null;
-              }
-
-              // Always call onBlur callback immediately to save content
-              // (important for modal close - content must be saved before unmount)
-              if (editorRef.current) {
-                const html = editorRef.current.innerHTML;
-                lastValueRef.current = html || "";
-                onChange(html || "");
-                if (onBlur) {
-                  onBlur(html || "");
-                }
+              // Commit now rather than on the debounce: a modal can close
+              // before 150ms is up, and the content has to be saved first.
+              emitChange(true);
+              if (onBlur && editorRef.current) {
+                onBlur(editorRef.current.innerHTML || "");
               }
 
               // If alwaysEditable, don't exit edit mode
@@ -687,11 +727,11 @@ export default function RichTextEditor({
               return;
             }
 
-            // Handle Escape
+            // Escape leaves the editor, and blurring is what commits the
+            // text. An alwaysEditable editor stays in edit mode -- see onBlur --
+            // but it still has to commit, or Escape silently discards typing.
             if (e.key === "Escape") {
-              if (!alwaysEditable) {
-                e.currentTarget.blur();
-              }
+              e.currentTarget.blur();
               return;
             }
 
@@ -700,10 +740,7 @@ export default function RichTextEditor({
               const handled = handleListIndent(editorRef.current, !e.shiftKey);
               if (handled) {
                 e.preventDefault();
-                // Trigger onChange after modifying DOM
-                const html = editorRef.current.innerHTML;
-                lastValueRef.current = html;
-                onChange(html);
+                emitChange();
                 return;
               }
             }
@@ -716,10 +753,7 @@ export default function RichTextEditor({
                 handleHeaderBackspace(editorRef.current);
               if (handled) {
                 e.preventDefault();
-                // Trigger onChange after modifying DOM
-                const html = editorRef.current.innerHTML;
-                lastValueRef.current = html;
-                onChange(html);
+                emitChange();
                 return;
               }
             }
@@ -730,8 +764,18 @@ export default function RichTextEditor({
               if (onSubmit && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
                 e.preventDefault();
                 if (editorRef.current) {
-                  const html = editorRef.current.innerHTML;
-                  onSubmit(html || "");
+                  const html = editorRef.current.innerHTML || "";
+                  // Empty the box before handing the text over. Anything still
+                  // queued would otherwise fire afterwards and type the
+                  // submitted comment straight back in.
+                  if (onChangeTimeoutRef.current) {
+                    clearTimeout(onChangeTimeoutRef.current);
+                    onChangeTimeoutRef.current = null;
+                  }
+                  pendingHtmlRef.current = null;
+                  editorRef.current.innerHTML = "";
+                  domValueRef.current = "";
+                  onSubmit(html);
                 }
                 return;
               }
@@ -744,10 +788,7 @@ export default function RichTextEditor({
                   handleHeaderEnter(editorRef.current);
                 if (handled) {
                   e.preventDefault();
-                  // Trigger onChange after modifying DOM
-                  const html = editorRef.current.innerHTML;
-                  lastValueRef.current = html;
-                  onChange(html);
+                  emitChange();
                   return;
                 }
               }
@@ -763,9 +804,7 @@ export default function RichTextEditor({
                 e.preventDefault();
                 const level = headerMatch[1].length;
                 convertToHeader(editorRef.current, level, "", level);
-                const html = editorRef.current.innerHTML;
-                lastValueRef.current = html;
-                onChange(html);
+                emitChange();
                 return;
               }
 
@@ -773,9 +812,7 @@ export default function RichTextEditor({
               if (textBefore === "-") {
                 e.preventDefault();
                 convertToBulletList(editorRef.current, "", 1);
-                const html = editorRef.current.innerHTML;
-                lastValueRef.current = html;
-                onChange(html);
+                emitChange();
                 return;
               }
 
@@ -784,9 +821,7 @@ export default function RichTextEditor({
               if (orderedMatch) {
                 e.preventDefault();
                 convertToOrderedList(editorRef.current, "", orderedMatch[1].length);
-                const html = editorRef.current.innerHTML;
-                lastValueRef.current = html;
-                onChange(html);
+                emitChange();
                 return;
               }
 
@@ -794,9 +829,7 @@ export default function RichTextEditor({
               if (textBefore === ">") {
                 e.preventDefault();
                 convertToBlockquote(editorRef.current, "", 1);
-                const html = editorRef.current.innerHTML;
-                lastValueRef.current = html;
-                onChange(html);
+                emitChange();
                 return;
               }
 
@@ -804,17 +837,13 @@ export default function RichTextEditor({
               if (textBefore === "[]") {
                 e.preventDefault();
                 convertToCheckboxList(editorRef.current, false, "", 2);
-                const html = editorRef.current.innerHTML;
-                lastValueRef.current = html;
-                onChange(html);
+                emitChange();
                 return;
               }
               if (textBefore === "[ ]") {
                 e.preventDefault();
                 convertToCheckboxList(editorRef.current, false, "", 3);
-                const html = editorRef.current.innerHTML;
-                lastValueRef.current = html;
-                onChange(html);
+                emitChange();
                 return;
               }
 
@@ -822,9 +851,7 @@ export default function RichTextEditor({
               if (textBefore === "[x]" || textBefore === "[X]") {
                 e.preventDefault();
                 convertToCheckboxList(editorRef.current, true, "", 3);
-                const html = editorRef.current.innerHTML;
-                lastValueRef.current = html;
-                onChange(html);
+                emitChange();
                 return;
               }
             }
@@ -843,9 +870,7 @@ export default function RichTextEditor({
                   if (editorRef.current) {
                     const converted = convertInlineCode(editorRef.current);
                     if (converted) {
-                      const html = editorRef.current.innerHTML;
-                      lastValueRef.current = html;
-                      onChange(html);
+                      emitChange();
                     }
                   }
                 } catch (error) {
