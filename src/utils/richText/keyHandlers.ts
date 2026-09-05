@@ -12,6 +12,7 @@ import {
   ensureEditable,
   getCurrentBlock,
   isCursorAtBlockStart,
+  setCaretOffset,
 } from "./selection";
 import {
   isListItemEmpty,
@@ -172,6 +173,23 @@ export function handleHeaderEnter(editor: HTMLDivElement): boolean {
   return true;
 }
 
+/**
+ * A plain block holding the same content -- the nodes, not their text.
+ *
+ * These unwraps used to rebuild the block with `div.textContent =
+ * source.textContent`, which keeps the characters and discards every element
+ * around them. Backspacing out of "<b>Bold</b> tail" gave back "Bold tail" with
+ * the bold gone, and the same for links, code spans and italics.
+ */
+function unwrapToBlock(source: Element | null): HTMLDivElement {
+  const block = document.createElement("div");
+  while (source?.firstChild) {
+    block.appendChild(source.firstChild);
+  }
+  ensureEditable(block);
+  return block;
+}
+
 // Handle Backspace at the start of a list item
 export function handleListBackspace(editor: HTMLDivElement): boolean {
   if (!isCursorAtBlockStart(editor)) return false;
@@ -188,23 +206,9 @@ export function handleListBackspace(editor: HTMLDivElement): boolean {
   const validated = getValidatedSelection();
   if (!validated) return false;
 
-  const { selection } = validated;
-
-  // Get the text content
-  let textContent = "";
-  if (li.classList.contains("checkbox-item")) {
-    const span = li.querySelector("span");
-    textContent = span?.textContent || "";
-  } else {
-    textContent = li.textContent || "";
-  }
-
-  // Create a paragraph with the content
-  const p = document.createElement("div");
-  p.textContent = textContent || "";
-  if (!p.textContent) {
-    ensureEditable(p);
-  }
+  // A checkbox item keeps its text in the span beside the input, and the input
+  // itself has no business surviving the unwrap.
+  const p = unwrapToBlock(li.classList.contains("checkbox-item") ? li.querySelector("span") : li);
 
   // If this is the only item, replace the list
   if (list.children.length === 1) {
@@ -215,16 +219,7 @@ export function handleListBackspace(editor: HTMLDivElement): boolean {
     list.insertAdjacentElement("beforebegin", p);
   }
 
-  // Position cursor at the start
-  const newRange = document.createRange();
-  if (p.firstChild) {
-    newRange.setStart(p.firstChild, 0);
-  } else {
-    newRange.setStart(p, 0);
-  }
-  newRange.collapse(true);
-  selection.removeAllRanges();
-  selection.addRange(newRange);
+  setCaretOffset(p, 0);
   return true;
 }
 
@@ -241,25 +236,10 @@ export function handleBlockquoteBackspace(editor: HTMLDivElement): boolean {
   const validated = getValidatedSelection();
   if (!validated) return false;
 
-  const { selection } = validated;
-  const textContent = blockquote.textContent || "";
-  const p = document.createElement("div");
-  p.textContent = textContent;
-  if (!p.textContent) {
-    ensureEditable(p);
-  }
-
+  const p = unwrapToBlock(blockquote);
   blockquote.replaceWith(p);
 
-  const newRange = document.createRange();
-  if (p.firstChild) {
-    newRange.setStart(p.firstChild, 0);
-  } else {
-    newRange.setStart(p, 0);
-  }
-  newRange.collapse(true);
-  selection.removeAllRanges();
-  selection.addRange(newRange);
+  setCaretOffset(p, 0);
   return true;
 }
 
@@ -276,25 +256,10 @@ export function handleHeaderBackspace(editor: HTMLDivElement): boolean {
   const validated = getValidatedSelection();
   if (!validated) return false;
 
-  const { selection } = validated;
-  const textContent = block.textContent || "";
-  const p = document.createElement("div");
-  p.textContent = textContent;
-  if (!p.textContent) {
-    ensureEditable(p);
-  }
-
+  const p = unwrapToBlock(block);
   block.replaceWith(p);
 
-  const newRange = document.createRange();
-  if (p.firstChild) {
-    newRange.setStart(p.firstChild, 0);
-  } else {
-    newRange.setStart(p, 0);
-  }
-  newRange.collapse(true);
-  selection.removeAllRanges();
-  selection.addRange(newRange);
+  setCaretOffset(p, 0);
   return true;
 }
 

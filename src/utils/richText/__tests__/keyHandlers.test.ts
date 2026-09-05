@@ -384,3 +384,72 @@ describe("toggleCheckboxInHtml", () => {
     expect(result).toContain('checked="checked"');
   });
 });
+
+/**
+ * Unwrapping keeps the content, not just the characters.
+ *
+ * Every one of these rebuilt the block from `textContent`, so backspacing out
+ * of a formatted line returned plain text -- the bold, the link and the code
+ * span were simply gone.
+ */
+describe("unwrapping keeps inline formatting", () => {
+  it("keeps bold when a list item is unwrapped", () => {
+    const editor = editorWith("<ul><li><b>Bold</b> tail</li></ul>");
+    caretIn(editor, "li b", 0);
+
+    expect(handleListBackspace(editor)).toBe(true);
+    expect(editor.innerHTML).toBe("<div><b>Bold</b> tail</div>");
+  });
+
+  it("keeps a link when a blockquote is unwrapped", () => {
+    const editor = editorWith('<blockquote><a href="https://x.test/">link</a> after</blockquote>');
+    caretIn(editor, "blockquote a", 0);
+
+    expect(handleBlockquoteBackspace(editor)).toBe(true);
+    expect(editor.querySelector("a")?.getAttribute("href")).toBe("https://x.test/");
+    expect(editor.querySelector("blockquote")).toBeNull();
+  });
+
+  it("keeps a code span when a header is unwrapped", () => {
+    const editor = editorWith("<h2><code>npm</code> run</h2>");
+    caretIn(editor, "h2 code", 0);
+
+    expect(handleHeaderBackspace(editor)).toBe(true);
+    expect(editor.innerHTML).toBe("<div><code>npm</code> run</div>");
+  });
+
+  it("drops the input when a checkbox item is unwrapped, but keeps its text", () => {
+    const editor = editorWith(
+      '<ul class="checklist"><li class="checkbox-item"><input type="checkbox"><span><b>task</b></span></li></ul>',
+    );
+    caretIn(editor, "li span b", 0);
+
+    expect(handleListBackspace(editor)).toBe(true);
+    expect(editor.querySelector("input")).toBeNull();
+    expect(editor.innerHTML).toBe("<div><b>task</b></div>");
+  });
+
+  it("leaves the caret at the very start, ready for the next keystroke", () => {
+    const editor = editorWith("<ul><li><b>Bold</b> tail</li></ul>");
+    caretIn(editor, "li b", 0);
+
+    handleListBackspace(editor);
+
+    const range = window.getSelection()!.getRangeAt(0);
+    expect(range.startContainer.textContent).toBe("Bold");
+    expect(range.startOffset).toBe(0);
+  });
+
+  it("gives an emptied block a br so it does not collapse", () => {
+    const editor = editorWith("<h1></h1>");
+    const range = document.createRange();
+    range.setStart(editor.querySelector("h1")!, 0);
+    range.collapse(true);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    expect(handleHeaderBackspace(editor)).toBe(true);
+    expect(editor.innerHTML).toBe("<div><br></div>");
+  });
+});
