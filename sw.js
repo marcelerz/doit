@@ -5,7 +5,7 @@
 // so the browser never saw a new worker: no updatefound event, the "Update
 // available" toast was unreachable in production, and superseded caches were
 // never purged.
-const BUILD_VERSION = "0.1.165";
+const BUILD_VERSION = "0.1.166";
 
 const CACHE_NAME = `doit-cache-${BUILD_VERSION}`;
 const STATIC_CACHE_NAME = `doit-static-${BUILD_VERSION}`;
