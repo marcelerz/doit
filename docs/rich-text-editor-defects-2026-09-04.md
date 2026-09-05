@@ -27,6 +27,7 @@ two that turned out to be fine.
 | R4 | MEDIUM | Comments | A visually empty box posts a comment containing `<br>` |
 | R5 | MEDIUM | Lists | Backspace at the start of a formatted list item destroys the formatting |
 | R6 | LOW | Blocks | `# ` and `> ` leave the caret before the line's existing text |
+| R7 | **HIGH** | Toolbar | Every block button strands the line's text outside the block it makes |
 
 ---
 
@@ -139,6 +140,40 @@ The list conversions restore the caret **after** the text (`blocks.ts:103`, `:14
 header and blockquote conversions use `setStart(block, 0)` (`blocks.ts:235`, `:273`), i.e. before
 it. Two conventions in one file. There are fourteen hand-rolled caret restores across `blocks.ts`
 and `keyHandlers.ts` and no shared save/restore helper.
+
+### R7 — the block toolbar buttons do not convert the line — HIGH
+
+*Found on 2026-09-04 while writing the component's first tests, after the report
+above was written. Verified in the browser the same way.*
+
+Put the caret on a line and click **Bullet**, **Numbered**, **Checkbox**,
+**Blockquote** or any heading — the normal way to use these buttons. You get an
+empty block, and your text stays where it was:
+
+```
+typed  keep this text
+click  Bullet
+        -> keep this text<ul><li><br></li></ul>
+click  Blockquote
+        -> keep this text<blockquote><br></blockquote>
+click  Heading 2
+        -> keep this text<h2><br></h2>
+```
+
+Select the line first and every one of them is correct
+(`<ul><li>keep this text</li></ul>`), which is why this survived: it works in
+the one case a developer testing a toolbar button is most likely to try.
+
+`insertBlockElement` reads the text to convert from `selection.toString()` alone
+(`RichTextEditor.tsx:337-347`). A collapsed caret has no selection text, so it
+hands `""` to the conversion, which duly builds an empty block. Nothing reads the
+line the caret is actually on.
+
+A first pass at this measured contaminated state — each case ran on the wreckage
+of the last, which produced invalid nested `<ul><ul>` output and made the defect
+look worse and stranger than it is. Re-run with a verified-empty editor each
+time, the result is the six clean lines above. Worth recording: the first
+measurement was wrong in a way that would have sent the fix somewhere useless.
 
 ---
 

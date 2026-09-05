@@ -8,6 +8,8 @@ import {
   placeCaretAtEnd,
   insertHtmlAtCaret,
   insertTextAtCaret,
+  getCurrentBlock,
+  getCaretTextNode,
 } from "@/utils/richText/selection";
 import {
   convertToBulletList,
@@ -346,48 +348,65 @@ export default function RichTextEditor({
     emitChange();
   };
 
-  // Toolbar button handler - inserts block element at cursor, preserving selected text
+  /**
+   * Turn the caret's line -- or the selection -- into a block.
+   *
+   * The text has to be read before the DOM is touched. It used to be read from
+   * the selection alone, so clicking Bullet with a collapsed caret, which is how
+   * anyone actually uses these buttons, appended an empty block and left the
+   * line's text sitting outside it:
+   *
+   *   keep this text  ->  keep this text<ul><li><br></li></ul>
+   */
   const insertBlockElement = (type: "bullet" | "ordered" | "checkbox" | "quote" | "h1" | "h2" | "h3" | "h4") => {
-    if (!editorRef.current) return;
+    const editor = editorRef.current;
+    if (!editor) return;
 
-    // Get selected text before focusing
     const selection = window.getSelection();
-    let selectedText = "";
-    if (selection && selection.toString()) {
-      selectedText = selection.toString();
-      // Delete the selected text first
-      if (selection.rangeCount > 0) {
-        selection.getRangeAt(0).deleteContents();
+    let selectedText = selection?.toString() ?? "";
+
+    if (selectedText !== "" && selection && selection.rangeCount > 0) {
+      selection.getRangeAt(0).deleteContents();
+    } else {
+      const block = getCurrentBlock(editor);
+      if (block && block !== editor) {
+        // The conversion replaces the block outright, so its text comes along.
+        selectedText = block.textContent || "";
+      } else {
+        // A bare text node with no block around it: nothing gets replaced, so
+        // the line has to be emptied here or the text would appear twice.
+        const line = getCaretTextNode();
+        selectedText = line?.data || "";
+        if (line) line.data = "";
       }
     }
 
-    // Focus editor
-    editorRef.current.focus();
+    editor.focus();
 
     switch (type) {
       case "bullet":
-        convertToBulletList(editorRef.current, selectedText, 0);
+        convertToBulletList(editor, selectedText, 0);
         break;
       case "ordered":
-        convertToOrderedList(editorRef.current, selectedText, 0);
+        convertToOrderedList(editor, selectedText, 0);
         break;
       case "checkbox":
-        convertToCheckboxList(editorRef.current, false, selectedText, 0);
+        convertToCheckboxList(editor, false, selectedText, 0);
         break;
       case "quote":
-        convertToBlockquote(editorRef.current, selectedText, 0);
+        convertToBlockquote(editor, selectedText, 0);
         break;
       case "h1":
-        convertToHeader(editorRef.current, 1, selectedText, 0);
+        convertToHeader(editor, 1, selectedText, 0);
         break;
       case "h2":
-        convertToHeader(editorRef.current, 2, selectedText, 0);
+        convertToHeader(editor, 2, selectedText, 0);
         break;
       case "h3":
-        convertToHeader(editorRef.current, 3, selectedText, 0);
+        convertToHeader(editor, 3, selectedText, 0);
         break;
       case "h4":
-        convertToHeader(editorRef.current, 4, selectedText, 0);
+        convertToHeader(editor, 4, selectedText, 0);
         break;
     }
 

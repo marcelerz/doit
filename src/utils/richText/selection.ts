@@ -286,3 +286,12 @@ export function insertTextAtCaret(editor: HTMLElement, text: string): boolean {
   });
   return insertFragmentAtCaret(editor, fragment);
 }
+
+/** The text node the caret sits in, if it sits in one. */
+export function getCaretTextNode(): Text | null {
+  const validated = getValidatedSelection();
+  if (!validated) return null;
+
+  const node = validated.range.startContainer;
+  return node.nodeType === Node.TEXT_NODE ? (node as Text) : null;
+}
