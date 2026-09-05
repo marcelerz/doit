@@ -430,6 +430,40 @@ export function convertInlineCode(_editor: HTMLDivElement): boolean {
   return true;
 }
 
+/**
+ * Toggle the nth checkbox inside an HTML string, returning the new string.
+ *
+ * View mode does not render the stored content directly: link patterns are
+ * turned into anchors first. Toggling a checkbox in that rendered DOM and
+ * saving what comes back bakes those generated <a> elements into the stored
+ * note for good, so a pattern that is later edited or removed leaves dead links
+ * behind. Working on the source instead keeps the two apart.
+ *
+ * Indexing by position is safe because link-pattern processing only rewrites
+ * text nodes -- it never adds or removes an <input>, so the nth checkbox on
+ * screen is the nth checkbox in the source.
+ */
+export function toggleCheckboxInHtml(html: string, index: number): string | null {
+  const container = document.createElement("div");
+  container.innerHTML = html;
+
+  const checkbox = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[index];
+  if (!checkbox) return null;
+
+  const li = checkbox.closest("li") as HTMLLIElement | null;
+  const checked = !checkbox.checked;
+
+  if (li) {
+    synchronizeCheckboxState(checked, checkbox, li, li.querySelector("span"));
+  } else if (checked) {
+    checkbox.setAttribute("checked", "checked");
+  } else {
+    checkbox.removeAttribute("checked");
+  }
+
+  return container.innerHTML;
+}
+
 // Toggle checkbox state
 export function toggleCheckbox(
   checkbox: HTMLInputElement,

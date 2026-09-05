@@ -21,6 +21,7 @@ import {
   handleHeaderBackspace,
   handleListIndent,
   toggleCheckbox,
+  toggleCheckboxInHtml,
 } from "../keyHandlers";
 import { createCheckboxListItem } from "../blocks";
 
@@ -331,5 +332,55 @@ describe("toggleCheckbox", () => {
     toggleCheckbox(li.querySelector("input")!, onChange, undefined, null);
 
     expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The view-mode path. It cannot read the DOM the user clicked, because view
+ * mode renders link patterns as anchors first -- saving that back would write
+ * generated markup into the note permanently.
+ */
+describe("toggleCheckboxInHtml", () => {
+  const CHECKLIST =
+    '<ul class="checklist">' +
+    '<li class="checkbox-item" data-checked="false"><input type="checkbox"><span>first</span></li>' +
+    '<li class="checkbox-item" data-checked="false"><input type="checkbox"><span>second</span></li>' +
+    "</ul>";
+
+  it("checks the item at the given index and leaves the rest alone", () => {
+    const result = toggleCheckboxInHtml(CHECKLIST, 1)!;
+
+    const container = document.createElement("div");
+    container.innerHTML = result;
+    const items = container.querySelectorAll("li");
+    expect(items[0].getAttribute("data-checked")).toBe("false");
+    expect(items[1].getAttribute("data-checked")).toBe("true");
+    expect(items[1].querySelector("input")!.hasAttribute("checked")).toBe(true);
+    expect(items[1].querySelector("span")!.className).toContain("checkbox-checked");
+  });
+
+  it("unchecks one that was checked", () => {
+    const checked = toggleCheckboxInHtml(CHECKLIST, 0)!;
+    const result = toggleCheckboxInHtml(checked, 0)!;
+
+    const container = document.createElement("div");
+    container.innerHTML = result;
+    expect(container.querySelector("li")!.getAttribute("data-checked")).toBe("false");
+    expect(container.querySelector("input")!.hasAttribute("checked")).toBe(false);
+  });
+
+  it("adds no link markup, which is the whole point", () => {
+    const result = toggleCheckboxInHtml(CHECKLIST, 0)!;
+    expect(result).not.toContain("<a");
+  });
+
+  it("returns null when there is no checkbox at that index", () => {
+    expect(toggleCheckboxInHtml(CHECKLIST, 5)).toBeNull();
+    expect(toggleCheckboxInHtml("<p>no checkboxes</p>", 0)).toBeNull();
+  });
+
+  it("handles a checkbox outside a list item", () => {
+    const result = toggleCheckboxInHtml('<p><input type="checkbox"> loose</p>', 0)!;
+    expect(result).toContain('checked="checked"');
   });
 });

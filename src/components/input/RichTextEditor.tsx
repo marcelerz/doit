@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { sanitizeHtml, escapeHtmlAttribute, sanitizeUrl } from "@/utils/sanitize";
 import {
   isRangeValid,
@@ -26,10 +26,14 @@ import {
   handleListIndent,
   convertInlineCode,
   toggleCheckbox,
+  toggleCheckboxInHtml,
 } from "@/utils/richText/keyHandlers";
 import { LinkPattern } from "@/types/linkPattern";
 import { processLinkPatternsInHtml } from "@/utils/linkPatternUtils";
 import { LinkIcon } from "@/components/shared/Icons";
+
+/** Shared empty default, so the display memo is not defeated by a fresh []. */
+const NO_LINK_PATTERNS: LinkPattern[] = [];
 
 interface RichTextEditorProps {
   value?: string;
@@ -56,7 +60,7 @@ export default function RichTextEditor({
   className = "",
   alwaysEditable = false,
   noBorderInViewMode = false,
-  linkPatterns = [],
+  linkPatterns = NO_LINK_PATTERNS,
 }: RichTextEditorProps) {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
@@ -213,6 +217,14 @@ export default function RichTextEditor({
     }
     document.execCommand(command);
   };
+
+  // DOMPurify plus a full text-node walk, previously re-run on every parent
+  // render whether or not anything had changed.
+  const sanitizedValue = useMemo(() => sanitizeHtml(value || ""), [value]);
+  const displayHtml = useMemo(
+    () => processLinkPatternsInHtml(sanitizedValue, linkPatterns),
+    [sanitizedValue, linkPatterns],
+  );
 
   const applyLink = () => {
     if (!linkUrl || !editorRef.current || !savedSelectionRef.current) return;
@@ -437,7 +449,16 @@ export default function RichTextEditor({
             if (e.target instanceof HTMLInputElement && e.target.type === "checkbox") {
               e.preventDefault();
               e.stopPropagation();
-              toggleCheckbox(e.target, onChange, onBlur, displayRef.current);
+
+              // Toggle in the source rather than in displayRef, whose HTML has
+              // link-pattern anchors in it that were never part of the note.
+              const boxes = displayRef.current?.querySelectorAll('input[type="checkbox"]');
+              const index = boxes ? [...boxes].indexOf(e.target) : -1;
+              const next = index < 0 ? null : toggleCheckboxInHtml(sanitizedValue, index);
+              if (next !== null) {
+                onChange(next);
+                onBlur?.(next);
+              }
               return;
             }
 
@@ -457,9 +478,7 @@ export default function RichTextEditor({
               }, 0);
             }
           }}
-          dangerouslySetInnerHTML={{
-            __html: processLinkPatternsInHtml(sanitizeHtml(value || ""), linkPatterns),
-          }}
+          dangerouslySetInnerHTML={{ __html: displayHtml }}
           style={{ minHeight, maxHeight }}
           className={`rich-text-content overflow-y-auto text-sm px-3 py-2 rounded whitespace-pre-wrap ${
             noBorderInViewMode ? "border-0" : "border border-zinc-300 dark:border-zinc-600"
