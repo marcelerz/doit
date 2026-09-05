@@ -46,6 +46,9 @@ module.exports = {
     "src/components/overlays/EntityDetailsOverlay.tsx",
     "src/components/overlays/OpenFocusSetup.tsx",
     "src/components/shared/CommandPalette.tsx",
+    // The editor joins on the same terms, now that it has tests. 867 lines that
+    // no gate could see is how six rounds of "fixes" left seven live defects.
+    "src/components/input/RichTextEditor.tsx",
     "!src/**/*.d.ts",
     // Test files and fixtures are not production code; counting them in the
     // denominator let an unused 338-line helper drag the ratio down.
@@ -58,17 +61,17 @@ module.exports = {
   // `npm run validate` printed a number and always passed.
   // Raised to just under what the suite currently reaches, so a commit that
   // drops coverage fails rather than quietly spending the headroom. The global
-  // group excludes the two files that carry their own threshold, and measures
-  // 67.66 / 57.80 / 62.18 / 69.14.
+  // group excludes the files that carry their own threshold, and measures
+  // 68.94 / 59.56 / 63.66 / 70.36.
   coverageThreshold: {
     // Files with their own threshold below are subtracted from this group, so
     // each of them is ratcheted individually rather than being able to hide a
     // regression behind gains elsewhere.
     global: {
-      statements: 68.6,
-      branches: 59.2,
-      functions: 63.4,
-      lines: 70.0,
+      statements: 68.9,
+      branches: 59.5,
+      functions: 63.6,
+      lines: 70.3,
     },
     "src/components/overlays/TutorialOverlay.tsx": {
       statements: 78,
@@ -93,6 +96,14 @@ module.exports = {
       branches: 75,
       functions: 71,
       lines: 87,
+    },
+    // Below the rest because the parts that need a real caret, real layout or
+    // execCommand cannot be reached from jsdom; those are covered in e2e.
+    "src/components/input/RichTextEditor.tsx": {
+      statements: 77,
+      branches: 67,
+      functions: 64,
+      lines: 79,
     },
   },
 };

@@ -501,3 +501,185 @@ describe("leaving the editor", () => {
     expect(screen.queryByTestId("rich-text-editor")).toBeNull();
   });
 });
+
+describe("links", () => {
+  const selectEverything = () => {
+    const range = document.createRange();
+    range.selectNodeContents(editor());
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };
+
+  const openDialog = () => {
+    selectEverything();
+    fireEvent.click(screen.getByTitle("Link (⌘K)"));
+    return screen.getByPlaceholderText("https://...");
+  };
+
+  const apply = (url: string) => {
+    const input = openDialog();
+    fireEvent.change(input, { target: { value: url } });
+    fireEvent.keyDown(input, { key: "Enter" });
+  };
+
+  it("wraps the selection in a link", () => {
+    const onChange = jest.fn();
+    render(<RichTextEditor value="doit" onChange={onChange} alwaysEditable />);
+
+    apply("https://example.com");
+    settle();
+
+    const link = editor().querySelector("a")!;
+    expect(link.getAttribute("href")).toBe("https://example.com");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(link.textContent).toBe("doit");
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it("refuses a javascript: URL", () => {
+    render(<RichTextEditor value="doit" onChange={jest.fn()} alwaysEditable />);
+
+    apply("javascript:alert(1)");
+
+    expect(editor().querySelector("a")).toBeNull();
+  });
+
+  it("escapes quotes in the URL, so it cannot break out of the attribute", () => {
+    render(<RichTextEditor value="doit" onChange={jest.fn()} alwaysEditable />);
+
+    apply('https://x.test/" onmouseover="steal()');
+
+    // The whole string stays inside href as one value -- no second attribute
+    // and no event handler is created out of it.
+    const link = editor().querySelector("a")!;
+    expect(link.getAttribute("href")).toBe('https://x.test/" onmouseover="steal()');
+    expect(link.hasAttribute("onmouseover")).toBe(false);
+  });
+
+  it("forgets a selection that has gone stale", () => {
+    // A range saved half an hour ago points at nodes that may be long gone.
+    render(<RichTextEditor value="doit" onChange={jest.fn()} alwaysEditable />);
+    const input = openDialog();
+
+    act(() => {
+      jest.advanceTimersByTime(31_000);
+    });
+    fireEvent.change(input, { target: { value: "https://example.com" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(editor().querySelector("a")).toBeNull();
+    expect(screen.queryByPlaceholderText("https://...")).toBeNull();
+  });
+
+  it("closes on Escape without changing anything", () => {
+    render(<RichTextEditor value="doit" onChange={jest.fn()} alwaysEditable />);
+    const input = openDialog();
+
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(screen.queryByPlaceholderText("https://...")).toBeNull();
+    expect(editor().innerHTML).toBe("doit");
+  });
+
+  it("prefills the dialog with an existing link's URL", () => {
+    render(<RichTextEditor value='<a href="https://old.test/">doit</a>' onChange={jest.fn()} alwaysEditable />);
+
+    const input = openDialog() as HTMLInputElement;
+
+    expect(input.value).toBe("https://old.test/");
+  });
+
+  it("opens the dialog from the keyboard too", () => {
+    render(<RichTextEditor value="doit" onChange={jest.fn()} alwaysEditable />);
+    selectEverything();
+
+    fireEvent.keyDown(editor(), { key: "k", metaKey: true });
+
+    expect(screen.getByPlaceholderText("https://...")).toBeTruthy();
+  });
+});
+
+describe("keys inside structured blocks", () => {
+  it("continues a list on Enter", () => {
+    const onChange = jest.fn();
+    render(<RichTextEditor value="<ul><li>item</li></ul>" onChange={onChange} alwaysEditable />);
+    caretAt(4);
+
+    fireEvent.keyDown(editor(), { key: "Enter" });
+    settle();
+
+    expect(editor().querySelectorAll("li")).toHaveLength(2);
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it("unwraps a list item on Backspace at its start", () => {
+    const onChange = jest.fn();
+    render(<RichTextEditor value="<ul><li>item</li></ul>" onChange={onChange} alwaysEditable />);
+    caretAt(0);
+
+    fireEvent.keyDown(editor(), { key: "Backspace" });
+    settle();
+
+    expect(editor().querySelector("ul")).toBeNull();
+    expect(editor().textContent).toBe("item");
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it("indents a list item with Tab", () => {
+    const onChange = jest.fn();
+    render(<RichTextEditor value="<ul><li>one</li><li>two</li></ul>" onChange={onChange} alwaysEditable />);
+    const second = editor().querySelectorAll("li")[1].firstChild!;
+    const range = document.createRange();
+    range.setStart(second, 1);
+    range.collapse(true);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    fireEvent.keyDown(editor(), { key: "Tab" });
+    settle();
+
+    expect(editor().querySelector("li ul li")?.textContent).toBe("two");
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it("leaves Tab alone outside a list, so focus can still move on", () => {
+    const onChange = jest.fn();
+    render(<RichTextEditor value="<div>plain</div>" onChange={onChange} alwaysEditable />);
+    caretAt(2);
+
+    fireEvent.keyDown(editor(), { key: "Tab" });
+    settle();
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("inline code", () => {
+  it("wraps the selection in a code element", () => {
+    const onChange = jest.fn();
+    render(<RichTextEditor value="npm run dev" onChange={onChange} alwaysEditable />);
+    const range = document.createRange();
+    range.selectNodeContents(editor());
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    fireEvent.click(screen.getByTitle("Inline Code (type `text`)"));
+    settle();
+
+    expect(editor().querySelector("code")?.textContent).toBe("npm run dev");
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it("leaves an empty code element to type into when nothing is selected", () => {
+    render(<RichTextEditor value="text" onChange={jest.fn()} alwaysEditable />);
+    caretAt(4);
+
+    fireEvent.click(screen.getByTitle("Inline Code (type `text`)"));
+
+    // A zero-width space, so the element has somewhere for the caret to sit.
+    expect(editor().querySelector("code")?.textContent).toBe("​");
+  });
+});

@@ -424,37 +424,44 @@ export default function RichTextEditor({
 
   // Insert inline code at cursor
   const insertInlineCode = () => {
-    if (!editorRef.current) return;
-    editorRef.current.focus();
+    const editor = editorRef.current;
+    if (!editor) return;
 
+    // Read the selection before focusing rather than after. Focusing can
+    // collapse it, and then the button quietly inserts an empty code span
+    // instead of wrapping what the user highlighted.
     const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const selectedText = selection.toString();
-      if (selectedText) {
-        // Wrap selected text in code tags
-        const code = document.createElement("code");
-        code.textContent = selectedText;
-        const range = selection.getRangeAt(0);
-        range.deleteContents();
-        range.insertNode(code);
+    if (!selection || selection.rangeCount === 0) return;
 
-        // Move cursor after code element
-        const newRange = document.createRange();
-        newRange.setStartAfter(code);
-        newRange.collapse(true);
-        selection.removeAllRanges();
-        selection.addRange(newRange);
-      } else {
-        // An empty code element with a zero-width space to sit in, and the
-        // caret inside it -- the point of the button is to type code next.
-        const code = document.createElement("code");
-        code.textContent = "\u200B";
-        selection.getRangeAt(0).insertNode(code);
-        placeCaretAtEnd(code);
-      }
+    const selectedText = selection.toString();
+    const range = selection.getRangeAt(0).cloneRange();
 
-      emitChange();
+    editor.focus();
+
+    const code = document.createElement("code");
+    if (selectedText !== "") {
+      code.textContent = selectedText;
+      range.deleteContents();
+    } else {
+      // A zero-width space, so the element has somewhere for a caret to sit.
+      code.textContent = "\u200B";
     }
+    range.insertNode(code);
+
+    if (selectedText !== "") {
+      // After the element: the wrapping is done, so typing carries on in plain
+      // text. With nothing selected the caret belongs inside it instead --
+      // the point of the button then is to type code next.
+      const after = document.createRange();
+      after.setStartAfter(code);
+      after.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(after);
+    } else {
+      placeCaretAtEnd(code);
+    }
+
+    emitChange();
   };
 
   return (
