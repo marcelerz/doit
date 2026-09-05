@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { SprintModel } from "@/models/SprintModel";
 import { Sprint, SprintId } from "@/types/sprint";
@@ -90,10 +91,8 @@ export function SprintDetailsOverlay({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Auto-save when fields change (only for planning sprints)
-  useEffect(() => {
-    if (sprint.status !== "planning") return;
-
-    const handler = setTimeout(() => {
+  useDebouncedSave(
+    () => {
       const needsUpdate =
         editingName.trim() !== sprint.name ||
         (editingGoal.trim() || undefined) !== sprint.goal ||
@@ -101,19 +100,19 @@ export function SprintDetailsOverlay({
         (editingStartDate || undefined) !== sprint.plannedStartDate ||
         (editingColor || undefined) !== sprint.color;
 
-      if (needsUpdate) {
-        onUpdate(sprint.id, {
-          name: editingName.trim(),
-          goal: editingGoal.trim() || undefined,
-          durationDays: editingDuration,
-          plannedStartDate: editingStartDate || undefined,
-          color: editingColor ? getColor(editingColor) : undefined,
-        });
-      }
-    }, 500);
+      if (!needsUpdate) return;
 
-    return () => clearTimeout(handler);
-  }, [editingName, editingGoal, editingDuration, editingStartDate, editingColor, sprint, onUpdate]);
+      onUpdate(sprint.id, {
+        name: editingName.trim(),
+        goal: editingGoal.trim() || undefined,
+        durationDays: editingDuration,
+        plannedStartDate: editingStartDate || undefined,
+        color: editingColor ? getColor(editingColor) : undefined,
+      });
+    },
+    [editingName, editingGoal, editingDuration, editingStartDate, editingColor, sprint, onUpdate],
+    { enabled: sprint.status === "planning" },
+  );
 
   useEscapeKey(onClose);
 

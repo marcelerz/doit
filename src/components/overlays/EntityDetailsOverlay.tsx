@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useState, useEffect } from "react";
+import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { BaseEntity, BaseEntityModel } from "@/models/BaseEntityModel";
 import { MarkerColors } from "@/types/markerColors";
@@ -133,13 +134,17 @@ export function EntityDetailsOverlay<
   const [editingContext, setEditingContext] = useState(entity.context || "");
 
   // Sync local state when the entity changes (after updates)
-  // Legitimate prop sync pattern for editable form fields
+  // Legitimate prop sync pattern for editable form fields, guarded the same way
+  // NoteDetailView and SprintDetailsOverlay guard theirs. The rule did not flag
+  // this one until the autosave effect next to it moved into a hook.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setEditingName(entity.name);
     setEditingAlternatives(entity.alternatives);
     setEditingColor(entity.color);
     setEditingContext(entity.context || "");
   }, [entity]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const sharedUpdates = (context: string): Partial<TEntity> =>
     ({
@@ -157,8 +162,8 @@ export function EntityDetailsOverlay<
   // throughout, and an effect that does not re-run fires the previous render's
   // timer, saving A.
   const extraKey = JSON.stringify(extra?.updates ?? null);
-  useEffect(() => {
-    const handler = setTimeout(() => {
+  useDebouncedSave(
+    () => {
       if (
         editingName.trim() !== entity.name ||
         JSON.stringify(editingAlternatives) !==
@@ -168,20 +173,18 @@ export function EntityDetailsOverlay<
       ) {
         onUpdate(entity.id, sharedUpdates(editingContext));
       }
-    }, 500);
-
-    return () => clearTimeout(handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    editingName,
-    editingAlternatives,
-    editingColor,
-    extraChanged,
-    extraKey,
-    entity,
-    onUpdate,
-    editingContext,
-  ]);
+    },
+    [
+      editingName,
+      editingAlternatives,
+      editingColor,
+      extraChanged,
+      extraKey,
+      entity,
+      onUpdate,
+      editingContext,
+    ],
+  );
 
   useEscapeKey(onClose);
 

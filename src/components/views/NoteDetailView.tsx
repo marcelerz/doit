@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 import { EntityMetadataFields } from "@/components/shared/EntityMetadataFields";
 import { escapeRegex } from "@/utils/linkPatternUtils";
 import { sanitizeUrl, isHtmlEmpty } from "@/utils/sanitize";
@@ -261,12 +262,10 @@ export function NoteDetailView({
     setIsEditingTitle(false);
   }, [editingPlainTitle, editingTitle, editingContent, tokens, note.id, onEdit, onRecordSelections]);
 
-  // Auto-save when title, content, or metadata changes (skip when in title edit mode)
-  useEffect(() => {
-    // Don't auto-save title changes when in edit mode - wait for explicit save
-    if (isEditingTitle) return;
-
-    const handler = setTimeout(() => {
+  // Auto-save when title, content, or metadata changes. Title edits wait for an
+  // explicit save, so autosave is off while the title is being edited.
+  useDebouncedSave(
+    () => {
       const hasChanges =
         editingTitle !== note.text ||
         editingPlainTitle !== note.plainText ||
@@ -277,23 +276,23 @@ export function NoteDetailView({
         JSON.stringify(editingMetadata.projects) !== JSON.stringify(note.projects) ||
         JSON.stringify(editingMetadata.tags) !== JSON.stringify(note.tags);
 
-      if (hasChanges) {
-        const metadata = buildMetadata(tokens, editingContent, editingMetadata);
-        onEdit(note.id, editingTitle, editingPlainTitle, metadata);
+      if (!hasChanges) return;
 
-        // Record selections for usage history
-        onRecordSelections?.({
-          assignedPeople: metadata.assignedPeople,
-          sourcePeople: metadata.sourcePeople,
-          mentionedPeople: metadata.mentionedPeople,
-          projects: metadata.projects,
-          tags: metadata.tags,
-        });
-      }
-    }, 500);
+      const metadata = buildMetadata(tokens, editingContent, editingMetadata);
+      onEdit(note.id, editingTitle, editingPlainTitle, metadata);
 
-    return () => clearTimeout(handler);
-  }, [editingTitle, editingPlainTitle, editingContent, editingMetadata, tokens, note, onEdit, buildMetadata, isEditingTitle, onRecordSelections]);
+      // Record selections for usage history
+      onRecordSelections?.({
+        assignedPeople: metadata.assignedPeople,
+        sourcePeople: metadata.sourcePeople,
+        mentionedPeople: metadata.mentionedPeople,
+        projects: metadata.projects,
+        tags: metadata.tags,
+      });
+    },
+    [editingTitle, editingPlainTitle, editingContent, editingMetadata, tokens, note, onEdit, buildMetadata, onRecordSelections],
+    { enabled: !isEditingTitle },
+  );
 
   // Handle title change from SmartInput
   const handleTitleChange = useCallback((newTokens: TokenMatch[], fullText: string, plainText: string) => {
@@ -306,6 +305,22 @@ export function NoteDetailView({
   const handleContentChange = useCallback((html: string) => {
     setEditingContent(html);
   }, []);
+
+  /**
+   * Commit the body straight away when the editor loses focus.
+   *
+   * Escape blurs the editor and then closes the note, in that order and in the
+   * same tick. Going through state would leave the save a render behind the
+   * blur, so the html is taken as an argument and written now.
+   */
+  const handleContentCommit = useCallback(
+    (html: string) => {
+      setEditingContent(html);
+      if (html === note.content) return;
+      onEdit(note.id, editingTitle, editingPlainTitle, buildMetadata(tokens, html, editingMetadata));
+    },
+    [note.id, note.content, editingTitle, editingPlainTitle, tokens, editingMetadata, buildMetadata, onEdit],
+  );
 
   // Handle metadata changes
   const handleMetadataChange = useCallback((newMetadata: typeof editingMetadata) => {
@@ -623,6 +638,7 @@ export function NoteDetailView({
             <RichTextEditor
               value={editingContent}
               onChange={handleContentChange}
+              onBlur={handleContentCommit}
               placeholder="Write your note here... Use rich text formatting for better organization."
               minHeight="200px"
               maxHeight="500px"
