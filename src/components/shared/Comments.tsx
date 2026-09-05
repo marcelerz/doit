@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { sanitizeHtml } from "@/utils/sanitize";
+import { sanitizeHtml, isHtmlEmpty } from "@/utils/sanitize";
 import { Comment, CommentId } from "@/types/types";
 import { LinkPattern } from "@/types/linkPattern";
 import RichTextEditor from "@/components/input/RichTextEditor";
@@ -29,16 +29,6 @@ export function Comments({
   const [editingCommentId, setEditingCommentId] = useState<CommentId | null>(null);
   const [editContent, setEditContent] = useState("");
   const [expandedCommentId, setExpandedCommentId] = useState<CommentId | null>(null);
-
-  // Helper to check if HTML content is empty (uses sanitized HTML for safety)
-  const isHtmlEmpty = (html: string): boolean => {
-    if (!html) return true;
-    if (typeof window === "undefined") return html.trim().length === 0;
-    const temp = document.createElement("div");
-    temp.innerHTML = sanitizeHtml(html);
-    const text = temp.textContent || "";
-    return text.trim().length === 0;
-  };
 
   const handleAddComment = () => {
     if (!isHtmlEmpty(newComment)) {

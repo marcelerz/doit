@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { EntityMetadataFields } from "@/components/shared/EntityMetadataFields";
 import { escapeRegex } from "@/utils/linkPatternUtils";
-import { sanitizeUrl } from "@/utils/sanitize";
+import { sanitizeUrl, isHtmlEmpty } from "@/utils/sanitize";
 import { TodoMetadata, TodoId, SubtaskId, TimeEntryId, getTodoId } from "@/types/todo";
 import { Settings } from "@/types/settings";
 import { MarkerColors } from "@/types/markerColors";
@@ -1158,7 +1158,7 @@ export function TodoDetailsOverlay({
                   value={newComment}
                   onChange={setNewComment}
                   onSubmit={(html) => {
-                    if (html.trim()) {
+                    if (!isHtmlEmpty(html)) {
                       onAddComment(todo.id, html);
                       setNewComment("");
                     }
@@ -1172,12 +1172,12 @@ export function TodoDetailsOverlay({
               </div>
               <button
                 onClick={() => {
-                  if (newComment.trim()) {
+                  if (!isHtmlEmpty(newComment)) {
                     onAddComment(todo.id, newComment);
                     setNewComment("");
                   }
                 }}
-                disabled={newComment.trim() === ""}
+                disabled={isHtmlEmpty(newComment)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
                 data-testid="add-comment-button"
               >

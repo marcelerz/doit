@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { isHtmlEmpty } from "@/utils/sanitize";
 import RichTextEditor from "@/components/input/RichTextEditor";
 import { Activity } from "@/components/shared/Activity";
 import { ActivityEntry, Comment, CommentId } from "@/types/types";
@@ -53,7 +54,7 @@ export function ActivitySection<T extends string>({
   const [newComment, setNewComment] = useState("");
 
   const handleAddComment = () => {
-    if (newComment.trim()) {
+    if (!isHtmlEmpty(newComment)) {
       onAddComment(newComment);
       setNewComment("");
     }
@@ -70,7 +71,7 @@ export function ActivitySection<T extends string>({
             value={newComment}
             onChange={setNewComment}
             onSubmit={(html) => {
-              if (html.trim()) {
+              if (!isHtmlEmpty(html)) {
                 onAddComment(html);
                 setNewComment("");
               }
@@ -84,7 +85,7 @@ export function ActivitySection<T extends string>({
         </div>
         <button
           onClick={handleAddComment}
-          disabled={newComment.trim() === ""}
+          disabled={isHtmlEmpty(newComment)}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           Add
