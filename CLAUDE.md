@@ -148,6 +148,9 @@ are exported for code that has to match on the namespace rather than a single ke
 Detailed docs in `docs/` cover auto-detection, storage architecture, model usage
 and E2E testing patterns.
 
+`docs/sweep-2026-11/` holds the November 2026 codebase sweep: the backlog and the
+phased roadmap. Start at its `README.md`, which says how a batch is run.
+
 ## Testing notes
 
 - Jest matches `*.test.ts` and `*.test.tsx`; component and hook tests need a

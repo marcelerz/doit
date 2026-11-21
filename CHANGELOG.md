@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.1.199 - 21 November 2026 - Codebase sweep: backlog and roadmap
+
+A read-only sweep of the whole codebase across twelve review items — dead code, documentation,
+messages, duplication, structure, bugs, logging, UI usability, inconsistencies, support, partly
+implemented features and security — and the plan for working through what it found. Nothing under
+`src/` changes in this entry. Start at
+[`docs/sweep-2026-11/README.md`](docs/sweep-2026-11/README.md).
+
+### Added
+
+- `docs/sweep-2026-11/` — the backlog: 1,235 review items merged into 729 work units, each with
+  where, problem, proposal and a done-when check.
+- A roadmap of 21 batches in twelve phases, ordered data safety first, fixes before refactors,
+  cleanup before polish. Each batch is run on request with its own plan.
+- `decisions.md` — the 188 work units that wait on an answer from the owner, by batch.
+- The twelve review lists, each with its context, its items from high to low, dependencies,
+  dropped findings and the areas no reviewer read.
+
+### Known gaps
+
+- Nothing was built or run; every finding comes from reading the code as of `0596933`. Each fix
+  starts with a reproducer.
+- Security findings are not in the repository. They sit in an untracked local file until the batch
+  that fixes them lands.
+- Documentation, messages, UI and support findings were spot-checked, not independently verified
+  like the other eight lists.
+- Three areas had no reviewer and have a gap review scheduled: some stored-data loaders and the
+  third-party import parsers, several settings tabs, and the live-rendered UI.
+
 ## 0.1.179 - 5 September 2026 - Rich text editor rewrite
 
 The editor lost text, lost formatting, and had no tests. Seven defects were reproduced in a
