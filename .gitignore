@@ -42,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# sweep backlog: security findings stay local until they are fixed (the repo is public)
+docs/sweep-2026-11/security.local.md
