@@ -730,3 +730,145 @@ describe("ordinal day parsing - day absent from the reference month", () => {
     expect(key(parseDateWithCustomChrono("the 15th", new Date(2025, 5, 15)))).toBe("2025-07-15");
   });
 });
+
+describe("shorthand aliases that had no test", () => {
+  // Every expected date here is worked out on a calendar from what the alias
+  // means, never copied from the parser. Where today's answer is a suspected
+  // defect or hangs on an open decision, the case is an it.todo naming the
+  // backlog unit, so nothing questionable gets pinned.
+  const sunday = new Date(2025, 5, 15, 10, 0, 0); // the reference date the suite above uses
+  const wednesday = new Date(2025, 5, 18, 10, 0, 0);
+
+  const parseAlias = (alias: string, ref: Date): Date => {
+    const results = parseWithCustomChrono(alias, ref, defaultDateTimeSettings, defaultWorkHoursSettings);
+    // One result spanning the whole word: the alias itself matched, not a
+    // shorter key inside it ("christmas" in "christmaseve").
+    expect(results.map((r) => r.text)).toEqual([alias]);
+    return results[0].start.date();
+  };
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const day = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const dayAndTime = (d: Date) => `${day(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+  describe("day boundaries", () => {
+    // 08:00, an hour before the fixtures' work day starts, so "start of day"
+    // is still ahead and the answer does not hang on U0529.
+    const beforeWork = new Date(2025, 5, 15, 8, 0, 0);
+
+    it.each(["beginningofday", "beginningoftheday", "startoftheday"])(
+      "resolves %s to the start of work on the same day",
+      (alias) => {
+        expect(dayAndTime(parseAlias(alias, beforeWork))).toBe("2025-06-15 09:00");
+      },
+    );
+
+    it("resolves endoftheday to the end of work on the same day", () => {
+      expect(dayAndTime(parseAlias("endoftheday", sunday))).toBe("2025-06-15 17:00");
+    });
+
+    it.todo("settles whether a start-of-day alias typed after work has begun means today or tomorrow (U0529)");
+    it.todo("resolves 'today' with no time to one agreed time of day on every parsing path (U0538)");
+  });
+
+  describe("week boundaries, with the Monday-to-Friday work week of the fixtures", () => {
+    // Asked mid-week, where the week in question is not in doubt: Monday 16
+    // to Friday 20 June 2025.
+    it.each([
+      ["startofweek", "2025-06-16"],
+      ["beginningofweek", "2025-06-16"],
+      ["beginningoftheweek", "2025-06-16"],
+      ["startoftheweek", "2025-06-16"],
+      ["endofweek", "2025-06-20"],
+      ["endoftheweek", "2025-06-20"],
+    ])("resolves %s from Wednesday 18 June 2025 to %s", (alias, expected) => {
+      expect(day(parseAlias(alias, wednesday))).toBe(expected);
+    });
+
+    it.todo("honours a Sunday work-week start (workWeekStart 0) instead of reading it as Monday (U0531)");
+    it.todo("puts start-of-week and end-of-week aliases typed at the weekend in one and the same week (new finding)");
+    it.todo("resolves 'weekend' typed on a Saturday to that weekend, not the Saturday a week later (new finding)");
+  });
+
+  describe("month boundaries", () => {
+    it.each([
+      ["startofmonth", "2025-06-01"],
+      ["beginningofmonth", "2025-06-01"],
+      ["beginningofthemonth", "2025-06-01"],
+      ["startofthemonth", "2025-06-01"],
+      ["endofmonth", "2025-06-30"],
+      ["endofthemonth", "2025-06-30"],
+    ])("resolves %s from 15 June 2025 to %s", (alias, expected) => {
+      expect(day(parseAlias(alias, sunday))).toBe(expected);
+    });
+  });
+
+  describe("quarter, half-year and year boundaries", () => {
+    // Whether these follow the fiscal-year-start setting or are calendar
+    // periods is the owner's call in U0535, so none of them is pinned yet. The
+    // long forms are startof-, endof-, beginningof-, beginningofthe-, endofthe-
+    // and startofthe- followed by quarter or year.
+    it.todo("resolves the six long-form quarter aliases by the rule chosen for fiscalYearStart (U0535)");
+    it.todo("resolves startofhalf, endofhalf and nexthalf by the rule chosen for fiscalYearStart (U0535)");
+    it.todo("resolves the six long-form year aliases by the rule chosen for fiscalYearStart (U0535)");
+  });
+
+  describe("placeholders, seasons and payday", () => {
+    it("resolves whenever to three months out, the same placeholder as someday", () => {
+      expect(day(parseAlias("whenever", sunday))).toBe("2025-09-15");
+    });
+
+    it("resolves autumn to the next 22 September, as fall does", () => {
+      expect(day(parseAlias("autumn", sunday))).toBe("2025-09-22");
+    });
+
+    // Paydays are the 15th and the last day of the month. The reference dates
+    // avoid both, so "next" cannot mean today.
+    it.each([
+      ["18 June 2025", wednesday, "2025-06-30"],
+      ["1 July 2025", new Date(2025, 6, 1, 10, 0, 0), "2025-07-15"],
+    ])("resolves nextpayday from %s to the payday that follows", (_label, ref, expected) => {
+      expect(day(parseAlias("nextpayday", ref))).toBe(expected);
+    });
+
+    it.todo("settles whether payday typed on a payday means that day or the one after (new finding)");
+  });
+
+  describe("holidays", () => {
+    // Next occurrence after Sunday 15 June 2025.
+    it.each([
+      ["juneteenth", "2025-06-19"],
+      ["independenceday", "2025-07-04"],
+      ["julyfourth", "2025-07-04"],
+      ["columbusday", "2025-10-13"], // second Monday of October
+      ["electionday", "2025-11-04"], // the Tuesday after the first Monday of November
+      ["veteransday", "2025-11-11"],
+      ["blackfriday", "2025-11-28"], // the day after Thanksgiving, Thursday 27 November
+      ["cybermonday", "2025-12-01"], // the Monday after Thanksgiving
+      ["christmaseve", "2025-12-24"],
+      ["newyearseve", "2025-12-31"],
+      ["newyears", "2026-01-01"],
+      ["newyearsday", "2026-01-01"],
+      ["mlkday", "2026-01-19"], // third Monday of January
+      ["groundhogday", "2026-02-02"],
+      ["valentinesday", "2026-02-14"],
+      ["presidentsday", "2026-02-16"], // third Monday of February
+      ["stpatricks", "2026-03-17"],
+      ["stpatricksday", "2026-03-17"],
+      ["taxday", "2026-04-15"],
+      ["cincodemayo", "2026-05-05"],
+      ["mothersday", "2026-05-10"], // second Sunday of May
+    ])("resolves %s to its next occurrence, %s", (alias, expected) => {
+      expect(day(parseAlias(alias, sunday))).toBe(expected);
+    });
+
+    it("resolves fathersday to the third Sunday of June when asked the day before", () => {
+      // Father's Day 2025 is 15 June -- the suite's reference date -- so this
+      // one is asked on Saturday the 14th instead.
+      expect(day(parseAlias("fathersday", new Date(2025, 5, 14, 10, 0, 0)))).toBe("2025-06-15");
+    });
+
+    it.todo("resolves a holiday typed on its own day to that day, not next year: fathersday on 15 June 2025 (U0534)");
+    it.todo("settles whether 'the 15th' typed on the 15th means today or next month (new finding)");
+  });
+});
