@@ -35,6 +35,7 @@ export function SprintItem({
   return (
     <div
       onClick={onClick}
+      data-testid="sprint-item"
       className={`group bg-white dark:bg-zinc-900 p-4 rounded-lg shadow-sm border cursor-pointer hover:shadow-md transition-all ${
         isRunning
           ? "border-green-500 dark:border-green-600 ring-1 ring-green-500/20"

@@ -41,10 +41,10 @@ export const VIEW_DEFINITIONS: readonly ViewDefinition[] = [
   { id: "notes", label: "Notes", testId: "view-tab-notes", featureFlag: "notesView" },
   { id: "people", label: "People", testId: "view-tab-people" },
   { id: "projects", label: "Projects", testId: "view-tab-projects" },
-  { id: "sprints", label: "Sprints", featureFlag: "sprintsView" },
+  { id: "sprints", label: "Sprints", testId: "view-tab-sprints", featureFlag: "sprintsView" },
   { id: "reviews", label: "Reviews", testId: "view-tab-reviews", featureFlag: "reviewsView" },
-  { id: "stats", label: "Stats", featureFlag: "statsView" },
-  { id: "timereports", label: "Time", featureFlag: "timeTracking" },
+  { id: "stats", label: "Stats", testId: "view-tab-stats", featureFlag: "statsView" },
+  { id: "timereports", label: "Time", testId: "view-tab-timereports", featureFlag: "timeTracking" },
 ];
 
 /**
