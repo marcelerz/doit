@@ -24,6 +24,7 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
     "test:smoke": "playwright test --project=smoke-tests --project=smoke-mobile",
+    "test:browsers": "playwright test --project=webkit --project=firefox",
     "test:smoke:quick": "playwright test --project=smoke-tests --workers=4",
     "test:smoke:headed": "playwright test --project=smoke-tests --headed",
     "test:visual": "playwright test --project=visual-tests",

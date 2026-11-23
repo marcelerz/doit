@@ -123,6 +123,13 @@ test.describe("Rich Text Editor", () => {
   });
 
   test.describe.serial("Paste", () => {
+    // Firefox hands a script-made paste event an empty clipboard, whatever the
+    // script put in it, so these two tests cannot say anything about Firefox.
+    // Pasting there is unverified until they drive a real clipboard.
+    test.beforeEach(({ browserName }) => {
+      test.fixme(browserName === "firefox", "Firefox drops the data of a script-made paste event");
+    });
+
     test("Step 1: pasted HTML is sanitised on the way in", async ({ page, todoApp }) => {
       // No paste handler existed, so the clipboard went into the document raw
       // and was stored verbatim. <font> and <img> are not in the allow-list, so

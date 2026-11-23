@@ -12,6 +12,17 @@ const PORT = process.env.PLAYWRIGHT_PORT ?? "3000";
 const BASE_URL = `http://localhost:${PORT}`;
 
 /**
+ * The smoke specs that also run in WebKit and Firefox: task creation, the
+ * rich-text editor, and settings with storage. Those are the areas where the
+ * engines differ most -- contenteditable, IndexedDB and persistence.
+ */
+const CROSS_BROWSER_SPECS = [
+  "**/crud-workflow.spec.ts",
+  "**/rich-text-editor.spec.ts",
+  "**/persistence-settings.spec.ts",
+];
+
+/**
  * Playwright configuration for Doit E2E tests
  *
  * Test structure:
@@ -110,6 +121,35 @@ export default defineConfig({
       testDir: "./e2e/smoke",
       testMatch: "**/mobile.spec.ts",
       use: { ...devices["Pixel 5"] },
+    },
+
+    /* The cross-browser subset. Not part of `npm run test:smoke` or of CI:
+     * run it with `npm run test:browsers`, which needs the two browsers
+     * installed (`npx playwright install webkit firefox`). */
+    {
+      name: "webkit",
+      testDir: "./e2e/smoke",
+      testMatch: CROSS_BROWSER_SPECS,
+      use: { ...devices["Desktop Safari"] },
+    },
+    {
+      name: "firefox",
+      testDir: "./e2e/smoke",
+      testMatch: CROSS_BROWSER_SPECS,
+      use: {
+        ...devices["Desktop Firefox"],
+        /* Startup asks for persistent storage and waits for the answer.
+         * Firefox answers with a prompt, which nothing here can click, so the
+         * app would stay on "Loading..." for good. These two preferences make
+         * Firefox say yes without asking. They get the tests past startup --
+         * and mean this project cannot see the wait itself, which is U0089. */
+        launchOptions: {
+          firefoxUserPrefs: {
+            "dom.storageManager.prompt.testing": true,
+            "dom.storageManager.prompt.testing.allow": true,
+          },
+        },
+      },
     },
   ],
 
