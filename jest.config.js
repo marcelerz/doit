@@ -69,16 +69,23 @@ module.exports = {
   // Raised to just under what the suite currently reaches, so a commit that
   // drops coverage fails rather than quietly spending the headroom. The global
   // group excludes the files that carry their own threshold, and measures
-  // 68.94 / 59.56 / 63.66 / 70.36.
+  // 70.84 / 60.75 / 64.96 / 72.43.
   coverageThreshold: {
     // Files with their own threshold below are subtracted from this group, so
     // each of them is ratcheted individually rather than being able to hide a
     // regression behind gains elsewhere.
     global: {
-      statements: 68.9,
-      branches: 59.5,
-      functions: 63.6,
-      lines: 70.3,
+      statements: 70.8,
+      branches: 60.7,
+      functions: 64.9,
+      lines: 72.4,
+    },
+    // The adapter choice and both migrations: a mistake here loses data.
+    "src/storage/storage.ts": {
+      statements: 89,
+      branches: 87,
+      functions: 93,
+      lines: 89,
     },
     "src/components/overlays/TutorialOverlay.tsx": {
       statements: 78,
