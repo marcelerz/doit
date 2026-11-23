@@ -1,3 +1,14 @@
+// Date logic is tested in one known time zone unless the caller picks another.
+// Without a pin the suite ran in whatever zone the machine had: Pacific time
+// locally, UTC on the CI runner. In UTC `new Date("2026-01-05")` lands on the
+// right day, so the "shows one day early" class of bug could never fail there.
+// A zone behind UTC is the one that exposes it.
+//
+// Set here, not in a test: Jest hands every test file a copy of process.env,
+// so assigning TZ inside a test never reaches the real process. `npm run
+// test:tz` runs the suite once per zone by setting TZ before Jest starts.
+process.env.TZ ||= "America/Los_Angeles";
+
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
   preset: "ts-jest",

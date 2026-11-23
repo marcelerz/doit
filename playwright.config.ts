@@ -59,6 +59,11 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('/')` */
     baseURL: BASE_URL,
 
+    /* One time zone on every machine, and one behind UTC: that is where a
+     * date-only string parsed as UTC shows up as the previous day. Matches the
+     * Jest pin in jest.config.js. */
+    timezoneId: "America/Los_Angeles",
+
     /* Collect trace when retrying the failed test */
     trace: "on-first-retry",
 
