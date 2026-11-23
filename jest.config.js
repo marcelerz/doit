@@ -75,10 +75,10 @@ module.exports = {
     // each of them is ratcheted individually rather than being able to hide a
     // regression behind gains elsewhere.
     global: {
-      statements: 75.1,
-      branches: 63.5,
-      functions: 71.7,
-      lines: 76.6,
+      statements: 77.5,
+      branches: 65.6,
+      functions: 75.7,
+      lines: 78.7,
     },
     // The adapter choice and both migrations: a mistake here loses data.
     "src/storage/storage.ts": {
@@ -98,6 +98,24 @@ module.exports = {
     "src/hooks/useReviews.ts": {
       statements: 100,
       branches: 97,
+      functions: 100,
+      lines: 100,
+    },
+    "src/models/NoteModel.ts": {
+      statements: 97,
+      branches: 100,
+      functions: 95,
+      lines: 97,
+    },
+    "src/models/ReviewModel.ts": {
+      statements: 95,
+      branches: 94,
+      functions: 96,
+      lines: 94,
+    },
+    "src/utils/noteTemplates.ts": {
+      statements: 100,
+      branches: 100,
       functions: 100,
       lines: 100,
     },
