@@ -65,38 +65,33 @@ test.describe("Smart Input and Search Workflow", () => {
       await page.goto("/");
       await todoApp.waitForAppLoad();
 
-      // Search for person
+      const todoItems = page.getByTestId("todo-item");
+      await expect(todoItems).toHaveCount(4);
+
       await todoApp.search("@john");
 
-      // Wait for filter to apply
-      await page.waitForTimeout(500);
+      // Only the todo that mentions john is left.
+      await expect(todoItems).toHaveCount(1);
+      await expect(todoItems).toContainText("Review PR");
 
-      // Should show filtered results (the PR review todo)
-      const todoItems = page.locator('[data-testid="todo-item"]');
-      const count = await todoItems.count();
-      expect(count).toBeGreaterThanOrEqual(1);
-
-      // Clear search
       await todoApp.clearSearch();
+      await expect(todoItems).toHaveCount(4);
     });
 
     test("Step 6: Search by project", async ({ page, todoApp }) => {
       await page.goto("/");
       await todoApp.waitForAppLoad();
 
-      // Search for project
+      const todoItems = page.getByTestId("todo-item");
+
       await todoApp.search("%Website");
 
-      // Wait for filter to apply
-      await page.waitForTimeout(500);
+      // Only the todo in that project is left.
+      await expect(todoItems).toHaveCount(1);
+      await expect(todoItems).toContainText("Update docs");
 
-      // Should show filtered results
-      const todoItems = page.locator('[data-testid="todo-item"]');
-      const count = await todoItems.count();
-      expect(count).toBeGreaterThanOrEqual(1);
-
-      // Clear search
       await todoApp.clearSearch();
+      await expect(todoItems).toHaveCount(4);
     });
 
     test("Step 7: Search by partial text", async ({ page, todoApp }) => {

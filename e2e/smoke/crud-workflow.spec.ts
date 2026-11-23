@@ -53,9 +53,12 @@ test.describe("CRUD Workflow", () => {
       await todoApp.toggleTodo("Buy groceries");
       await todoApp.toggleTodo("Call dentist");
 
-      // Verify they still appear (might be in completed section)
-      const count = await todoApp.getTodoCount();
-      expect(count).toBeGreaterThanOrEqual(3); // At least 3 active
+      // Exactly those two are completed, and the other three are not.
+      const row = (text: string) => page.getByTestId("todo-item").filter({ hasText: text });
+      await expect(row("Buy groceries")).toHaveAttribute("data-completed", "true");
+      await expect(row("Call dentist")).toHaveAttribute("data-completed", "true");
+      await expect(page.locator('[data-testid="todo-item"][data-completed="true"]')).toHaveCount(2);
+      await expect(page.locator('[data-testid="todo-item"][data-completed="false"]')).toHaveCount(3);
     });
 
     test("Step 4: Archive a completed todo", async ({ page, todoApp }) => {

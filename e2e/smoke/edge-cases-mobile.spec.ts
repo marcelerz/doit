@@ -45,25 +45,36 @@ test.describe("Edge Cases and Mobile Workflow", () => {
       const longText = "A".repeat(500);
       await todoApp.addTodo(`Long task: ${longText}`);
 
-      // Verify it was created (might be truncated)
-      const count = await todoApp.getTodoCount();
-      expect(count).toBeGreaterThanOrEqual(1);
+      // Created once, with all of it kept: a row may clip what it shows, but
+      // the text itself is not cut.
+      const rows = page.getByTestId("todo-item");
+      await expect(rows).toHaveCount(1);
+      await expect(rows.getByTestId("todo-text")).toHaveText(`Long task: ${longText}`);
     });
 
     test("Step 3: Handle special characters (XSS prevention)", async ({ page, todoApp }) => {
       await page.goto("/");
       await todoApp.waitForAppLoad();
 
-      // Add todo with potential XSS
-      await todoApp.addTodo("<script>alert('xss')</script> Task");
+      // An alert would mean the markup ran.
+      let dialogOpened = false;
+      const onDialog = async (dialog: { dismiss: () => Promise<void> }) => {
+        dialogOpened = true;
+        await dialog.dismiss();
+      };
+      page.on("dialog", onDialog);
 
-      // Verify it was created safely (script should not execute)
-      const todos = await todoApp.getTodos();
-      expect(todos.length).toBeGreaterThanOrEqual(1);
+      const markup = "<script>alert('xss')</script> Task";
+      await todoApp.addTodo(markup);
 
-      // Page should still be functional
-      const addButton = page.getByTestId("add-todo-button");
-      await expect(addButton).toBeVisible();
+      // The markup is shown as the text that was typed...
+      const row = page.getByTestId("todo-item").filter({ hasText: "alert('xss')" });
+      await expect(row.getByTestId("todo-text")).toHaveText(markup);
+      // ...and did not become an element.
+      await expect(row.locator("script")).toHaveCount(0);
+      expect(dialogOpened).toBe(false);
+
+      page.off("dialog", onDialog);
     });
 
     test("Step 4: Handle unicode and emoji", async ({ page, todoApp }) => {

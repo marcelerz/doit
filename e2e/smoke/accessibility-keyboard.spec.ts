@@ -45,14 +45,16 @@ test.describe("Accessibility and Keyboard Workflow", () => {
       await page.goto("/");
       await todoApp.waitForAppLoad();
 
-      // Tab to move through elements
+      // Tab moves through the header controls in the order they are shown.
+      await page.getByTestId("add-todo-button").focus();
       await page.keyboard.press("Tab");
+      await expect(page.getByTestId("add-note-button")).toBeFocused();
       await page.keyboard.press("Tab");
-      await page.keyboard.press("Tab");
+      await expect(page.getByTestId("open-focus-button")).toBeFocused();
 
-      // Verify some element is focused (no errors)
-      const focusedElement = await page.evaluate(() => document.activeElement?.tagName);
-      expect(focusedElement).toBeDefined();
+      // ...and Shift+Tab goes back.
+      await page.keyboard.press("Shift+Tab");
+      await expect(page.getByTestId("add-note-button")).toBeFocused();
     });
 
     test("Step 4: Keyboard - Open overlay and verify focus trap", async ({ page, todoApp }) => {
@@ -62,17 +64,29 @@ test.describe("Accessibility and Keyboard Workflow", () => {
       // Open todo details
       await todoApp.openTodoDetails("Task for keyboard nav");
 
-      // Verify overlay is open
-      const overlay = page.locator('[data-testid="todo-details-overlay"]');
-      await expect(overlay).toBeVisible();
+      const dialog = page.getByRole("dialog", { name: "Task details" });
+      await expect(dialog).toBeVisible();
 
-      // Tab within overlay
+      const focusIsInDialog = () =>
+        page.evaluate(() => document.querySelector('[role="dialog"]')?.contains(document.activeElement) === true);
+
+      // Opening the dialog moves focus to its first control.
+      await expect.poll(focusIsInDialog).toBe(true);
+
+      // The two edges are where focus could escape. Shift+Tab on the first
+      // control has nowhere to go but the page behind, unless the dialog wraps
+      // it round to its last control...
+      await page.keyboard.press("Shift+Tab");
+      expect(await focusIsInDialog()).toBe(true);
+      // ...and Tab on the last control wraps forward to the first again.
+      await page.keyboard.press("Tab");
+      expect(await focusIsInDialog()).toBe(true);
+      // In between, Tab moves on inside the dialog.
       await page.keyboard.press("Tab");
       await page.keyboard.press("Tab");
+      expect(await focusIsInDialog()).toBe(true);
 
-      // Focus should stay within overlay (verify no errors)
-      const focusedElement = await page.evaluate(() => document.activeElement?.tagName);
-      expect(focusedElement).toBeDefined();
+      await page.keyboard.press("Escape");
     });
 
     test("Step 5: Keyboard - Close overlay with Escape", async ({ page, todoApp }) => {
@@ -97,34 +111,45 @@ test.describe("Accessibility and Keyboard Workflow", () => {
       await page.goto("/");
       await todoApp.waitForAppLoad();
 
-      // Check for main landmark
-      const mainElement = page.locator("main");
-      if (await mainElement.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await expect(mainElement).toBeVisible();
-      }
+      await expect(page.getByRole("main")).toBeVisible();
 
-      // Check for buttons having accessible names
-      const addButton = page.getByTestId("add-todo-button");
-      await expect(addButton).toBeVisible();
+      // The view switcher is a named tablist with exactly one selected tab.
+      const tablist = page.getByRole("tablist", { name: "Views" });
+      await expect(tablist).toBeVisible();
+      await expect(tablist.getByRole("tab", { selected: true })).toHaveCount(1);
+      await expect(page.getByTestId("view-tab-list")).toHaveAttribute("aria-selected", "true");
+
+      // Selecting another tab moves the selection with it.
+      await todoApp.switchView("kanban");
+      await expect(tablist.getByRole("tab", { selected: true })).toHaveCount(1);
+      await expect(page.getByTestId("view-tab-list")).toHaveAttribute("aria-selected", "false");
+      await todoApp.switchView("list");
+
+      // The header's add button says what it does.
+      await expect(page.getByTestId("add-todo-button")).toHaveAccessibleName(/todo/i);
     });
 
-    test("Step 7: Accessibility - Form labels present", async ({ page, todoApp }) => {
+    test("Step 7: Add dialog opens from the keyboard and closes on Escape", async ({ page, todoApp }) => {
       await page.goto("/");
       await todoApp.waitForAppLoad();
 
-      // Open add overlay
-      const addButton = page.getByTestId("add-todo-button");
-      await addButton.click();
+      await page.getByTestId("add-todo-button").focus();
+      await page.keyboard.press("Enter");
 
-      // Wait for form
-      await page.waitForSelector('[data-testid="smart-input"]', { timeout: 5000 });
-
-      // Verify input has accessible properties
       const input = page.getByTestId("smart-input");
       await expect(input).toBeVisible();
 
-      // Close overlay
       await page.keyboard.press("Escape");
+      await expect(input).toBeHidden();
     });
+
+    // Two things a keyboard or screen-reader user needs here do not exist yet,
+    // so there is nothing true to assert about them:
+    //
+    // - Focus stays on the header button when the add dialog opens. The dialog
+    //   is hand-built and has no dialog role; U0462 moves it onto Modal.
+    // - The input is a contenteditable with no label, role or aria-label.
+    test.fixme("Step 8: The add dialog moves focus to its input (U0462)", async () => {});
+    test.fixme("Step 9: The add-todo input has an accessible name (U0199)", async () => {});
   });
 });

@@ -1,6 +1,20 @@
 import { test, expect } from "../fixtures/todo-app.fixture";
 import { resetAppStorage } from "../fixtures/smoke-helpers";
 import { STORAGE_KEYS } from "../../src/storage/keys";
+import type { TodoAppFixture } from "../fixtures/todo-app.fixture";
+
+interface StoredNote {
+  plainText: string;
+  state: string;
+  pinned?: boolean;
+  actionItems?: Array<{ plainText: string }>;
+}
+
+/** The stored note whose title contains `title`, or undefined. */
+async function storedNote(todoApp: TodoAppFixture, title: string): Promise<StoredNote | undefined> {
+  const notes: StoredNote[] = JSON.parse((await todoApp.getStoredValue(STORAGE_KEYS.NOTES)) ?? "[]");
+  return notes.find((note) => note.plainText.includes(title));
+}
 
 /**
  * Smoke Test: Notes Workflow
@@ -147,16 +161,13 @@ test.describe("Notes Workflow", () => {
       await noteItem.click();
       await page.waitForTimeout(500);
 
-      // Click pin button
-      const pinButton = page.locator('button:has-text("Pin")');
-      if (await pinButton.isVisible()) {
-        await pinButton.click();
-        await page.waitForTimeout(300);
+      // "Pin" exactly: a substring match would also find "Unpin".
+      await page.getByRole("button", { name: "Pin", exact: true }).click();
 
-        // Verify button changed to "Unpin"
-        const unpinButton = page.locator('button:has-text("Unpin")');
-        await expect(unpinButton).toBeVisible();
-      }
+      // The button now offers the opposite, and the note is stored as pinned.
+      await expect(page.getByRole("button", { name: "Unpin", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Pin", exact: true })).toHaveCount(0);
+      await expect.poll(async () => (await storedNote(todoApp, "Meeting Notes"))?.pinned).toBe(true);
 
       // Go back to notes list
       const backButton = page.locator('button:has-text("Back to Notes")');
@@ -177,17 +188,24 @@ test.describe("Notes Workflow", () => {
       await noteItem.click();
       await page.waitForTimeout(500);
 
-      // Find action items section
-      const actionItemsSection = page.locator('[data-testid="action-items-section"]');
-      if (await actionItemsSection.isVisible()) {
-        // Add an action item
-        const actionItemInput = actionItemsSection.locator('[data-testid="smart-input"]').first();
-        await actionItemInput.click();
-        await actionItemInput.fill("Follow up with John about budget");
-        await page.keyboard.press("Tab"); // Move to next input
+      const actionItemsSection = page.getByTestId("action-items-section");
+      await expect(actionItemsSection).toBeVisible();
+      // Nothing to convert yet, so no button offers it.
+      await expect(actionItemsSection.getByRole("button", { name: /^Create \d+ Todo/ })).toHaveCount(0);
 
-        await page.waitForTimeout(300);
-      }
+      const actionItemInput = actionItemsSection.getByTestId("smart-input").first();
+      await actionItemInput.click();
+      await actionItemInput.fill("Follow up with John about budget");
+      // Enter is what commits a new item. The step that stood here pressed Tab,
+      // which saves nothing, so no item was ever added.
+      await page.keyboard.press("Enter");
+
+      // One pending item: the section counts it and offers to turn it into a todo.
+      await expect(actionItemsSection.getByRole("button", { name: "Create 1 Todo" })).toBeVisible();
+      await expect(page.getByText("(1 pending)")).toBeVisible();
+      await expect
+        .poll(async () => (await storedNote(todoApp, "Meeting Notes"))?.actionItems?.map((item) => item.plainText))
+        .toEqual(["Follow up with John about budget"]);
 
       // Go back
       const backButton = page.locator('button:has-text("Back to Notes")');
@@ -221,9 +239,10 @@ test.describe("Notes Workflow", () => {
       await page.waitForTimeout(300);
 
       // Verify both notes are in the list
-      const noteItems = page.locator('[data-testid="note-item"]');
-      const count = await noteItems.count();
-      expect(count).toBeGreaterThanOrEqual(2);
+      const noteItems = page.getByTestId("note-item");
+      await expect(noteItems).toHaveCount(2);
+      await expect(noteItems.filter({ hasText: "Project Ideas" })).toBeVisible();
+      await expect(noteItems.filter({ hasText: "Meeting Notes" })).toBeVisible();
     });
 
     test("Step 7: Archive a note", async ({ page, todoApp }) => {
@@ -240,17 +259,15 @@ test.describe("Notes Workflow", () => {
       await noteItem.click();
       await page.waitForTimeout(500);
 
-      // Click archive button
-      const archiveButton = page.locator('button:has-text("Archive")');
-      if (await archiveButton.isVisible()) {
-        await archiveButton.click();
-        await page.waitForTimeout(500);
-      }
+      await page.getByRole("button", { name: "Archive", exact: true }).click();
 
-      // Should be back at notes list (archive handler goes back)
-      // Verify the note is no longer visible (archived)
-      const archivedNote = page.locator('[data-testid="note-item"]').filter({ hasText: "Project Ideas" });
-      await expect(archivedNote).not.toBeVisible({ timeout: 5000 });
+      // Archiving returns to the list. The other note is there, which is what
+      // shows the list is on screen -- "not visible" alone would also be true
+      // on the detail view, where no note rows exist at all.
+      const noteItems = page.getByTestId("note-item");
+      await expect(noteItems.filter({ hasText: "Meeting Notes" })).toBeVisible();
+      await expect(noteItems.filter({ hasText: "Project Ideas" })).toHaveCount(0);
+      await expect.poll(async () => (await storedNote(todoApp, "Project Ideas"))?.state).toBe("archived");
     });
 
     test("Step 8: Convert note to todo", async ({ page, todoApp }) => {
@@ -267,30 +284,19 @@ test.describe("Notes Workflow", () => {
       await noteItem.click();
       await page.waitForTimeout(500);
 
-      // Click convert to todo button
-      const convertButton = page.locator('button:has-text("Convert to Todo")');
-      if (await convertButton.isVisible()) {
-        await convertButton.click();
-        await page.waitForTimeout(300);
+      await page.getByRole("button", { name: "Convert to Todo", exact: true }).click();
+      // The confirmation's own button is "Convert" exactly.
+      await page.getByRole("button", { name: "Convert", exact: true }).click();
 
-        // Confirm dialog
-        const confirmButton = page.locator('button:has-text("Convert")');
-        if (await confirmButton.isVisible()) {
-          await confirmButton.click();
-          await page.waitForTimeout(500);
-        }
-
-        // Should navigate to list view with the new todo
-        // Verify we're on list view
-        const listTab = page.getByTestId("view-tab-list");
-        const isActive = await listTab.evaluate((el) => el.classList.contains("text-blue-600"));
-        if (isActive) {
-          // The todo should be visible
-          const todoItem = page.locator('[data-testid="todo-item"]').filter({ hasText: "Meeting Notes" });
-          await expect(todoItem).toBeVisible({ timeout: 5000 });
-        }
-      }
+      // The app switches to the list, and the note is there as a todo.
+      await expect(page.getByTestId("view-tab-list")).toHaveAttribute("aria-selected", "true");
+      await expect(page.getByTestId("todo-item").filter({ hasText: "Meeting Notes" })).toBeVisible();
     });
+
+    // Converting should also open the new todo's details. It looks the todo up
+    // in a list that does not contain it yet, so nothing opens.
+    test.fixme("Step 8b: Converting a note opens the new todo (U0460)", async () => {});
+
 
     test("Step 9: Persistence - reload and verify notes", async ({ page, todoApp }) => {
       await page.goto("/");
