@@ -57,3 +57,6 @@ export function createLogger(scope: string): Logger {
     },
   };
 }
+
+// Deliberate type error: this branch exists only to see CI fail. Never merge.
+export const ciRedCheck: number = "not a number";
