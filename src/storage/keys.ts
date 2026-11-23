@@ -28,8 +28,22 @@ export const INDEXEDDB_PROBE_DB = "doit-test-availability";
 export const DB_NAME = "doit-db";
 export const STORE_NAME = "keyvalue";
 
-/** Keys under the doit- prefix that are bookkeeping, not user data. */
-export const INTERNAL_STORAGE_KEYS = new Set([MIGRATED_TO_INDEXEDDB_KEY, INDEXEDDB_PROBE_DB, DB_NAME]);
+/**
+ * Set to "true" in localStorage to see debug and info output in a production
+ * build. Read by the logger; see src/utils/logger.ts.
+ */
+export const DEBUG_STORAGE_KEY = "doit-debug";
+
+/**
+ * Keys under the doit- prefix that are bookkeeping, not user data. They are
+ * left out of backups and are not carried over when storage migrates.
+ */
+export const INTERNAL_STORAGE_KEYS = new Set([
+  MIGRATED_TO_INDEXEDDB_KEY,
+  INDEXEDDB_PROBE_DB,
+  DB_NAME,
+  DEBUG_STORAGE_KEY,
+]);
 
 // Storage keys - centralized registry of all storage keys
 export const STORAGE_KEYS = {

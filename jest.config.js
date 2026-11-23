@@ -69,16 +69,16 @@ module.exports = {
   // Raised to just under what the suite currently reaches, so a commit that
   // drops coverage fails rather than quietly spending the headroom. The global
   // group excludes the files that carry their own threshold, and measures
-  // 70.84 / 60.75 / 64.96 / 72.43.
+  // 70.94 / 60.83 / 65.08 / 72.52.
   coverageThreshold: {
     // Files with their own threshold below are subtracted from this group, so
     // each of them is ratcheted individually rather than being able to hide a
     // regression behind gains elsewhere.
     global: {
-      statements: 70.8,
-      branches: 60.7,
-      functions: 64.9,
-      lines: 72.4,
+      statements: 70.9,
+      branches: 60.8,
+      functions: 65,
+      lines: 72.5,
     },
     // The adapter choice and both migrations: a mistake here loses data.
     "src/storage/storage.ts": {
