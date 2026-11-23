@@ -147,6 +147,19 @@ Two things worth knowing if you build it yourself:
 The visual snapshots are macOS baselines and cannot run on the Linux CI runner, so run
 `npm run test:visual` locally before releasing.
 
+### Versioning
+
+`version.json` holds the app's version. It is what the footer shows and what the build stamps
+into the service worker.
+
+- A pre-commit hook, installed by `npm install`, adds one to the revision on **every** commit
+  and stages the file -- so each commit carries a `version.json` change, and that is expected.
+  The hook leaves a pre-commit hook it did not write alone.
+- `npm run bump:minor` and `npm run bump:major` take the larger steps and reset what is below.
+- `CHANGELOG.md` headings use the value `version.json` has after the last commit of the change
+  they describe.
+- The `version` field in `package.json` is not used.
+
 ## 🧪 Testing
 
 ```bash
@@ -159,12 +172,18 @@ npm run test:watch
 # Run tests with coverage
 npm run test:coverage
 
-# Run E2E tests
-npm run test:e2e
+# Unit tests in four time zones
+npm run test:tz
 
-# Run smoke and visual suites
+# Smoke suite (Chromium, desktop and phone) and visual suite
 npm run test:smoke
 npm run test:visual
+
+# A smoke subset in WebKit and Firefox
+npm run test:browsers
+
+# The static export with its service worker: offline reload and the update prompt
+npm run test:pwa
 
 # typecheck + lint + test + smoke + visual
 npm run test:all
@@ -172,6 +191,15 @@ npm run test:all
 # the same, with the coverage floors enforced
 npm run validate
 ```
+
+The Playwright suites need their browsers once: `npx playwright install chromium`, and
+`npx playwright install webkit firefox` for `test:browsers`. The dev server they start uses
+port 3000; set `PLAYWRIGHT_PORT` if something else already answers there.
+
+Every pull request and every push to `main` runs typecheck, lint, the unit tests with the
+coverage floor, the static build and the Chromium smoke suite
+(`.github/workflows/ci.yml`). The visual suite, the WebKit and Firefox subset and the
+installed-app run are local only. See [E2E Testing](docs/e2e-testing.md).
 
 ## 📁 Project Structure
 
@@ -245,14 +273,16 @@ Automatic storage selection with migration:
 
 ```typescript
 // Automatic IndexedDB with localStorage fallback
-import { loadFromStorage, saveToStorage, waitForStorageInit } from "@/storage/storage";
+import { STORAGE_KEYS, loadFromStorage, saveToStorage, waitForStorageInit } from "@/storage/storage";
 
 // Await initialization first, or on an IndexedDB install you read an
 // emptied localStorage and persist the fallback over the user's data
 await waitForStorageInit();
-const data = await loadFromStorage("doit-todos", []);
-await saveToStorage("doit-todos", updatedData);
+const data = await loadFromStorage(STORAGE_KEYS.TODOS, []);
+await saveToStorage(STORAGE_KEYS.TODOS, updatedData);
 ```
+
+Every storage key is registered in `STORAGE_KEYS`; none is written as a literal.
 
 ### Hooks Architecture
 
@@ -306,10 +336,9 @@ Each data domain has its own hook:
 
 ## 📱 Browser Support
 
-- Chrome/Edge (recommended)
-- Firefox
-- Safari (including Private Mode)
-- Mobile browsers
+- Chrome/Edge (recommended) -- the full test suite runs in Chromium
+- Firefox and Safari (including Private Mode) -- a smoke subset runs in Firefox and WebKit
+- Mobile browsers -- the smoke suite includes a phone profile
 
 ## 🛠️ Tech Stack
 
