@@ -1,0 +1,96 @@
+name: CI
+
+# Every pull request, and every push to main, gets the same checks before or as
+# it lands. The deploy workflow has its own verify job and is not replaced by
+# this one.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+# A newer push to the same branch or pull request replaces the run in progress.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Typecheck, lint, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests, with the coverage floor
+        run: npm run test:coverage
+
+      # The suite's default zone is behind UTC. One more run ahead of it
+      # catches a date that only goes wrong east of Greenwich.
+      - name: Unit tests in a time zone ahead of UTC
+        run: npm run test
+        env:
+          TZ: Pacific/Auckland
+
+      - name: Build the static export
+        run: npm run build:gh-pages
+        env:
+          GITHUB_PAGES: "true"
+
+  smoke:
+    name: Smoke tests (Chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Both smoke projects: desktop and the phone profile.
+      - name: Smoke tests
+        run: npm run test:smoke
+
+      - name: Upload the Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # The visual suite is not here: its baselines are captured on macOS and
+  # would not match a Linux runner. Run `npm run test:visual` locally. The
+  # WebKit and Firefox subset and the installed-app run are local too
+  # (`npm run test:browsers`, `npm run test:pwa`).

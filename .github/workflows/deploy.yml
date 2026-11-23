@@ -6,8 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+# Read-only unless a job says otherwise. Only the deploy job pushes.
 permissions:
-  contents: write
+  contents: read
 
 # Two pushes to main would otherwise race on the gh-pages push.
 concurrency:
@@ -46,6 +47,9 @@ jobs:
   build-and-deploy:
     needs: verify
     runs-on: ubuntu-latest
+    # Pushing the build to the gh-pages branch is the one step that writes.
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
