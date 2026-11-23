@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Git pre-commit hook to auto-increment version revision number
+# This hook increments the revision in version.json on every commit
+
+VERSION_FILE="version.json"
+
+# Check if version.json exists
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "Warning: $VERSION_FILE not found, skipping version increment"
+    exit 0
+fi
+
+# Read current version
+MAJOR=$(node -p "require('./$VERSION_FILE').major")
+MINOR=$(node -p "require('./$VERSION_FILE').minor")
+REVISION=$(node -p "require('./$VERSION_FILE').revision")
+
+# Increment revision
+NEW_REVISION=$((REVISION + 1))
+
+# Write updated version
+cat > "$VERSION_FILE" << EOF
+{
+  "major": $MAJOR,
+  "minor": $MINOR,
+  "revision": $NEW_REVISION
+}
+EOF
+
+# Stage the updated version file
+git add "$VERSION_FILE"
+
+echo "Version incremented: $MAJOR.$MINOR.$REVISION -> $MAJOR.$MINOR.$NEW_REVISION"
+
+exit 0

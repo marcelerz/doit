@@ -1,4 +1,8 @@
 #!/bin/bash
+# doit-managed-hook
+#
+# The line above tells scripts/setup-hooks.js that this hook is ours to update.
+# Keep it: a hook without it is treated as somebody else's and left alone.
 
 # Git pre-commit hook to auto-increment version revision number
 # This hook increments the revision in version.json on every commit
