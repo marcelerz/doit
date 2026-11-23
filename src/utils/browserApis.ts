@@ -8,6 +8,10 @@
  * In tests, they can be mocked via setBrowserApis().
  */
 
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("browserApis");
+
 /**
  * Interface for browser APIs that can be mocked
  */
@@ -50,7 +54,7 @@ class RealBrowserApis implements IBrowserApis {
       return new (window.AudioContext ||
         (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
     } catch (error) {
-      console.error("Failed to create AudioContext:", error);
+      log.error("Failed to create AudioContext:", error);
       return null;
     }
   }
@@ -61,7 +65,7 @@ class RealBrowserApis implements IBrowserApis {
     try {
       return new Audio(src);
     } catch (error) {
-      console.error("Failed to create Audio:", error);
+      log.error("Failed to create Audio:", error);
       return null;
     }
   }
@@ -81,7 +85,7 @@ class RealBrowserApis implements IBrowserApis {
     try {
       return await Notification.requestPermission();
     } catch (error) {
-      console.error("Failed to request notification permission:", error);
+      log.error("Failed to request notification permission:", error);
       return "denied";
     }
   }
@@ -98,7 +102,7 @@ class RealBrowserApis implements IBrowserApis {
         ...options,
       });
     } catch (error) {
-      console.error("Failed to create notification:", error);
+      log.error("Failed to create notification:", error);
       return null;
     }
   }

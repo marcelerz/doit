@@ -6,6 +6,9 @@ import {
   saveToStorage,
   waitForStorageInit,
 } from "@/storage/storage";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("usePersistedViewOptions");
 
 /**
  * Per-view options (search text, filters, toggles) persisted to storage.
@@ -49,7 +52,7 @@ export function usePersistedViewOptions<T extends object>(
         setState({ ...defaultsRef.current, ...saved, ...pendingRef.current });
       })
       .catch((error) => {
-        console.error(`Failed to load view options for ${storageKey}:`, error);
+        log.error(`Failed to load view options for ${storageKey}:`, error);
       })
       .finally(() => {
         if (cancelled) return;

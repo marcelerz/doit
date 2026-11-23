@@ -52,6 +52,9 @@ import { parseDate } from "@/utils/dateUtils";
 import { useUndoableActions, UndoableAction } from "./useUndoableActions";
 import { settingsStore, useSharedSettings } from "@/storage/settingsStore";
 import { renameInRecord, EntityKind } from "@/utils/renameReferences";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("useTodos");
 
 /**
  * Find a priority ID by its name or alternatives.
@@ -314,7 +317,7 @@ export function useTodos() {
       .catch((error) => {
         // Without this the promise rejects unobserved, isLoaded stays false
         // forever and the app sits on its loading screen with no way out.
-        console.error("Failed to load todos from storage:", error);
+        log.error("Failed to load todos from storage:", error);
         setLoadError(error instanceof Error ? error : new Error(String(error)));
       })
       .finally(() => {

@@ -7,6 +7,9 @@ import { waitForStorageInit } from "@/storage/storage";
 import { Comment, ActivityEntry, getActivityId } from "@/types/types";
 import { getTimestamp } from "@/types/time";
 import { createActivityId } from "@/utils/idGenerator";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("useEntityManager");
 
 /**
  * Base entity interface that all managed entities must implement
@@ -73,7 +76,7 @@ export function useEntityManager<T extends BaseEntity<string, string, string>, M
       });
     })
       .catch((error) => {
-        console.error(`Failed to load ${config.entityName.toLowerCase()}s:`, error);
+        log.error(`Failed to load ${config.entityName.toLowerCase()}s:`, error);
       })
       .finally(() => {
         setIsLoaded(true);

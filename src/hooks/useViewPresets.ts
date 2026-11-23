@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { loadFromStorage, saveToStorage, waitForStorageInit } from "@/storage/storage";
 import { useEntityRenamePresetSync } from "./useEntityRenamePresetSync";
 import { NameReferenceFields } from "@/utils/renameReferences";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("useViewPresets");
 
 /**
  * Saved view presets, persisted to storage.
@@ -37,7 +40,7 @@ export function useViewPresets<TPreset extends { filters: NameReferenceFields }>
         if (!cancelled) setViewPresets(saved);
       })
       .catch((error) => {
-        console.error(`Failed to load view presets for ${storageKey}:`, error);
+        log.error(`Failed to load view presets for ${storageKey}:`, error);
       })
       .finally(() => {
         if (!cancelled) setViewPresetsLoaded(true);

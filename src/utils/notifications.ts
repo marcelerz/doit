@@ -1,6 +1,9 @@
 import { TodoModel } from "@/models/TodoModel";
 import { TodoId } from "@/types/todo";
 import { getBrowserApis } from "./browserApis";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("notifications");
 
 export type NotificationPermission = "default" | "granted" | "denied";
 
@@ -362,7 +365,7 @@ function playSound(type: SoundType, volume: number = DEFAULT_SOUND_VOLUME): void
         break;
     }
   } catch (error) {
-    console.error("Failed to play notification sound:", error);
+    log.error("Failed to play notification sound:", error);
   }
 }
 

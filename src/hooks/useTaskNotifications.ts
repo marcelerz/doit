@@ -14,6 +14,9 @@ import {
   saveToStorage,
   waitForStorageInit,
 } from "@/storage/storage";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("useTaskNotifications");
 
 const CHECK_INTERVAL_MS = 60 * 1000;
 
@@ -85,7 +88,7 @@ export function useTaskNotifications(
         if (!cancelled) notifiedIds.current = new Set(stored);
       })
       .catch((error) => {
-        console.error("Failed to load notification history:", error);
+        log.error("Failed to load notification history:", error);
       })
       .finally(() => {
         if (cancelled) return;

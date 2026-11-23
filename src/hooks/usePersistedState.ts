@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
 import { loadFromStorage, saveToStorage, waitForStorageInit } from "@/storage/storage";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("usePersistedState");
 
 /**
  * Options for usePersistedState hook
@@ -91,7 +94,7 @@ export function usePersistedState<T>(
     // A rejection here would otherwise go unobserved and isLoaded would stay
     // false forever, leaving the caller stuck on its loading state.
     loadData().catch((error) => {
-      console.error(`Failed to load ${storageKey}:`, error);
+      log.error(`Failed to load ${storageKey}:`, error);
       setIsLoaded(true);
     });
     // Only run on mount
@@ -111,7 +114,7 @@ export function usePersistedState<T>(
         lastSavedState.current = state;
       })
       .catch((error) => {
-        console.error(`Failed to save ${storageKey}:`, error);
+        log.error(`Failed to save ${storageKey}:`, error);
       });
   }, [state, isLoaded, storageKey]);
 

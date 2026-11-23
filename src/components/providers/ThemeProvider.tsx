@@ -4,6 +4,9 @@ import { useEffect } from "react";
 import { ThemeMode } from "@/types/settings";
 import { STORAGE_KEYS, loadFromStorage } from "@/storage/storage";
 import { waitForStorageInit } from "@/storage/storage";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("ThemeProvider");
 
 // Function to apply theme
 const applyTheme = (theme: ThemeMode) => {
@@ -42,7 +45,7 @@ const loadTheme = async (useFallback = true): Promise<void> => {
       return;
     }
   } catch (e) {
-    console.error("Failed to load theme:", e);
+    log.error("Failed to load theme:", e);
   }
   if (useFallback) {
     applyTheme("system");

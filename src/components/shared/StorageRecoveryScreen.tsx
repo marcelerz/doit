@@ -8,6 +8,9 @@ import {
 } from "@/storage/storage";
 import { downloadFile } from "@/utils/export";
 import { formatDateKey } from "@/utils/dateUtils";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("StorageRecoveryScreen");
 
 interface StorageRecoveryScreenProps {
   /** The error that stopped the app from loading. */
@@ -42,7 +45,7 @@ export function StorageRecoveryScreen({ error }: StorageRecoveryScreenProps) {
       );
       setStatus(`Downloaded ${keys.length} storage ${keys.length === 1 ? "key" : "keys"}.`);
     } catch (downloadError) {
-      console.error("Failed to export raw data:", downloadError);
+      log.error("Failed to export raw data:", downloadError);
       setStatus("Could not read the stored data. Try reloading first.");
     }
   };

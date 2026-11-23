@@ -33,6 +33,9 @@ import {
 import { LinkPattern } from "@/types/linkPattern";
 import { processLinkPatternsInHtml } from "@/utils/linkPatternUtils";
 import { LinkIcon } from "@/components/shared/Icons";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("RichTextEditor");
 
 /** Shared empty default, so the display memo is not defeated by a fresh []. */
 const NO_LINK_PATTERNS: LinkPattern[] = [];
@@ -970,7 +973,7 @@ export default function RichTextEditor({
                     }
                   }
                 } catch (error) {
-                  console.error("Failed to convert inline code:", error);
+                  log.error("Failed to convert inline code:", error);
                 }
               });
             }

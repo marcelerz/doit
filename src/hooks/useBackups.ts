@@ -6,6 +6,9 @@ import { useSettings } from "@/hooks/useSettings";
 import { BackupData, BackupStats, buildBackup, restoreSnapshot, validateBackupData } from "@/storage/backup";
 import { BACKUP_KEY_PREFIX } from "@/storage/storage";
 import { formatDateKey } from "@/utils/dateUtils";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("useBackups");
 
 // Re-export types for convenience
 export type { BackupData, BackupStats } from "@/storage/backup";
@@ -34,7 +37,7 @@ async function getAllBackups(): Promise<BackupData[]> {
               backups.push(backup);
             }
           } catch (error) {
-            console.warn(`Failed to parse backup ${key}:`, error);
+            log.warn(`Failed to parse backup ${key}:`, error);
           }
         }
       }
@@ -43,7 +46,7 @@ async function getAllBackups(): Promise<BackupData[]> {
     // Sort by timestamp, newest first
     backups.sort((a, b) => b.timestamp - a.timestamp);
   } catch (error) {
-    console.error("Failed to load backups:", error);
+    log.error("Failed to load backups:", error);
   }
 
   return backups;
@@ -57,7 +60,7 @@ async function createBackupInStorage(source: "auto" | "manual" = "manual"): Prom
     await adapter.setItem(`${BACKUP_KEY_PREFIX}${backup.timestamp}`, JSON.stringify(backup));
     return true;
   } catch (error) {
-    console.error("Failed to create backup:", error);
+    log.error("Failed to create backup:", error);
     return false;
   }
 }
@@ -71,7 +74,7 @@ async function deleteBackupFromStorage(timestamp: number): Promise<boolean> {
     await adapter.removeItem(backupKey);
     return true;
   } catch (error) {
-    console.error("Failed to delete backup:", error);
+    log.error("Failed to delete backup:", error);
     return false;
   }
 }
@@ -124,7 +127,7 @@ async function importBackupFromFile(file: File): Promise<{ success: boolean; err
 
         resolve({ success: true });
       } catch (error) {
-        console.error("Failed to import backup:", error);
+        log.error("Failed to import backup:", error);
         resolve({ success: false, error: "Failed to parse backup file" });
       }
     };
@@ -217,7 +220,7 @@ export function useBackups() {
       }
       return success;
     } catch (error) {
-      console.error("Backup error:", error);
+      log.error("Backup error:", error);
       return false;
     } finally {
       setIsCreating(false);
@@ -257,7 +260,7 @@ export function useBackups() {
         }
         return result;
       } catch (error) {
-        console.error("Import error:", error);
+        log.error("Import error:", error);
         return { success: false, error: "An error occurred while importing the backup." };
       } finally {
         setIsImporting(false);

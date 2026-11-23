@@ -14,6 +14,9 @@ import { waitForStorageInit } from "@/storage/storage";
 import { setToSortedArray, arrayHasAnyFromSet, setHasValue, arraysEqual } from "@/utils/filterHelpers";
 import { parseLocalDate } from "@/utils/dateUtils";
 import { useEntityRenameSync } from "./useEntityRenameSync";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("useListViewState");
 
 // Types
 export interface TodoFilters {
@@ -216,7 +219,7 @@ export function useListViewState({
         setViewOptionsLoaded(true);
       })
       .catch((error) => {
-        console.error("Failed to load list view options:", error);
+        log.error("Failed to load list view options:", error);
         setViewOptionsLoaded(true);
       });
   }, []);

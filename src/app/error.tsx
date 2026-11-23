@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("app");
 
 /**
  * App Router error boundary.
@@ -17,7 +20,7 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Unhandled application error:", error);
+    log.error("Unhandled application error:", error);
   }, [error]);
 
   return (

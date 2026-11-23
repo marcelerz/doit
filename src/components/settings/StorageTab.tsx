@@ -5,6 +5,9 @@ import { useNotification } from "@/hooks/useNotification";
 import { STORAGE_KEYS, getStorageAdapter, getStorageType, isIndexedDBAvailable, estimateStorageQuota, migrateToIndexedDB, migrateToLocalStorage, clearAllAppData, checkPersistentStorage, requestPersistentStorage, type StorageType, type PersistentStorageInfo, BACKUP_KEY_PREFIX, STORAGE_KEY_PREFIX } from "@/storage/storage";
 import { WarningTriangleIcon } from "@/components/shared/Icons";
 import { SettingsHeader } from "./components/SettingsHeader";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("StorageTab");
 
 const tooltip = (
   <div className="space-y-2">
@@ -72,7 +75,7 @@ export function StorageTab() {
           total += size;
         }
       } catch (error) {
-        console.error(`Failed to get size for ${key}:`, error);
+        log.error(`Failed to get size for ${key}:`, error);
       }
     }
 
@@ -88,7 +91,7 @@ export function StorageTab() {
             backupSize += new Blob([data]).size;
           }
         } catch (error) {
-          console.error(`Failed to get size for backup ${key}:`, error);
+          log.error(`Failed to get size for backup ${key}:`, error);
         }
       }
     }

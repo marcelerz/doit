@@ -13,6 +13,9 @@ import {
 import { waitForStorageInit } from "@/storage/storage";
 import { setToSortedArray, arrayHasAnyFromSet, arraysEqual } from "@/utils/filterHelpers";
 import { useEntityRenameSync } from "./useEntityRenameSync";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("useNotesViewState");
 
 // Types
 export interface NotesFilters {
@@ -176,7 +179,7 @@ export function useNotesViewState({
         setViewOptionsLoaded(true);
       })
       .catch((error) => {
-        console.error("Failed to load notes view options:", error);
+        log.error("Failed to load notes view options:", error);
         setViewOptionsLoaded(true);
       });
   }, []);
