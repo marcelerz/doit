@@ -1218,6 +1218,7 @@ export function KanbanView({
             return (
               <div
                 key={state.id}
+                data-testid={`kanban-column-${state.id}`}
                 className={`flex flex-col w-[200px] sm:flex-1 sm:min-w-[180px] sm:max-w-[400px] flex-shrink-0 sm:flex-shrink rounded-lg transition-all ${
                   isDropTarget && canDropHere
                     ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
