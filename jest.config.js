@@ -68,8 +68,7 @@ module.exports = {
   // `npm run validate` printed a number and always passed.
   // Raised to just under what the suite currently reaches, so a commit that
   // drops coverage fails rather than quietly spending the headroom. The global
-  // group excludes the files that carry their own threshold, and measures
-  // 70.94 / 60.83 / 65.08 / 72.52.
+  // group excludes the files and folders that carry their own threshold.
   coverageThreshold: {
     // Files with their own threshold below are subtracted from this group, so
     // each of them is ratcheted individually rather than being able to hide a

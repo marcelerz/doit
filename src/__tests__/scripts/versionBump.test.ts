@@ -105,6 +105,22 @@ describe("pre-commit hook", () => {
     expect(result.stderr).toMatch(/node/);
   });
 
+  it("aborts the commit when the bumped file cannot be staged", () => {
+    // Otherwise the commit lands without the bump and leaves a modified
+    // version.json behind in a tree that should be clean.
+    writeFileSync(versionFile(), VALID);
+    const bin = join(sandbox.dir, "bin");
+    mkdirSync(bin);
+    const failingAdd = `#!/bin/sh\nif [ "$1" = "add" ]; then echo "fatal: cannot stage" >&2; exit 1; fi\nexec "${findOnPath("git")}" "$@"\n`;
+    writeFileSync(join(bin, "git"), failingAdd, { mode: 0o755 });
+
+    const result = runHook(sandboxEnv({ PATH: `${bin}${delimiter}${process.env.PATH ?? ""}` }));
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toMatch(/could not be staged/);
+    expect(sandbox.git("diff", "--cached", "--name-only")).toBe("");
+  });
+
   it("depends on no other file in the repository", () => {
     // The hooks folder is shared by every branch and worktree, so the
     // installed copy runs against checkouts that may not have newer scripts.

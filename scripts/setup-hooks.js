@@ -80,8 +80,18 @@ function isManagedHook(content) {
   return PRE_MARKER_HOOK_SHA256.includes(digest);
 }
 
+/**
+ * Whether this is a CI run. CI systems set CI to "true" or "1"; an empty value,
+ * "false" and "0" say it is not one, and are what people set to try the
+ * installer by hand.
+ */
+function isCI() {
+  const value = process.env.CI;
+  return value !== undefined && value !== "" && value !== "false" && value !== "0";
+}
+
 function setupHooks() {
-  if (process.env.CI) {
+  if (isCI()) {
     console.log("CI detected, skipping git hook setup");
     return;
   }

@@ -64,7 +64,11 @@ console.log(
     exit 1
 fi
 
-# Stage the updated version file
-git add "$VERSION_FILE"
+# Stage the updated version file. If that fails the commit must not land
+# without the bump, leaving a modified file behind in a tree meant to be clean.
+if ! git add "$VERSION_FILE"; then
+    echo "Error: $VERSION_FILE was bumped but could not be staged. Commit aborted." >&2
+    exit 1
+fi
 
 exit 0

@@ -195,7 +195,7 @@ describe("IndexedDBAdapter", () => {
       return request;
     });
 
-    await expect(adapter.setItem("doit-todos", "[2]")).rejects.toBeDefined();
+    await expect(adapter.setItem("doit-todos", "[2]")).rejects.toMatchObject({ name: "AbortError" });
 
     jest.restoreAllMocks();
     expect(await adapter.getItem("doit-todos")).toBe("[1]");

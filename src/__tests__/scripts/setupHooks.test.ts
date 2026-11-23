@@ -121,6 +121,13 @@ describe("setup-hooks.js", () => {
     expect(existsSync(repoHook())).toBe(false);
   });
 
+  it.each(["false", "0", ""])("installs when CI is set to %p, which says this is not CI", (value) => {
+    const result = install(sandboxEnv({ CI: value }));
+
+    expect(result.status).toBe(0);
+    expect(existsSync(repoHook())).toBe(true);
+  });
+
   it("exits cleanly outside a git repository", () => {
     const bare = makeSandbox(["setup-hooks.js", "pre-commit"], { gitRepo: false });
     try {
