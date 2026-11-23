@@ -4,6 +4,7 @@ import "./globals.css";
 import StorageInitializer from "@/components/providers/StorageInitializer";
 import ServiceWorkerProvider from "@/components/providers/ServiceWorkerProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { STORAGE_KEYS } from "@/storage/keys";
 import versionData from "../../version.json";
 
 const geistSans = Geist({
@@ -69,7 +70,7 @@ export default function RootLayout({
   const themeScript = `
     (function() {
       try {
-        var settings = localStorage.getItem('doit-settings');
+        var settings = localStorage.getItem(${JSON.stringify(STORAGE_KEYS.SETTINGS)});
         if (settings) {
           var parsed = JSON.parse(settings);
           var theme = parsed.general && parsed.general.theme;

@@ -4,6 +4,21 @@
  * for different storage mechanisms (localStorage, IndexedDB, API, etc.)
  */
 
+import {
+  BACKUP_KEY_PREFIX,
+  DB_NAME,
+  INDEXEDDB_PROBE_DB,
+  INTERNAL_STORAGE_KEYS,
+  MIGRATED_TO_INDEXEDDB_KEY,
+  STORAGE_KEYS,
+  STORAGE_KEY_PREFIX,
+  STORE_NAME,
+} from "./keys";
+
+// The key registry lives in keys.ts so that code which must not load the
+// storage layer can still import it. Everything else imports it from here.
+export * from "./keys";
+
 export interface StorageAdapter {
   getItem(key: string): Promise<string | null>;
   setItem(key: string, value: string): Promise<void>;
@@ -42,7 +57,13 @@ class LocalStorageAdapter implements StorageAdapter {
 
   async clear(): Promise<void> {
     try {
-      localStorage.clear();
+      // Only this app's keys. localStorage belongs to the origin, and on
+      // GitHub Pages that origin is shared with other projects.
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith(STORAGE_KEY_PREFIX)) {
+          localStorage.removeItem(key);
+        }
+      }
     } catch (error) {
       console.error("Failed to clear storage:", error);
       throw error;
@@ -61,8 +82,8 @@ class LocalStorageAdapter implements StorageAdapter {
 
 // IndexedDB adapter implementation
 class IndexedDBAdapter implements StorageAdapter {
-  private dbName = "doit-db";
-  private storeName = "keyvalue";
+  private dbName = DB_NAME;
+  private storeName = STORE_NAME;
   private dbVersion = 1;
   private db: IDBDatabase | null = null;
   private dbPromise: Promise<IDBDatabase> | null = null;
@@ -229,7 +250,6 @@ export function createLocalStorageAdapter(): StorageAdapter {
   return new LocalStorageAdapter();
 }
 
-// Storage key prefix - all app data keys start with this
 /**
  * localStorage budget in bytes.
  *
@@ -238,52 +258,6 @@ export function createLocalStorageAdapter(): StorageAdapter {
  * scaling navigator.storage.estimate(), which reports something else entirely.
  */
 export const LOCAL_STORAGE_BUDGET_BYTES = 5 * 1024 * 1024;
-
-export const STORAGE_KEY_PREFIX = "doit-";
-
-/** Keys under the doit- prefix that are bookkeeping, not user data. */
-export const INTERNAL_STORAGE_KEYS = new Set([
-  "doit-migrated-to-indexeddb",
-  "doit-test-availability",
-  "doit-db",
-]);
-
-// Backup key prefix - for auto-backup and manual backup storage
-export const BACKUP_KEY_PREFIX = "doit-backup-";
-
-// Storage keys - centralized registry of all storage keys
-export const STORAGE_KEYS = {
-  TODOS: "doit-todos",
-  NOTES: "doit-notes",
-  REVIEWS: "doit-reviews",
-  PEOPLE: "doit-people",
-  PROJECTS: "doit-projects",
-  SPRINTS: "doit-sprints",
-  SETTINGS: "doit-settings",
-  VERSION: "doit-version",
-  VIEW_PRESETS: "doit-view-presets",
-  VIEW_OPTIONS: "doit-view-options",
-  GANTT_VIEW_OPTIONS: "doit-gantt-view-options",
-  CALENDAR_VIEW_OPTIONS: "doit-calendar-view-options",
-  KANBAN_VIEW_OPTIONS: "doit-kanban-view-options",
-  NOTES_VIEW_OPTIONS: "doit-notes-view-options",
-  REVIEWS_VIEW_OPTIONS: "doit-reviews-view-options",
-  TIME_REPORT_OPTIONS: "doit-time-report-options",
-  PEOPLE_VIEW_OPTIONS: "doit-people-view-options",
-  PROJECTS_VIEW_OPTIONS: "doit-projects-view-options",
-  SPRINTS_VIEW_OPTIONS: "doit-sprints-view-options",
-  UI_OPTIONS: "doit-ui-options",
-  BACKUP_SETTINGS: "doit-backup-settings",
-  TEMPLATES: "doit-templates",
-  SEARCH_HISTORY: "doit-search-history",
-  SELECTION_HISTORY: "doit-selection-history",
-  TUTORIAL_PREFERENCES: "doit-tutorial-preferences",
-  KANBAN_FILTER_PRESETS: "doit-kanban-filter-presets",
-  NOTES_VIEW_PRESETS: "doit-notes-view-presets",
-  NOTIFIED_TASKS: "doit-notified-tasks",
-  FOCUS_SESSION: "doit-focus-session",
-  FOCUS_SESSION_LOG: "doit-focus-sessions",
-} as const;
 
 /**
  * Details of a failed write, broadcast to anything listening.
@@ -376,7 +350,7 @@ export async function isIndexedDBAvailable(): Promise<boolean> {
     return false;
   }
   try {
-    const testDB = "doit-test-availability";
+    const testDB = INDEXEDDB_PROBE_DB;
     return new Promise((resolve) => {
       let resolved = false;
       const request = indexedDB.open(testDB, 1);
@@ -595,7 +569,7 @@ export async function migrateToIndexedDB(): Promise<MigrationResult> {
 
     // Phase 2: Mark as migrated BEFORE clearing localStorage
     // This ensures we can recover if clearing fails
-    await indexedDBAdapter.setItem("doit-migrated-to-indexeddb", "true");
+    await indexedDBAdapter.setItem(MIGRATED_TO_INDEXEDDB_KEY, "true");
 
     // Phase 3: Switch to IndexedDB adapter
     setStorageAdapter(indexedDBAdapter);
@@ -648,7 +622,7 @@ export async function migrateToLocalStorage(): Promise<MigrationResult> {
     setStorageAdapter(localStorageAdapter);
 
     // Remove migration flag
-    localStorage.removeItem("doit-migrated-to-indexeddb");
+    localStorage.removeItem(MIGRATED_TO_INDEXEDDB_KEY);
 
     return { success: true, migratedCount };
   } catch (error) {
@@ -677,7 +651,7 @@ export async function clearAllAppData(): Promise<boolean> {
     }
 
     // Also clear from localStorage (to ensure complete cleanup if using IndexedDB)
-    const localStorageKeys = Object.keys(localStorage).filter((k) => k.startsWith("doit-"));
+    const localStorageKeys = Object.keys(localStorage).filter((k) => k.startsWith(STORAGE_KEY_PREFIX));
     for (const key of localStorageKeys) {
       localStorage.removeItem(key);
     }
@@ -734,7 +708,7 @@ function hasLocalStorageData(): boolean {
 // Check if data has already been migrated to IndexedDB
 async function isAlreadyMigrated(adapter: StorageAdapter): Promise<boolean> {
   try {
-    const migrated = await adapter.getItem("doit-migrated-to-indexeddb");
+    const migrated = await adapter.getItem(MIGRATED_TO_INDEXEDDB_KEY);
     return migrated === "true";
   } catch (error) {
     console.error("Failed to check migration status:", error);

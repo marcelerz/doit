@@ -111,6 +111,19 @@ describe("LocalStorageAdapter", () => {
     await expect(storage.createLocalStorageAdapter().removeItem("doit-todos")).rejects.toThrow("denied");
   });
 
+  it("removes only this app's keys on clear", async () => {
+    // localStorage belongs to the origin, not to the app. On GitHub Pages
+    // that origin is shared with every other project of the same account.
+    localStorage.setItem("doit-todos", "[1]");
+    localStorage.setItem("doit-backup-1700000000000", "{}");
+    localStorage.setItem("other-app", "keep");
+
+    await storage.createLocalStorageAdapter().clear();
+
+    expect(Object.keys(localStorage)).toEqual(["other-app"]);
+    expect(localStorage.getItem("other-app")).toBe("keep");
+  });
+
   it.todo("tells a failed read apart from a missing key (U0137)");
 });
 

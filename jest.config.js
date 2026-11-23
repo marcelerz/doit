@@ -84,7 +84,7 @@ module.exports = {
     "src/storage/storage.ts": {
       statements: 89,
       branches: 87,
-      functions: 93,
+      functions: 95,
       lines: 89,
     },
     "src/components/overlays/TutorialOverlay.tsx": {
