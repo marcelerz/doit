@@ -30,7 +30,8 @@ import {
   soundVolumeScale,
   DEFAULT_SOUND_VOLUME,
 } from "@/utils/notifications";
-import { MockBrowserApis, setBrowserApis, resetBrowserApis } from "@/utils/browserApis";
+import { setBrowserApis, resetBrowserApis } from "@/utils/browserApis";
+import { MockBrowserApis } from "@/__tests__/helpers/mockBrowserApis";
 import { TodoModel } from "@/models/TodoModel";
 import { resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { getTodoId } from "@/types/todo";
