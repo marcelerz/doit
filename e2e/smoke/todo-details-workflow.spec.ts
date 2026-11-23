@@ -35,10 +35,9 @@ test.describe("Todo Details Workflow", () => {
       await todoApp.addSubtask("Write implementation");
       await todoApp.addSubtask("Write tests");
 
-      // Verify subtasks were added (check for subtask items in the overlay)
-      const subtaskItems = page.locator('[data-testid="subtask-item"]');
-      const count = await subtaskItems.count();
-      expect(count).toBeGreaterThanOrEqual(3);
+      const subtaskItems = page.getByTestId("subtask-item");
+      await expect(subtaskItems).toHaveCount(3);
+      await expect(subtaskItems.first()).toContainText("Research requirements");
 
       await todoApp.closeOverlay();
     });
@@ -50,50 +49,33 @@ test.describe("Todo Details Workflow", () => {
       // Open details
       await todoApp.openTodoDetails("Main Project Task");
 
-      // Find and toggle first subtask
-      const firstSubtask = page.locator('[data-testid="subtask-item"]').first();
-      const checkbox = firstSubtask.locator('[data-testid="subtask-checkbox"]');
-      if (await checkbox.isVisible()) {
-        await checkbox.click();
-      }
+      const subtaskItems = page.getByTestId("subtask-item");
+      const checkbox = subtaskItems.first().getByTestId("subtask-checkbox");
+      await expect(checkbox).not.toBeChecked();
+      await checkbox.click();
 
-      await page.waitForTimeout(300);
-      await todoApp.closeOverlay();
-    });
-
-    test("Step 4: Add a comment", async ({ page, todoApp }) => {
-      await page.goto("/");
-      await todoApp.waitForAppLoad();
-
-      // Open details
-      await todoApp.openTodoDetails("Main Project Task");
-
-      // Add a comment (if comment input exists)
-      const commentInput = page.locator('[data-testid="comment-input"]');
-      if (await commentInput.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await commentInput.fill("This is a test comment");
-        const addCommentBtn = page.locator('[data-testid="add-comment-button"]');
-        if (await addCommentBtn.isVisible()) {
-          await addCommentBtn.click();
-          await page.waitForTimeout(300);
-        }
-      }
+      await expect(checkbox).toBeChecked();
+      // Only the one that was clicked.
+      await expect(subtaskItems.nth(1).getByTestId("subtask-checkbox")).not.toBeChecked();
 
       await todoApp.closeOverlay();
     });
 
-    test("Step 5: Create child todo for dependency", async ({ page, todoApp }) => {
+    // Comments are covered in rich-text-editor.spec.ts. The step that stood
+    // here looked for a "comment-input" test id that the app never had, so its
+    // body never ran.
+
+    test("Step 4: Create a second todo", async ({ page, todoApp }) => {
       await page.goto("/");
       await todoApp.waitForAppLoad();
 
-      // Create a second todo that will depend on the first
       await todoApp.addTodo("Follow-up Task");
 
       const todoItem = page.locator('[data-testid="todo-item"]').filter({ hasText: "Follow-up Task" });
       await expect(todoItem).toBeVisible();
     });
 
-    test("Step 6: Verify persistence after reload", async ({ page, todoApp }) => {
+    test("Step 5: Verify persistence after reload", async ({ page, todoApp }) => {
       await page.goto("/");
       await todoApp.waitForAppLoad();
 
@@ -108,23 +90,25 @@ test.describe("Todo Details Workflow", () => {
       // Open and verify subtasks persisted
       await todoApp.openTodoDetails("Main Project Task");
 
-      const subtaskItems = page.locator('[data-testid="subtask-item"]');
-      const count = await subtaskItems.count();
-      expect(count).toBeGreaterThanOrEqual(3);
+      // All three subtasks came back, and the completed one is still completed.
+      const subtaskItems = page.getByTestId("subtask-item");
+      await expect(subtaskItems).toHaveCount(3);
+      await expect(subtaskItems.first().getByTestId("subtask-checkbox")).toBeChecked();
+      await expect(subtaskItems.nth(1).getByTestId("subtask-checkbox")).not.toBeChecked();
 
       await todoApp.closeOverlay();
     });
 
-    test("Step 7: Complete parent todo", async ({ page, todoApp }) => {
+    test("Step 6: Complete parent todo", async ({ page, todoApp }) => {
       await page.goto("/");
       await todoApp.waitForAppLoad();
 
-      // Complete the parent todo
+      const todoItem = page.getByTestId("todo-item").filter({ hasText: "Main Project Task" });
+      await expect(todoItem).toHaveAttribute("data-completed", "false");
+
       await todoApp.toggleTodo("Main Project Task");
 
-      // Verify it's marked completed
-      const todoItem = page.locator('[data-testid="todo-item"]').filter({ hasText: "Main Project Task" });
-      await expect(todoItem).toBeVisible();
+      await expect(todoItem).toHaveAttribute("data-completed", "true");
     });
   });
 });

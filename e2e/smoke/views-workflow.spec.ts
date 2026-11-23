@@ -1,5 +1,6 @@
 import { test, expect } from "../fixtures/todo-app.fixture";
 import { resetAppStorage } from "../fixtures/smoke-helpers";
+import { STORAGE_KEYS } from "../../src/storage/keys";
 
 /**
  * Smoke Test: Views Workflow
@@ -49,12 +50,11 @@ test.describe("Views Workflow", () => {
       // Switch to kanban
       await todoApp.switchView("kanban");
 
-      // Verify kanban view is active
-      const kanbanView = page.locator('[data-testid="kanban-view"]');
-      // If the view exists, it should be visible; otherwise, the tab might not exist
-      if (await kanbanView.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await expect(kanbanView).toBeVisible();
-      }
+      // The board itself, with the tasks on it as cards.
+      const kanbanView = page.getByTestId("kanban-view");
+      await expect(kanbanView).toBeVisible();
+      await expect(kanbanView.getByTestId("todo-item").filter({ hasText: "Task A" })).toBeVisible();
+      await expect(kanbanView.getByTestId("todo-item")).toHaveCount(5);
     });
 
     test("Step 4: Open todo details from current view", async ({ page, todoApp }) => {
@@ -64,12 +64,13 @@ test.describe("Views Workflow", () => {
       // Open details for a todo
       await todoApp.openTodoDetails("Task A");
 
-      // Verify overlay opened
-      const overlay = page.locator('[data-testid="todo-details-overlay"]');
-      await expect(overlay).toBeVisible();
+      // The dialog is the one for the task that was opened.
+      const dialog = page.getByRole("dialog", { name: "Task details" });
+      await expect(dialog).toBeVisible();
+      await expect(dialog).toContainText("Task A");
 
-      // Close overlay
       await todoApp.closeOverlay();
+      await expect(dialog).toBeHidden();
     });
 
     test("Step 5: Switch to Calendar view", async ({ page, todoApp }) => {
@@ -79,11 +80,8 @@ test.describe("Views Workflow", () => {
       // Switch to calendar
       await todoApp.switchView("calendar");
 
-      // Verify calendar view (if available)
-      const calendarView = page.locator('[data-testid="calendar-view"]');
-      if (await calendarView.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await expect(calendarView).toBeVisible();
-      }
+      await expect(page.getByTestId("calendar-view")).toBeVisible();
+      await expect(page.getByRole("grid")).toBeVisible();
     });
 
     test("Step 6: Switch to Gantt view", async ({ page, todoApp }) => {
@@ -93,11 +91,8 @@ test.describe("Views Workflow", () => {
       // Switch to gantt
       await todoApp.switchView("gantt");
 
-      // Verify gantt view (if available)
-      const ganttView = page.locator('[data-testid="gantt-view"]');
-      if (await ganttView.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await expect(ganttView).toBeVisible();
-      }
+      await expect(page.getByTestId("gantt-view")).toBeVisible();
+      await expect(page.getByRole("region", { name: "Gantt Chart Schedule" })).toBeVisible();
     });
 
     test("Step 7: Return to list view", async ({ page, todoApp }) => {
@@ -116,13 +111,18 @@ test.describe("Views Workflow", () => {
       await page.goto("/");
       await todoApp.waitForAppLoad();
 
-      // Switch to kanban
       await todoApp.switchView("kanban");
-      await page.waitForTimeout(500);
+      // Wait for the choice to be stored, not for a fixed time.
+      await expect
+        .poll(async () => JSON.parse((await todoApp.getStoredValue(STORAGE_KEYS.UI_OPTIONS)) ?? "{}").activeTab)
+        .toBe("kanban");
 
-      // Reload
       await page.reload();
       await todoApp.waitForAppLoad();
+
+      // The app comes back on the view it was left on.
+      await expect(page.getByTestId("view-tab-kanban")).toHaveAttribute("aria-selected", "true");
+      await expect(page.getByTestId("kanban-view")).toBeVisible();
 
       // Switch back to list for cleanup
       await todoApp.switchView("list");

@@ -35,38 +35,36 @@ test.describe("Persistence and Settings Workflow", () => {
       await page.goto("/");
       await todoApp.waitForAppLoad();
 
-      // Complete a todo
-      await todoApp.toggleTodo("Persistence test 1");
-      await page.waitForTimeout(500);
+      const storedState = async (text: string) => {
+        const todos = JSON.parse((await todoApp.getStoredValue(STORAGE_KEYS.TODOS)) ?? "[]");
+        return todos.find((todo: { plainText: string }) => todo.plainText === text)?.state;
+      };
 
-      // Reload and verify
+      await todoApp.toggleTodo("Persistence test 1");
+      // Wait for the write itself rather than for a fixed time.
+      await expect.poll(() => storedState("Persistence test 1")).toBe("completed");
+
       await page.reload();
       await todoApp.waitForAppLoad();
 
-      // Todo should still exist and be completed
-      const count = await todoApp.getTodoCount();
-      expect(count).toBeGreaterThanOrEqual(1);
+      // Stored as completed after the reload, and the other one untouched.
+      expect(await storedState("Persistence test 1")).toBe("completed");
+      expect(await storedState("Persistence test 2")).toBe("active");
     });
 
-    test("Step 3: Navigate to settings (if available)", async ({ page, todoApp }) => {
+    test("Step 3: Navigate to settings and back", async ({ page, todoApp }) => {
       await page.goto("/");
       await todoApp.waitForAppLoad();
 
-      // Look for settings button/link
-      const settingsButton = page.locator('[data-testid="settings-button"]');
-      if (await settingsButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await settingsButton.click();
-        await page.waitForTimeout(500);
+      await page.getByTestId("settings-button").click();
 
-        // Verify settings page/overlay
-        const settingsView = page.locator('[data-testid="settings-view"]');
-        if (await settingsView.isVisible({ timeout: 1000 }).catch(() => false)) {
-          await expect(settingsView).toBeVisible();
-        }
+      await expect(page).toHaveURL(/\/settings$/);
+      await expect(page.getByRole("heading", { name: "General Settings" })).toBeVisible();
 
-        // Go back
-        await page.keyboard.press("Escape");
-      }
+      await page.getByRole("link", { name: "Back to Todos" }).click();
+
+      await expect(page).toHaveURL(/\/$/);
+      await expect(page.getByTestId("todo-app")).toBeVisible();
     });
 
     test("Step 4: A changed setting is stored and survives a reload", async ({ page, todoApp }) => {
