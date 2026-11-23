@@ -75,10 +75,10 @@ module.exports = {
     // each of them is ratcheted individually rather than being able to hide a
     // regression behind gains elsewhere.
     global: {
-      statements: 70.9,
-      branches: 60.8,
-      functions: 65,
-      lines: 72.5,
+      statements: 73.6,
+      branches: 62.5,
+      functions: 69.2,
+      lines: 75.1,
     },
     // The adapter choice and both migrations: a mistake here loses data.
     "src/storage/storage.ts": {
@@ -86,6 +86,14 @@ module.exports = {
       branches: 87,
       functions: 95,
       lines: 89,
+    },
+    // The note and review hooks and models had no tests at all before the sweep.
+    // Each has its own floor so a later note or review fix cannot quietly shed them.
+    "src/hooks/useNotes.ts": {
+      statements: 100,
+      branches: 84,
+      functions: 100,
+      lines: 100,
     },
     "src/components/overlays/TutorialOverlay.tsx": {
       statements: 78,
