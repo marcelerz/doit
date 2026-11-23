@@ -57,7 +57,9 @@ export default defineConfig({
     timeout: 10000,
     /* Visual comparison settings */
     toHaveScreenshot: {
-      maxDiffPixelRatio: 0.001, // ~0.1%: absorbs antialiasing, not a changed label
+      // 0.1%: about 920 pixels at 1280x720. That absorbs antialiasing -- and also a
+      // changed digit or a small icon; docs/e2e-testing.md says what it lets through.
+      maxDiffPixelRatio: 0.001,
       animations: "disabled", // Disable animations for consistent screenshots
       stylePath: "./e2e/visual.css", // Hides what no test can hold still; see the file
     },

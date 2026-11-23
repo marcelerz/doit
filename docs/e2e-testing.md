@@ -4,249 +4,274 @@ This project uses [Playwright](https://playwright.dev/) for end-to-end testing.
 
 ## Setup
 
-Playwright is already configured in the project. The browsers are installed automatically when you run tests for the first time.
-
-To manually install browsers:
+The browsers are not installed with `npm install`. Install them once:
 
 ```bash
-npx playwright install
+npx playwright install chromium          # smoke and visual suites, and the PWA run
+npx playwright install webkit firefox    # only for npm run test:browsers
 ```
 
-## Running Tests
+## What runs, and how
 
-### Run all E2E tests
+| Command | What it runs | Against |
+| --- | --- | --- |
+| `npm run test:smoke` | The smoke specs: `smoke-tests` (desktop Chrome) and `smoke-mobile` (a phone profile, `mobile.spec.ts` only) | `next dev` |
+| `npm run test:visual` | `visual.spec.ts`: sixteen screenshots compared with committed baselines | `next dev` |
+| `npm run test:browsers` | Three smoke specs in WebKit and Firefox: task creation, the rich-text editor, settings and storage | `next dev` |
+| `npm run test:pwa` | Offline reload and the update prompt | the static export, built first |
+| `npm run test:e2e` | Every project in `playwright.config.ts`, so it needs all three browsers | `next dev` |
+
+`npm run test:smoke:quick` and `test:smoke:headed` run the desktop smoke project only.
+`test:e2e:ui`, `:headed`, `:debug` and `:report` are the usual Playwright modes.
+
+A single file or test:
 
 ```bash
-npm run test:e2e
+npx playwright test --project=smoke-tests e2e/smoke/crud-workflow.spec.ts
+npx playwright test --project=smoke-tests -g "Step 3"
 ```
 
-### Run tests with UI mode (interactive)
+### The port
+
+Playwright starts `npm run dev` itself and reuses a server that is already running.
+That means whatever answers on the port gets tested -- including another project's dev
+server on 3000, which fails with "todo-app not visible" and no hint at the cause. Set
+`PLAYWRIGHT_PORT` to be sure:
 
 ```bash
-npm run test:e2e:ui
+PLAYWRIGHT_PORT=3317 npm run test:smoke
 ```
 
-### Run tests in headed mode (see the browser)
+The PWA run has its own port, `PLAYWRIGHT_PWA_PORT` (default 3100), and never reuses a
+server: building the export is part of starting it, so a leftover server would mean
+testing an earlier build.
 
-```bash
-npm run test:e2e:headed
-```
+### Locally and in CI
 
-### Run tests in debug mode
+Locally: four workers, one retry. With `CI` set: two workers, two retries, and
+`test.only` fails the run.
 
-```bash
-npm run test:e2e:debug
-```
+`.github/workflows/ci.yml` runs `npm run test:smoke` on every pull request and push to
+`main`, and uploads the Playwright report when it fails. The visual suite is not in CI
+because its baselines are captured on macOS; the WebKit and Firefox subset and the PWA
+run are local too.
 
-### View test report
-
-```bash
-npm run test:e2e:report
-```
-
-## Test Structure
+## Test structure
 
 ```
 e2e/
 ├── fixtures/
 │   ├── todo-app.fixture.ts   # Page helpers, and the two test objects below
-│   └── smoke-helpers.ts      # resetAppStorage, used by every smoke spec
-├── smoke/                    # Sequential workflow specs, 69 tests
+│   └── smoke-helpers.ts      # clearAppStorage and resetAppStorage
+├── smoke/
 │   ├── accessibility-keyboard.spec.ts
+│   ├── backup-restore.spec.ts
+│   ├── calendar-modes.spec.ts
 │   ├── crud-workflow.spec.ts
 │   ├── dates-recurring.spec.ts
-│   ├── edge-cases-mobile.spec.ts
+│   ├── edge-cases.spec.ts
+│   ├── focus-timer.spec.ts
+│   ├── import-tasks.spec.ts
+│   ├── kanban-keyboard.spec.ts
+│   ├── mobile.spec.ts
 │   ├── notes-workflow.spec.ts
 │   ├── persistence-settings.spec.ts
+│   ├── regressions.spec.ts
+│   ├── reviews-workflow.spec.ts
+│   ├── rich-text-editor.spec.ts
 │   ├── smart-input-search.spec.ts
+│   ├── sprints-workflow.spec.ts
+│   ├── time-reports.spec.ts
 │   ├── todo-details-workflow.spec.ts
 │   └── views-workflow.spec.ts
-└── visual.spec.ts            # Visual regression, 16 screenshots
+├── pwa/
+│   ├── offline-and-update.spec.ts
+│   └── serve-export.mjs      # The static server behind npm run test:pwa
+├── visual.spec.ts
+├── visual.css                # Applied while a screenshot is taken
+└── visual.spec.ts-snapshots/ # The baselines
 ```
 
-Projects in `playwright.config.ts`: `smoke-tests`, `smoke-mobile` and
-`visual-tests`. 93 tests across 10 files.
+`playwright.config.ts` has the projects `smoke-tests`, `smoke-mobile`, `visual-tests`,
+`webkit` and `firefox`. `playwright.pwa.config.ts` is separate, with the one project
+`pwa`: Playwright starts every web server of a configuration whichever project is
+selected, and that one has to build the export first.
 
 ## Two test objects, and which to import
 
 `todo-app.fixture.ts` exports two:
 
-- **`test`** shares one browser context per worker. The smoke specs are
+- **`test`** shares one browser context per worker. The older smoke specs are
   `describe.serial` and each step builds on the state the last one left, which
   Playwright's default per-test context does not preserve -- every step after
   the first would open an empty app. Each spec's `beforeAll` calls
   `resetAppStorage(workerPage)` on that shared page, which is also what isolates
   one spec file from the next.
 
-- **`isolatedTest`** is Playwright's ordinary per-test context. Use it when
-  tests are independent, and whenever a spec sets its own context options:
-  `test.use({ viewport })` cannot apply to a context the worker fixture has
-  already created. `visual.spec.ts` imports this one.
+- **`isolatedTest`** is Playwright's ordinary per-test context: every test starts
+  with an empty app. Use it for a new spec. It is also the only one that works when
+  a spec sets its own context options: `test.use({ viewport })` cannot apply to a
+  context the worker fixture has already created, which is how the mobile tests
+  once ran at desktop width. A fixed clock belongs here too -- on the shared page it
+  would leak into every spec that follows in the same worker.
 
-## Selectors
+## Writing a new spec
 
-Prefer `data-testid`. Text selectors are brittle here in a specific way: the
-add-todo button's visible label is "Todo" while its title is "Add new todo", and
-below `sm:` the label is hidden entirely. A suite matching on `has-text("Add")`
-went unnoticed for seven months.
-
-## Running against a different port
-
-`reuseExistingServer` means whatever answers on the configured port gets tested,
-including another project's dev server. Set `PLAYWRIGHT_PORT` to avoid the
-collision:
-
-```bash
-PLAYWRIGHT_PORT=3100 npx playwright test --project=smoke-tests
-```
-
-## Visual baselines
-
-Committed under `e2e/visual.spec.ts-snapshots/`, one per platform suffix. The
-comparison allows a 1-2% pixel difference, which is enough to pass a genuine
-layout change -- delete the baseline and regenerate if you need to see the real
-before and after.
-
-```bash
-npm run test:visual:update
-```
-
-## Custom Fixtures
-
-The `todo-app.fixture.ts` provides custom helpers for common operations:
-
-```typescript
-import { test, expect } from "./fixtures/todo-app.fixture";
-
-test("example test", async ({ page, todoApp }) => {
-  // Clear storage for a fresh start
-  await todoApp.clearStorage();
-
-  // Wait for app to load
-  await todoApp.waitForAppLoad();
-
-  // Add a todo
-  await todoApp.addTodo("Buy groceries");
-
-  // Toggle completion
-  await todoApp.toggleTodo("Buy groceries");
-
-  // Delete a todo
-  await todoApp.deleteTodo("Buy groceries");
-
-  // Search for todos
-  await todoApp.search("groceries");
-
-  // Switch views
-  await todoApp.switchView("kanban");
-});
-```
-
-## Test IDs
-
-Components use `data-testid` attributes for reliable element selection:
-
-- `todo-app` - Main app container
-- `smart-input` - The todo input field
-- `search-input` - Search input
-- `todo-item` - Individual todo items
-- `todo-text` - Todo text content
-- `todo-checkbox` - Todo completion checkbox
-- `todo-delete` - Delete button
-- `todo-details-overlay` - Todo details modal
-- `overlay-close` - Close button for overlays
-- `view-tab-list` - List view tab
-- `view-tab-kanban` - Kanban view tab
-- `view-tab-gantt` - Gantt view tab
-- `view-tab-calendar` - Calendar view tab
-- `view-tab-people` - People view tab
-- `view-tab-projects` - Projects view tab
-- `kanban-view` - Kanban view container
-- `gantt-view` - Gantt view container
-- `calendar-view` - Calendar view container
-- `people-view` - People view container
-- `projects-view` - Projects view container
-
-## Configuration
-
-Playwright configuration is in `playwright.config.ts`:
-
-- Tests run against `http://localhost:3000`
-- Dev server starts automatically
-- Screenshots and videos captured on failure
-- Runs on Chromium and Mobile Chrome by default
-
-## Writing New Tests
-
-1. Create a new `.spec.ts` file in the `e2e/` directory
-2. Import the custom fixture:
+1. Create `e2e/smoke/<what-it-covers>.spec.ts`. A spec placed directly in `e2e/`
+   matches no project and never runs.
+2. Import the isolated fixture:
    ```typescript
-   import { test, expect } from "./fixtures/todo-app.fixture";
+   import { isolatedTest as test, expect } from "../fixtures/todo-app.fixture";
    ```
-3. Use `test.beforeEach` to set up clean state
-4. Use the `todoApp` fixture for common operations
-
-Example:
+3. Have each test create what it needs.
 
 ```typescript
-import { test, expect } from "./fixtures/todo-app.fixture";
+import { isolatedTest as test, expect } from "../fixtures/todo-app.fixture";
 
-test.describe("My Feature", () => {
+test.describe("My feature", () => {
   test.beforeEach(async ({ page, todoApp }) => {
     await page.goto("/");
-    await todoApp.clearStorage();
-    await page.reload();
     await todoApp.waitForAppLoad();
   });
 
-  test("should do something", async ({ page, todoApp }) => {
-    // Your test code here
+  test("does the thing", async ({ page, todoApp }) => {
+    await todoApp.addTodo("Buy groceries");
+    await expect(page.getByTestId("todo-item")).toHaveCount(1);
   });
 });
 ```
 
-## CI/CD Integration
+Check it is picked up:
 
-For CI environments, set the `CI` environment variable. This enables:
-
-- Fail on `test.only`
-- Retry failed tests 2 times
-- Single worker for stability
-
-Example GitHub Actions workflow:
-
-```yaml
-name: E2E Tests
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
+```bash
+npx playwright test --list --project=smoke-tests e2e/smoke/<what-it-covers>.spec.ts
 ```
 
-## Debugging Tests
+### What an assertion has to be able to do
 
-1. **UI Mode**: `npm run test:e2e:ui` - Interactive mode with time travel debugging
-2. **Debug Mode**: `npm run test:e2e:debug` - Step through tests with DevTools
-3. **Headed Mode**: `npm run test:e2e:headed` - Watch tests run in real browser
-4. **Trace Viewer**: After failed tests, view traces in the HTML report
+Fail. Several smoke steps used to read `if (await x.isVisible()) { expect(x)... }`, or
+asserted a count the previous step already guaranteed, and passed whatever the app did.
 
-## Tips
+- Assert the outcome: the row that changed, the value that was stored
+  (`todoApp.getStoredValue(STORAGE_KEYS.X)`), the announcement that was made.
+- Before committing a new assertion, break the feature locally and watch it fail.
+- When a step cannot pass because the app has a defect, do not weaken it. Mark the
+  case `test.fixme("what should happen (U0000)")`, naming the backlog unit that fixes it.
 
-- Use `await page.pause()` to stop test execution for debugging
-- Use `test.only()` to run a single test during development
-- Use `page.locator()` with data-testid for reliable element selection
-- Test on multiple viewports to catch responsive issues
-- Keep tests independent - each test should clean up after itself
+### The fixture's helpers
+
+```typescript
+await todoApp.waitForAppLoad();          // Waits for the app and dismisses the tutorial
+await todoApp.addTodo("Buy groceries");
+await todoApp.toggleTodo("Buy groceries");
+await todoApp.openTodoDetails("Buy groceries");
+await todoApp.switchView("kanban");      // Any id from src/types/viewRegistry.ts
+await todoApp.search("groceries");
+await todoApp.getStoredValue(STORAGE_KEYS.TODOS); // Reads IndexedDB or localStorage
+await todoApp.clearStorage();            // Only needed on the shared page
+```
+
+Storage names come from `src/storage/keys.ts`, never from a literal. A function passed
+to `page.evaluate` runs in the browser and cannot see imports, so pass the names in as
+arguments.
+
+## Selectors
+
+Roles and labels first, where the app has them: `getByRole("dialog", { name: "Task details" })`,
+`getByRole("button", { name: "Complete review" })`. Then `data-testid`.
+
+Text selectors are brittle here in a specific way: the add-todo button's visible label is
+"Todo" while its title is "Add new todo", and below `sm:` the label is hidden entirely. A
+suite matching on `has-text("Add")` went unnoticed for seven months. A substring match also
+finds more than intended -- "Pin" matches "Unpin" -- so ask for `exact: true`.
+
+Test ids follow a few patterns:
+
+- `view-tab-<id>` for every tab, from the view registry
+- `todo-item`, `note-item`, `review-item`, `sprint-item` for rows; `todo-text`, `todo-checkbox`
+  and `todo-delete` inside a todo row
+- `kanban-view`, `gantt-view`, `calendar-view` for those views; `kanban-column-<state>`
+  for a board column
+- `todo-details-overlay`, and `action-archive`, `action-delete`, `action-duplicate` inside
+  a details dialog
+- `add-todo-button`, `add-todo-submit`, `smart-input`, `search-input`, `sort-button`,
+  `filter-button`, `settings-button`
+
+Add a test id only where a role or label cannot do the job.
+
+## Visual baselines
+
+Committed under `e2e/visual.spec.ts-snapshots/`, one per platform suffix. Only macOS
+baselines exist.
+
+Three things keep a screenshot from depending on when it is taken:
+
+- The clock is fixed at Sunday 30 August 2026, 10:00, before the first navigation.
+  Without it the calendar, the Gantt chart and every "Created" line change with the
+  day, and by evening a task due today turns overdue and red.
+- The time zone is pinned in `playwright.config.ts`.
+- `e2e/visual.css` hides the Next.js dev indicator and the footer's year and version,
+  which are rendered on the server and so are out of the fixed clock's reach.
+
+**The tolerance** is 0.1% of the pixels by default (`playwright.config.ts`) and 0.2% for
+the shots in `visual.spec.ts` that ask for it. That is about 920 pixels at 1280x720 and
+about 250 at phone width. Measured, not assumed: a changed digit, a highlight that moved
+one calendar cell, and the whole 36-pixel dev indicator each fit inside it and pass. A
+layout change does not.
+
+Two consequences:
+
+- A green visual run does not prove nothing changed; it proves nothing large did.
+- `npm run test:visual:update` rewrites only the baselines that fail. A baseline that is
+  stale but inside the tolerance stays stale -- two of the old ones kept passing without
+  a header button that had been added after they were captured.
+
+So after an intended visual change, delete the affected baselines, regenerate, and look
+at old against new before committing:
+
+```bash
+rm e2e/visual.spec.ts-snapshots/kanban-view-darwin.png
+PLAYWRIGHT_PORT=3317 npm run test:visual:update
+git diff --stat e2e/visual.spec.ts-snapshots
+```
+
+## The other browsers
+
+`npm run test:browsers` runs the three specs listed in `CROSS_BROWSER_SPECS` in
+`playwright.config.ts`. Two things are particular to Firefox:
+
+- At startup the app asks for persistent storage and waits for the answer. Firefox
+  answers with a prompt, which a test cannot click, so the project sets two Firefox
+  preferences that grant it. The wait itself is therefore invisible to these tests
+  (U0089).
+- Firefox gives a script-made paste event an empty clipboard, so the two paste tests
+  are `fixme` there. Pasting in Firefox is not covered.
+
+## The installed app
+
+`npm run test:pwa` builds the static export and serves it under `/doit/`, as GitHub
+Pages does, with `e2e/pwa/serve-export.mjs`. That server differs from a plain one on
+purpose:
+
+- `/doit/sounds/` answers 404, so the service worker does not precache 315 MB.
+- Every response is `no-store`, so only the worker's cache can answer offline.
+- `POST /__pwa-test/next-worker` makes `sw.js` differ from then on, which is what a new
+  deploy looks like to the browser.
+- `POST /__pwa-test/offline` drops every connection until `POST /__pwa-test/online`.
+
+The last one is needed because `context.setOffline(true)` does not reach the requests
+a service worker makes. With that switch alone the worker keeps fetching from the
+network, and an offline test passes even with all of the worker's caching removed.
+
+Open pages with `./`, not `/`: the base URL ends in `/doit/`.
+
+## Debugging
+
+1. **UI mode**: `npm run test:e2e:ui` -- interactive, with time travel
+2. **Debug mode**: `npm run test:e2e:debug` -- step through with DevTools
+3. **Headed mode**: `npm run test:smoke:headed` -- watch the browser
+4. **Trace viewer**: a retried failure records a trace; open it from the HTML report
+   (`npm run test:e2e:report`)
+
+`await page.pause()` stops a test where it is. `test.only()` narrows a run while
+developing; CI refuses it.
