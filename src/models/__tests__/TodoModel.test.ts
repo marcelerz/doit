@@ -2,178 +2,15 @@
  * Tests for TodoModel Business Logic
  */
 
-import { createRawTodo as createTodo } from "@/utils/__tests__/testHelpers";
+import { createRawTodo as createTodo, createTestSettings } from "@/__tests__/helpers/fixtures";
 import { TodoModel, createTodoModel, createTodoModels } from "@/models/TodoModel";
-import { SettingsModel, createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
+import { resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { getTodoId, getSubtaskId, getTag } from "@/types/todo";
-import { Settings, defaultFocusSettings } from "@/types/settings";
 import { getPriorityId } from "@/types/priority";
 import { getPersonId } from "@/types/person";
 import { getProjectId } from "@/types/project";
-import { getColor, getCommentId, getActivityId } from "@/types/types";
-import {
-  getShortTime,
-  getWeekday,
-  getMonth,
-  getDurationDay,
-  getTimestamp,
-  getDurationMin,
-  getDurationSec,
-  getDurationHour,
-} from "@/types/time";
-
-// Helper to create minimal settings
-const createSettings = (overrides: Partial<Settings> = {}): SettingsModel =>
-  createSettingsModel({
-    priorities: [
-      { id: getPriorityId("1"), name: "urgent", alternatives: ["critical"], order: 1, color: getColor("#ff0000") },
-      { id: getPriorityId("2"), name: "high", alternatives: ["important"], order: 2, color: getColor("#ff6600") },
-      { id: getPriorityId("3"), name: "medium", alternatives: [], order: 3, color: getColor("#ffcc00") },
-      { id: getPriorityId("4"), name: "low", alternatives: [], order: 4, color: getColor("#00cc00") },
-    ],
-    linkPatterns: [],
-    markerColors: {
-      assigned: getColor("#cce5ff"),
-      source: getColor("#fff3cd"),
-      mentioned: getColor("#ffe8cc"),
-      project: getColor("#e2ccff"),
-      tag: getColor("#d4edda"),
-      dueDate: getColor("#f8d7da"),
-      duration: getColor("#e2e3e5"),
-      recurring: getColor("#cff4fc"),
-      dependency: getColor("#ffcccc"),
-      priority: getColor("#ffcccc"),
-      sprint: getColor("#dbeafe"),
-    },
-    general: {
-      archiveDays: getDurationDay(7),
-      autoDelete: { enabled: false, deleteDays: getDurationDay(90) },
-      theme: "system",
-    },
-    dateTime: {
-      morning: getShortTime("09:00"),
-      noon: getShortTime("12:00"),
-      afternoon: getShortTime("14:00"),
-      evening: getShortTime("18:00"),
-      workWeekStart: getWeekday(1),
-      workWeekEnd: getWeekday(5),
-      fiscalYearStart: getMonth(1),
-    },
-    workHours: {
-      useCommonSchedule: true,
-      commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
-      weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
-      weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
-      customSchedules: {},
-    },
-    gantt: {
-      schedulingTechnique: "sequential",
-      defaultTaskDuration: getDurationMin(30),
-      durationMultiplier: 1.0,
-      minimumRemainingDuration: getDurationMin(1),
-      contextSwitchingTime: getDurationMin(5),
-      pomodoroWorkDuration: getDurationMin(25),
-      pomodoroShortBreak: getDurationMin(5),
-      pomodoroLongBreak: getDurationMin(15),
-      pomodoroLongBreakInterval: 4,
-      flowWorkDuration: getDurationMin(52),
-      flowBreakDuration: getDurationMin(17),
-      flowContextSwitchingTime: getDurationMin(10),
-      zoomLevel: "1hour",
-      showWeekends: true,
-      showDependencies: true,
-      taskRowHeight: "normal",
-      showBufferZones: true,
-      showNowLine: true,
-      collapseCompleted: false,
-      presets: [],
-      activePresetId: undefined,
-    },
-    kanban: {
-      states: [],
-      allowedTransitions: [],
-      views: [],
-      activeViewId: "all",
-      showEmptyColumns: true,
-      showTaskCount: true,
-    },
-    sprints: { defaultSprintDuration: getDurationDay(14), showBacklogInSprint: true },
-    autoAssign: {
-      enabled: false,
-      assignedPerson: undefined,
-      sourcePerson: undefined,
-      project: undefined,
-      priority: undefined,
-      dueDate: undefined,
-      duration: undefined,
-      recurring: undefined,
-    },
-    calendar: {
-      weekStartDay: getWeekday(0),
-      defaultView: "month",
-      showWeekNumbers: false,
-      taskDotLimit: 4,
-      dotColorBy: "state",
-      showOverdueBadge: true,
-      showRecurringIndicator: true,
-      showTaskCount: false,
-    },
-    focus: {
-      requireConfirmation: false,
-      confirmationRepeatInterval: getDurationSec(30),
-      confirmationMaxRepeats: 5,
-      autoTimeTracking: true,
-      defaultExtendMinutes: getDurationMin(5),
-      extendOptions: [getDurationMin(5), getDurationMin(10), getDurationMin(15), getDurationMin(30)],
-      autoExtendOnOvertime: true,
-      notificationsEnabled: true,
-      soundEnabled: true,
-      soundVolume: 0.3,
-      ambientSoundEnabled: false,
-      ambientWorkSound: "",
-      ambientBreakSound: "",
-      ambientVolume: 0.3,
-      showKeyboardHints: true,
-      modes: defaultFocusSettings.modes,
-    },
-    categories: [],
-    notifications: {
-      enabled: false,
-      notifyOverdue: true,
-      notifyDueToday: true,
-      notifyDueSoon: true,
-      dueSoonHours: getDurationHour(2),
-      checkInterval: getDurationMin(15),
-    },
-    features: {
-      ganttView: true,
-      calendarView: true,
-      kanbanView: true,
-      notesView: true,
-      sprintsView: true,
-      reviewsView: true,
-      statsView: true,
-      templates: true,
-      batchProcessing: true,
-      reordering: true,
-      exports: true,
-      focusMode: true,
-      timeTracking: true,
-    },
-    notes: {
-      defaultPinNewNotes: false,
-      showArchivedByDefault: false,
-      sortOrder: "modified",
-      oneOnOneTemplate: [],
-      meetingNoteTemplate: [],
-    },
-    backup: {
-      autoBackupEnabled: true,
-      retentionDays: 30,
-      lastBackupDate: null,
-    },
-    ...overrides,
-  });
+import { getCommentId, getActivityId } from "@/types/types";
+import { getShortTime, getTimestamp, getDurationSec } from "@/types/time";
 
 // Helper to create a minimal Todo
 
@@ -193,7 +30,7 @@ describe("TodoModel", () => {
         state: "active",
         createdAt: getTimestamp(1000000),
       });
-      const settings = createSettings();
+      const settings = createTestSettings();
       const model = new TodoModel(todo, settings);
 
       expect(model.id).toBe("test-123");
@@ -205,7 +42,7 @@ describe("TodoModel", () => {
 
     it("should expose raw todo object as a copy", () => {
       const todo = createTodo();
-      const settings = createSettings();
+      const settings = createTestSettings();
       const model = new TodoModel(todo, settings);
 
       expect(model.raw).toEqual(todo);
@@ -216,7 +53,7 @@ describe("TodoModel", () => {
   describe("state checks", () => {
     it("should correctly identify active state", () => {
       const todo = createTodo({ state: "active" });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.isActive).toBe(true);
       expect(model.isCompleted).toBe(false);
@@ -226,7 +63,7 @@ describe("TodoModel", () => {
 
     it("should correctly identify completed state", () => {
       const todo = createTodo({ state: "completed", completedAt: getTimestamp(Date.now()) });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.isActive).toBe(false);
       expect(model.isCompleted).toBe(true);
@@ -236,7 +73,7 @@ describe("TodoModel", () => {
 
     it("should correctly identify archived state", () => {
       const todo = createTodo({ state: "archived", archivedAt: getTimestamp(Date.now()) });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.isActive).toBe(false);
       expect(model.isCompleted).toBe(false);
@@ -246,7 +83,7 @@ describe("TodoModel", () => {
 
     it("should correctly identify deleted state", () => {
       const todo = createTodo({ state: "deleted", deletedAt: getTimestamp(Date.now()) });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.isActive).toBe(false);
       expect(model.isCompleted).toBe(false);
@@ -261,7 +98,7 @@ describe("TodoModel", () => {
 
     it("should not apply auto-assign when disabled", () => {
       const todo = createTodo();
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: {
           enabled: false,
           assignedPerson: "Default Person",
@@ -279,7 +116,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         assignedPeople: [getPersonId("person-1")],
       });
-      const settings = createSettings();
+      const settings = createTestSettings();
       const model = new TodoModel(todo, settings);
 
       // Model reads from actual fields (IDs)
@@ -290,7 +127,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         assignedPeople: [getPersonId("person-1")],
       });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: {
           enabled: true,
           assignedPerson: "Default Person",
@@ -310,7 +147,7 @@ describe("TodoModel", () => {
         priority: getPriorityId("3"),
         duration: getDurationSec(30 * 60), // 30 minutes in seconds
       });
-      const settings = createSettings();
+      const settings = createTestSettings();
       const model = new TodoModel(todo, settings);
 
       // ID-based accessors
@@ -328,7 +165,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         duration: getDurationSec(30 * 60), // 30 minutes in seconds
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.durationMinutes).toBe(30);
     });
@@ -337,7 +174,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         duration: getDurationSec(2 * 60 * 60), // 2 hours in seconds
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.durationMinutes).toBe(120);
     });
@@ -346,14 +183,14 @@ describe("TodoModel", () => {
       const todo = createTodo({
         duration: getDurationSec(90 * 60), // 1.5 hours in seconds
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.durationMinutes).toBe(90);
     });
 
     it("should return undefined for no duration", () => {
       const todo = createTodo();
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.durationMinutes).toBeUndefined();
     });
@@ -366,8 +203,8 @@ describe("TodoModel", () => {
         duration: getDurationSec(90 * 60), // 90 minutes
       });
 
-      expect(new TodoModel(shortTodo, createSettings()).durationDisplay).toBe("30m");
-      expect(new TodoModel(longTodo, createSettings()).durationDisplay).toBe("1.5h");
+      expect(new TodoModel(shortTodo, createTestSettings()).durationDisplay).toBe("30m");
+      expect(new TodoModel(longTodo, createTestSettings()).durationDisplay).toBe("1.5h");
     });
   });
 
@@ -390,7 +227,7 @@ describe("TodoModel", () => {
         state: "active",
         dueDate: getTimestamp(yesterday),
       });
-      const model = new TodoModel(overdueTodo, createSettings());
+      const model = new TodoModel(overdueTodo, createTestSettings());
 
       expect(model.isOverdue).toBe(true);
     });
@@ -402,7 +239,7 @@ describe("TodoModel", () => {
         completedAt: getTimestamp(Date.now()),
         dueDate: getTimestamp(yesterday),
       });
-      const model = new TodoModel(completedTodo, createSettings());
+      const model = new TodoModel(completedTodo, createTestSettings());
 
       expect(model.isOverdue).toBe(false);
     });
@@ -414,7 +251,7 @@ describe("TodoModel", () => {
         state: "active",
         dueDate: getTimestamp(todayEvening),
       });
-      const model = new TodoModel(todayTodo, createSettings());
+      const model = new TodoModel(todayTodo, createTestSettings());
 
       expect(model.isDueToday).toBe(true);
     });
@@ -426,7 +263,7 @@ describe("TodoModel", () => {
         state: "active",
         dueDate: getTimestamp(thisWeek),
       });
-      const model = new TodoModel(thisWeekTodo, createSettings());
+      const model = new TodoModel(thisWeekTodo, createTestSettings());
 
       expect(model.isDueThisWeek).toBe(true);
     });
@@ -438,7 +275,7 @@ describe("TodoModel", () => {
         state: "active",
         dueDate: getTimestamp(future),
       });
-      const model = new TodoModel(futureTodo, createSettings());
+      const model = new TodoModel(futureTodo, createTestSettings());
 
       // daysUntilDue calculation may vary slightly based on time component
       expect(model.daysUntilDue).toBeGreaterThanOrEqual(4);
@@ -452,7 +289,7 @@ describe("TodoModel", () => {
         state: "active",
         dueDate: getTimestamp(past),
       });
-      const model = new TodoModel(overdueTodo, createSettings());
+      const model = new TodoModel(overdueTodo, createTestSettings());
 
       // daysUntilDue should be negative for overdue
       expect(model.daysUntilDue).toBeLessThan(0);
@@ -464,7 +301,7 @@ describe("TodoModel", () => {
   describe("validation methods", () => {
     it("should allow completing active tasks without dependencies", () => {
       const todo = createTodo({ state: "active" });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
       const allTodos: TodoModel[] = [];
 
       const result = model.canComplete(allTodos);
@@ -474,7 +311,7 @@ describe("TodoModel", () => {
 
     it("should not allow completing already completed tasks", () => {
       const todo = createTodo({ state: "completed", completedAt: getTimestamp(Date.now()) });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const result = model.canComplete([]);
 
@@ -484,7 +321,7 @@ describe("TodoModel", () => {
 
     it("should not allow completing archived tasks", () => {
       const todo = createTodo({ state: "archived", archivedAt: getTimestamp(Date.now()) });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const result = model.canComplete([]);
 
@@ -501,7 +338,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dependencies: [getTodoId("dep-1")], // Use actual field
       });
-      const settings = createSettings();
+      const settings = createTestSettings();
       const depModel = new TodoModel(dependency, settings);
       const todoModel = new TodoModel(todo, settings);
 
@@ -521,7 +358,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dependencies: [getTodoId("dep-1")], // Use actual field
       });
-      const settings = createSettings();
+      const settings = createTestSettings();
       const depModel = new TodoModel(dependency, settings);
       const todoModel = new TodoModel(todo, settings);
 
@@ -532,7 +369,7 @@ describe("TodoModel", () => {
 
     it("should allow archiving completed tasks", () => {
       const todo = createTodo({ state: "completed", completedAt: getTimestamp(Date.now()) });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const result = model.canArchive([]);
 
@@ -541,7 +378,7 @@ describe("TodoModel", () => {
 
     it("should allow deleting active tasks", () => {
       const todo = createTodo({ state: "active" });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const result = model.canDelete();
 
@@ -550,7 +387,7 @@ describe("TodoModel", () => {
 
     it("should not allow deleting already deleted tasks", () => {
       const todo = createTodo({ state: "deleted", deletedAt: getTimestamp(Date.now()) });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const result = model.canDelete();
 
@@ -560,7 +397,7 @@ describe("TodoModel", () => {
 
   describe("display helpers", () => {
     it("should return correct status badge", () => {
-      const settings = createSettings();
+      const settings = createTestSettings();
 
       expect(new TodoModel(createTodo({ state: "active" }), settings).statusBadge).toBe("Active");
       expect(
@@ -578,7 +415,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         priority: getPriorityId("1"), // Use actual field with ID
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.priorityColor).toBe("#ff0000");
     });
@@ -587,7 +424,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         priority: getPriorityId("1"), // Use actual field - alternatives resolved to ID
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.priorityColor).toBe("#ff0000");
       expect(model.priorityOrder).toBe(1);
@@ -596,7 +433,7 @@ describe("TodoModel", () => {
     it("should get summary with truncation", () => {
       const longText = "This is a very long todo text that should be truncated when getting a summary";
       const todo = createTodo({ plainText: longText });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const summary = model.getSummary(30);
 
@@ -607,7 +444,7 @@ describe("TodoModel", () => {
     it("should not truncate short text", () => {
       const shortText = "Short todo";
       const todo = createTodo({ plainText: shortText });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const summary = model.getSummary(100);
 
@@ -621,7 +458,7 @@ describe("TodoModel", () => {
         tags: [getTag("personal")],
         priority: getPriorityId("2"), // Maps to "high" in test settings
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       // Search in plain text
       expect(model.matchesSearch("groceries")).toBe(true);
@@ -643,7 +480,7 @@ describe("TodoModel", () => {
   describe("factory functions", () => {
     it("should create single TodoModel with createTodoModel", () => {
       const todo = createTodo();
-      const settings = createSettings();
+      const settings = createTestSettings();
 
       const model = createTodoModel(todo, settings);
 
@@ -657,7 +494,7 @@ describe("TodoModel", () => {
         createTodo({ id: getTodoId("2") }),
         createTodo({ id: getTodoId("3") }),
       ];
-      const settings = createSettings();
+      const settings = createTestSettings();
 
       const models = createTodoModels(todos, settings);
 
@@ -676,7 +513,7 @@ describe("TodoModel", () => {
           { id: getSubtaskId("3"), text: "Subtask 3", completed: false, createdAt: getTimestamp(Date.now()) },
         ],
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.hasSubtasks).toBe(true);
       expect(model.subtaskCount).toBe(3);
@@ -692,14 +529,14 @@ describe("TodoModel", () => {
           { id: getSubtaskId("4"), text: "Subtask 4", completed: false, createdAt: getTimestamp(Date.now()) },
         ],
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.subtaskProgress).toBe(50);
     });
 
     it("should handle empty subtasks", () => {
       const todo = createTodo();
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.hasSubtasks).toBe(false);
       expect(model.subtaskCount).toBe(0);
@@ -721,7 +558,7 @@ describe("TodoModel", () => {
           },
         ],
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.hasComments).toBe(true);
       expect(model.commentCount).toBe(2);
@@ -739,7 +576,7 @@ describe("TodoModel", () => {
           },
         ],
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.latestComment?.content).toBe("Edited");
       expect(model.latestComment?.timestamp).toBe(getTimestamp(2000));
@@ -757,7 +594,7 @@ describe("TodoModel", () => {
           },
         ],
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.hasActivity).toBe(true);
       expect(model.activityCount).toBe(2);
@@ -775,7 +612,7 @@ describe("TodoModel", () => {
           },
         ],
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.latestActivity?.id).toBe(getActivityId("2"));
       expect(model.latestActivity?.type).toBe("completed");
@@ -786,14 +623,14 @@ describe("TodoModel", () => {
     it("should format created date", () => {
       const timestamp = getTimestamp(new Date("2025-12-09T10:30:00").getTime());
       const todo = createTodo({ createdAt: timestamp });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.createdDateDisplay).toContain("12/9/2025");
     });
 
     it("should return undefined for missing updatedAt", () => {
       const todo = createTodo({ updatedAt: undefined });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.updatedDateDisplay).toBeUndefined();
     });
@@ -801,7 +638,7 @@ describe("TodoModel", () => {
     it("should format updated date when present", () => {
       const timestamp = getTimestamp(new Date("2025-12-09T10:30:00").getTime());
       const todo = createTodo({ updatedAt: timestamp });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.updatedDateDisplay).toBeDefined();
       expect(model.updatedDateDisplay).toContain("12/9/2025");
@@ -809,7 +646,7 @@ describe("TodoModel", () => {
 
     it("should return undefined for missing completedAt", () => {
       const todo = createTodo();
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.completedDateDisplay).toBeUndefined();
     });
@@ -817,14 +654,14 @@ describe("TodoModel", () => {
     it("should format completed date when present", () => {
       const timestamp = getTimestamp(new Date("2025-12-09T10:30:00").getTime());
       const todo = createTodo({ state: "completed", completedAt: timestamp });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.completedDateDisplay).toBeDefined();
     });
 
     it("should return undefined for missing archivedAt", () => {
       const todo = createTodo();
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.archivedDateDisplay).toBeUndefined();
     });
@@ -832,7 +669,7 @@ describe("TodoModel", () => {
     it("should format archived date when present", () => {
       const timestamp = getTimestamp(new Date("2025-12-09T10:30:00").getTime());
       const todo = createTodo({ state: "archived", archivedAt: timestamp });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.archivedDateDisplay).toBeDefined();
     });
@@ -841,49 +678,49 @@ describe("TodoModel", () => {
   describe("age display", () => {
     it("should show 'just now' for recent todos", () => {
       const todo = createTodo({ createdAt: getTimestamp(Date.now() - 30000) }); // 30 seconds ago
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.ageDisplay).toBe("just now");
     });
 
     it("should show minutes for recent todos", () => {
       const todo = createTodo({ createdAt: getTimestamp(Date.now() - 5 * 60 * 1000) }); // 5 minutes ago
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.ageDisplay).toBe("5 minutes ago");
     });
 
     it("should show singular minute", () => {
       const todo = createTodo({ createdAt: getTimestamp(Date.now() - 1 * 60 * 1000) }); // 1 minute ago
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.ageDisplay).toBe("1 minute ago");
     });
 
     it("should show hours for older todos", () => {
       const todo = createTodo({ createdAt: getTimestamp(Date.now() - 3 * 60 * 60 * 1000) }); // 3 hours ago
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.ageDisplay).toBe("3 hours ago");
     });
 
     it("should show singular hour", () => {
       const todo = createTodo({ createdAt: getTimestamp(Date.now() - 1 * 60 * 60 * 1000) }); // 1 hour ago
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.ageDisplay).toBe("1 hour ago");
     });
 
     it("should show days for old todos", () => {
       const todo = createTodo({ createdAt: getTimestamp(Date.now() - 5 * 24 * 60 * 60 * 1000) }); // 5 days ago
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.ageDisplay).toBe("5 days ago");
     });
 
     it("should show singular day", () => {
       const todo = createTodo({ createdAt: getTimestamp(Date.now() - 1 * 24 * 60 * 60 * 1000) }); // 1 day ago
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.ageDisplay).toBe("1 day ago");
     });
@@ -892,28 +729,28 @@ describe("TodoModel", () => {
   describe("status badge", () => {
     it("should return 'Completed' for completed todos", () => {
       const todo = createTodo({ state: "completed" });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.statusBadge).toBe("Completed");
     });
 
     it("should return 'Archived' for archived todos", () => {
       const todo = createTodo({ state: "archived" });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.statusBadge).toBe("Archived");
     });
 
     it("should return 'Deleted' for deleted todos", () => {
       const todo = createTodo({ state: "deleted" });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.statusBadge).toBe("Deleted");
     });
 
     it("should return 'Active' for active todos", () => {
       const todo = createTodo({ state: "active" });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.statusBadge).toBe("Active");
     });
@@ -922,7 +759,7 @@ describe("TodoModel", () => {
   describe("getSummary", () => {
     it("should return full text if shorter than maxLength", () => {
       const todo = createTodo({ plainText: "Short text" });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.getSummary()).toBe("Short text");
     });
@@ -930,7 +767,7 @@ describe("TodoModel", () => {
     it("should truncate long text", () => {
       const longText = "A".repeat(200);
       const todo = createTodo({ plainText: longText });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const summary = model.getSummary(50);
       expect(summary.length).toBe(53); // 50 + "..."
@@ -941,14 +778,14 @@ describe("TodoModel", () => {
   describe("matchesSearch", () => {
     it("should return true for empty search", () => {
       const todo = createTodo();
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.matchesSearch("")).toBe(true);
     });
 
     it("should match plain text", () => {
       const todo = createTodo({ plainText: "Test task for search" });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.matchesSearch("search")).toBe(true);
       expect(model.matchesSearch("SEARCH")).toBe(true); // case insensitive
@@ -962,7 +799,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         tags: [getTag("important"), getTag("urgent")],
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.matchesSearch("important")).toBe(true);
     });
@@ -971,7 +808,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         priority: getPriorityId("2"), // Maps to "high" in test settings
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.matchesSearch("high")).toBe(true);
     });
@@ -981,7 +818,7 @@ describe("TodoModel", () => {
         plainText: "Test task",
         tags: [],
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.matchesSearch("nonexistent")).toBe(false);
     });
@@ -996,7 +833,7 @@ describe("TodoModel", () => {
         dependencies: [getTodoId("blocker")], // Use actual dependencies field
       });
 
-      const settings = createSettings();
+      const settings = createTestSettings();
       const blockerModel = new TodoModel(blocker, settings);
       const dependentModel = new TodoModel(dependent, settings);
 
@@ -1015,7 +852,7 @@ describe("TodoModel", () => {
         dependencies: [getTodoId("blocker")], // Use actual dependencies field
       });
 
-      const settings = createSettings();
+      const settings = createTestSettings();
       const blockerModel = new TodoModel(blocker, settings);
       const completedModel = new TodoModel(completedDependent, settings);
 
@@ -1031,7 +868,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         // All actual fields empty (from createTodo defaults)
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.metadataSummary).toBe("No metadata");
     });
@@ -1040,7 +877,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         assignedPeople: [getPersonId("person-1"), getPersonId("person-2")],
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.metadataSummary).toContain("2 people");
     });
@@ -1049,7 +886,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         projects: [getProjectId("project-1")],
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.metadataSummary).toContain("1 project");
     });
@@ -1058,7 +895,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         duration: getDurationSec(2 * 60 * 60), // 2 hours
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.metadataSummary).toContain("2h duration");
     });
@@ -1067,7 +904,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         tags: [getTag("tag1"), getTag("tag2"), getTag("tag3")],
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.metadataSummary).toContain("3 tags");
     });
@@ -1076,7 +913,7 @@ describe("TodoModel", () => {
   describe("duration display", () => {
     it("should return undefined when no duration", () => {
       const todo = createTodo();
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.durationDisplay).toBeUndefined();
     });
@@ -1085,7 +922,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         duration: getDurationSec(45 * 60), // 45 minutes
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.durationDisplay).toBe("45m");
     });
@@ -1094,7 +931,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         duration: getDurationSec(2 * 60 * 60), // 2 hours
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.durationDisplay).toBe("2h");
     });
@@ -1103,7 +940,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         duration: getDurationSec(90 * 60), // 90 minutes
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.durationDisplay).toBe("1.5h");
     });
@@ -1114,7 +951,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         recurring: "every monday",
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.recurring).toBe("every monday");
       expect(model.isRecurring).toBe(true);
@@ -1122,7 +959,7 @@ describe("TodoModel", () => {
 
     it("should not apply auto-assign recurring at read time", () => {
       // Note: Auto-assign now happens at todo creation time, not at model read time
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: {
           enabled: true,
           recurring: "daily",
@@ -1145,7 +982,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         recurring: "every monday",
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.recurringPattern).not.toBeNull();
       expect(model.recurringPattern?.type).toBe("weekday");
@@ -1155,7 +992,7 @@ describe("TodoModel", () => {
   describe("dueDateDisplay", () => {
     it("should return undefined when no due date", () => {
       const todo = createTodo();
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBeUndefined();
     });
@@ -1166,7 +1003,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(today.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("Today");
     });
@@ -1177,7 +1014,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(today.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("Today BOD");
     });
@@ -1188,7 +1025,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(today.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("Today EOD");
     });
@@ -1199,7 +1036,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(today.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("Today noon");
     });
@@ -1210,7 +1047,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(today.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("Today morning");
     });
@@ -1221,7 +1058,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(today.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("Today afternoon");
     });
@@ -1232,7 +1069,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(today.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("Today evening");
     });
@@ -1244,7 +1081,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(tomorrow.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("Tomorrow");
     });
@@ -1256,7 +1093,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(tomorrow.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("Tomorrow EOD");
     });
@@ -1268,7 +1105,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(yesterday.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("Yesterday");
     });
@@ -1280,7 +1117,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(past.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("3 days ago");
     });
@@ -1292,7 +1129,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(past.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("2 weeks ago");
     });
@@ -1304,7 +1141,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(future.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const expectedDay = future.toLocaleDateString(undefined, { weekday: "long" });
       expect(model.dueDateDisplay).toBe(`on ${expectedDay}`);
@@ -1317,7 +1154,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(future.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const expectedDay = future.toLocaleDateString(undefined, { weekday: "long" });
       expect(model.dueDateDisplay).toBe(`${expectedDay} EOD`);
@@ -1330,7 +1167,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(future.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("in 8 days");
     });
@@ -1342,7 +1179,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(future.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("in 3 weeks");
     });
@@ -1354,7 +1191,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(future.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("in 3 months");
     });
@@ -1366,7 +1203,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: getTimestamp(future.getTime()),
       });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       expect(model.dueDateDisplay).toBe("in 2 years");
     });
@@ -1378,7 +1215,7 @@ describe("TodoModel", () => {
         dueDate: getTimestamp(today.getTime()),
       });
       // Create settings with custom work hours (8am-6pm)
-      const settings = createSettings({
+      const settings = createTestSettings({
         workHours: {
           useCommonSchedule: true,
           commonSchedule: { startTime: getShortTime("08:00"), endTime: getShortTime("18:00"), breaks: [] },
@@ -1396,7 +1233,7 @@ describe("TodoModel", () => {
   describe("canDelete", () => {
     it("should return true for active todos", () => {
       const todo = createTodo({ state: "active" });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const result = model.canDelete();
       expect(result.canDelete).toBe(true);
@@ -1404,7 +1241,7 @@ describe("TodoModel", () => {
 
     it("should return false for already deleted todos", () => {
       const todo = createTodo({ state: "deleted" });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const result = model.canDelete();
       expect(result.canDelete).toBe(false);
@@ -1415,7 +1252,7 @@ describe("TodoModel", () => {
   describe("canUnarchive", () => {
     it("should return true for archived todos", () => {
       const todo = createTodo({ state: "archived" });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const result = model.canUnarchive();
       expect(result.canUnarchive).toBe(true);
@@ -1423,7 +1260,7 @@ describe("TodoModel", () => {
 
     it("should return false for non-archived todos", () => {
       const todo = createTodo({ state: "active" });
-      const model = new TodoModel(todo, createSettings());
+      const model = new TodoModel(todo, createTestSettings());
 
       const result = model.canUnarchive();
       expect(result.canUnarchive).toBe(false);
@@ -1440,7 +1277,7 @@ describe("TodoModel", () => {
         dependencies: [getTodoId("dep-1")], // Use actual dependencies field
       });
 
-      const settings = createSettings();
+      const settings = createTestSettings();
       const depModel = new TodoModel(dependency, settings);
       const model = new TodoModel(todo, settings);
 
@@ -1457,7 +1294,7 @@ describe("TodoModel", () => {
         dependencies: [getTodoId("dep-1")], // Use actual dependencies field
       });
 
-      const settings = createSettings();
+      const settings = createTestSettings();
       const depModel = new TodoModel(dependency, settings);
       const model = new TodoModel(todo, settings);
 
@@ -1473,10 +1310,10 @@ describe("TodoModel", () => {
       const todo = createTodo({
         assignedPeople: [getPersonId("person-1")],
       });
-      const settings = createSettings();
+      const settings = createTestSettings();
       const model = new TodoModel(todo, settings);
 
-      const newSettings = createSettings();
+      const newSettings = createTestSettings();
       model.updateSettings(newSettings);
 
       // Model should read from actual fields (IDs)
@@ -1489,7 +1326,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         priority: undefined,
       });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: {
           enabled: true,
           priority: "high", // This matches priority with ID "2"
@@ -1505,7 +1342,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         priority: getPriorityId("1"), // urgent
       });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: {
           enabled: true,
           priority: "high", // default would be high
@@ -1521,7 +1358,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         priority: undefined,
       });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: {
           enabled: false,
           priority: "high",
@@ -1536,7 +1373,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         duration: undefined,
       });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: {
           enabled: true,
           duration: "30m",
@@ -1552,7 +1389,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         duration: undefined,
       });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: {
           enabled: true,
           duration: "2h",
@@ -1567,7 +1404,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         duration: getDurationSec(60 * 60), // 1 hour
       });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: {
           enabled: true,
           duration: "30m",
@@ -1582,7 +1419,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: undefined,
       });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: {
           enabled: true,
           dueDate: "tomorrow",
@@ -1604,7 +1441,7 @@ describe("TodoModel", () => {
       const todo = createTodo({
         dueDate: specificTimestamp,
       });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: {
           enabled: true,
           dueDate: "tomorrow",
@@ -1621,7 +1458,7 @@ describe("TodoModel", () => {
       // EntityRegistry that production code never supplied, which left the
       // auto-assign setting doing nothing at all.
       const todo = createTodo({ assignedPeople: [] });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: { enabled: true, assignedPerson: "Default Person" },
       });
 
@@ -1632,7 +1469,7 @@ describe("TodoModel", () => {
 
     it("applies the default source person when none is set", () => {
       const todo = createTodo({ sourcePeople: [] });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: { enabled: true, sourcePerson: "John" },
       });
 
@@ -1641,7 +1478,7 @@ describe("TodoModel", () => {
 
     it("applies the default project when none is set", () => {
       const todo = createTodo({ projects: [] });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: { enabled: true, project: "Default Project" },
       });
 
@@ -1650,7 +1487,7 @@ describe("TodoModel", () => {
 
     it("prefers explicitly set people over the default", () => {
       const todo = createTodo({ assignedPeople: [getPersonId("explicit-person")] });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: { enabled: true, assignedPerson: "Default Person" },
       });
 
@@ -1661,7 +1498,7 @@ describe("TodoModel", () => {
 
     it("returns an empty array when auto-assign is disabled", () => {
       const todo = createTodo({ assignedPeople: [] });
-      const settings = createSettings({
+      const settings = createTestSettings({
         autoAssign: { enabled: false, assignedPerson: "Default Person" },
       });
 
@@ -1670,7 +1507,7 @@ describe("TodoModel", () => {
 
     it("returns an empty array when no default is configured", () => {
       const todo = createTodo({ assignedPeople: [] });
-      const settings = createSettings({ autoAssign: { enabled: true } });
+      const settings = createTestSettings({ autoAssign: { enabled: true } });
 
       expect(new TodoModel(todo, settings).assignedPeopleIds).toEqual([]);
     });
@@ -1678,7 +1515,7 @@ describe("TodoModel", () => {
 });
 
 describe("due-date windows agree with each other", () => {
-  const settings = createSettings();
+  const settings = createTestSettings();
 
   it("counts a task due earlier today as due this week", () => {
     // isDueToday compares calendar dates; isDueThisWeek used to compare against

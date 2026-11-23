@@ -15,85 +15,37 @@ import {
   SchedulingConfig,
   BreakBlock,
 } from "@/utils/ganttScheduler";
-import {
-  WorkHoursSettings,
-  DaySchedule,
-  Settings,
-  defaultWorkHoursSettings,
-  defaultGeneralSettings,
-  defaultDateTimeSettings,
-  defaultAutoAssignSettings,
-  defaultNotificationSettings,
-  defaultKanbanSettings,
-  defaultSprintSettings,
-  defaultFocusSettings,
-  defaultFeatureSettings,
-} from "@/types/settings";
+import { WorkHoursSettings, DaySchedule } from "@/types/settings";
 import { Gantt, defaultGantt } from "@/types/gantt";
-import { Priority, getPriorityId } from "@/types/priority";
-import { defaultMarkerColors } from "@/types/markerColors";
-import { defaultCalendar } from "@/types/calendar";
-import { defaultCategories } from "@/types/project";
-import { defaultBackupSettings } from "@/types/backup";
-import { createRawTodo as createTodo } from "./testHelpers";
+import { getPriorityId } from "@/types/priority";
+import {
+  createRawTodo as createTodo,
+  createTestSettings,
+  createTestWorkHoursSettings,
+  DEFAULT_PRIORITIES,
+} from "@/__tests__/helpers/fixtures";
 import { TodoModel } from "@/models/TodoModel";
-import { createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
+import { resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
 import { Todo, getTodoId, getTimeEntryId } from "@/types/todo";
 import { getTimestamp, getShortTime, getDurationMin, getDurationSec } from "@/types/time";
 import { getBreakPeriodId } from "@/types/breakPeriod";
-import { getColor } from "@/types/types";
-
-// Helper to create minimal settings for TodoModel
-const createMinimalSettings = (): Settings => ({
-  priorities: [
-    { id: getPriorityId("1"), name: "urgent", alternatives: ["critical"], order: 1 },
-    { id: getPriorityId("2"), name: "high", alternatives: [], order: 2 },
-    { id: getPriorityId("3"), name: "medium", alternatives: [], order: 3 },
-    { id: getPriorityId("4"), name: "low", alternatives: [], order: 4 },
-  ],
-  linkPatterns: [],
-  markerColors: defaultMarkerColors,
-  general: defaultGeneralSettings,
-  dateTime: defaultDateTimeSettings,
-  workHours: defaultWorkHoursSettings,
-  gantt: defaultGantt,
-  kanban: defaultKanbanSettings,
-  sprints: defaultSprintSettings,
-  autoAssign: defaultAutoAssignSettings,
-  calendar: defaultCalendar,
-  focus: defaultFocusSettings,
-  categories: defaultCategories,
-  notifications: defaultNotificationSettings,
-  notes: {
-    defaultPinNewNotes: false,
-    showArchivedByDefault: false,
-    sortOrder: "modified",
-    oneOnOneTemplate: [],
-    meetingNoteTemplate: [],
-  },
-  features: defaultFeatureSettings,
-  backup: defaultBackupSettings,
-});
 
 // Helper to create minimal WorkHoursSettings
-const createWorkHoursSettings = (): WorkHoursSettings => ({
-  useCommonSchedule: true,
-  commonSchedule: {
-    startTime: getShortTime("09:00"),
-    endTime: getShortTime("17:00"),
-    breaks: [
-      {
-        id: getBreakPeriodId("lunch"),
-        name: "Lunch",
-        startTime: getShortTime("12:00"),
-        endTime: getShortTime("13:00"),
-      },
-    ],
-  },
-  weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
-  weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
-  customSchedules: {},
-});
+const createWorkHoursSettings = (): WorkHoursSettings =>
+  createTestWorkHoursSettings({
+    commonSchedule: {
+      startTime: getShortTime("09:00"),
+      endTime: getShortTime("17:00"),
+      breaks: [
+        {
+          id: getBreakPeriodId("lunch"),
+          name: "Lunch",
+          startTime: getShortTime("12:00"),
+          endTime: getShortTime("13:00"),
+        },
+      ],
+    },
+  });
 
 // Helper to create minimal Gantt settings
 const createGanttSettings = (overrides: Partial<Gantt> = {}): Gantt => ({
@@ -105,7 +57,7 @@ const createGanttSettings = (overrides: Partial<Gantt> = {}): Gantt => ({
 
 // Helper to create TodoModel from Todo
 const _createTodoModel = (overrides: Partial<Todo> = {}): TodoModel => {
-  return new TodoModel(createTodo(overrides), createSettingsModel(createMinimalSettings()));
+  return new TodoModel(createTodo(overrides), createTestSettings());
 };
 
 // Helper to create a SchedulingConfig
@@ -317,13 +269,8 @@ describe("ganttScheduler", () => {
   });
 
   describe("sortTodosForScheduling", () => {
-    const settings = createSettingsModel(createMinimalSettings());
-    const priorities: Priority[] = [
-      { id: getPriorityId("1"), name: "urgent", alternatives: ["critical"], order: 1, color: getColor("#ff0000") },
-      { id: getPriorityId("2"), name: "high", alternatives: ["important"], order: 2, color: getColor("#ff6600") },
-      { id: getPriorityId("3"), name: "medium", alternatives: [], order: 3, color: getColor("#ffcc00") },
-      { id: getPriorityId("4"), name: "low", alternatives: [], order: 4, color: getColor("#00cc00") },
-    ];
+    const settings = createTestSettings();
+    const priorities = DEFAULT_PRIORITIES;
 
     it("should sort active tasks before completed/archived in ASAP mode", () => {
       const activeTodo = createTodo({ id: getTodoId("1"), state: "active" });
@@ -547,7 +494,7 @@ describe("ganttScheduler", () => {
   });
 
   describe("createTaskSchedulingMap", () => {
-    const settings = createSettingsModel(createMinimalSettings());
+    const settings = createTestSettings();
 
     it("should create a map with tasks allocated to their due dates", () => {
       const config = createSchedulingConfig();
@@ -825,7 +772,7 @@ describe("ganttScheduler", () => {
   });
 
   describe("scheduleDayTasks", () => {
-    const settings = createSettingsModel(createMinimalSettings());
+    const settings = createTestSettings();
 
     // Helper to call scheduleDayTasks with proper arguments
     const callScheduleDayTasks = (
@@ -1542,7 +1489,7 @@ describe("ganttScheduler", () => {
   });
 
   describe("scheduleWeekTasks", () => {
-    const settings = createSettingsModel(createMinimalSettings());
+    const settings = createTestSettings();
 
     // Helper to call scheduleWeekTasks with proper arguments
     const callScheduleWeekTasks = (

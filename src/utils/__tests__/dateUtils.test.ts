@@ -15,34 +15,11 @@ import {
   convertToTimeInputFormat,
   toLocalISOString,
 } from "@/utils/dateUtils";
-import { DateTimeSettings, WorkHoursSettings } from "@/types/settings";
-import { getShortTime, getWeekday, getMonth } from "@/types/time";
+import { createTestDateTimeSettings, createTestWorkHoursSettings } from "@/__tests__/helpers/fixtures";
 
 // Mock the current date for consistent testing
 const mockDate = new Date("2025-12-09T14:30:00");
 const _originalDate = global.Date;
-
-const createDateTimeSettings = (): DateTimeSettings => ({
-  morning: getShortTime("09:00"),
-  noon: getShortTime("12:00"),
-  afternoon: getShortTime("14:00"),
-  evening: getShortTime("18:00"),
-  workWeekStart: getWeekday(1), // Monday
-  workWeekEnd: getWeekday(5), // Friday
-  fiscalYearStart: getMonth(1), // January
-});
-
-const createWorkHoursSettings = (): WorkHoursSettings => ({
-  useCommonSchedule: true,
-  commonSchedule: {
-    startTime: getShortTime("09:00"),
-    endTime: getShortTime("17:00"),
-    breaks: [],
-  },
-  weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
-  weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
-  customSchedules: {},
-});
 
 describe("dateUtils", () => {
   describe("formatDateTime", () => {
@@ -93,8 +70,8 @@ describe("dateUtils", () => {
   });
 
   describe("parseShorthand", () => {
-    const dateTimeSettings = createDateTimeSettings();
-    const workHours = createWorkHoursSettings();
+    const dateTimeSettings = createTestDateTimeSettings();
+    const workHours = createTestWorkHoursSettings();
 
     // We need to mock Date.now() for consistent testing
     beforeAll(() => {
@@ -202,8 +179,8 @@ describe("dateUtils", () => {
   });
 
   describe("parseDate", () => {
-    const dateTimeSettings = createDateTimeSettings();
-    const workHours = createWorkHoursSettings();
+    const dateTimeSettings = createTestDateTimeSettings();
+    const workHours = createTestWorkHoursSettings();
 
     beforeAll(() => {
       jest.useFakeTimers();
@@ -248,7 +225,7 @@ describe("dateUtils", () => {
   });
 
   describe("getDueDateSuggestions", () => {
-    const dateTimeSettings = createDateTimeSettings();
+    const dateTimeSettings = createTestDateTimeSettings();
 
     it("should return default suggestions when no search term", () => {
       const suggestions = getDueDateSuggestions("", dateTimeSettings);
@@ -287,8 +264,8 @@ describe("dateUtils", () => {
   });
 
   describe("normalizeDateValue", () => {
-    const dateTimeSettings = createDateTimeSettings();
-    const workHours = createWorkHoursSettings();
+    const dateTimeSettings = createTestDateTimeSettings();
+    const workHours = createTestWorkHoursSettings();
 
     beforeAll(() => {
       jest.useFakeTimers();
@@ -344,8 +321,8 @@ describe("dateUtils", () => {
   });
 
   describe("convertToDateInputFormat", () => {
-    const dateTimeSettings = createDateTimeSettings();
-    const workHours = createWorkHoursSettings();
+    const dateTimeSettings = createTestDateTimeSettings();
+    const workHours = createTestWorkHoursSettings();
 
     beforeAll(() => {
       jest.useFakeTimers();
@@ -377,8 +354,8 @@ describe("dateUtils", () => {
   });
 
   describe("convertToTimeInputFormat", () => {
-    const dateTimeSettings = createDateTimeSettings();
-    const workHours = createWorkHoursSettings();
+    const dateTimeSettings = createTestDateTimeSettings();
+    const workHours = createTestWorkHoursSettings();
 
     beforeAll(() => {
       jest.useFakeTimers();
@@ -413,8 +390,8 @@ describe("dateUtils", () => {
   });
 
   describe("additional parseShorthand tests", () => {
-    const dateTimeSettings = createDateTimeSettings();
-    const workHours = createWorkHoursSettings();
+    const dateTimeSettings = createTestDateTimeSettings();
+    const workHours = createTestWorkHoursSettings();
 
     beforeAll(() => {
       jest.useFakeTimers();

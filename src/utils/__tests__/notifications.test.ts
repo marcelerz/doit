@@ -38,7 +38,7 @@ import { getPriorityId } from "@/types/priority";
 import {
   getTimestamp,
 } from "@/types/time";
-import { createTestSettings, createRawTodo as createTestTodo } from "./testHelpers";
+import { createTestSettings, createRawTodo } from "@/__tests__/helpers/fixtures";
 
 
 describe("notifications", () => {
@@ -583,7 +583,7 @@ describe("notifications with MockBrowserApis", () => {
 
     it("notifyOverdueTask should create notification with todo info", () => {
       const settings = createTestSettings();
-      const todo = createTestTodo({
+      const todo = createRawTodo({
         id: getTodoId("todo-1"),
         plainText: "Finish report",
         dueDate: getTimestamp(new Date("2024-01-01").getTime()),
@@ -599,7 +599,7 @@ describe("notifications with MockBrowserApis", () => {
 
     it("notifyDueToday should include priority when present", () => {
       const settings = createTestSettings();
-      const todo = createTestTodo({
+      const todo = createRawTodo({
         plainText: "Urgent task",
         priority: getPriorityId("2"), // "high" priority
       });
@@ -612,7 +612,7 @@ describe("notifications with MockBrowserApis", () => {
 
     it("notifyDueToday should use default message without priority", () => {
       const settings = createTestSettings();
-      const todo = createTestTodo({ plainText: "Normal task" });
+      const todo = createRawTodo({ plainText: "Normal task" });
       const model = new TodoModel(todo, settings);
 
       notifyDueToday(model);
@@ -622,7 +622,7 @@ describe("notifications with MockBrowserApis", () => {
 
     it("notifyDueSoon should format hours correctly", () => {
       const settings = createTestSettings();
-      const todo = createTestTodo({ plainText: "Soon task" });
+      const todo = createRawTodo({ plainText: "Soon task" });
       const model = new TodoModel(todo, settings);
 
       notifyDueSoon(model, 3);
@@ -655,7 +655,7 @@ describe("notifications with MockBrowserApis", () => {
       yesterday.setDate(yesterday.getDate() - 1);
       return Array.from({ length: n }, (_, i) =>
         new TodoModel(
-          createTestTodo({
+          createRawTodo({
             id: getTodoId(`overdue-batch-${i}`),
             plainText: `Overdue ${i}`,
             dueDate: getTimestamp(yesterday.getTime()),
@@ -703,7 +703,7 @@ describe("notifications with MockBrowserApis", () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
-      const todo = createTestTodo({
+      const todo = createRawTodo({
         id: getTodoId("overdue-1"),
         plainText: "Overdue task",
         dueDate: getTimestamp(yesterday.getTime()),
@@ -727,7 +727,7 @@ describe("notifications with MockBrowserApis", () => {
       const today = new Date();
       today.setHours(23, 30, 0, 0); // 11:30 PM today
 
-      const todo = createTestTodo({
+      const todo = createRawTodo({
         id: getTodoId("today-1"),
         plainText: "Today task",
         dueDate: getTimestamp(today.getTime()),
@@ -749,7 +749,7 @@ describe("notifications with MockBrowserApis", () => {
       const soon = new Date();
       soon.setTime(soon.getTime() + 1.5 * 60 * 60 * 1000); // 1.5 hours
 
-      const todo = createTestTodo({
+      const todo = createRawTodo({
         id: getTodoId("soon-1"),
         plainText: "Soon task",
         dueDate: getTimestamp(soon.getTime()),
@@ -771,7 +771,7 @@ describe("notifications with MockBrowserApis", () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
-      const todo = createTestTodo({
+      const todo = createRawTodo({
         id: getTodoId("already-notified"),
         plainText: "Already notified",
         dueDate: getTimestamp(yesterday.getTime()),
@@ -793,7 +793,7 @@ describe("notifications with MockBrowserApis", () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
-      const todo = createTestTodo({
+      const todo = createRawTodo({
         id: getTodoId("completed-task"),
         state: "completed",
         plainText: "Completed task",
@@ -813,7 +813,7 @@ describe("notifications with MockBrowserApis", () => {
 
     it("should skip tasks without due dates", () => {
       const settings = createTestSettings();
-      const todo = createTestTodo({
+      const todo = createRawTodo({
         id: getTodoId("no-date"),
         plainText: "No due date",
       });
@@ -834,7 +834,7 @@ describe("notifications with MockBrowserApis", () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
-      const todo = createTestTodo({
+      const todo = createRawTodo({
         id: getTodoId("date-only"),
         plainText: "Date only format",
         dueDate: getTimestamp(yesterday.getTime()),
@@ -853,7 +853,7 @@ describe("notifications with MockBrowserApis", () => {
 
     it("should handle tasks without dueDate gracefully", () => {
       const settings = createTestSettings();
-      const todo = createTestTodo({
+      const todo = createRawTodo({
         id: getTodoId("no-duedate"),
         plainText: "No due date",
         // No dueDate field set

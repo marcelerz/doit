@@ -1,12 +1,14 @@
 /**
- * Shared Test Helpers for Utility Tests
+ * Shared test fixtures
  *
- * Provides common factory functions for creating test data.
+ * Factory functions for the settings and todos that test files across the
+ * tree need. One place, so a new settings field is added once and no suite
+ * carries its own slightly different copy.
  */
 
 import { TodoModel } from "@/models/TodoModel";
 import { SettingsModel, createSettingsModel, resetSettingsModel_DONOTUSE } from "@/models/SettingsModel";
-import { Settings, defaultFocusSettings } from "@/types/settings";
+import { Settings, DateTimeSettings, WorkHoursSettings, defaultFocusSettings } from "@/types/settings";
 import { Todo, TodoId, getTodoId, Tag } from "@/types/todo";
 import { PersonId } from "@/types/person";
 import { ProjectId } from "@/types/project";
@@ -81,6 +83,37 @@ export const DEFAULT_PRIORITIES: Priority[] = [
 ];
 
 /**
+ * Date and time settings: a 09:00 morning, a Monday-to-Friday week and a
+ * fiscal year starting in January.
+ */
+export function createTestDateTimeSettings(overrides: Partial<DateTimeSettings> = {}): DateTimeSettings {
+  return {
+    morning: getShortTime("09:00"),
+    noon: getShortTime("12:00"),
+    afternoon: getShortTime("14:00"),
+    evening: getShortTime("18:00"),
+    workWeekStart: getWeekday(1),
+    workWeekEnd: getWeekday(5),
+    fiscalYearStart: getMonth(1),
+    ...overrides,
+  };
+}
+
+/**
+ * Work hours: 09:00 to 17:00 on a common schedule, with no breaks.
+ */
+export function createTestWorkHoursSettings(overrides: Partial<WorkHoursSettings> = {}): WorkHoursSettings {
+  return {
+    useCommonSchedule: true,
+    commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+    weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
+    weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
+    customSchedules: {},
+    ...overrides,
+  };
+}
+
+/**
  * Create a complete SettingsModel with all required fields
  */
 export function createTestSettings(overrides: Partial<Settings> = {}): SettingsModel {
@@ -105,22 +138,8 @@ export function createTestSettings(overrides: Partial<Settings> = {}): SettingsM
       autoDelete: { enabled: false, deleteDays: getDurationDay(90) },
       theme: "system",
     },
-    dateTime: {
-      morning: getShortTime("09:00"),
-      noon: getShortTime("12:00"),
-      afternoon: getShortTime("14:00"),
-      evening: getShortTime("18:00"),
-      workWeekStart: getWeekday(1),
-      workWeekEnd: getWeekday(5),
-      fiscalYearStart: getMonth(1),
-    },
-    workHours: {
-      useCommonSchedule: true,
-      commonSchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
-      weekdaySchedule: { startTime: getShortTime("09:00"), endTime: getShortTime("17:00"), breaks: [] },
-      weekendSchedule: { startTime: getShortTime("10:00"), endTime: getShortTime("14:00"), breaks: [] },
-      customSchedules: {},
-    },
+    dateTime: createTestDateTimeSettings(),
+    workHours: createTestWorkHoursSettings(),
     gantt: {
       schedulingTechnique: "sequential",
       defaultTaskDuration: getDurationMin(30),
