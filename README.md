@@ -92,7 +92,7 @@ The app automatically detects and parses:
 
 ### Prerequisites
 
-- Node.js 20+ (required by Next.js 16)
+- Node.js 24 or newer. The version is pinned in `.nvmrc` (`nvm use` picks it up), and CI runs on the same one.
 - npm
 
 ### Installation

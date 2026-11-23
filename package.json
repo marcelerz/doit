@@ -2,6 +2,9 @@
   "name": "doit",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "next dev",
     "setup:hooks": "node scripts/setup-hooks.js",
@@ -44,9 +47,10 @@
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^20",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
