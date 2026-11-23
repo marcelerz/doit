@@ -14,6 +14,9 @@ import {
   STORAGE_KEY_PREFIX,
   STORE_NAME,
 } from "./keys";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("storage");
 
 // The key registry lives in keys.ts so that code which must not load the
 // storage layer can still import it. Everything else imports it from here.
@@ -32,7 +35,7 @@ class LocalStorageAdapter implements StorageAdapter {
     try {
       return localStorage.getItem(key);
     } catch (error) {
-      console.error(`Failed to get item ${key}:`, error);
+      log.error(`Failed to get item ${key}:`, error);
       return null;
     }
   }
@@ -41,7 +44,7 @@ class LocalStorageAdapter implements StorageAdapter {
     try {
       localStorage.setItem(key, value);
     } catch (error) {
-      console.error(`Failed to set item ${key}:`, error);
+      log.error(`Failed to set item ${key}:`, error);
       throw error;
     }
   }
@@ -50,7 +53,7 @@ class LocalStorageAdapter implements StorageAdapter {
     try {
       localStorage.removeItem(key);
     } catch (error) {
-      console.error(`Failed to remove item ${key}:`, error);
+      log.error(`Failed to remove item ${key}:`, error);
       throw error;
     }
   }
@@ -65,7 +68,7 @@ class LocalStorageAdapter implements StorageAdapter {
         }
       }
     } catch (error) {
-      console.error("Failed to clear storage:", error);
+      log.error("Failed to clear storage:", error);
       throw error;
     }
   }
@@ -74,7 +77,7 @@ class LocalStorageAdapter implements StorageAdapter {
     try {
       return Object.keys(localStorage);
     } catch (error) {
-      console.error("Failed to get all keys:", error);
+      log.error("Failed to get all keys:", error);
       return [];
     }
   }
@@ -175,7 +178,7 @@ class IndexedDBAdapter implements StorageAdapter {
       );
       return result ?? null;
     } catch (error) {
-      console.error(`Failed to get item ${key}:`, error);
+      log.error(`Failed to get item ${key}:`, error);
       return null;
     }
   }
@@ -187,7 +190,7 @@ class IndexedDBAdapter implements StorageAdapter {
         (store) => store.put(value, key)
       );
     } catch (error) {
-      console.error(`Failed to set item ${key}:`, error);
+      log.error(`Failed to set item ${key}:`, error);
       throw error;
     }
   }
@@ -199,7 +202,7 @@ class IndexedDBAdapter implements StorageAdapter {
         (store) => store.delete(key)
       );
     } catch (error) {
-      console.error(`Failed to remove item ${key}:`, error);
+      log.error(`Failed to remove item ${key}:`, error);
       throw error;
     }
   }
@@ -211,7 +214,7 @@ class IndexedDBAdapter implements StorageAdapter {
         (store) => store.clear()
       );
     } catch (error) {
-      console.error("Failed to clear storage:", error);
+      log.error("Failed to clear storage:", error);
       throw error;
     }
   }
@@ -223,7 +226,7 @@ class IndexedDBAdapter implements StorageAdapter {
         (store) => store.getAllKeys()
       ) as string[];
     } catch (error) {
-      console.error("Failed to get all keys:", error);
+      log.error("Failed to get all keys:", error);
       return [];
     }
   }
@@ -313,7 +316,7 @@ export async function loadFromStorage<T>(key: string, defaultValue: T): Promise<
     // as a valid value and dereferences. Fall back instead.
     return parsed === null || parsed === undefined ? defaultValue : parsed;
   } catch (error) {
-    console.error(`Failed to parse stored data for ${key}:`, error);
+    log.error(`Failed to parse stored data for ${key}:`, error);
     return defaultValue;
   }
 }
@@ -323,13 +326,13 @@ export async function saveToStorage<T>(key: string, value: T): Promise<boolean> 
     await storageAdapter.setItem(key, JSON.stringify(value));
     return true;
   } catch (error) {
-    console.error(`Failed to save data for ${key}:`, error);
+    log.error(`Failed to save data for ${key}:`, error);
     const failure: StorageWriteFailure = { key, error, isQuotaExceeded: isQuotaError(error) };
     storageErrorListeners.forEach((listener) => {
       try {
         listener(failure);
       } catch (listenerError) {
-        console.error("Storage error listener threw:", listenerError);
+        log.error("Storage error listener threw:", listenerError);
       }
     });
     return false;
@@ -375,7 +378,7 @@ export async function isIndexedDBAvailable(): Promise<boolean> {
       // The timeout exists only to stop a wedged open() hanging forever.
       setTimeout(() => {
         if (!resolved) {
-          console.warn("IndexedDB availability probe timed out; falling back to localStorage");
+          log.warn("IndexedDB availability probe timed out; falling back to localStorage");
         }
         resolveOnce(false);
       }, 10000);
@@ -403,7 +406,7 @@ export async function checkPersistentStorage(): Promise<PersistentStorageInfo> {
     const isPersisted = await navigator.storage.persisted();
     return { isPersisted, supported: true };
   } catch (error) {
-    console.warn("Failed to check persistent storage status:", error);
+    log.warn("Failed to check persistent storage status:", error);
     return { isPersisted: false, supported: false };
   }
 }
@@ -441,7 +444,7 @@ export async function requestPersistentStorage(): Promise<PersistentStorageInfo>
     }
     return { isPersisted: granted, supported: true };
   } catch (error) {
-    console.warn("Failed to request persistent storage:", error);
+    log.warn("Failed to request persistent storage:", error);
     return { isPersisted: false, supported: false };
   }
 }
@@ -478,7 +481,7 @@ export async function estimateStorageQuota(type?: StorageType): Promise<StorageQ
       }
     }
   } catch (error) {
-    console.warn("Failed to estimate storage quota:", error);
+    log.warn("Failed to estimate storage quota:", error);
   }
 
   // Fallback based on storage type
@@ -512,7 +515,7 @@ export async function estimateStorageQuota(type?: StorageType): Promise<StorageQ
           used += measure(data) + (currentType === "localStorage" ? key.length * 2 : 0);
         }
       } catch (error) {
-        console.error(`Failed to get size for ${key}:`, error);
+        log.error(`Failed to get size for ${key}:`, error);
       }
     }
   }
@@ -580,13 +583,13 @@ export async function migrateToIndexedDB(): Promise<MigrationResult> {
         localStorage.removeItem(key);
       } catch (clearError) {
         // Log but don't fail - data is safely in IndexedDB
-        console.warn(`Failed to clear localStorage key ${key}:`, clearError);
+        log.warn(`Failed to clear localStorage key ${key}:`, clearError);
       }
     }
 
     return { success: true, migratedCount };
   } catch (error) {
-    console.error("Migration to IndexedDB failed:", error);
+    log.error("Migration to IndexedDB failed:", error);
     return { success: false, migratedCount: 0, error: String(error) };
   }
 }
@@ -626,7 +629,7 @@ export async function migrateToLocalStorage(): Promise<MigrationResult> {
 
     return { success: true, migratedCount };
   } catch (error) {
-    console.error("Migration to localStorage failed:", error);
+    log.error("Migration to localStorage failed:", error);
     return { success: false, migratedCount: 0, error: String(error) };
   }
 }
@@ -658,7 +661,7 @@ export async function clearAllAppData(): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error("Failed to clear all data:", error);
+    log.error("Failed to clear all data:", error);
     return false;
   }
 }
@@ -700,7 +703,7 @@ function hasLocalStorageData(): boolean {
     }
     return false;
   } catch (error) {
-    console.error("Failed to check localStorage data:", error);
+    log.error("Failed to check localStorage data:", error);
     return false;
   }
 }
@@ -711,7 +714,7 @@ async function isAlreadyMigrated(adapter: StorageAdapter): Promise<boolean> {
     const migrated = await adapter.getItem(MIGRATED_TO_INDEXEDDB_KEY);
     return migrated === "true";
   } catch (error) {
-    console.error("Failed to check migration status:", error);
+    log.error("Failed to check migration status:", error);
     return false;
   }
 }
@@ -768,7 +771,7 @@ export async function initializeStorage(): Promise<{
         // hook's auto-save would then write its empty in-memory state over the
         // rest. Stay on localStorage for this session; the migration flag is
         // only written on success, so the next load retries.
-        console.error("IndexedDB migration failed, staying on localStorage:", result.error);
+        log.error("IndexedDB migration failed, staying on localStorage:", result.error);
         return {
           adapter: null as unknown as StorageAdapter,
           usingIndexedDB: false,
@@ -793,7 +796,7 @@ export async function initializeStorage(): Promise<{
           try {
             localStorage.removeItem(key);
           } catch (error) {
-            console.error(`Failed to clear localStorage key ${key}:`, error);
+            log.error(`Failed to clear localStorage key ${key}:`, error);
           }
         }
       }
@@ -805,7 +808,7 @@ export async function initializeStorage(): Promise<{
       };
     }
   } catch (error) {
-    console.error("Failed to initialize IndexedDB, falling back to localStorage:", error);
+    log.error("Failed to initialize IndexedDB, falling back to localStorage:", error);
     return {
       adapter: null as unknown as StorageAdapter, // Will use default LocalStorageAdapter
       usingIndexedDB: false,
@@ -832,7 +835,7 @@ export function initializeStorageClient(): void {
         await requestPersistentStorage();
       })
       .catch((error) => {
-        console.error("Failed to initialize storage:", error);
+        log.error("Failed to initialize storage:", error);
         isInitialized = true; // Mark as initialized even on error to prevent hanging
       });
   }

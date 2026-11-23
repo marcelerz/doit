@@ -15,6 +15,9 @@ import {
 import { formatDateKey } from "@/utils/dateUtils";
 import { BackupSettings, defaultBackupSettings } from "@/types/backup";
 import { BACKUP_KEY_PREFIX, INTERNAL_STORAGE_KEYS } from "@/storage/storage";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("backup");
 
 // ============================================================================
 // Types & Constants
@@ -189,7 +192,7 @@ export async function restoreSnapshot(backup: BackupData): Promise<boolean> {
     await adapter.setItem(STORAGE_KEYS.SETTINGS, backup.settings);
     return true;
   } catch (error) {
-    console.error("Failed to restore backup:", error);
+    log.error("Failed to restore backup:", error);
     return false;
   }
 }
@@ -249,7 +252,7 @@ async function getAllBackups(): Promise<BackupData[]> {
               backups.push(backup);
             }
           } catch (error) {
-            console.warn(`Failed to parse backup ${key}:`, error);
+            log.warn(`Failed to parse backup ${key}:`, error);
           }
         }
       }
@@ -257,7 +260,7 @@ async function getAllBackups(): Promise<BackupData[]> {
 
     backups.sort((a, b) => b.timestamp - a.timestamp);
   } catch (error) {
-    console.error("Failed to load backups:", error);
+    log.error("Failed to load backups:", error);
   }
 
   return backups;
@@ -312,7 +315,7 @@ async function createBackup(source: "auto" | "manual" = "manual"): Promise<boole
 
     return true;
   } catch (error) {
-    console.error("Failed to create backup:", error);
+    log.error("Failed to create backup:", error);
     return false;
   }
 }
@@ -327,7 +330,7 @@ async function deleteBackup(timestamp: number): Promise<boolean> {
     await adapter.removeItem(backupKey);
     return true;
   } catch (error) {
-    console.error("Failed to delete backup:", error);
+    log.error("Failed to delete backup:", error);
     return false;
   }
 }

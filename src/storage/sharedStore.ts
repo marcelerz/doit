@@ -2,6 +2,9 @@
 
 import { useSyncExternalStore } from "react";
 import { loadFromStorage, saveToStorage, waitForStorageInit } from "@/storage/storage";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("sharedStore");
 
 /**
  * A module-level store for a single storage key, shared by every caller.
@@ -107,7 +110,7 @@ export function createSharedStore<T>(
         }
       })
       .catch((error) => {
-        console.error(`Failed to save ${storageKey}:`, error);
+        log.error(`Failed to save ${storageKey}:`, error);
       });
     return inFlight;
   };
@@ -128,7 +131,7 @@ export function createSharedStore<T>(
 
   channelListeners.set(storageKey, () => {
     void applyExternalChange().catch((error) => {
-      console.error(`Failed to apply external change for ${storageKey}:`, error);
+      log.error(`Failed to apply external change for ${storageKey}:`, error);
     });
   });
 
@@ -181,7 +184,7 @@ export function createSharedStore<T>(
           const loadedValue = await loadFromStorage<T>(storageKey, defaultValue);
           value = migrate ? migrate(loadedValue) : loadedValue;
         } catch (error) {
-          console.error(`Failed to load ${storageKey}:`, error);
+          log.error(`Failed to load ${storageKey}:`, error);
         } finally {
           loaded = true;
           notify();

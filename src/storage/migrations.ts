@@ -12,6 +12,9 @@ import { getTimestamp } from "@/types/time";
 import { seedModesFromGantt } from "@/utils/focusModes";
 import { autoBackupIfNeeded, cleanupOldBackups } from "./backup";
 import { STORAGE_KEYS, saveToStorage, loadFromStorage, getStorageAdapter } from "./storage";
+import { createLogger } from "@/utils/logger";
+
+const log = createLogger("migrations");
 
 const CURRENT_VERSION = 7; // Increment when adding new migrations
 
@@ -393,7 +396,7 @@ export async function checkAndUpdateVersion(): Promise<boolean> {
       // Data written by a newer build. GitHub Pages caching means a user can
       // land on an older bundle after a deploy or rollback; writing this
       // version's shape over newer data would corrupt it.
-      console.warn(
+      log.warn(
         `Stored data is version ${currentVersion} but this build understands ${CURRENT_VERSION}. ` +
           "Refusing to migrate; reload to pick up the newer build."
       );
@@ -417,7 +420,7 @@ export async function checkAndUpdateVersion(): Promise<boolean> {
 
     return migrationNeeded;
   } catch (error) {
-    console.error("Failed to check data version:", error);
+    log.error("Failed to check data version:", error);
     return false;
   }
 }
