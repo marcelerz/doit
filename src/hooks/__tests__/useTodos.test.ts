@@ -1074,4 +1074,173 @@ describe("useTodos", () => {
       expect(saveToStorage).toHaveBeenCalledWith("doit-todos", expect.any(Array));
     });
   });
+
+  // Entry types and counts only. How the entries are worded is about to change
+  // (U0116, U0182, U0184), so no description appears in an expectation.
+  describe("activity entries", () => {
+    type Hook = ReturnType<typeof useTodos>;
+    const ID = getTodoId("todo-1");
+    const SEED = { id: "activity-seed", timestamp: 1, type: "created", description: "seed" };
+
+    // Starts with one entry, so appending can be told apart from replacing.
+    const seededTodo = (overrides: Record<string, unknown> = {}) => ({
+      id: ID,
+      text: "Write report",
+      plainText: "Write report",
+      state: "active",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      context: "",
+      tags: [],
+      dependencies: [],
+      assignedPeople: [],
+      sourcePeople: [],
+      mentionedPeople: [],
+      projects: [],
+      comments: [],
+      activity: [SEED],
+      subtasks: [],
+      ...overrides,
+    });
+
+    /** What an edit form sends back for `seededTodo()` when nothing was changed. */
+    const unchanged = (changes: Partial<TodoMetadata> = {}) =>
+      createMetadata({ tags: [], dependencies: [], context: "", ...changes });
+
+    const mountWith = async (todos: unknown[]) => {
+      (loadFromStorage as jest.Mock).mockImplementation((key: string) => {
+        if (key === "doit-settings") return Promise.resolve(defaultSettings);
+        return Promise.resolve(todos);
+      });
+      const { result } = renderHook(() => useTodos());
+      await act(async () => {
+        jest.runAllTimers();
+        await Promise.resolve();
+      });
+      return result;
+    };
+
+    /** The entry types of the first todo matching `pick`, oldest first. */
+    const typesOf = (hook: Hook, pick = (todo: Hook["todos"][number]) => todo.id === ID) =>
+      hook.todos.find(pick)?.raw.activity.map((entry) => entry.type);
+
+    it.each<[string, string, Record<string, unknown>, (hook: Hook) => void]>([
+      ["completing", "completed", {}, (hook) => hook.toggleTodo(ID)],
+      ["reopening", "uncompleted", { state: "completed", completedAt: 1 }, (hook) => hook.toggleTodo(ID)],
+      ["archiving", "archived", { state: "completed", completedAt: 1 }, (hook) => hook.archiveTodo(ID)],
+      ["unarchiving", "unarchived", { state: "archived", archivedAt: 1 }, (hook) => hook.unarchiveTodo(ID)],
+      ["deleting", "deleted", {}, (hook) => hook.deleteTodo(ID)],
+    ])("%s a todo appends one %s entry", async (_action, type, overrides, run) => {
+      const result = await mountWith([seededTodo(overrides)]);
+
+      act(() => run(result.current));
+
+      expect(typesOf(result.current)).toEqual(["created", type]);
+    });
+
+    it("a todo made from a note starts with one created entry that names the note", async () => {
+      const result = await mountWith([]);
+      const source = { sourceNoteId: "note-7", sourceActionItemId: "item-3" };
+
+      act(() => {
+        result.current.addTodo("From a note", "From a note", createMetadata(source));
+      });
+
+      const log = result.current.todos[0].raw.activity;
+      expect(log.map((entry) => entry.type)).toEqual(["created"]);
+      expect(log[0].metadata).toEqual(source);
+    });
+
+    it("a duplicate starts its own log with one created entry", async () => {
+      const history = [SEED, { ...SEED, id: "activity-edit", type: "edited" }];
+      const result = await mountWith([seededTodo({ activity: history })]);
+
+      act(() => {
+        result.current.duplicateTodo(ID);
+      });
+
+      expect(result.current.todos).toHaveLength(2);
+      expect(typesOf(result.current, (todo) => todo.id !== ID)).toEqual(["created"]);
+      expect(typesOf(result.current)).toEqual(["created", "edited"]);
+    });
+
+    it("the next occurrence of a recurring task starts with one created entry that names its chain", async () => {
+      const result = await mountWith([seededTodo({ recurring: "daily", recurringOriginId: "todo-0" })]);
+
+      act(() => result.current.toggleTodo(ID));
+
+      const next = result.current.todos.find((todo) => todo.id !== ID);
+      expect(next?.raw.activity.map((entry) => entry.type)).toEqual(["created"]);
+      expect(next?.raw.activity[0].metadata).toEqual({ recurringOriginId: "todo-0", recurringPreviousId: ID });
+      expect(typesOf(result.current)).toEqual(["created", "completed"]);
+    });
+
+    it.each<[string, string, Partial<TodoMetadata>, string]>([
+      ["rewording the text", "Write the report", {}, "edited"],
+      ["adding a tag", "Write report", { tags: ["urgent"] }, "tag_added"],
+      ["assigning someone", "Write report", { assignedPeople: ["Ada"] }, "assigned_added"],
+    ])("%s appends one entry, for that change alone", async (_edit, text, changes, type) => {
+      const result = await mountWith([seededTodo()]);
+
+      act(() => result.current.editTodo(ID, text, text, unchanged(changes)));
+
+      expect(typesOf(result.current)).toEqual(["created", type]);
+    });
+
+    it("saving an edit that changed nothing appends nothing", async () => {
+      const result = await mountWith([seededTodo()]);
+
+      act(() => result.current.editTodo(ID, "Write report", "Write report", unchanged()));
+
+      expect(typesOf(result.current)).toEqual(["created"]);
+    });
+
+    // From Backlog the default rules allow To Do and refuse Review.
+    it.each<[string, string, string[]]>([
+      ["a card moved to another column gets one workflow entry", "todo", ["workflow_state_changed"]],
+      ["a move the transition rules refuse appends nothing", "review", []],
+    ])("%s", async (_name, column, appended) => {
+      const result = await mountWith([seededTodo()]);
+      const { states, allowedTransitions } = defaultSettings.kanban;
+
+      act(() => {
+        result.current.setWorkflowState(ID, getKanbanStateId(column), states, allowedTransitions);
+      });
+
+      expect(typesOf(result.current)).toEqual(["created", ...appended]);
+    });
+
+    it("starting a timer on a backlog task logs the move to In Progress that it causes", async () => {
+      const result = await mountWith([seededTodo()]);
+
+      act(() => result.current.startTimeTracking(ID));
+
+      expect(result.current.todos[0].workflowState).toBe("in-progress");
+      expect(typesOf(result.current)).toEqual(["created", "workflow_state_changed"]);
+    });
+
+    it.each<[string, string, (hook: Hook) => void]>([
+      ["a completion", "uncompleted", (hook) => hook.toggleTodo(ID)],
+      ["an archive", "unarchived", (hook) => hook.archiveTodo(ID)],
+      ["a delete", "undeleted", (hook) => hook.deleteTodo(ID)],
+    ])("undoing %s ends the log with an %s entry", async (_what, type, run) => {
+      const result = await mountWith([seededTodo()]);
+
+      act(() => run(result.current));
+      act(() => result.current.undo(result.current.undoActions[0].id));
+
+      // The live record: until U0132 an undone delete leaves the soft-deleted
+      // copy in the list beside the restored one.
+      expect(typesOf(result.current, (todo) => todo.state !== "deleted")?.slice(-1)).toEqual([type]);
+    });
+
+    it.todo("logs no due-date, priority or duration change when an edit leaves them as they were (U0116)");
+    it.todo("logs no context change when an edit leaves an empty context empty (U0116)");
+    it.todo("names projects with % and tags with #, the markers the input uses, in edit entries (U0184)");
+    it.todo("appends a completed entry when a card is dragged into a column that completes it (U0156)");
+    it.todo("creates an undo action when a card is dragged into a column that completes it (U0149)");
+    it.todo("keeps the undone action's own entry in the log, followed by the undo entry (U0134)");
+    it.todo("records undoing an uncomplete as an undo rather than as a second completion (U0134)");
+    it.todo("logs no move to In Progress when a timer is stopped (U0155)");
+  });
 });

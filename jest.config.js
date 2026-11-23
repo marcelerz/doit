@@ -75,10 +75,10 @@ module.exports = {
     // each of them is ratcheted individually rather than being able to hide a
     // regression behind gains elsewhere.
     global: {
-      statements: 77.5,
-      branches: 65.6,
-      functions: 75.7,
-      lines: 78.7,
+      statements: 78,
+      branches: 66.3,
+      functions: 76.3,
+      lines: 79.2,
     },
     // The adapter choice and both migrations: a mistake here loses data.
     "src/storage/storage.ts": {
@@ -182,10 +182,10 @@ module.exports = {
       lines: 3,
     },
     "src/components/shared/": {
-      statements: 14,
-      branches: 6,
-      functions: 8,
-      lines: 15,
+      statements: 20,
+      branches: 14,
+      functions: 11,
+      lines: 20,
     },
     "src/components/overlays/": {
       statements: 16,
