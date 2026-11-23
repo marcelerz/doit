@@ -7,12 +7,9 @@ import { getKanbanStateId } from "@/types/kanbanState";
 import { useTodos } from "../useTodos";
 
 // Mock storage
-jest.mock("@/storage/storage", () => ({
-  STORAGE_KEYS: { TODOS: "doit-todos", SETTINGS: "doit-settings" },
-  loadFromStorage: jest.fn().mockResolvedValue([]),
-  saveToStorage: jest.fn().mockResolvedValue(undefined),
-  waitForStorageInit: jest.fn().mockResolvedValue(undefined),
-}));
+jest.mock("@/storage/storage", () =>
+  jest.requireActual("@/__tests__/helpers/storageMock").mockStorageModule(),
+);
 
 jest.mock("@/storage/migrations", () => ({
   migrateTodos: jest.fn((todos) => todos),

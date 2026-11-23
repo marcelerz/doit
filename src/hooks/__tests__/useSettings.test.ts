@@ -7,12 +7,11 @@ import { useSettings } from "../useSettings";
 import { settingsStore } from "@/storage/settingsStore";
 
 // Mock storage
-jest.mock("@/storage/storage", () => ({
-  STORAGE_KEYS: { SETTINGS: "doit-settings" },
-  loadFromStorage: jest.fn().mockResolvedValue(null),
-  saveToStorage: jest.fn().mockResolvedValue(undefined),
-  waitForStorageInit: jest.fn().mockResolvedValue(undefined),
-}));
+jest.mock("@/storage/storage", () =>
+  jest.requireActual("@/__tests__/helpers/storageMock").mockStorageModule({
+    overrides: { loadFromStorage: jest.fn().mockResolvedValue(null) },
+  }),
+);
 
 jest.mock("@/storage/migrations", () => ({
   migrateSettings: jest.fn((settings) => settings),
@@ -33,9 +32,6 @@ describe("useSettings", () => {
     // tests or each one inherits the previous test's state.
     settingsStore.reset();
     (loadFromStorage as jest.Mock).mockResolvedValue(defaultSettings);
-    // The store only mirrors to localStorage when the write succeeded, so
-    // the mock has to report success rather than returning undefined.
-    (saveToStorage as jest.Mock).mockResolvedValue(true);
     // Mock localStorage
     Object.defineProperty(window, "localStorage", {
       value: {

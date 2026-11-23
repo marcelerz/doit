@@ -7,20 +7,22 @@ import { ThemeProvider } from "../ThemeProvider";
 
 const getItem = jest.fn();
 
-jest.mock("@/storage/storage", () => ({
-  STORAGE_KEYS: { SETTINGS: "doit-settings" },
-  loadFromStorage: (key: string, fallback: unknown) =>
-    Promise.resolve(getItem(key)).then((raw) => {
-      if (typeof raw !== "string") return raw ?? fallback;
-      try {
-        const parsed = JSON.parse(raw);
-        return parsed ?? fallback;
-      } catch {
-        return fallback;
-      }
-    }),
-  waitForStorageInit: jest.fn().mockResolvedValue(undefined),
-}));
+jest.mock("@/storage/storage", () =>
+  jest.requireActual("@/__tests__/helpers/storageMock").mockStorageModule({
+    overrides: {
+      loadFromStorage: (key: string, fallback: unknown) =>
+        Promise.resolve(getItem(key)).then((raw) => {
+          if (typeof raw !== "string") return raw ?? fallback;
+          try {
+            const parsed = JSON.parse(raw);
+            return parsed ?? fallback;
+          } catch {
+            return fallback;
+          }
+        }),
+    },
+  }),
+);
 
 /** Install a matchMedia stub reporting the given system preference. */
 function mockSystemDark(prefersDark: boolean) {

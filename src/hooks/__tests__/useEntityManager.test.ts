@@ -7,12 +7,12 @@ import { useEntityManager, BaseEntity } from "../useEntityManager";
 import { generateUUID } from "@/utils/idGenerator";
 
 // Mock storage
-jest.mock("@/storage/storage", () => ({
-  STORAGE_KEYS: { TEST_ENTITIES: "doit-test-entities" },
-  loadFromStorage: jest.fn().mockResolvedValue([]),
-  saveToStorage: jest.fn().mockResolvedValue(undefined),
-  waitForStorageInit: jest.fn().mockResolvedValue(undefined),
-}));
+jest.mock("@/storage/storage", () =>
+  jest.requireActual("@/__tests__/helpers/storageMock").mockStorageModule({
+    // Not a real key: the hook is generic, and the suite drives it with its own.
+    extraKeys: { TEST_ENTITIES: "doit-test-entities" },
+  }),
+);
 
 // Import mocks after setup
 import { loadFromStorage, saveToStorage } from "@/storage/storage";

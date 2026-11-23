@@ -14,19 +14,9 @@
 import { renameInStoredFilters, ENTITY_RENAMED_EVENT } from "@/storage/renameInStoredFilters";
 import { loadFromStorage, saveToStorage } from "@/storage/storage";
 
-jest.mock("@/storage/storage", () => ({
-  STORAGE_KEYS: {
-    VIEW_PRESETS: "doit-view-presets",
-    VIEW_OPTIONS: "doit-view-options",
-    NOTES_VIEW_PRESETS: "doit-notes-view-presets",
-    NOTES_VIEW_OPTIONS: "doit-notes-view-options",
-    KANBAN_FILTER_PRESETS: "doit-kanban-filter-presets",
-    KANBAN_VIEW_OPTIONS: "doit-kanban-view-options",
-    SELECTION_HISTORY: "doit-selection-history",
-  },
-  loadFromStorage: jest.fn(),
-  saveToStorage: jest.fn().mockResolvedValue(true),
-}));
+jest.mock("@/storage/storage", () =>
+  jest.requireActual("@/__tests__/helpers/storageMock").mockStorageModule(),
+);
 
 const mockLoad = loadFromStorage as jest.MockedFunction<typeof loadFromStorage>;
 const mockSave = saveToStorage as jest.MockedFunction<typeof saveToStorage>;

@@ -11,25 +11,24 @@ import { useSelectionHistory } from "@/hooks/useSelectionHistory";
 import { MAX_SELECTION_HISTORY } from "@/types/selectionHistory";
 
 // Mock storage
-jest.mock("@/storage/storage", () => ({
-  STORAGE_KEYS: {
-    SELECTION_HISTORY: "doit-selection-history",
-  },
-  loadFromStorage: jest.fn().mockResolvedValue({
-    assignedPeople: [],
-    sourcePeople: [],
-    mentionedPeople: [],
-    projects: [],
-    priorities: [],
-    tags: [],
-    dueDates: [],
-    durations: [],
-    recurring: [],
-    sprints: [],
+jest.mock("@/storage/storage", () =>
+  jest.requireActual("@/__tests__/helpers/storageMock").mockStorageModule({
+    overrides: {
+      loadFromStorage: jest.fn().mockResolvedValue({
+        assignedPeople: [],
+        sourcePeople: [],
+        mentionedPeople: [],
+        projects: [],
+        priorities: [],
+        tags: [],
+        dueDates: [],
+        durations: [],
+        recurring: [],
+        sprints: [],
+      }),
+    },
   }),
-  saveToStorage: jest.fn().mockResolvedValue(undefined),
-  waitForStorageInit: jest.fn().mockResolvedValue(undefined),
-}));
+);
 
 describe("useSelectionHistory", () => {
   beforeEach(() => {

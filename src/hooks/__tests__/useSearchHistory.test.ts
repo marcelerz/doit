@@ -10,14 +10,9 @@ import { renderHook, act } from "@testing-library/react";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 
 // Mock storage
-jest.mock("@/storage/storage", () => ({
-  STORAGE_KEYS: {
-    SEARCH_HISTORY: "doit-search-history",
-  },
-  loadFromStorage: jest.fn().mockResolvedValue([]),
-  saveToStorage: jest.fn().mockResolvedValue(undefined),
-  waitForStorageInit: jest.fn().mockResolvedValue(undefined),
-}));
+jest.mock("@/storage/storage", () =>
+  jest.requireActual("@/__tests__/helpers/storageMock").mockStorageModule(),
+);
 
 describe("useSearchHistory", () => {
   beforeEach(() => {

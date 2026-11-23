@@ -7,9 +7,11 @@ import StorageInitializer from "../StorageInitializer";
 
 const initializeStorageClient = jest.fn();
 
-jest.mock("@/storage/storage", () => ({
-  initializeStorageClient: () => initializeStorageClient(),
-}));
+jest.mock("@/storage/storage", () =>
+  jest.requireActual("@/__tests__/helpers/storageMock").mockStorageModule({
+    overrides: { initializeStorageClient: () => initializeStorageClient() },
+  }),
+);
 
 describe("StorageInitializer", () => {
   beforeEach(() => {

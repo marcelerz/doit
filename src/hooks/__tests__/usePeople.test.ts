@@ -23,9 +23,9 @@ jest.mock("../useEntityManager", () => ({
 }));
 
 // Mock storage to prevent initialization errors
-jest.mock("@/storage/storage", () => ({
-  STORAGE_KEYS: { PEOPLE: "doit-people" },
-}));
+jest.mock("@/storage/storage", () =>
+  jest.requireActual("@/__tests__/helpers/storageMock").mockStorageModule(),
+);
 
 import { useEntityManager } from "../useEntityManager";
 import { getPersonId } from "@/types/person";

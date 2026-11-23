@@ -6,12 +6,9 @@ import { renderHook, act } from "@testing-library/react";
 import { useTemplates } from "../useTemplates";
 
 // Mock storage
-jest.mock("@/storage/storage", () => ({
-  STORAGE_KEYS: { TEMPLATES: "doit-templates" },
-  loadFromStorage: jest.fn().mockResolvedValue([]),
-  saveToStorage: jest.fn().mockResolvedValue(undefined),
-  waitForStorageInit: jest.fn().mockResolvedValue(undefined),
-}));
+jest.mock("@/storage/storage", () =>
+  jest.requireActual("@/__tests__/helpers/storageMock").mockStorageModule(),
+);
 
 // Import mocks after setup
 import { loadFromStorage, saveToStorage } from "@/storage/storage";
