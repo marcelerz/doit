@@ -49,17 +49,13 @@ module.exports = {
     "src/models/**/*.ts",
     "src/hooks/**/*.ts",
     "src/storage/**/*.ts",
-    "src/components/providers/**/*.tsx",
-    // Overlay components enter coverage as they gain tests. The directory as a
-    // whole is ~5k untested lines, which would swamp the global ratio, so each
-    // tested file is listed and carries its own threshold below.
-    "src/components/overlays/TutorialOverlay.tsx",
-    "src/components/overlays/EntityDetailsOverlay.tsx",
-    "src/components/overlays/OpenFocusSetup.tsx",
-    "src/components/shared/CommandPalette.tsx",
-    // The editor joins on the same terms, now that it has tests. 867 lines that
-    // no gate could see is how six rounds of "fixes" left seven live defects.
-    "src/components/input/RichTextEditor.tsx",
+    // Every component and type file is measured. Each components folder other
+    // than providers/ has its own threshold group below, which takes its files
+    // out of the global group -- so the ~41k mostly untested lines of views,
+    // overlays and settings are visible to the gate without swamping the
+    // global ratio.
+    "src/components/**/*.{ts,tsx}",
+    "src/types/**/*.ts",
     "!src/**/*.d.ts",
     // Test files and fixtures are not production code; counting them in the
     // denominator let an unused 338-line helper drag the ratio down.
@@ -115,6 +111,60 @@ module.exports = {
       branches: 67,
       functions: 64,
       lines: 79,
+    },
+    "src/components/settings/components/FocusModesSection.tsx": {
+      statements: 87,
+      branches: 78,
+      functions: 82,
+      lines: 89,
+    },
+    // One group per components folder, and one for types. A directory key is
+    // checked against the folder's combined figures, and its files leave the
+    // global group. The numbers are low because most of these folders have no
+    // tests yet: they record where things stand so that the figure can only
+    // rise. A file listed above counts in its own group and in its folder's.
+    // providers/ has no key on purpose: its files stay in the global group.
+    "src/components/views/": {
+      statements: 0,
+      branches: 0,
+      functions: 0,
+      lines: 0,
+    },
+    "src/components/items/": {
+      statements: 1,
+      branches: 0,
+      functions: 0,
+      lines: 1,
+    },
+    "src/components/settings/": {
+      statements: 3,
+      branches: 2,
+      functions: 4,
+      lines: 3,
+    },
+    "src/components/shared/": {
+      statements: 14,
+      branches: 6,
+      functions: 8,
+      lines: 15,
+    },
+    "src/components/overlays/": {
+      statements: 16,
+      branches: 12,
+      functions: 15,
+      lines: 16,
+    },
+    "src/components/input/": {
+      statements: 34,
+      branches: 30,
+      functions: 24,
+      lines: 35,
+    },
+    "src/types/": {
+      statements: 95,
+      branches: 100,
+      functions: 86,
+      lines: 96,
     },
   },
 };
