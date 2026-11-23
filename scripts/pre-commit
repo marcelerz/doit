@@ -6,6 +6,10 @@
 
 # Git pre-commit hook to auto-increment version revision number
 # This hook increments the revision in version.json on every commit
+#
+# Self-contained on purpose. The hooks folder is shared by every branch and
+# worktree of this repository, so the installed copy also runs against
+# checkouts that do not have the newer scripts. It must not call any of them.
 
 VERSION_FILE="version.json"
 
@@ -15,26 +19,52 @@ if [ ! -f "$VERSION_FILE" ]; then
     exit 0
 fi
 
-# Read current version
-MAJOR=$(node -p "require('./$VERSION_FILE').major")
-MINOR=$(node -p "require('./$VERSION_FILE').minor")
-REVISION=$(node -p "require('./$VERSION_FILE').revision")
+# GUI git clients often run hooks with a minimal PATH. Carrying on without node
+# would mean writing a version built from empty values.
+if ! command -v node >/dev/null 2>&1; then
+    echo "Error: node is not on PATH, so $VERSION_FILE cannot be bumped. Commit aborted." >&2
+    echo "Commit from a terminal, or start your git client from a shell that has node." >&2
+    exit 1
+fi
 
-# Increment revision
-NEW_REVISION=$((REVISION + 1))
+# Read, validate, bump and write in one step, so the file is either rewritten
+# with a valid version or not touched at all. The same check lives in
+# scripts/version-file.js for the scripts that are free to share code.
+if ! node -e '
+const fs = require("fs");
+const file = process.argv[1];
 
-# Write updated version
-cat > "$VERSION_FILE" << EOF
-{
-  "major": $MAJOR,
-  "minor": $MINOR,
-  "revision": $NEW_REVISION
+let data;
+try {
+  data = JSON.parse(fs.readFileSync(file, "utf8"));
+} catch (error) {
+  console.error(`${file} could not be read as JSON: ${error.message}`);
+  process.exit(1);
 }
-EOF
+
+const isCount = (value) => Number.isInteger(value) && value >= 0;
+const valid =
+  data !== null &&
+  typeof data === "object" &&
+  isCount(data.major) &&
+  isCount(data.minor) &&
+  isCount(data.revision);
+if (!valid) {
+  console.error(`${file} must hold non-negative integers for major, minor and revision`);
+  process.exit(1);
+}
+
+const next = { major: data.major, minor: data.minor, revision: data.revision + 1 };
+fs.writeFileSync(file, JSON.stringify(next, null, 2) + "\n", "utf8");
+console.log(
+  `Version incremented: ${data.major}.${data.minor}.${data.revision} -> ${next.major}.${next.minor}.${next.revision}`,
+);
+' "$VERSION_FILE"; then
+    echo "Error: $VERSION_FILE was not bumped and is unchanged. Commit aborted." >&2
+    exit 1
+fi
 
 # Stage the updated version file
 git add "$VERSION_FILE"
-
-echo "Version incremented: $MAJOR.$MINOR.$REVISION -> $MAJOR.$MINOR.$NEW_REVISION"
 
 exit 0

@@ -13,6 +13,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require("fs");
 const path = require("path");
+const { readVersion, formatVersion } = require("./version-file");
 
 const outDir = "out";
 const outDirPath = path.resolve(process.cwd(), outDir);
@@ -76,10 +77,15 @@ if (fs.existsSync(swPath)) {
     console.error("Without it the worker is byte-identical across deploys and never updates.");
     process.exit(1);
   }
-  const { major, minor, revision } = JSON.parse(
-    fs.readFileSync(path.resolve(process.cwd(), "version.json"), "utf8"),
-  );
-  const version = `${major}.${minor}.${revision}`;
+  // Validated, so a malformed version.json fails the build here instead of
+  // shipping a worker stamped "undefined.1.41".
+  let version;
+  try {
+    version = formatVersion(readVersion(path.resolve(process.cwd(), "version.json")));
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+  }
   fs.writeFileSync(swPath, sw.replaceAll("__BUILD_VERSION__", version), "utf8");
   console.log(`✅ Stamped sw.js with build version ${version}`);
 } else {
