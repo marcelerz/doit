@@ -1,6 +1,6 @@
 # Workstream: view-state
 
-Filter, sort and group semantics, persisted view options, presets. 24 units, 36 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
+Filter, sort and group semantics, persisted view options, presets. 25 units, 38 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
 
 ## <a id="u0259"></a>U0259 — Show sprint names, not raw ids, in List's Group by Sprint
 *Batch 3B · bugfix · high · `bugfix` · effort S.* Group-by-sprint headings print 'sprint-&lt;uuid>' because useListViewState never receives sprints; keep ids as keys, render names with a fallback, order by start date with No Sprint last.
@@ -181,3 +181,12 @@ Filter, sort and group semantics, persisted view options, presets. 24 units, 36 
 
 ### <a id="doc-49"></a>DOC-49 — Search, sort, filter and preset help does not match the list view
 *medium · `none` · effort M.* **Where:** `src/components/overlays/help/FilteringSection.tsx:17-24`; `src/components/overlays/help/FilteringSection.tsx:35-66`; `src/components/overlays/help/FilteringSection.tsx:100-115`; `src/components/overlays/help/AdvancedSection.tsx:133`; `src/components/overlays/help/WorkflowsSection.tsx:25`; `src/components/overlays/help/WorkflowsSection.tsx:34`; `src/components/overlays/help/QuickStartSection.tsx:308`; `src/components/overlays/help/QuickStartSection.tsx:319`; `src/components/overlays/help/ViewsSection.tsx:21-27`; `src/models/TodoModel.ts:1176-1202`; `src/hooks/useListViewState.ts:34-45`; `src/components/views/ListView.tsx:765-818`; `src/components/shared/ListViewToolbar.tsx:223`; `src/components/shared/ListViewToolbar.tsx:271-278`. **Problem.** Help says search covers comments and context notes; matchesSearch covers only text, tags, priority, people and projects. Search history is saved only on Enter. There is no 'updated date' sort, and six real sort fields are missing. The Due Date filter matches exact values, not ranges. The Category filter and the quick-filter chips are undocumented, though Workflows sends users to 'Overdue'. Group headings do not collapse. The preset button is a green download icon, and the option says 'No Group'. **Proposal.** Rewrite FilteringSection from the real SortField, FILTER_SECTIONS and QuickFilter lists. Point the Workflows steps at the quick-filter chips. Fix the preset-icon and 'No Group' wording, and say that only the Active, Completed and Archived sections collapse. Fix ViewsSection's List bullets the same way. Extending search to comments and context would change behaviour, so it needs an owner decision. **Done when.** Every sort field, filter section and quick filter named in FilteringSection exists in useListViewState or ListView, and none that exist are missing.
+
+## <a id="u0823"></a>U0823 — Sort the list's category filter options and remove an unreachable priority fallback
+*Batch 6C (proposed) · bugfix · low · `bugfix` · effort S.* Category options are ids in first-seen order while every other option list is sorted. *Found while running batch 1.*
+
+### <a id="b1-25"></a>B1-25 — Category filter options are unsorted ids
+*low · `bugfix` · effort S.* **Where:** `src/hooks/useListViewState.ts:369`. **Problem.** The category options are the category ids in the order they are first met, for example 'work' before 'personal' for projects named Zeta and Alpha. Every other option list is sorted by name. **Proposal.** Sort them by the name shown. **Done when.** The `it.todo` naming this unit passes.
+
+### <a id="b1-26"></a>B1-26 — The priority alternatives map and its fallback cannot be reached
+*low · `none` · effort S.* **Where:** `src/hooks/useListViewState.ts:715-717`; `src/hooks/useListViewState.ts:722-723`. **Problem.** With consistent settings `TodoModel.priority` returns the canonical name or undefined, so the map of alternative names and the `?? 998` fallback never run. **Proposal.** Remove them, or keep them only if U0306 gives them a job. **Done when.** The branch is gone or has a test that reaches it.

@@ -1,6 +1,6 @@
 # Workstream: rich-text-html
 
-RichTextEditor, the sanitiser, link patterns, raw-HTML sinks. 11 units, 18 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
+RichTextEditor, the sanitiser, link patterns, raw-HTML sinks. 12 units, 20 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
 
 ## <a id="u0804"></a>U0804 — Keep formatted text when markdown shortcuts convert a block
 *Batch 3B · bugfix · high · `bugfix` · effort M.* Markdown shortcuts rebuild the block from the caret's text node, deleting bold text and earlier lines and nesting lists; trigger only at block start and move existing children.
@@ -88,3 +88,12 @@ RichTextEditor, the sanitiser, link patterns, raw-HTML sinks. 11 units, 18 items
 
 ### <a id="bug-193"></a>BUG-193 — Outdenting a list item reorders its following siblings above it
 *low · `bugfix` · effort S.* **Where:** `src/utils/richText/keyHandlers.ts:301-313`. **Problem.** Outdenting a2 in [A[a1,a2,a3],B] gives a3 above a2. **Proposal.** Nest the following siblings under the moved item first. **Done when.** Reading order stays A, a1, a2, a3, B.
+
+## <a id="u0826"></a>U0826 — Treat empty note markup as empty and cut previews on whole characters
+*Batch 11 (proposed) · bugfix · low · `bugfix` · effort S.* The note twin of U0587, and previews that can split an emoji. *Found while running batch 1.*
+
+### <a id="b1-30"></a>B1-30 — NoteModel.hasContent is true for markup with no text
+*low · `bugfix` · effort S.* **Where:** `src/models/NoteModel.ts:288-290`. **Problem.** `<p></p>` and `<p><br></p>` count as content. U0587 fixes the same in ReviewModel only. `hasContent` has no production caller today. **Proposal.** Fix it with U0587, or delete it with U0162 if it stays unused. **Done when.** The `it.todo` naming this unit passes, or the getter is gone.
+
+### <a id="b1-31"></a>B1-31 — Previews are cut by UTF-16 code unit
+*low · `bugfix` · effort S.* **Where:** `src/models/NoteModel.ts:380`; `src/models/NoteModel.ts:389`; `src/models/ReviewModel.ts:418`. **Problem.** `getSummary`, `getContentPreview` and `getSummaryPreview` cut with `slice`, which can split an emoji and leave half of it before the ellipsis. Two of them are shown to users, in the Markdown export and on review rows. **Proposal.** Cut on code points or grapheme clusters, for example with `Array.from` or `Intl.Segmenter`. **Done when.** A preview cut inside an emoji ends with the whole emoji or without it.

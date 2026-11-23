@@ -165,7 +165,7 @@ describe("state and status", () => {
     expect(makeNote({ content: "  \n " }).hasContent).toBe(false);
     expect(makeNote({ content: "<p>Agenda</p>" }).hasContent).toBe(true);
   });
-  it.todo("hasContent is false for markup with no text, such as <p><br></p> (new finding)");
+  it.todo("hasContent is false for markup with no text, such as <p><br></p> (U0826)");
 });
 
 describe("date displays", () => {

@@ -1,6 +1,6 @@
 # Workstream: smart-input
 
-Token detection, markers, suggestions, SmartInput behaviour. 29 units, 50 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
+Token detection, markers, suggestions, SmartInput behaviour. 31 units, 55 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
 
 ## <a id="u0500"></a>U0500 — Add jsdom component tests for SmartInput
 *Batch 1 · tests-tooling · medium · `none` · effort M.* Cover initialValue, onTokensChange arguments, setValue, re-render on activeDateIndices and autocomplete selection, and add SmartInput to collectCoverageFrom with its own threshold.
@@ -238,3 +238,24 @@ Token detection, markers, suggestions, SmartInput behaviour. 29 units, 50 items,
 
 ### <a id="doc-57"></a>DOC-57 — Project-reference doc omits context patterns and wrongly says only one project is detected
 *low · `none` · effort S.* **Where:** `docs/project-reference-auto-detection.md:22-36`; `docs/project-reference-auto-detection.md:104-108`; `docs/project-reference-auto-detection.md:251-257`; `docs/project-reference-auto-detection.md:267-273`; `docs/project-reference-auto-detection.md:291-297`; `src/utils/autoDetection.ts:596-604`. **Problem.** The project patterns 'about', 're:', 'regarding', 'related to', 'concerning', 'working on', 'part of' and '&lt;x> initiative' are not documented. The edge cases claim that 'on Website in Marketing' detects only the first project 'because the range overlaps'. The ranges do not overlap, and lines 104-108 of the same doc show both projects detected. The doc is also written as change notes. **Proposal.** Move the content into smart-input.md's Projects section and list every context pattern from detectMentionedProjects. Fix the overlap examples so they show both projects detected. Drop the change-note framing. Delete project-reference-auto-detection.md, and make CLAUDE.md and copilot point to smart-input.md. **Done when.** Every context pattern in detectMentionedProjects appears in smart-input.md, and a detectMentionedProjects test asserts the two-project example.
+
+## <a id="u0818"></a>U0818 — Fix four SmartInput defects found by its new tests
+*Batch 3A (proposed) · bugfix · medium · `bugfix` · effort M.* A double report on mount, a handle that dies under StrictMode, a double space after completing a name, and stale tokens after adding a new name. *Found while running batch 1.*
+
+### <a id="b1-08"></a>B1-08 — SmartInput reports its initial value twice on mount
+*low · `bugfix` · effort S.* **Where:** `src/components/input/SmartInput.tsx:116`; `src/components/input/SmartInput.tsx:211`. **Problem.** With an `initialValue`, `onTokensChange` fires from the mount effect and again from the effect on `activeDateIndices`, which also runs on mount. U0653 mentions the mount call but only changes the consumer. **Proposal.** Skip the second effect's first run, or fold the two into one. **Done when.** The `it.todo` naming this unit in SmartInput.test.tsx passes: one report on mount.
+
+### <a id="b1-09"></a>B1-09 — SmartInput's imperative handle stops working once effects have re-run
+*medium · `bugfix` · effort S.* **Where:** `src/components/input/SmartInput.tsx:93-100`; `next.config.ts:7`. **Problem.** `unmountedRef` is set to true in an effect cleanup and never set back. React StrictMode, which `reactStrictMode: true` switches on in development, runs each effect's cleanup once right after mount. In jsdom under StrictMode `setValue` then left the editor empty and reported nothing. This was reproduced in a test, not confirmed in the running app. **Proposal.** Set the ref to false in the effect body, so it describes the current mount. **Done when.** Under StrictMode `setValue`, `clear` and `focus` work; the `it.todo` naming this unit passes.
+
+### <a id="b1-10"></a>B1-10 — Completing a name in the middle of the text leaves a double space
+*low · `bugfix` · effort S.* **Where:** `src/components/input/SmartInput.tsx:1188-1189`. **Problem.** Choosing a suggestion inserts the name followed by a space even when a space already follows, so 'Ask @b about it' becomes 'Ask @Bob  about it' in the editor and in the reported text. **Proposal.** Add the trailing space only when the next character is not whitespace. **Done when.** The `it.todo` naming this unit passes.
+
+### <a id="b1-11"></a>B1-11 — A name added through 'Add new' is not a token until the next keystroke
+*medium · `bugfix` · effort S.* **Where:** `src/components/input/SmartInput.tsx:1209-1223`. **Problem.** After 'Add new' the text is tokenised with the list of names from before the addition, so the new name is reported with no tokens. Pressing Enter straight away submits the task without the person, project or priority that was just added. **Proposal.** Re-tokenise once the parent has passed the updated list down, or tokenise with the new name included. **Done when.** The `it.todo` naming this unit passes: the token is reported without another keystroke.
+
+## <a id="u0819"></a>U0819 — Decide whether a title keeps the words the date parser takes
+*Batch 6A (proposed) · bugfix · low · `needs-decision` · effort S.* 'Morning standup today' is stored with the plain title 'standup'. *Found while running batch 1.* **Question for the owner:** Should words such as 'Morning' and 'Weekly', which the parser reads as part of a date or recurrence, stay in the plain title?
+
+### <a id="b1-12"></a>B1-12 — Words read as part of a date or recurrence disappear from the plain title
+*low · `needs-decision` · effort S.* **Where:** `src/utils/autoDetection.ts`; `src/components/views/KanbanView.tsx:1282`. **Problem.** 'Morning standup today' is stored with `plainText` 'standup', and 'Weekly sync every monday' with 'sync': 'Morning' and 'Weekly' are taken as part of the date and the recurrence. `text` keeps everything and is what the list shows, but `plainText` is what search, the exports and the Kanban card's accessible name use. **Proposal.** Keep in the plain title every word that is not needed to express the date, or only strip the tokens the user can see highlighted. Whichever is chosen, test it with these two titles. **Done when.** The chosen rule is written down and both titles have a test.

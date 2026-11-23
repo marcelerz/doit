@@ -1,6 +1,6 @@
 # Workstream: dates-time
 
-Date parsing and formatting, time zones, due dates, week start, locale, day rollover. 31 units, 52 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
+Date parsing and formatting, time zones, due dates, week start, locale, day rollover. 32 units, 56 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
 
 ## <a id="u0166"></a>U0166 — Stop date-only due dates turning overdue at midnight of their day
 *Batch 3A · bugfix · high · `needs-decision` · effort M.* Date-only dates are stored at local midnight while isOverdue and notifications compare instants; define date-only semantics and apply them in overdue, due-today and notification checks. **Question for the owner:** Store end-of-day at write time, or keep midnight as the date-only marker and treat it as end-of-day?
@@ -250,3 +250,18 @@ Date parsing and formatting, time zones, due dates, week start, locale, day roll
 
 ### <a id="doc-72"></a>DOC-72 — dateUtils' header and aliases are out of date, and the two getWeekNumber exports differ
 *low · `none` · effort S.* **Where:** `src/utils/dateUtils.ts:1-11`; `src/utils/dateUtils.ts:404-405`; `src/utils/dateUtils.ts:690-693`; `src/utils/dateUtils.ts:735-738`; `src/utils/reviewUtils.ts:38-48`. **Problem.** The header lists getDateSuggestions, which does not exist (the function is getDueDateSuggestions), and omits seven real exports. The 'Try European date format' comment sits above parseSlashOrDotDate, which tries the US format first. dateUtils.getWeekNumber is an ISO alias kept 'for backward compatibility'. reviewUtils exports a different getWeekNumber(date, workWeekStart) and re-exports toISODateString. **Proposal.** Replace the header with one line describing the module. Change the line 404 comment to 'US first, then European; dots prefer European'. Name the remaining importers of the aliases. Note in reviewUtils that its getWeekNumber is intentionally different. Consolidating the two goes to the Duplication dimension. **Done when.** The dateUtils header names no function the module does not export, and the JSDoc of both getWeekNumber exports states how they differ.
+
+## <a id="u0822"></a>U0822 — Decide what a date shorthand means on the day it names
+*Batch 3A (proposed) · bugfix · medium · `needs-decision` · effort M.* 'weekend' on a Saturday, 'payday' on a payday and 'the 15th' on the 15th all jump to the next occurrence, and the week shorthands disagree at the weekend. *Found while running batch 1.* **Question for the owner:** Does a shorthand typed on the day it names mean today or the next occurrence (U0534 asks the same for holidays), and at the weekend do the week shorthands mean the week that just ended or the one about to start?
+
+### <a id="b1-21"></a>B1-21 — 'weekend' typed on a Saturday means the Saturday a week later
+*medium · `needs-decision` · effort S.* **Where:** `src/utils/chronoCustom.ts:66`. **Problem.** On a Saturday the shorthand resolves to the following Saturday, not the weekend that has just begun. **Proposal.** Decide with the other three items here; then test it. **Done when.** The `it.todo` naming this unit passes.
+
+### <a id="b1-22"></a>B1-22 — 'payday' typed on a payday skips to the next one
+*low · `needs-decision` · effort S.* **Where:** `src/utils/chronoCustom.ts:475`; `src/utils/chronoCustom.ts:481`; `src/utils/__tests__/chronoCustom.test.ts:392-398`. **Problem.** On the 15th or the last day of the month the shorthand resolves to the following payday. An existing test pins this. **Proposal.** Decide; if the answer is today, change the code and that test together. **Done when.** The `it.todo` naming this unit passes.
+
+### <a id="b1-23"></a>B1-23 — 'the 15th' typed on the 15th means next month
+*medium · `needs-decision` · effort S.* **Where:** `src/utils/chronoCustom.ts:984`; `src/utils/__tests__/chronoCustom.test.ts:556-562`; `src/utils/__tests__/chronoCustom.test.ts:729-731`. **Problem.** An ordinal typed on that day of the month rolls over to the next month. Two existing tests pin this. **Proposal.** Decide; if the answer is today, change the code and those tests together. **Done when.** The `it.todo` naming this unit passes.
+
+### <a id="b1-24"></a>B1-24 — At the weekend, start-of-week and end-of-week name different weeks
+*medium · `needs-decision` · effort S.* **Where:** `src/utils/chronoCustom.ts:366-380`. **Problem.** With a Monday work-week start, on Saturday 14 or Sunday 15 June 2025 `startofweek` gives Monday the 9th and `endofweek` gives Friday the 20th. **Proposal.** Make both refer to the same week, whichever the owner picks. **Done when.** The `it.todo` naming this unit passes.

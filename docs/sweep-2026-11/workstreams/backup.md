@@ -1,6 +1,6 @@
 # Workstream: backup
 
-Backup creation, retention, restore, backup settings and their UI. 14 units, 24 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
+Backup creation, retention, restore, backup settings and their UI. 15 units, 26 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
 
 ## <a id="u0043"></a>U0043 — Stop pruning from silently deleting imported and manual backups
 *Batch 2B · bugfix · high · `needs-decision` · effort M.* Age imported backups by uploadedAt or exempt manual and imported sources from age and count pruning, warn when an import would be pruned, and show retention whenever pruning applies. **Question for the owner:** Exempt manual and imported backups from age and count pruning, or age them by uploadedAt under their own limit?
@@ -19,6 +19,8 @@ Backup creation, retention, restore, backup settings and their UI. 14 units, 24 
 
 ## <a id="u0044"></a>U0044 — Break useBackups render loop by stabilising useSettings mutators
 *Batch 2B · bugfix · high · `bugfix` · effort S.* Give useSettings mutators stable identities and make the backup load effect depend only on isLoaded, so BackupTab stops re-reading every backup on each render.
+
+**Left by batch 1.** `backup-restore.spec.ts` covers this tab and ran four times in a row without a failure, re-render loop notwithstanding.
 
 ### <a id="struct-09"></a>STRUCT-09 — useBackups re-reads every backup in an endless render loop while the Backup tab is open
 *high · `bugfix` · effort S.* **Where:** `src/hooks/useBackups.ts:178`; `src/hooks/useBackups.ts:193-209`; `src/hooks/useSettings.ts:222-230`; `src/components/settings/BackupTab.tsx:73`. **Problem.** useSettings returns plain arrow functions, so updateBackupSettings gets a new identity on every render. loadBackups is a useCallback that depends on it, and an effect depending on [isLoaded, loadBackups] JSON-parses every doit-backup-* key and sets a fresh backups array and stats object. That causes a re-render, which fires the effect again. The loop runs for as long as BackupTab is mounted, even with zero backups. No test covers useBackups. **Proposal.** Give the useSettings mutators stable identities. settingsStore.set is module-level, so useCallback with [] or hoisting the mutators to module scope is enough. Make the load effect depend only on isLoaded and call loadBackups through a ref, so a future unstable dependency cannot restart the loop. The general rule for other hooks is STRUCT-30. **Done when.** A new src/hooks/__tests__/useBackups.test.ts with a mocked adapter asserts that getAllKeys runs once after load and is still at one after several rerenders.
@@ -115,3 +117,12 @@ Backup creation, retention, restore, backup settings and their UI. 14 units, 24 
 
 ### <a id="doc-26"></a>DOC-26 — backup.ts docs are stale: the module header, bytes vs characters, and two lastBackupDate copies
 *medium · `none` · effort S.* **Where:** `src/storage/backup.ts:1-6`; `src/storage/backup.ts:68-72`; `src/storage/backup.ts:223-224`; `src/storage/backup.ts:357-370`; `src/storage/backup.ts:383`; `src/hooks/useBackups.ts:140-154`; `src/hooks/useBackups.ts:199-202`; `src/types/backup.ts:9-12`. **Problem.** The header says most backup logic moved to useBackups and this file is startup-only. In fact useBackups imports buildBackup, restoreSnapshot and validateBackupData from it and duplicates getAllBackups. MAX_BACKUP_TOTAL_BYTES is compared with a JSON string's length, which counts characters, while localStorage charges two bytes per character. The comments say lastBackupDate lives only in doit-backup-settings, yet useBackups also writes settings.backup.lastBackupDate. **Proposal.** Rewrite the header to say what backup.ts owns: snapshot, validate, restore and retention. Rename the budget to MAX_BACKUP_TOTAL_CHARS, or measure bytes, and document the unit. In BackupSettings, say doit-backup-settings is authoritative and settings.backup.lastBackupDate is a display mirror; removing the mirror is an owner decision. The duplicated getAllBackups goes to the Duplication dimension. **Done when.** The backup.ts header names only functions the file exports, and the budget constant's name and comment state the same unit as the comparison.
+
+## <a id="u0824"></a>U0824 — Report a failed backup listing and give the statistics one date format
+*Batch 2B (proposed) · bugfix · low · `bugfix` · effort S.* A read failure while listing looks like 'no backups', and the three dates in the statistics come in two formats. *Found while running batch 1.*
+
+### <a id="b1-27"></a>B1-27 — A storage failure while listing backups shows an empty list
+*medium · `bugfix` · effort S.* **Where:** `src/hooks/useBackups.ts:48-50`. **Problem.** When reading the backup keys fails the error is logged and an empty list returned, so the Backup tab says there are no backups and shows no error. U0042 covers create, restore, delete and import, not the list. **Proposal.** Carry the failure to the tab and show it there, with U0042. **Done when.** A test shows a failed listing produces an error state, not an empty list.
+
+### <a id="b1-28"></a>B1-28 — Backup statistics mix ISO instants with a local day key
+*low · `bugfix` · effort S.* **Where:** `src/hooks/useBackups.ts:165-170`. **Problem.** `oldestDate` and `newestDate` are full ISO instants while `lastAutoBackupDate` is a local `YYYY-MM-DD`. U0416 covers only how BackupTab parses the last one. **Proposal.** Use one representation for all three, with U0416. **Done when.** The `it.todo` naming this unit passes.

@@ -786,8 +786,8 @@ describe("shorthand aliases that had no test", () => {
     });
 
     it.todo("honours a Sunday work-week start (workWeekStart 0) instead of reading it as Monday (U0531)");
-    it.todo("puts start-of-week and end-of-week aliases typed at the weekend in one and the same week (new finding)");
-    it.todo("resolves 'weekend' typed on a Saturday to that weekend, not the Saturday a week later (new finding)");
+    it.todo("puts start-of-week and end-of-week aliases typed at the weekend in one and the same week (U0822)");
+    it.todo("resolves 'weekend' typed on a Saturday to that weekend, not the Saturday a week later (U0822)");
   });
 
   describe("month boundaries", () => {
@@ -831,7 +831,7 @@ describe("shorthand aliases that had no test", () => {
       expect(day(parseAlias("nextpayday", ref))).toBe(expected);
     });
 
-    it.todo("settles whether payday typed on a payday means that day or the one after (new finding)");
+    it.todo("settles whether payday typed on a payday means that day or the one after (U0822)");
   });
 
   describe("holidays", () => {
@@ -869,6 +869,6 @@ describe("shorthand aliases that had no test", () => {
     });
 
     it.todo("resolves a holiday typed on its own day to that day, not next year: fathersday on 15 June 2025 (U0534)");
-    it.todo("settles whether 'the 15th' typed on the 15th means today or next month (new finding)");
+    it.todo("settles whether 'the 15th' typed on the 15th means today or next month (U0822)");
   });
 });

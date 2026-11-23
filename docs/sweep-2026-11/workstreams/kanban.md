@@ -1,6 +1,6 @@
 # Workstream: kanban
 
-The Kanban board, states, transitions, WIP limits, Kanban settings. 19 units, 35 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
+The Kanban board, states, transitions, WIP limits, Kanban settings. 20 units, 36 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
 
 ## <a id="u0219"></a>U0219 — Resolve Kanban card columns with one helper for placement and moves
 *Batch 3B · bugfix · high · `needs-decision` · effort M.* Placement uses todo.state while drag, drop, keyboard moves and WIP use workflowState, so Rejected and custom completed columns stay empty; use one getKanbanColumnId at all sites. **Question for the owner:** When state changes outside Kanban, should workflowState reset, and to which column per state?
@@ -25,6 +25,8 @@ The Kanban board, states, transitions, WIP limits, Kanban settings. 19 units, 35
 
 ## <a id="u0149"></a>U0149 — Give Kanban drags undo, the archive dependency check and unfiltered WIP counts
 *Batch 6B · bugfix · medium · `needs-decision` · effort M.* setWorkflowState skips undo and canArchive for completed or archived columns, and WIP counts use filtered todos; add undo, canArchive with notification, and count unfiltered. **Question for the owner:** Should the sprint filter scope WIP limits, or should they always count every card in the column?
+
+**Left by batch 1.** `kanban-keyboard.spec.ts` leaves out the refusal at a column's limit, whose counts are wrong today; add it with this fix.
 
 ### <a id="inc-26"></a>INC-26 — Dragging in Kanban skips undo, the archive dependency check and correct WIP counting
 *medium · `bugfix` · effort M.* **Where:** `src/hooks/useTodos.ts:590-602`; `src/hooks/useTodos.ts:628-670`; `src/hooks/useTodos.ts:1095-1188`; `src/models/TodoModel.ts:825-845`; `src/components/views/KanbanView.tsx:395-416`; `src/components/views/KanbanView.tsx:509-522`; `src/components/views/KanbanView.tsx:668-673`. **Problem.** Completing a todo by checkbox creates an undo action; dragging it into a column mapped to 'completed' or 'archived' (setWorkflowState) does not. archiveTodo checks canArchive, but dragging into the archived column skips that check. canAcceptMore counts WIP from todosByState, which search, filters and the sprint filter have already narrowed, so with any filter active the WIP limit can be exceeded. A disallowed drop gives no message. **Proposal.** In setWorkflowState, call createUndoAction('complete' or 'archive') when the mapped todo state changes, run canArchive for archived columns, and report refusals through the app-level banner from INC-06. Count WIP from the unfiltered todos in each state. **Done when.** useTodos tests show that moving a todo into a completed column creates an undo action and that an archive move with an open dependency is refused; a Kanban test shows WIP is enforced with a search active.
@@ -70,6 +72,8 @@ The Kanban board, states, transitions, WIP limits, Kanban settings. 19 units, 35
 
 ## <a id="u0223"></a>U0223 — Report refused Kanban moves instead of announcing success
 *Batch 6B · bugfix · medium · `bugfix` · effort S.* Keyboard moves ignore onSetWorkflowState's false result and announce 'Moved to X'; refused pointer drops say nothing. Announce real outcomes, show transition/WIP reasons, pass dependencyBlockNotification to Kanban.
+
+**Left by batch 1.** `kanban-keyboard.spec.ts` leaves out the refusal for a task blocked by a dependency; add it with this fix.
 
 ### <a id="msg-18"></a>MSG-18 — Kanban move feedback: the keyboard announces refused moves as success, and refused pointer drops say nothing
 *medium · `bugfix` · effort S.* **Where:** `src/components/views/KanbanView.tsx:673`; `src/components/views/KanbanView.tsx:674`; `src/components/views/KanbanView.tsx:709`; `src/components/views/KanbanView.tsx:718`; `src/components/views/KanbanView.tsx:722`; `src/components/views/KanbanView.tsx:727`; `src/components/views/KanbanView.tsx:728`. **Problem.** onSetWorkflowState returns false when dependencies block completion, but moveTodoByOffset ignores the result and always announces 'Moved to {column}'. Screen-reader users hear about a move that did not happen. Pointer drops refused by transition rules or WIP limits (handleDrop:673) give no feedback at all; only the keyboard path explains why. **Proposal.** Use the return value: announce 'Moved to X' only on success, and otherwise 'Couldn't move to X: it has unfinished dependencies'. After a refused drop, show the transition or WIP reason visually through the global toast from MSG-07. Keep the three reason strings in one kanban messages constant that both paths use. **Done when.** A KanbanView test: a blocked keyboard move announces the refusal text, and a drop onto a full column shows the WIP message.
@@ -163,3 +167,9 @@ The Kanban board, states, transitions, WIP limits, Kanban settings. 19 units, 35
 
 ### <a id="doc-68"></a>DOC-68 — The lists of Kanban system states leave out Rejected
 *low · `none` · effort S.* **Where:** `src/types/kanbanState.ts:19`; `src/types/kanbanState.ts:68-76`; `src/models/SettingsModel.ts:433-439`. **Problem.** KanbanState.isSystem says the system states 'backlog, completed, archived' cannot be deleted, and the comment on systemKanbanStates repeats that list. defaultKanbanStates also marks Rejected as a system state. **Proposal.** Refer to 'states with isSystem set (see defaultKanbanStates)' instead of naming them, or list all four. **Done when.** Both comments match the isSystem flags in defaultKanbanStates.
+
+## <a id="u0825"></a>U0825 — Keep keyboard focus on a Kanban card after it moves
+*Batch 8B (proposed) · a11y · medium · `bugfix` · effort S.* After an arrow-key move focus falls back to the page, so a second arrow press does nothing. *Found while running batch 1.*
+
+### <a id="b1-29"></a>B1-29 — A Kanban card loses focus when the keyboard moves it
+*medium · `bugfix` · effort S.* **Where:** `src/components/views/KanbanView.tsx:709-729`; `src/components/views/KanbanView.tsx:1278-1282`. **Problem.** A card moved with an arrow key is mounted again in its new column. Focus is not carried over and lands on the body, so the next arrow press goes nowhere until the card is found again with Tab. Moving a card three columns takes three searches. **Proposal.** After the move, focus the card with the same todo id, for example from an effect keyed on the id that was moved. **Done when.** The `test.fixme` naming this unit in kanban-keyboard.spec.ts passes: two arrow presses in a row move the card two columns.

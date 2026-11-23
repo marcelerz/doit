@@ -86,5 +86,5 @@ test.describe("Kanban keyboard moves", () => {
   // After a move the card is mounted again in its new column and focus falls
   // back to the page, so a second arrow press does nothing until the card is
   // found again with Tab.
-  test.fixme("a card keeps keyboard focus after it moves (new finding)", async () => {});
+  test.fixme("a card keeps keyboard focus after it moves (U0825)", async () => {});
 });

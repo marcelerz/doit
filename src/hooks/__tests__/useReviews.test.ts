@@ -305,7 +305,7 @@ describe("useReviews", () => {
       expect(result.current.undoActions).toEqual([]);
     });
 
-    it.todo("archives only completed reviews, as ReviewModel.canArchive requires (new finding)");
+    it.todo("archives only completed reviews, as ReviewModel.canArchive requires (U0821)");
   });
 
   describe("unarchiveReview", () => {
@@ -320,8 +320,8 @@ describe("useReviews", () => {
       expect(activityTypes(restored)).toEqual(["unarchived"]);
     });
 
-    it.todo("ignores a review that is not archived, as ReviewModel.canUnarchive requires (new finding)");
-    it.todo("never leaves a review completed without a completedAt (new finding)");
+    it.todo("ignores a review that is not archived, as ReviewModel.canUnarchive requires (U0821)");
+    it.todo("never leaves a review completed without a completedAt (U0821)");
   });
 
   describe("entries", () => {
@@ -389,7 +389,7 @@ describe("useReviews", () => {
     });
 
     it.todo("updateEntry logs nothing when the index is out of range (U0591)");
-    it.todo("removeEntry logs nothing when the index is out of range (new finding)");
+    it.todo("removeEntry logs nothing when the index is out of range (U0821)");
     it.todo("toggleEntryCollapsed leaves the updatedAt and activity of a completed review unchanged (U0573)");
   });
 

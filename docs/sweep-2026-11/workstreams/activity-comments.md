@@ -1,6 +1,6 @@
 # Workstream: activity-comments
 
-The activity log and comments. 24 units, 44 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
+The activity log and comments. 25 units, 45 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
 
 ## <a id="u0180"></a>U0180 — Add integration tests for the activity feature
 *Batch 1 · tests-tooling · medium · `none` · effort M.* Add useNotes and useReviews test files, an Activity component test, and characterisation tests for create, complete, archive, workflow and undo entries.
@@ -205,3 +205,9 @@ The activity log and comments. 24 units, 44 items, ordered by batch and then pri
 
 ### <a id="log-59"></a>LOG-59 — Saving an unchanged comment still records an edit
 *low · `bugfix` · effort S.* **Where:** `src/components/shared/Activity.tsx:294-301`; `src/utils/commentMutations.ts:29-40`; `src/hooks/useNotes.ts:447-462`. **Problem.** The Save button in comment edit mode only checks for empty text, and amendComment always appends a history entry. Saving identical text therefore adds a 'Comment edited' row on every entity type. On notes it also adds a comment_edited entry and bumps updatedAt. **Proposal.** Make amendComment return the list unchanged when the content equals the newest history entry. editNoteComment then skips both the activity entry and the updatedAt bump. Disable Save while the text is unchanged. **Done when.** commentMutations test: amending with identical content leaves the history length unchanged. useNotes test: no activity entry is added.
+
+## <a id="u0827"></a>U0827 — Give comment rows in the activity list a key that cannot collide
+*Batch 11 (proposed) · bugfix · low · `bugfix` · effort S.* Two revisions of one comment in the same millisecond would share a React key. *Found while running batch 1.*
+
+### <a id="b1-32"></a>B1-32 — Comment rows are keyed by comment id and timestamp
+*low · `bugfix` · effort S.* **Where:** `src/components/shared/Activity.tsx:271`. **Problem.** The key is `comment-${commentId}-${entry.timestamp}`. Two revisions of the same comment with the same millisecond timestamp would get the same key. Found by reading; not reproduced. **Proposal.** Key on the activity entry's own id. **Done when.** Each row's key is the entry id.

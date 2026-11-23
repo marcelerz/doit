@@ -154,7 +154,7 @@ describe("mounting", () => {
     expect(editor().getAttribute("data-placeholder")).toBe("What needs to be done?");
   });
 
-  it.todo("reports initialValue through onTokensChange once on mount, not twice (new finding)");
+  it.todo("reports initialValue through onTokensChange once on mount, not twice (U0818)");
 });
 
 describe("tokens reported while typing", () => {
@@ -315,7 +315,7 @@ describe("the imperative handle", () => {
   });
 
   it.todo("calls the onTokensChange of the latest render from clear and setValue, not a stale one (U0103)");
-  it.todo("keeps working after effects are re-run, as StrictMode does in development (new finding)");
+  it.todo("keeps working after effects are re-run, as StrictMode does in development (U0818)");
 });
 
 describe("keys while no dropdown is open", () => {
@@ -436,7 +436,7 @@ describe("autocomplete", () => {
 
   it.todo("opens only for a marker that starts a word, not one inside an email address or a price (U0505)");
   it.todo("completes the marker at the caret rather than the last marker in the text (U0505)");
-  it.todo("leaves a single space between a name completed mid-text and the words after it (new finding)");
+  it.todo("leaves a single space between a name completed mid-text and the words after it (U0818)");
   it.todo("lets Enter submit when the open dropdown has nothing to choose from (U0505)");
 
   it.each([
@@ -476,5 +476,5 @@ describe("autocomplete", () => {
   });
 
   it.todo("passes a new name to onAddPerson, onAddProject and onAddPriority in the case it was typed (U0506)");
-  it.todo("reports a newly added name as a token straight away, not only after the next keystroke (new finding)");
+  it.todo("reports a newly added name as a token straight away, not only after the next keystroke (U0818)");
 });

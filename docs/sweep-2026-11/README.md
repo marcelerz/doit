@@ -2,7 +2,7 @@
 
 A read-only sweep of the whole codebase across twelve review items, consolidated into one backlog
 and one phased roadmap. This folder is working material: it shrinks as batches land and is removed
-with the last one. Nothing here has been implemented yet.
+with the last one. Batch 1 has landed; nothing else has been started.
 
 **Constraint on every change made from this backlog:** business logic does not change unless a
 feature is being fixed, completed or extended, and no existing feature is removed.
@@ -39,12 +39,12 @@ items that describe it (`U0137`). The overlap is large: one unit holds 16 items 
 
 | Behaviour tag | Meaning | Units |
 | --- | --- | --- |
-| `none` | Pure cleanup, behaviour identical | 269 |
-| `bugfix` | Behaviour changes only by correcting a defect | 260 |
+| `none` | Pure cleanup, behaviour identical | 273 |
+| `bugfix` | Behaviour changes only by correcting a defect | 268 |
 | `feature-extension` | Completes or extends a feature | 53 |
-| `needs-decision` | The owner has to choose before it is touched | 147 |
+| `needs-decision` | The owner has to choose before it is touched | 149 |
 
-188 units carry a question for the owner (the `needs-decision` units plus those whose question came without the tag). None of them is started on a guess.
+190 units carry a question for the owner (the `needs-decision` units plus those whose question came without the tag). None of them is started on a guess.
 
 ## The roadmap
 
@@ -54,7 +54,7 @@ must do); delete and consolidate before polishing.
 
 | Batch | What | Units | Items | High / Med / Low | Questions | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| [1](phases/batch-01.md) | Guard rails: CI, test gaps, timezone pin, frozen visual baselines, dependency bump, logger, agent-facing docs | 28 | 38 | 9 / 16 / 3 | 1 | not started |
+| [1](phases/batch-01.md) | Guard rails: CI, test gaps, timezone pin, frozen visual baselines, dependency bump, logger, agent-facing docs | 28 | 38 | 9 / 16 / 3 | 1 | done |
 | [2A](phases/batch-02a.md) | Data safety: storage load/save, backend switch, migrations | 17 | 70 | 8 / 7 / 2 | 4 | not started |
 | [2B](phases/batch-02b.md) | Data safety: backup, restore, import, export, durations | 20 | 57 | 9 / 9 / 2 | 5 | not started |
 | [2C](phases/batch-02c.md) | Data safety: two tabs open at once | 4 | 11 | 1 / 2 / 1 | 1 | not started |
@@ -75,6 +75,10 @@ must do); delete and consolidate before polishing.
 | [10](phases/batch-10.md) | Feature completion | 37 | 68 | 4 / 17 / 16 | 16 | not started |
 | [11](phases/batch-11.md) | Low-priority fixes | 64 | 76 | 0 / 0 / 64 | 16 | not started |
 | [12](phases/batch-12.md) | Documentation | 40 | 48 | 3 / 17 / 20 | 5 | not started |
+
+Batch 1 added fourteen units, U0814 to U0827, which are in the counts of the tag table above but
+not in the rows of this one. They are listed in [phases/batch-01.md](phases/batch-01.md#new-units)
+with a proposed batch each; a batch picks up the ones proposed for it at its reconcile step.
 
 ### How a unit got its batch
 
@@ -185,16 +189,21 @@ and appends its findings to this backlog:
 
 ### Rules that hold in every batch
 
-- Per commit: `npm run typecheck && npm run lint && npm run test` green. Per batch: `npm run validate`
-  with `PLAYWRIGHT_PORT` set. `validate` fails at the time of writing because the visual baselines
-  bake in dates; batch 1 fixes that, so until then the batch gate is unit tests plus smoke.
+- Per commit: `npm run typecheck && npm run lint && npm run test` green, and `npm run test:coverage`
+  when `src` or a threshold changes. Per batch: `npm run validate` with `PLAYWRIGHT_PORT` set, which
+  passes since batch 1; add `npm run test:browsers` and `npm run test:pwa` when the batch touches the
+  editors, storage or the service worker. A batch lands through a pull request, where CI runs.
 - `bugfix`: write the reproducer, watch it fail, then fix. `none`: tests green before and after,
   and no expectation edited to make it pass.
 - No feature is removed. Where a question offers "implement or remove" for a visible control, the
   default is implement.
 - A batch that changes colour, type, spacing, icons or layout regenerates the affected visual
-  baselines on purpose and reviews the before and after. The configured tolerance is 0.1%, not
-  the 1–2% `CLAUDE.md` states; batch 1 corrects the doc.
+  baselines on purpose and reviews the before and after. The tolerance is 0.1%, which lets small
+  changes through, and the update command leaves a passing baseline alone: delete the affected
+  baselines and regenerate them, as `docs/e2e-testing.md` describes.
+- A test pins behaviour that is right. Where it is a known defect, batch 1 left an `it.todo` or a
+  `test.fixme` naming the unit; `grep -rn "(U0132)" src e2e` finds a unit's. The fix turns each
+  into its reproducer, and a new test written beside a defect follows the same rule.
 - The coverage floor in `jest.config.js` only goes up. Deleting tested dead code moves the
   percentages, so batch 5 re-measures and re-pins in the same commit.
 - No `prettier`, no suppressed type errors, no debug logs.

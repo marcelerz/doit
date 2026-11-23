@@ -544,7 +544,7 @@ describe("filterOptions", () => {
   it.todo("lists priority options in the configured priority order rather than alphabetically (U0215)");
   it.todo("offers due-date options as stable buckets, not relative display text such as 'Tomorrow' (U0253)");
   it.todo("collapses case variants and alternative names of one entity into a single option (U0747)");
-  it.todo("lists category options sorted by name like the other options, not ids in first-seen order (new finding)");
+  it.todo("lists category options sorted by name like the other options, not ids in first-seen order (U0823)");
 });
 
 describe("groupTodos by priority", () => {

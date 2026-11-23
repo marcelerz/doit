@@ -32,8 +32,8 @@ Each line: unit, name, kind, priority, behaviour tag, effort, workstream, the it
 - [ ] **U0287** Remove settings-tab fallbacks for fields migrateSettings already fills · dead-code · low · `none` · S · [settings](../workstreams/settings.md#u0287) · DEAD-45, STRUCT-100
 - [ ] **U0232** Drop unused isDragMode and toggleDragMode from ListViewHandle · dead-code · low · `none` · S · [view-state](../workstreams/view-state.md#u0232) · DEAD-36
 - [ ] **U0767** Delete dead and redundant rules from globals.css · dead-code · low · `none` · S · [visual-system](../workstreams/visual-system.md#u0767) · DEAD-51
-- [ ] **U0630** Delete unused e2e fixture helper methods and types · dead-code · low · `none` · S · [tests-ci-tooling](../workstreams/tests-ci-tooling.md#u0630) · DEAD-82
-- [ ] **U0645** Delete leftover Playwright comments, redundant npm script and unused image option · dead-code · low · `none` · S · [tests-ci-tooling](../workstreams/tests-ci-tooling.md#u0645) · DEAD-85
+- [x] **U0630** Delete unused e2e fixture helper methods and types · dead-code · low · `none` · S · [tests-ci-tooling](../workstreams/tests-ci-tooling.md#u0630) · DEAD-82 · done in batch 1 with U0634
+- [ ] **U0645** Delete leftover Playwright comments, redundant npm script and unused image option · dead-code · low · `none` · S · [tests-ci-tooling](../workstreams/tests-ci-tooling.md#u0645) · DEAD-85 · the two stale Playwright config comments were removed in batch 1 with U0633; the npm script and the image option remain
 - [ ] **U0740** Delete unused test helpers and dead locals in test files · dead-code · low · `none` · S · [tests-ci-tooling](../workstreams/tests-ci-tooling.md#u0740) · DEAD-83
 - [ ] **U0191** Settle unused optional props on NoteListItem, TodoListItem and TodoItem · dead-code · low · `needs-decision` · S · [code-hygiene](../workstreams/code-hygiene.md#u0191) · DEAD-42 · **question**
 - [ ] **U0214** Inline three pass-through alias variables left from refactors · dead-code · low · `none` · S · [code-hygiene](../workstreams/code-hygiene.md#u0214) · DEAD-80

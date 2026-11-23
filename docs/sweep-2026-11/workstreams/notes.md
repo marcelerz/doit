@@ -1,6 +1,6 @@
 # Workstream: notes
 
-Notes: model, hook, views, conversion to todos. 20 units, 51 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
+Notes: model, hook, views, conversion to todos. 21 units, 55 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
 
 ## <a id="u0409"></a>U0409 — Save note markers by mapping SmartInput's real token types to metadata
 *Batch 3B · bugfix · high · `bugfix` · effort M.* NoteAddModal and NoteDetailView switch on wrong token names, so notes lose people, projects and tags. Use one shared merge helper beside tokenParser and type TokenMatch.type as a union. **Question for the owner:** Should editing a note title add its markers to the existing metadata, or should only new notes take title markers?
@@ -214,3 +214,18 @@ Notes: model, hook, views, conversion to todos. 20 units, 51 items, ordered by b
 
 ### <a id="bug-211"></a>BUG-211 — Duplicating from note detail reuses the component, dropping a pending edit and carrying drafts over
 *low · `bugfix` · effort S.* **Where:** `src/components/views/NoteDetailView.tsx:426-430`; `src/components/views/TodoApp.tsx:1404-1410`. **Problem.** There's no key on NoteDetailView. A sub-500ms edit to the original is lost, and drafts move to the copy. **Proposal.** Use key={selectedNoteId} and flush before duplicating. **Done when.** Change tags, duplicate immediately, and the original is saved with the tags.
+
+## <a id="u0820"></a>U0820 — Fix four useNotes defects found by its new tests
+*Batch 6B (proposed) · bugfix · medium · `bugfix` · effort M.* Omitted metadata clears content and tags, converting to a todo cannot be undone, three more mutators read stale state, and conversion drops blank action items. *Found while running batch 1.*
+
+### <a id="b1-13"></a>B1-13 — editNote treats omitted content or tags as a request to clear them
+*low · `bugfix` · effort S.* **Where:** `src/hooks/useNotes.ts:51-52`; `src/hooks/useNotes.ts:132-139`. **Problem.** When the metadata passed to `editNote` has no `content` or `tags`, the stored ones are replaced with empty values, and with empty stored content a false `content_changed` entry is logged because `"" !== undefined`. Latent today: NoteDetailView always passes both. **Proposal.** Treat an omitted field as unchanged. **Done when.** The `it.todo` naming this unit passes.
+
+### <a id="b1-14"></a>B1-14 — Converting a note to a todo archives it without an undo action
+*medium · `bugfix` · effort S.* **Where:** `src/hooks/useNotes.ts:612-665`; `src/hooks/useNotes.ts:369`. **Problem.** `convertToTodo` archives the note directly. `archiveNote` queues an undo action for the same change; this path does not, so the archive cannot be undone from the toast. **Proposal.** Queue the same undo action, or go through `archiveNote`. **Done when.** The `it.todo` naming this unit passes.
+
+### <a id="b1-15"></a>B1-15 — archiveNote, duplicateNote and convertActionItemsToTodos read a stale list
+*medium · `bugfix` · effort S.* **Where:** `src/hooks/useNotes.ts:352`; `src/hooks/useNotes.ts:556`; `src/hooks/useNotes.ts:670`. **Problem.** These three read `rawNotes` from the render closure, so a call in the same tick as another change works from the record as it was before. U0697 names only `deleteNote` and `convertToTodo`. **Proposal.** Fix them with U0697, the same way. **Done when.** The `it.todo` naming this unit passes.
+
+### <a id="b1-16"></a>B1-16 — Converting action items discards blank ones and any added meanwhile
+*low · `bugfix` · effort S.* **Where:** `src/hooks/useNotes.ts:588`. **Problem.** After conversion the note's `actionItems` is set to an empty list. Items with no text, which were not converted, are dropped with the rest, and so is anything added after the snapshot was taken. **Proposal.** Remove only the items that were converted. **Done when.** A test shows a blank item is still on the note after its neighbours were converted.

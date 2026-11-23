@@ -1,12 +1,25 @@
 # Decisions for the owner
 
-188 work units cannot start until a question is answered. Each batch asks only its own, at the start of that batch. Tick a question when it is answered and write the answer under it. Questions belonging to security units are in the untracked local security file.
+190 work units cannot start until a question is answered. Each batch asks only its own, at the start of that batch. Tick a question when it is answered and write the answer under it. Questions belonging to security units are in the untracked local security file.
 
 ## By batch
 
 ### Batch 1 — Guard rails: CI, test gaps, timezone pin, frozen visual baselines, dependency bump, logger, agent-facing docs
 
-- [ ] **[U0649](workstreams/tests-ci-tooling.md#u0649)** (tests-ci-tooling, medium) Should amends and rewords bump the version again, and should the hook also lint staged files? — *Make the pre-commit version bump validate input and fail safely*
+- [x] **[U0649](workstreams/tests-ci-tooling.md#u0649)** (tests-ci-tooling, medium) Should amends and rewords bump the version again, and should the hook also lint staged files? — *Make the pre-commit version bump validate input and fail safely*
+  - **Answer (22 November 2026):** keep both as they are. The hook bumps on every commit, amends included, and does not lint. It only has to fail safely.
+
+Asked while planning the batch, and answered the same day:
+
+- [x] **U0610** How is the new CI workflow proven? — **Answer:** push the batch branch and open one pull request, then iterate until it is green. Merging stays with the owner.
+- [x] **U0610** Is the failing path checked too? — **Answer:** yes, with a throwaway draft pull request carrying one deliberate type error, closed unmerged once CI has failed on it.
+- [x] **U0643** Should the dev server stop listening on the local network? — **Answer:** leave it as it is.
+
+Raised by the batch, open:
+
+- [ ] **[U0814](workstreams/tests-ci-tooling.md#u0814)** (tests-ci-tooling, medium) Wait for the batches that rework those files (recommended), or take the lint upgrade sooner with one justified suppression per finding? — *Upgrade eslint-config-next to 16.4 and fix what its React Compiler rules report*
+- [ ] **U0643** `next.config.ts` now sets `agentRules: false`, so that `next dev` does not write an `AGENTS.md` into the project root when an agent starts it. Keep it off, or let Next generate the file?
+- [ ] **[U0648](workstreams/migrations-versioning.md#u0648)** (migrations-versioning, medium) `package.json`'s `version` (0.1.0) is used for nothing. Sync it from `version.json`, or drop it? The docs now say it is unused.
 
 ### Batch 2A — Data safety: storage load/save, backend switch, migrations
 
@@ -29,6 +42,7 @@
 
 ### Batch 3A — Critical fixes: dates, recurrence, smart input, todos, undo/confirm, names, activity
 
+- [ ] **[U0822](workstreams/dates-time.md#u0822)** (dates-time, medium, proposed for this batch by batch 1) Does a shorthand typed on the day it names mean today or the next occurrence (U0534 asks the same for holidays), and at the weekend do the week shorthands mean the week that just ended or the one about to start? — *Decide what a date shorthand means on the day it names*
 - [ ] **[U0166](workstreams/dates-time.md#u0166)** (dates-time, high) Store end-of-day at write time, or keep midnight as the date-only marker and treat it as end-of-day? — *Stop date-only due dates turning overdue at midnight of their day*
 - [ ] **[U0167](workstreams/dates-time.md#u0167)** (dates-time, high) Which 'this week' window should List, grouping, Calendar and Kanban share: next seven days or calendar week? — *Define Today, This week and overdue buckets once on TodoModel*
 - [ ] **[U0535](workstreams/dates-time.md#u0535)** (dates-time, high) Should Q/H/FY and bo*/eo* shorthands follow fiscalYearStart, and with which FY-number convention, or be renamed calendar periods? — *Apply the fiscal-year-start setting to quarter, half and FY shorthands*
@@ -96,6 +110,7 @@
 
 ### Batch 6A — Medium fixes: domain core
 
+- [ ] **[U0819](workstreams/smart-input.md#u0819)** (smart-input, low, proposed for this batch by batch 1) Should words such as 'Morning' and 'Weekly', which the parser reads as part of a date or recurrence, stay in the plain title? — *Decide whether a title keeps the words the date parser takes*
 - [ ] **[U0168](workstreams/dates-time.md#u0168)** (dates-time, medium) Change the data model to add an all-day due-date marker with a migration? — *Store an explicit all-day marker so due dates survive time-zone changes*
 - [ ] **[U0529](workstreams/dates-time.md#u0529)** (dates-time, medium) Should 'morning', 'afternoon' and 'evening' roll to tomorrow once past, like '3pm', with midnight meaning end of today? — *Stop time-of-day shorthands resolving to an already-past time*
 - [ ] **[U0539](workstreams/dates-time.md#u0539)** (dates-time, medium) Per pattern: require context or case, drop it, or resolve 'sprint N' against real sprints? Which position rules for daily/weekly? — *Stop greedy date patterns turning ordinary words into due dates*

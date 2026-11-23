@@ -1,6 +1,6 @@
 # Workstream: reviews
 
-Reviews: model, hook, views. 13 units, 21 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
+Reviews: model, hook, views. 14 units, 25 items, ordered by batch and then priority. Line numbers are as of commit `0596933`; re-check them when the unit's batch starts.
 
 ## <a id="u0591"></a>U0591 — Edit review entry notes as rich text with debounced, single logging
 *Batch 3B · bugfix · high · `needs-decision` · effort M.* Entry notes are edited as plain text but rendered as HTML, overwrite copied child summaries, and log per keystroke; use RichTextEditor, a separate child notes field and one debounced entry_edited. **Question for the owner:** Review entry content format: read-only child HTML plus a separate notes field, plain-text task notes, or RichTextEditor for both?
@@ -103,3 +103,18 @@ Reviews: model, hook, views. 13 units, 21 items, ordered by batch and then prior
 
 ### <a id="bug-195"></a>BUG-195 — Half-year and fiscal-year review suggestions skip or duplicate periods on month-end dates
 *low · `bugfix` · effort S.* **Where:** `src/components/views/ReviewsView.tsx:169-189`; `src/utils/reviewUtils.ts:312-323`. **Problem.** setMonth overflow on the 31st loses H1, and Feb 29 lists one fiscal year twice (duplicate keys). **Proposal.** Anchor to day 1, or use BUG-37's helper. **Done when.** On 2026-12-31, 'Add H1 2026' is offered.
+
+## <a id="u0821"></a>U0821 — Guard the review mutators in useReviews by state and index
+*Batch 6B (proposed) · bugfix · medium · `bugfix` · effort S.* Archive and unarchive check no state, removing a missing entry still logs, and an edit that changes nothing still counts as an update. *Found while running batch 1.*
+
+### <a id="b1-17"></a>B1-17 — archiveReview archives reviews in any state
+*medium · `bugfix` · effort S.* **Where:** `src/hooks/useReviews.ts:255-277`; `src/models/ReviewModel.ts:511-522`. **Problem.** The hook archives pending, deleted and already-archived reviews. `ReviewModel.canArchive` refuses all three; the hook does not ask it. **Proposal.** Check `canArchive` in the hook, as the model's callers expect. **Done when.** The `it.todo` naming this unit passes.
+
+### <a id="b1-18"></a>B1-18 — unarchiveReview can leave a review completed without a completion time
+*medium · `bugfix` · effort S.* **Where:** `src/hooks/useReviews.ts:280-296`; `src/models/ReviewModel.ts:537-542`. **Problem.** Called on a review that is not archived, for example a pending one, it sets the state to completed with no `completedAt` and logs 'unarchived'. `canUnarchive` refuses such a review. **Proposal.** Check `canUnarchive` in the hook. **Done when.** The two `it.todo` cases naming this unit pass.
+
+### <a id="b1-19"></a>B1-19 — removeEntry logs a removal for an index that does not exist
+*low · `bugfix` · effort S.* **Where:** `src/hooks/useReviews.ts:349-357`. **Problem.** With an index outside the list nothing is removed, but an `entry_removed` entry is logged and `updatedAt` moves. U0591 covers the same slip in `updateEntry` only. **Proposal.** Return early when the index is out of range, in both. **Done when.** The `it.todo` naming this unit passes.
+
+### <a id="b1-20"></a>B1-20 — editReview counts an edit that changes nothing, and two mutators read a stale list
+*low · `bugfix` · effort S.* **Where:** `src/hooks/useReviews.ts:199`; `src/hooks/useReviews.ts:232`; `src/hooks/useReviews.ts:257`. **Problem.** `editReview` moves `updatedAt` even when title, summary, projects and tags are all as they were. `deleteReview` and `archiveReview` read `rawReviews` from the render closure, like the note mutators in U0697. The second point is from reading the code; it was not exercised. **Proposal.** Leave `updatedAt` alone when nothing changed, and read the current list inside the state updater. **Done when.** A test shows an unchanged edit leaves `updatedAt` as it was.

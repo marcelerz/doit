@@ -284,7 +284,7 @@ describe("useNotes", () => {
       expect(stored(result).activity).toEqual([]);
     });
 
-    it.todo("keeps the stored content and tags, and logs nothing for them, when the metadata omits them (new finding)");
+    it.todo("keeps the stored content and tags, and logs nothing for them, when the metadata omits them (U0820)");
   });
 
   describe("changes to one note", () => {
@@ -321,7 +321,7 @@ describe("useNotes", () => {
 
     it.todo("find, convertToTodo and duplicateNote return null for an id that matches no note (U0559)");
     it.todo("deleteNote and convertToTodo see a change made earlier in the same tick (U0697)");
-    it.todo("archiveNote, duplicateNote and convertActionItemsToTodos see a same-tick change too (new finding)");
+    it.todo("archiveNote, duplicateNote and convertActionItemsToTodos see a same-tick change too (U0820)");
     it.todo("editNoteComment records nothing when the content is unchanged (U0120)");
   });
 
@@ -470,7 +470,7 @@ describe("useNotes", () => {
       expect(stored(result, OTHER_ID)).toEqual(other);
     });
 
-    it.todo("queues an undo action for the archive it performs (new finding)");
+    it.todo("queues an undo action for the archive it performs (U0820)");
     it.todo("converts a note stored without its people, project or tag lists (U0063)");
   });
 

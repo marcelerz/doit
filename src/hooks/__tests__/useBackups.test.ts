@@ -186,7 +186,7 @@ describe("stats", () => {
     expect(momentOf(at(12))).toContain(stats.lastAutoBackupDate);
   });
 
-  it.todo("reports the oldest, newest and last automatic dates in one format (new finding)");
+  it.todo("reports the oldest, newest and last automatic dates in one format (U0824)");
   it.todo("keeps the last automatic backup date in the one place the auto-backup decision reads (U0055)");
 });
 
