@@ -6,6 +6,7 @@
 // Isolated rather than worker-scoped: several need a clean profile, and the
 // rename test would otherwise leave renamed entities behind.
 import { isolatedTest as test, expect } from "../fixtures/todo-app.fixture";
+import { DB_NAME, STORAGE_KEYS, STORE_NAME } from "../../src/storage/keys";
 
 /** Type into the add-todo overlay and submit. Returns whether the button was enabled. */
 async function addTodo(page: import("@playwright/test").Page, text: string): Promise<boolean> {
@@ -57,7 +58,7 @@ async function renamePerson(
 }
 
 const storedTodos = async (todoApp: { getStoredValue: (k: string) => Promise<string | null> }) =>
-  JSON.parse((await todoApp.getStoredValue("doit-todos")) ?? "[]");
+  JSON.parse((await todoApp.getStoredValue(STORAGE_KEYS.TODOS)) ?? "[]");
 
 test.describe("Regressions from the manual sweep", () => {
   test.beforeEach(async ({ page, todoApp }) => {
@@ -170,7 +171,7 @@ test.describe("Regressions from the manual sweep", () => {
 
     await renamePerson(page, todoApp, "Marcel", "Marc");
 
-    const people = JSON.parse((await todoApp.getStoredValue("doit-people")) ?? "[]");
+    const people = JSON.parse((await todoApp.getStoredValue(STORAGE_KEYS.PEOPLE)) ?? "[]");
     const marc = people.find((p: { name: string }) => p.name === "Marc");
     expect(marc.alternatives).toEqual([]);
 
@@ -180,7 +181,7 @@ test.describe("Regressions from the manual sweep", () => {
 
     // ...and the freed name can now be taken by a different person
     await renamePerson(page, todoApp, "Someone Else", "Marcel");
-    const after = JSON.parse((await todoApp.getStoredValue("doit-people")) ?? "[]");
+    const after = JSON.parse((await todoApp.getStoredValue(STORAGE_KEYS.PEOPLE)) ?? "[]");
     expect(after.map((p: { name: string }) => p.name).sort()).toEqual(["Marc", "Marcel"]);
   });
 
@@ -195,7 +196,7 @@ test.describe("Regressions from the manual sweep", () => {
     await page.waitForTimeout(1200);
 
     await expect(dialog.getByRole("alert")).toContainText("already exists");
-    const people = JSON.parse((await todoApp.getStoredValue("doit-people")) ?? "[]");
+    const people = JSON.parse((await todoApp.getStoredValue(STORAGE_KEYS.PEOPLE)) ?? "[]");
     expect(people.map((p: { name: string }) => p.name).sort()).toEqual(["John Doe", "Marcel"]);
   });
 
@@ -226,7 +227,7 @@ test.describe("Regressions from the manual sweep", () => {
     };
     await savePreset("Mine");
 
-    const before = JSON.parse((await todoApp.getStoredValue("doit-view-presets")) ?? "[]");
+    const before = JSON.parse((await todoApp.getStoredValue(STORAGE_KEYS.VIEW_PRESETS)) ?? "[]");
     expect(before[0].filters.assignedPeople).toEqual(["Marcel"]);
 
     await renamePerson(page, todoApp, "Marcel", "Marc");
@@ -235,7 +236,7 @@ test.describe("Regressions from the manual sweep", () => {
     // mutate the preset list, which is what triggers the stale write-back
     await savePreset("Second");
 
-    const after = JSON.parse((await todoApp.getStoredValue("doit-view-presets")) ?? "[]");
+    const after = JSON.parse((await todoApp.getStoredValue(STORAGE_KEYS.VIEW_PRESETS)) ?? "[]");
     const mine = after.find((p: { name: string }) => p.name === "Mine");
     expect(mine.filters.assignedPeople).toEqual(["Marc"]);
   });
@@ -245,18 +246,18 @@ test.describe("Regressions from the manual sweep", () => {
     // clearStorage writes a completed flag), so put it back: the preference is
     // read through the storage adapter, i.e. IndexedDB.
     await page.evaluate(
-      () =>
+      ({ tutorialKey, dbName, storeName }) =>
         new Promise<void>((resolve) => {
-          localStorage.removeItem("doit-tutorial-preferences");
-          const open = indexedDB.open("doit-db");
+          localStorage.removeItem(tutorialKey);
+          const open = indexedDB.open(dbName);
           open.onsuccess = () => {
             const db = open.result;
-            if (!db.objectStoreNames.contains("keyvalue")) {
+            if (!db.objectStoreNames.contains(storeName)) {
               db.close();
               return resolve();
             }
-            const tx = db.transaction("keyvalue", "readwrite");
-            tx.objectStore("keyvalue").delete("doit-tutorial-preferences");
+            const tx = db.transaction(storeName, "readwrite");
+            tx.objectStore(storeName).delete(tutorialKey);
             tx.oncomplete = () => {
               db.close();
               resolve();
@@ -269,6 +270,7 @@ test.describe("Regressions from the manual sweep", () => {
           open.onerror = () => resolve();
           setTimeout(resolve, 3000);
         }),
+      { tutorialKey: STORAGE_KEYS.TUTORIAL_PREFERENCES, dbName: DB_NAME, storeName: STORE_NAME },
     );
     await page.goto("/");
     await page.waitForSelector('[data-testid="todo-app"]');

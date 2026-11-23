@@ -1,5 +1,6 @@
 import { test, expect } from "../fixtures/todo-app.fixture";
 import { resetAppStorage } from "../fixtures/smoke-helpers";
+import { STORAGE_KEYS } from "../../src/storage/keys";
 
 /**
  * Smoke Test: Persistence and Settings
@@ -23,7 +24,7 @@ test.describe("Persistence and Settings Workflow", () => {
 
       // Verify in storage. This read has to go through the adapter the app
       // actually uses; localStorage is empty once IndexedDB takes over.
-      const storageData = (await todoApp.getStoredValue("doit-todos")) ?? "[]";
+      const storageData = (await todoApp.getStoredValue(STORAGE_KEYS.TODOS)) ?? "[]";
       expect(storageData.length).toBeGreaterThan(2);
 
       const count = await todoApp.getTodoCount();
@@ -68,17 +69,27 @@ test.describe("Persistence and Settings Workflow", () => {
       }
     });
 
-    test("Step 4: Verify settings persistence", async ({ page, todoApp }) => {
-      await page.goto("/");
-      await todoApp.waitForAppLoad();
+    test("Step 4: A changed setting is stored and survives a reload", async ({ page, todoApp }) => {
+      const storedTheme = async () => {
+        const raw = await todoApp.getStoredValue(STORAGE_KEYS.SETTINGS);
+        return raw === null ? null : JSON.parse(raw).general?.theme;
+      };
 
-      // Check settings are in storage
-      const settingsData = await page.evaluate(() => {
-        return localStorage.getItem("doit-settings") || "{}";
-      });
+      await page.goto("/settings");
+      // Settings are written only when they change, so change one. A fresh
+      // profile has nothing stored under the settings key at all.
+      await page.getByRole("button", { name: "Dark", exact: true }).click();
 
-      // Settings should exist (even if default)
-      expect(settingsData).toBeDefined();
+      // The store coalesces writes for a moment; wait for the value itself.
+      await expect.poll(storedTheme).toBe("dark");
+
+      await page.reload();
+      await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+      expect(await storedTheme()).toBe("dark");
+
+      // Back to the default, so the remaining steps run on the usual theme.
+      await page.getByRole("button", { name: "System", exact: true }).click();
+      await expect.poll(storedTheme).toBe("system");
     });
 
     test("Step 5: Add more data and verify", async ({ page, todoApp }) => {

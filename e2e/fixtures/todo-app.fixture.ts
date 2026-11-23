@@ -1,4 +1,7 @@
 import { test as base, expect, type Page } from "@playwright/test";
+import { DB_NAME, STORE_NAME } from "../../src/storage/keys";
+import type { ViewTab } from "../../src/types/viewRegistry";
+import { clearAppStorage } from "./smoke-helpers";
 
 /**
  * Todo setup for batch operations
@@ -58,9 +61,7 @@ export interface TodoAppFixture {
   closeOverlay: () => Promise<void>;
 
   /** Switch to a different view tab */
-  switchView: (
-    view: "list" | "kanban" | "gantt" | "calendar" | "people" | "projects",
-  ) => Promise<void>;
+  switchView: (view: ViewTab) => Promise<void>;
 
   /** Search for todos */
   search: (text: string) => Promise<void>;
@@ -128,20 +129,7 @@ export interface TodoAppFixture {
  */
 function createTodoApp(page: Page): TodoAppFixture {
   const fixture: TodoAppFixture = {
-    clearStorage: async () => {
-      await page.evaluate(() => {
-        localStorage.clear();
-        // Also clear IndexedDB
-        if (typeof indexedDB !== "undefined") {
-          indexedDB.deleteDatabase("doit-db");
-        }
-        // Set tutorial as completed to prevent it from showing
-        localStorage.setItem(
-          "doit-tutorial-preferences",
-          JSON.stringify({ completed: true, showOnStartup: false }),
-        );
-      });
-    },
+    clearStorage: () => clearAppStorage(page),
 
     waitForAppLoad: async () => {
       // Wait for the main app container to be visible
@@ -222,25 +210,24 @@ function createTodoApp(page: Page): TodoAppFixture {
       // The app writes through its storage adapter, which is IndexedDB
       // whenever it is available. Reading localStorage directly returns
       // nothing on those installs, so check both.
-      return await page.evaluate(async (storageKey) => {
-        const local = localStorage.getItem(storageKey);
-        if (local !== null) return local;
-        return await new Promise<string | null>((resolve) => {
-          const request = indexedDB.open("doit-db");
-          request.onerror = () => resolve(null);
-          request.onsuccess = () => {
-            const db = request.result;
-            if (!db.objectStoreNames.contains("keyvalue")) return resolve(null);
-            const read = db
-              .transaction("keyvalue", "readonly")
-              .objectStore("keyvalue")
-              .get(storageKey);
-            read.onerror = () => resolve(null);
-            read.onsuccess = () =>
-              resolve(typeof read.result === "string" ? read.result : null);
-          };
-        });
-      }, key);
+      return await page.evaluate(
+        async ({ storageKey, dbName, storeName }) => {
+          const local = localStorage.getItem(storageKey);
+          if (local !== null) return local;
+          return await new Promise<string | null>((resolve) => {
+            const request = indexedDB.open(dbName);
+            request.onerror = () => resolve(null);
+            request.onsuccess = () => {
+              const db = request.result;
+              if (!db.objectStoreNames.contains(storeName)) return resolve(null);
+              const read = db.transaction(storeName, "readonly").objectStore(storeName).get(storageKey);
+              read.onerror = () => resolve(null);
+              read.onsuccess = () => resolve(typeof read.result === "string" ? read.result : null);
+            };
+          });
+        },
+        { storageKey: key, dbName: DB_NAME, storeName: STORE_NAME },
+      );
     },
 
     openTodoDetails: async (text: string) => {
@@ -272,7 +259,7 @@ function createTodoApp(page: Page): TodoAppFixture {
       await page.waitForTimeout(300);
     },
 
-    switchView: async (view: string) => {
+    switchView: async (view: ViewTab) => {
       // Previously this silently did nothing when the tab was not visible, so a
       // test could go on asserting against whatever view happened to be open --
       // including filing a screenshot of the list view as another view's

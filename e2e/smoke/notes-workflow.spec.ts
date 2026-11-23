@@ -1,5 +1,6 @@
 import { test, expect } from "../fixtures/todo-app.fixture";
 import { resetAppStorage } from "../fixtures/smoke-helpers";
+import { STORAGE_KEYS } from "../../src/storage/keys";
 
 /**
  * Smoke Test: Notes Workflow
@@ -17,10 +18,10 @@ test.describe("Notes Workflow", () => {
   test.beforeAll(async ({ workerPage }) => {
     await resetAppStorage(workerPage);
     // Notes needs its feature flag on, which the shared reset does not set.
-    await workerPage.evaluate(() => {
+    await workerPage.evaluate((settingsKey) => {
       // Enable notes view feature
       localStorage.setItem(
-        "doit-settings",
+        settingsKey,
         JSON.stringify({
           features: {
             notesView: true,
@@ -38,7 +39,7 @@ test.describe("Notes Workflow", () => {
           },
         })
       );
-    });
+    }, STORAGE_KEYS.SETTINGS);
   });
 
   test.describe.serial("Sequential Notes Operations", () => {
