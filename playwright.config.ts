@@ -59,6 +59,7 @@ export default defineConfig({
     toHaveScreenshot: {
       maxDiffPixelRatio: 0.001, // ~0.1%: absorbs antialiasing, not a changed label
       animations: "disabled", // Disable animations for consistent screenshots
+      stylePath: "./e2e/visual.css", // Hides what no test can hold still; see the file
     },
     toMatchSnapshot: {
       maxDiffPixelRatio: 0.001,

@@ -1,7 +1,8 @@
 // Visual tests are independent of one another and the mobile block sets its
 // own viewport via test.use, so they need Playwright's per-test context
 // rather than the worker-scoped page the serial smoke specs share.
-import { isolatedTest as test, expect } from "./fixtures/todo-app.fixture";
+import { isolatedTest as test, expect, type TodoAppFixture } from "./fixtures/todo-app.fixture";
+import type { Page } from "@playwright/test";
 
 /**
  * Visual regression tests for the Todo app
@@ -15,15 +16,38 @@ import { isolatedTest as test, expect } from "./fixtures/todo-app.fixture";
  *   npx playwright test visual.spec.ts --update-snapshots
  *
  * Screenshot diff threshold can be adjusted with maxDiffPixelRatio
+ *
+ * Three things keep a screenshot from depending on when or where it is taken:
+ * the clock is fixed (below), the time zone is pinned in the Playwright config,
+ * and e2e/visual.css hides the parts of the page no test can freeze.
  */
+
+/**
+ * The moment every screenshot is taken at: Sunday 30 August 2026, 10:00 in the
+ * suite's time zone.
+ *
+ * Without it the pictures change with the day -- the calendar's month and
+ * highlighted date, the Gantt chart's columns -- and with the hour: by evening
+ * a task due "today" is overdue, turns red and adds a filter chip.
+ *
+ * `setFixedTime` freezes what `Date` returns and leaves timers running, so the
+ * app's debounces and animations still happen.
+ */
+const FIXED_NOW = new Date("2026-08-30T10:00:00-07:00");
+
+/** Opens the app with the fixed clock and empty storage. */
+async function openFreshApp(page: Page, todoApp: TodoAppFixture): Promise<void> {
+  // Before the first navigation, so the app never sees the real date.
+  await page.clock.setFixedTime(FIXED_NOW);
+  await page.goto("/");
+  await todoApp.clearStorage();
+  await page.reload();
+  await todoApp.waitForAppLoad();
+}
 
 test.describe("Visual Regression Tests", () => {
   test.beforeEach(async ({ page, todoApp }) => {
-    // Clear storage to start fresh
-    await page.goto("/");
-    await todoApp.clearStorage();
-    await page.reload();
-    await todoApp.waitForAppLoad();
+    await openFreshApp(page, todoApp);
   });
 
   test("empty state - list view", async ({ page }) => {
@@ -191,10 +215,7 @@ test.describe("Visual Regression Tests", () => {
 
 test.describe("Component Visual Tests", () => {
   test.beforeEach(async ({ page, todoApp }) => {
-    await page.goto("/");
-    await todoApp.clearStorage();
-    await page.reload();
-    await todoApp.waitForAppLoad();
+    await openFreshApp(page, todoApp);
   });
 
   test("smart input with tokens", async ({ page }) => {
@@ -234,10 +255,7 @@ test.describe("Mobile Visual Tests", () => {
   test.use({ viewport: { width: 375, height: 667 } }); // iPhone SE size
 
   test.beforeEach(async ({ page, todoApp }) => {
-    await page.goto("/");
-    await todoApp.clearStorage();
-    await page.reload();
-    await todoApp.waitForAppLoad();
+    await openFreshApp(page, todoApp);
   });
 
   test("mobile list view", async ({ page, todoApp }) => {

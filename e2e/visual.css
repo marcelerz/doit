@@ -1,0 +1,18 @@
+/*
+ * Applied to the page while a visual-test screenshot is taken, through
+ * `stylePath` in playwright.config.ts. It hides what a test cannot hold still.
+ */
+
+/* The Next.js dev indicator. It exists only under `next dev`, which is what
+   the tests run against, and is not part of the app. */
+nextjs-portal {
+  display: none !important;
+}
+
+/* The footer's year and version. Both are rendered on the server, from the
+   real date and from version.json, which the pre-commit hook bumps on every
+   commit -- so the fixed clock does not reach them. Only the text is hidden;
+   the footer itself stays in the picture. */
+footer span {
+  visibility: hidden !important;
+}
