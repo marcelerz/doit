@@ -2,12 +2,12 @@ import { test, expect } from "../fixtures/todo-app.fixture";
 import { resetAppStorage } from "../fixtures/smoke-helpers";
 
 /**
- * Smoke Test: Edge Cases and Mobile
+ * Smoke Test: Edge Cases
  *
- * This test file consolidates edge-cases.spec.ts and mobile.spec.ts
- * into a single sequential workflow.
+ * Empty, very long, markup, emoji and rapid input, as one sequential workflow.
+ * The mobile tests that used to share this file are in mobile.spec.ts.
  */
-test.describe("Edge Cases and Mobile Workflow", () => {
+test.describe("Edge Cases Workflow", () => {
   test.beforeAll(async ({ workerPage }) => {
     await resetAppStorage(workerPage);
   });
@@ -102,46 +102,6 @@ test.describe("Edge Cases and Mobile Workflow", () => {
       const todos = await todoApp.getTodos();
       const rapidCount = todos.filter((t) => t.includes("Rapid")).length;
       expect(rapidCount).toBe(3);
-    });
-  });
-
-  test.describe("Mobile Viewport Tests", () => {
-    test.use({ viewport: { width: 375, height: 667 } }); // iPhone SE size
-
-    test("Mobile: App loads correctly", async ({ page, todoApp }) => {
-      await page.goto("/");
-      await todoApp.waitForAppLoad();
-
-      // Verify app is responsive
-      const addButton = page.getByTestId("add-todo-button");
-      await expect(addButton).toBeVisible();
-    });
-
-    test("Mobile: Can add todo", async ({ page, todoApp }) => {
-      await page.goto("/");
-      await todoApp.clearStorage();
-      await page.reload();
-      await todoApp.waitForAppLoad();
-
-      await todoApp.addTodo("Mobile test todo");
-
-      // Verify todo appears
-      const todoItem = page.locator('[data-testid="todo-item"]').filter({ hasText: "Mobile test" });
-      await expect(todoItem).toBeVisible();
-    });
-
-    test("Mobile: Navigation works", async ({ page, todoApp }) => {
-      await page.goto("/");
-      await todoApp.waitForAppLoad();
-
-      // There is no hamburger menu -- the tab bar is a scrolling tablist at
-      // every width -- so switch views through it and assert it actually
-      // happened. The old version looked for a "mobile-menu" that does not
-      // exist and then asserted a count >= 0, which is always true.
-      await todoApp.switchView("kanban");
-      await expect(page.getByTestId("kanban-view")).toBeVisible();
-      await todoApp.switchView("list");
-      await expect(page.getByTestId("todo-item").first()).toBeVisible();
     });
   });
 });

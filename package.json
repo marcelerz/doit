@@ -23,7 +23,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
-    "test:smoke": "playwright test --project=smoke-tests",
+    "test:smoke": "playwright test --project=smoke-tests --project=smoke-mobile",
     "test:smoke:quick": "playwright test --project=smoke-tests --workers=4",
     "test:smoke:headed": "playwright test --project=smoke-tests --headed",
     "test:visual": "playwright test --project=visual-tests",

@@ -81,10 +81,9 @@ export default defineConfig({
   },
 
   /* Visual baselines are project-agnostic: only the `visual-tests` project runs
-   * visual.spec.ts (the `chromium` project explicitly ignores it), and the spec
-   * covers mobile itself via its own viewport. Including {-projectName} in the
-   * path orphaned every baseline when the projects were renamed. Revisit if a
-   * second project ever runs visual specs. */
+   * visual.spec.ts, and the spec covers mobile itself via its own viewport.
+   * Including {-projectName} in the path orphaned every baseline when the
+   * projects were renamed. Revisit if a second project ever runs visual specs. */
   snapshotPathTemplate:
     "{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}{-snapshotSuffix}{ext}",
 
@@ -104,15 +103,14 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
 
-    /* Mobile smoke tests - run on mobile viewport */
+    /* The mobile spec again, on a phone profile: touch input and a mobile user
+     * agent, which the narrow desktop window in `smoke-tests` does not have. */
     {
       name: "smoke-mobile",
       testDir: "./e2e/smoke",
-      testMatch: "**/edge-cases-mobile.spec.ts",
+      testMatch: "**/mobile.spec.ts",
       use: { ...devices["Pixel 5"] },
     },
-
-    // Legacy project for running any remaining tests on chromium
   ],
 
   /* Run your local dev server before starting the tests */
