@@ -75,10 +75,10 @@ module.exports = {
     // each of them is ratcheted individually rather than being able to hide a
     // regression behind gains elsewhere.
     global: {
-      statements: 78,
-      branches: 66.3,
+      statements: 78.3,
+      branches: 66.7,
       functions: 76.3,
-      lines: 79.2,
+      lines: 79.6,
     },
     // The adapter choice and both migrations: a mistake here loses data.
     "src/storage/storage.ts": {
@@ -151,6 +151,13 @@ module.exports = {
       functions: 64,
       lines: 79,
     },
+    // The tokeniser, autocomplete and caret handling behind every add and edit form.
+    "src/components/input/SmartInput.tsx": {
+      statements: 93,
+      branches: 72,
+      functions: 86,
+      lines: 94,
+    },
     "src/components/settings/components/FocusModesSection.tsx": {
       statements: 87,
       branches: 78,
@@ -194,10 +201,10 @@ module.exports = {
       lines: 16,
     },
     "src/components/input/": {
-      statements: 34,
-      branches: 30,
-      functions: 24,
-      lines: 35,
+      statements: 86,
+      branches: 70,
+      functions: 78,
+      lines: 87,
     },
     "src/types/": {
       statements: 95,
