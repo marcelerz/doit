@@ -220,10 +220,13 @@ describe("isIndexedDBAvailable", () => {
     expect(await storage.isIndexedDBAvailable()).toBe(true);
 
     // The probe answers as soon as the open succeeds; the delete it issues
-    // finishes a moment later.
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    const names = (await indexedDB.databases()).map((db) => db.name);
-    expect(names).not.toContain("doit-test-availability");
+    // finishes a moment later. How much later depends on the machine, so this
+    // waits for the database to go, up to two seconds, rather than a fixed time.
+    const databaseNames = async () => (await indexedDB.databases()).map((db) => db.name);
+    for (let waited = 0; waited < 2000 && (await databaseNames()).includes("doit-test-availability"); waited += 10) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(await databaseNames()).not.toContain("doit-test-availability");
   });
 
   it("is false when the browser has no IndexedDB", async () => {
