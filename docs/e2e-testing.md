@@ -84,6 +84,7 @@ e2e/
 │   ├── sprints-workflow.spec.ts
 │   ├── time-reports.spec.ts
 │   ├── todo-details-workflow.spec.ts
+│   ├── view-availability.spec.ts
 │   └── views-workflow.spec.ts
 ├── pwa/
 │   ├── offline-and-update.spec.ts
