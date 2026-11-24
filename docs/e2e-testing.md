@@ -73,6 +73,7 @@ e2e/
 │   ├── focus-timer.spec.ts
 │   ├── import-tasks.spec.ts
 │   ├── kanban-keyboard.spec.ts
+│   ├── list-export.spec.ts
 │   ├── mobile.spec.ts
 │   ├── notes-workflow.spec.ts
 │   ├── persistence-settings.spec.ts
