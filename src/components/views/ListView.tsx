@@ -528,17 +528,14 @@ export function ListView({
   const archivedTodos = sortTodos(applyFilters(allArchivedTodos));
 
   // Export handler - exports filtered todos if filters active, otherwise all
-  const handleExport = useCallback(
-    (format: ExportFormat) => {
-      const todosToExport = hasActiveFilters
-        ? [...activeTodos, ...completedTodos, ...archivedTodos]
-        : todos;
-      const date = formatDateKey(new Date());
-      const filename = `todos-${date}`;
-      exportTodos(todosToExport, format, filename);
-    },
-    [hasActiveFilters, activeTodos, completedTodos, archivedTodos, todos],
-  );
+  const handleExport = (format: ExportFormat) => {
+    const todosToExport = hasActiveFilters
+      ? [...activeTodos, ...completedTodos, ...archivedTodos]
+      : todos;
+    const date = formatDateKey(new Date());
+    const filename = `todos-${date}`;
+    exportTodos(todosToExport, format, filename);
+  };
 
   // Helper function to get button color class for filter sections
   // Uses actual marker colors from settings
