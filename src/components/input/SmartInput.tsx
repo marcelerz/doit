@@ -99,121 +99,6 @@ function SmartEditableInput({
     };
   }, []);
 
-  // Initialize content on mount if initialValue is provided
-  useEffect(() => {
-    if (
-      initialValue &&
-      editableRef.current &&
-      editableRef.current.textContent === ""
-    ) {
-      isSettingValueRef.current = true;
-      const { fragment, tokens, plainText } =
-        renderTokensFromText(initialValue);
-      while (editableRef.current.firstChild) {
-        editableRef.current.removeChild(editableRef.current.firstChild);
-      }
-      editableRef.current.appendChild(fragment);
-      if (onTokensChange) {
-        onTokensChange(tokens, initialValue, plainText);
-      }
-      requestAnimationFrame(() => {
-        isSettingValueRef.current = false;
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only on mount
-
-  // Close autocomplete when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      // Check if click is outside the component
-      if (
-        editableRef.current &&
-        !editableRef.current.contains(target) &&
-        !target.closest(".autocomplete-dropdown")
-      ) {
-        setAutocomplete((prev) => ({ ...prev, show: false }));
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      clear: () => {
-        // Guard against calls after unmount
-        if (unmountedRef.current) return;
-        if (editableRef.current) {
-          // Clear content safely (not setting untrusted content)
-          while (editableRef.current.firstChild) {
-            editableRef.current.removeChild(editableRef.current.firstChild);
-          }
-          if (onTokensChange) {
-            onTokensChange([], "", "");
-          }
-        }
-      },
-      setValue: (text: string) => {
-        // Guard against calls after unmount
-        if (unmountedRef.current) return;
-        if (editableRef.current) {
-          // Set guard to prevent handleInput from firing during DOM manipulation
-          isSettingValueRef.current = true;
-          const { fragment, tokens, plainText } = renderTokensFromText(text);
-          // Clear content safely (not setting untrusted content)
-          while (editableRef.current.firstChild) {
-            editableRef.current.removeChild(editableRef.current.firstChild);
-          }
-          editableRef.current.appendChild(fragment);
-          if (onTokensChange) {
-            onTokensChange(tokens, text, plainText);
-          }
-          // Clear guard after DOM operations settle
-          requestAnimationFrame(() => {
-            isSettingValueRef.current = false;
-          });
-        }
-      },
-      focus: () => {
-        // Guard against calls after unmount
-        if (unmountedRef.current) return;
-        if (editableRef.current) {
-          editableRef.current.focus();
-        }
-      },
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      availablePeople,
-      availableProjects,
-      availablePriorities,
-      dateTimeSettings,
-      workHoursSettings,
-      activeDateIndices,
-    ],
-  );
-
-  // Re-render content ONLY when activeDateIndices change (for date deactivation)
-  // We don't need to re-render for people/projects/priorities changes since they're handled during input
-  useEffect(() => {
-    if (editableRef.current && editableRef.current.textContent) {
-      const currentText = editableRef.current.textContent;
-      const { fragment, tokens, plainText } = renderTokensFromText(currentText);
-      // Clear content safely (not setting untrusted content)
-      while (editableRef.current.firstChild) {
-        editableRef.current.removeChild(editableRef.current.firstChild);
-      }
-      editableRef.current.appendChild(fragment);
-      if (onTokensChange) {
-        onTokensChange(tokens, currentText, plainText);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDateIndices]);
   const buildTokenRegex = (): {
     type: string;
     symbol: string;
@@ -897,6 +782,122 @@ function SmartEditableInput({
 
     return { fragment, tokens, plainText };
   };
+
+  // Initialize content on mount if initialValue is provided
+  useEffect(() => {
+    if (
+      initialValue &&
+      editableRef.current &&
+      editableRef.current.textContent === ""
+    ) {
+      isSettingValueRef.current = true;
+      const { fragment, tokens, plainText } =
+        renderTokensFromText(initialValue);
+      while (editableRef.current.firstChild) {
+        editableRef.current.removeChild(editableRef.current.firstChild);
+      }
+      editableRef.current.appendChild(fragment);
+      if (onTokensChange) {
+        onTokensChange(tokens, initialValue, plainText);
+      }
+      requestAnimationFrame(() => {
+        isSettingValueRef.current = false;
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount
+
+  // Close autocomplete when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Check if click is outside the component
+      if (
+        editableRef.current &&
+        !editableRef.current.contains(target) &&
+        !target.closest(".autocomplete-dropdown")
+      ) {
+        setAutocomplete((prev) => ({ ...prev, show: false }));
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      clear: () => {
+        // Guard against calls after unmount
+        if (unmountedRef.current) return;
+        if (editableRef.current) {
+          // Clear content safely (not setting untrusted content)
+          while (editableRef.current.firstChild) {
+            editableRef.current.removeChild(editableRef.current.firstChild);
+          }
+          if (onTokensChange) {
+            onTokensChange([], "", "");
+          }
+        }
+      },
+      setValue: (text: string) => {
+        // Guard against calls after unmount
+        if (unmountedRef.current) return;
+        if (editableRef.current) {
+          // Set guard to prevent handleInput from firing during DOM manipulation
+          isSettingValueRef.current = true;
+          const { fragment, tokens, plainText } = renderTokensFromText(text);
+          // Clear content safely (not setting untrusted content)
+          while (editableRef.current.firstChild) {
+            editableRef.current.removeChild(editableRef.current.firstChild);
+          }
+          editableRef.current.appendChild(fragment);
+          if (onTokensChange) {
+            onTokensChange(tokens, text, plainText);
+          }
+          // Clear guard after DOM operations settle
+          requestAnimationFrame(() => {
+            isSettingValueRef.current = false;
+          });
+        }
+      },
+      focus: () => {
+        // Guard against calls after unmount
+        if (unmountedRef.current) return;
+        if (editableRef.current) {
+          editableRef.current.focus();
+        }
+      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      availablePeople,
+      availableProjects,
+      availablePriorities,
+      dateTimeSettings,
+      workHoursSettings,
+      activeDateIndices,
+    ],
+  );
+
+  // Re-render content ONLY when activeDateIndices change (for date deactivation)
+  // We don't need to re-render for people/projects/priorities changes since they're handled during input
+  useEffect(() => {
+    if (editableRef.current && editableRef.current.textContent) {
+      const currentText = editableRef.current.textContent;
+      const { fragment, tokens, plainText } = renderTokensFromText(currentText);
+      // Clear content safely (not setting untrusted content)
+      while (editableRef.current.firstChild) {
+        editableRef.current.removeChild(editableRef.current.firstChild);
+      }
+      editableRef.current.appendChild(fragment);
+      if (onTokensChange) {
+        onTokensChange(tokens, currentText, plainText);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDateIndices]);
 
   const handleInput = () => {
     // Skip if we're in the middle of setValue to prevent race conditions
