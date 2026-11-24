@@ -20,7 +20,7 @@ import { formatDateKey } from "@/utils/dateUtils";
 // (U0044). One object with one mutator keeps the effect to one run per mount.
 const mockUpdateBackupSettings = jest.fn();
 const mockSettingsState = {
-  settings: { backup: { autoBackupEnabled: true, retentionDays: 30, lastBackupDate: null } },
+  settings: { backup: { autoBackupEnabled: true, retentionDays: 30, lastBackupDate: null as string | null } },
   isLoaded: true,
   updateBackupSettings: mockUpdateBackupSettings,
 };
@@ -58,6 +58,7 @@ beforeEach(() => {
   adapter = new MemoryAdapter();
   setStorageAdapter(adapter);
   mockSettingsState.isLoaded = true;
+  mockSettingsState.settings.backup.lastBackupDate = null;
   mockUpdateBackupSettings.mockClear();
   // Kept real: jsdom's FileReader finishes on setImmediate, and settle() waits on Node's (jsdom has no global one).
   jest.useFakeTimers({ doNotFake: ["setImmediate"] });
@@ -188,6 +189,44 @@ describe("stats", () => {
 
   it.todo("reports the oldest, newest and last automatic dates in one format (U0824)");
   it.todo("keeps the last automatic backup date in the one place the auto-backup decision reads (U0055)");
+});
+
+describe("last backup date in settings", () => {
+  // Settings hold the local day of the last automatic backup; it decides
+  // whether today's automatic backup is still due.
+  const dayOf = (timestamp: number) => formatDateKey(new Date(timestamp));
+  const seedAutoBackupsUpTo12th = () =>
+    seed(makeBackup(at(11), { source: "auto" }), makeBackup(at(12), { source: "auto" }), makeBackup(at(14)));
+
+  it.each([
+    ["no day", null],
+    ["an earlier day", dayOf(at(11))],
+  ])("sets it to the day of the newest automatic backup when settings hold %s", async (_label, held) => {
+    seedAutoBackupsUpTo12th();
+    mockSettingsState.settings.backup.lastBackupDate = held;
+
+    await mount();
+
+    expect(mockUpdateBackupSettings.mock.calls).toEqual([[{ lastBackupDate: dayOf(at(12)) }]]);
+  });
+
+  it("leaves settings alone when they already hold that day", async () => {
+    seedAutoBackupsUpTo12th();
+    mockSettingsState.settings.backup.lastBackupDate = dayOf(at(12));
+
+    await mount();
+
+    expect(mockUpdateBackupSettings).not.toHaveBeenCalled();
+  });
+
+  it("leaves settings alone when no automatic backup is stored", async () => {
+    seed(makeBackup(at(13), { source: "imported" }), makeBackup(at(14)));
+    mockSettingsState.settings.backup.lastBackupDate = dayOf(at(11));
+
+    await mount();
+
+    expect(mockUpdateBackupSettings).not.toHaveBeenCalled();
+  });
 });
 
 describe("getBackupSize", () => {
