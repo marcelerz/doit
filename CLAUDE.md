@@ -204,7 +204,7 @@ They are left out of backups and of storage migration.
 - `npm run bump:minor` and `npm run bump:major` are for larger steps.
 - A `CHANGELOG.md` heading uses the value `version.json` has after the last commit of
   the change it describes.
-- `package.json`'s `version` (0.1.0) is not used for anything.
+- `package.json` has no `version` field, so there is one version number and nothing to drift.
 
 ## Documentation
 

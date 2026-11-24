@@ -158,7 +158,7 @@ into the service worker.
 - `npm run bump:minor` and `npm run bump:major` take the larger steps and reset what is below.
 - `CHANGELOG.md` headings use the value `version.json` has after the last commit of the change
   they describe.
-- The `version` field in `package.json` is not used.
+- `package.json` carries no `version` field; `version.json` is the only version.
 
 ## 🧪 Testing
 
