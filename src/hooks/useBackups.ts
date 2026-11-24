@@ -193,23 +193,27 @@ export function useBackups() {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadBackups = useCallback(async () => {
-    const allBackups = await getAllBackups();
-    setBackups(allBackups);
-    const backupStats = getBackupStats(allBackups);
-    setStats(backupStats);
+  const applyBackups = useCallback(
+    (allBackups: BackupData[]) => {
+      setBackups(allBackups);
+      const backupStats = getBackupStats(allBackups);
+      setStats(backupStats);
 
-    // Update settings if lastBackupDate doesn't match
-    if (backupStats.lastAutoBackupDate && backupSettings.lastBackupDate !== backupStats.lastAutoBackupDate) {
-      updateBackupSettings({ lastBackupDate: backupStats.lastAutoBackupDate });
-    }
-  }, [backupSettings.lastBackupDate, updateBackupSettings]);
+      // Update settings if lastBackupDate doesn't match
+      if (backupStats.lastAutoBackupDate && backupSettings.lastBackupDate !== backupStats.lastAutoBackupDate) {
+        updateBackupSettings({ lastBackupDate: backupStats.lastAutoBackupDate });
+      }
+    },
+    [backupSettings.lastBackupDate, updateBackupSettings],
+  );
+
+  const loadBackups = useCallback(async () => applyBackups(await getAllBackups()), [applyBackups]);
 
   useEffect(() => {
     if (isLoaded) {
-      loadBackups();
+      getAllBackups().then(applyBackups);
     }
-  }, [isLoaded, loadBackups]);
+  }, [isLoaded, applyBackups]);
 
   const handleCreateBackup = useCallback(async (): Promise<boolean> => {
     setIsCreating(true);
