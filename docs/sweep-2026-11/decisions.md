@@ -15,11 +15,16 @@ Asked while planning the batch, and answered the same day:
 - [x] **U0610** Is the failing path checked too? — **Answer:** yes, with a throwaway draft pull request carrying one deliberate type error, closed unmerged once CI has failed on it.
 - [x] **U0643** Should the dev server stop listening on the local network? — **Answer:** leave it as it is.
 
-Raised by the batch, open:
+Raised by the batch, and answered on 23 November 2026. The follow-up change that applied the answers is described in [phases/batch-01.md](phases/batch-01.md#follow-ups):
 
-- [ ] **[U0814](workstreams/tests-ci-tooling.md#u0814)** (tests-ci-tooling, medium) Wait for the batches that rework those files (recommended), or take the lint upgrade sooner with one justified suppression per finding? — *Upgrade eslint-config-next to 16.4 and fix what its React Compiler rules report*
-- [ ] **U0643** `next.config.ts` now sets `agentRules: false`, so that `next dev` does not write an `AGENTS.md` into the project root when an agent starts it. Keep it off, or let Next generate the file?
-- [ ] **[U0648](workstreams/migrations-versioning.md#u0648)** (migrations-versioning, medium) `package.json`'s `version` (0.1.0) is used for nothing. Sync it from `version.json`, or drop it? The docs now say it is unused.
+- [x] **[U0814](workstreams/tests-ci-tooling.md#u0814)** (tests-ci-tooling, medium) Wait for the batches that rework those files (recommended), or take the lint upgrade sooner with one justified suppression per finding? — *Upgrade eslint-config-next to 16.4 and fix what its React Compiler rules report*
+  - **Answer:** take it now, and fix each finding in the code. No suppressions. Done: `eslint-config-next` is 16.4.6 and `npm run lint` is clean.
+- [x] **U0643** `next.config.ts` now sets `agentRules: false`, so that `next dev` does not write an `AGENTS.md` into the project root when an agent starts it. Keep it off, or let Next generate the file?
+  - **Answer:** keep it off.
+- [x] **[U0648](workstreams/migrations-versioning.md#u0648)** (migrations-versioning, medium) `package.json`'s `version` (0.1.0) is used for nothing. Sync it from `version.json`, or drop it? The docs now say it is unused.
+  - **Answer:** drop it. Done: `package.json` has no `version` field, and `version.json` is the only version.
+- [x] Batch 1 was merged into `main` directly at the owner's request. Does the rule "a batch lands through a pull request, where CI runs" ([README](README.md#rules-that-hold-in-every-batch)) stay?
+  - **Answer:** it stays. Whether and how a pull request is merged is the owner's call.
 
 ### Batch 2A — Data safety: storage load/save, backend switch, migrations
 
@@ -164,6 +169,7 @@ Raised by the batch, open:
 - [ ] **[U0235](workstreams/view-state.md#u0235)** (view-state, medium) Which Restore icon should both toolbars use, and should Select all include hidden or archived items? — *Extract shared BulkActionToolbar and QuickFilterBar for List and Notes*
 - [ ] **[U0095](workstreams/import-export.md#u0095)** (import-export, low) Should todo and note exports share one field set and JSON shape, changing files users already download? — *Align todo and note exporter naming, field sets and JSON shape*
 - [ ] **[U0642](workstreams/migrations-versioning.md#u0642)** (migrations-versioning, low) Should the revision bump per commit (pre-commit hook) or per plan (changelog), and should package.json mirror version.json? — *Make version.json the single version source and fix GET_VERSION*
+  - **Half answered (23 November 2026):** `package.json` no longer has a `version` field, so there is nothing to mirror. Per commit or per plan is still open here.
 - [ ] **[U0457](workstreams/entity-names.md#u0457)** (entity-names, low) Store an entity colour only when it differs from the marker colour, or always store it at creation? — *Route all person and project creation through one colour-aware helper*
 - [ ] **[U0699](workstreams/notes.md#u0699)** (notes, low) Accept the shared pin glyph in the Pinned quick filter, a visible icon change? — *Replace NotesView's local PinIcon with the shared PinIcon*
 - [ ] **[U0707](workstreams/reviews.md#u0707)** (reviews, low) Should the review state badge read 'Complete' or 'Completed'? — *Share the review entry header and state badge across review views*
@@ -318,7 +324,7 @@ These are the questions the twelve reviews asked in their own words. Most overla
 - [ ] Should the Stats and Time views get tutorial content, or simply not show the tutorial button (DOC-08)?
 - [ ] Archive threshold: should ListView show past-threshold completed tasks under Archived until reload, or should tasks archive at completion when archiveDays is 0 (DOC-14)?
 - [ ] Should the Markdown todo export add assignees and projects (DOC-65)? Should the notes export show updatedAt, or relabel the line 'Created' (DOC-66)?
-- [ ] Should package.json's version (0.1.0) be synced to version.json, dropped, or left alone (DOC-28)?
+- [x] Should package.json's version (0.1.0) be synced to version.json, dropped, or left alone (DOC-28)? — **Answer (23 November 2026):** dropped.
 - [ ] Should the unused screenshots view-kanban.png and view-list.png be deleted or referenced, and should the dated reports move to docs/reports/ (DOC-60)?
 - [ ] Should the duplicate settings.backup.lastBackupDate mirror be kept as display state, or removed (DOC-26)?
 - [ ] Should colors.ts's fallback priority colour be aligned with defaultMarkerColors (a small visible change), and should user marker colours apply there (DOC-74)?
@@ -390,7 +396,7 @@ These are the questions the twelve reviews asked in their own words. Most overla
 - [ ] STRUCT-28: Is it acceptable that the default notification check moves from every minute to the configured 15 minutes?
 - [ ] STRUCT-04: Should the app get tutorial steps for Stats and Time, or should the tutorial button be hidden on tabs that have no steps?
 - [ ] STRUCT-56: In the Gantt view, which action should 't' trigger: go-to-today or the focus timer?
-- [ ] STRUCT-112: Should the version revision go up per commit (pre-commit hook) or per plan (changelog)? Should package.json carry the real version?
+- [ ] STRUCT-112: Should the version revision go up per commit (pre-commit hook) or per plan (changelog)? Should package.json carry the real version? — *The `package.json` half is answered (23 November 2026): the field was dropped.*
 - [ ] STRUCT-113: Should todo and note JSON exports share one shape? This changes the files users download.
 - [ ] STRUCT-90 / STRUCT-30: Should 'use client' appear on every hook file or only on component entry points? Is the proposed memoisation rule acceptable as a documented convention?
 - [ ] STRUCT-94: Should the 'Ideal' legend swatch in the Sprint burndown show a dashed line, as the code apparently intends?
@@ -491,7 +497,7 @@ These are the questions the twelve reviews asked in their own words. Most overla
 - [ ] INC-77: Should dates follow the browser locale or a new setting, and should there be a 12/24-hour preference?
 - [ ] INC-78: Should reviews, people, projects, sprints and templates be exportable?
 - [ ] INC-79 / INC-80: Should an entity's colour be stored only when it differs from the marker default? May archived people and projects be auto-assign defaults?
-- [ ] INC-81: Should versions be numbered per commit (pre-commit hook) or per plan (CHANGELOG), and should package.json track version.json?
+- [ ] INC-81: Should versions be numbered per commit (pre-commit hook) or per plan (CHANGELOG), and should package.json track version.json? — *The `package.json` half is answered (23 November 2026): the field was dropped.*
 - [ ] INC-82: Should the body font be Geist Sans, which is loaded, or Arial, which is what renders today?
 - [ ] INC-68: Should duplicates of todos and notes both get ' (Copy)', or neither?
 - [ ] INC-63: When Calendar's Created sort is fixed, should a stored 'asc' be flipped once so existing users keep their current order?

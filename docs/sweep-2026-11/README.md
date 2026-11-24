@@ -79,6 +79,7 @@ must do); delete and consolidate before polishing.
 Batch 1 added fourteen units, U0814 to U0827, which are in the counts of the tag table above but
 not in the rows of this one. They are listed in [phases/batch-01.md](phases/batch-01.md#new-units)
 with a proposed batch each; a batch picks up the ones proposed for it at its reconcile step.
+U0814 was done right after the batch.
 
 ### How a unit got its batch
 

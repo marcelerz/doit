@@ -55,7 +55,7 @@ to 83.9 / 71 / 83.8 / 85.2 (statements / branches / functions / lines).
 
 - **U0643.** next goes to 16.4.6, not to a 16.0 patch: the advisories cover everything up to
   16.4.4. `eslint-config-next` stays at 16.0.5, because its 16.4.6 release reports six errors in
-  product code; that upgrade is U0814. `next.config.ts` sets `agentRules: false`, because since
+  product code; that upgrade is U0814, done in the [follow-ups](#follow-ups). `next.config.ts` sets `agentRules: false`, because since
   16.4 `next dev` writes an `AGENTS.md` when an agent starts it. The dev server stays reachable
   from the local network, by the owner's choice.
 - **U0615.** The unit asked the docs to say the tolerance catches changed text and to replace
@@ -108,7 +108,7 @@ it at its reconcile step.
 
 | Unit | Workstream | Proposed batch | What |
 | --- | --- | --- | --- |
-| [U0814](../workstreams/tests-ci-tooling.md#u0814) | tests-ci-tooling | 7A | Upgrade eslint-config-next to 16.4 and fix what its React Compiler rules report · **question** |
+| [U0814](../workstreams/tests-ci-tooling.md#u0814) | tests-ci-tooling | 7A | Upgrade eslint-config-next to 16.4 and fix what its React Compiler rules report · **done in the [follow-ups](#follow-ups)** |
 | [U0815](../workstreams/tests-ci-tooling.md#u0815) | tests-ci-tooling | 11 | Upgrade Playwright so the CI smoke job can return to ubuntu-latest |
 | [U0816](../workstreams/tests-ci-tooling.md#u0816) | tests-ci-tooling | 11 | Tighten the visual tolerance now that the clock is fixed |
 | [U0817](../workstreams/tests-ci-tooling.md#u0817) | tests-ci-tooling | 11 | Clean up four weak spots in the test suite |
@@ -126,6 +126,51 @@ it at its reconcile step.
 Two things were confirmed rather than found: U0089 is worse than rated in Firefox, where the app
 stays on "Loading..." until the persistence prompt is answered; and U0219 has a reproducer now,
 the `test.fixme` in `kanban-keyboard.spec.ts`.
+
+## Follow-ups
+
+Batch 1 left five questions. The owner answered them on 23 November 2026, and one change applied
+the answers: branch `sweep-batch-1-followups`, twelve commits.
+
+- **U0814 is done.** `eslint-config-next` is 16.4.6, the release `next` is on, and `npm run lint`
+  is clean. Its newer hook rules had reported six errors and one warning. Each was fixed in the
+  code and none was suppressed; `src` has two suppression comments fewer and none new.
+
+  | Finding | Fix |
+  | --- | --- |
+  | `SmartInput.tsx`: a helper is read before its declaration | The three effects and the imperative handle that call it moved below it. A pure move. |
+  | `ListView.tsx`, two reports: the export handler is memoised on lists that are rebuilt every render | A plain function. |
+  | `useBackups.ts`: an async loader is called from an effect | The effect reads the list and hands it to a callback, `applyBackups`. The re-render loop of U0044 is as it was. |
+  | `TodoApp.tsx`: an effect falls back to the list when the open view is switched off | The check runs while rendering. |
+  | `TodoApp.tsx`: an effect restores the saved tab | Restored while rendering, once. |
+  | `InfoTooltip.tsx`, the warning: a disable directive the newer rules do not need | Removed. |
+
+  The two `TodoApp` rows are the only ones where something observable changed, both for the
+  better: a switched-off view no longer mounts for one frame before the list replaces it, and on
+  reload the stored tab is no longer overwritten with `list` for a moment before the saved tab is
+  restored. The last two rows share a commit with the upgrade, because the older plugin skips a
+  component that carries a hook-dependency suppression and still needs InfoTooltip's directive.
+- **`agentRules: false` stays** in `next.config.ts`.
+- **`package.json` has no `version` field** any more, which answers U0648's question and half of
+  U0642's. `version.json` is the only version.
+- **The pull-request rule stays**, and this change followed it.
+- **The deploy workflow's two checkouts set `persist-credentials: false`**, as the CI workflow's
+  already did. That belongs to U0611 in batch 4, which is ticked there once a deploy from `main`
+  has run with it.
+
+Tests written first, on the code as it was: `list-export.spec.ts` (the export with and without a
+filter), `view-availability.spec.ts` (a view switched off in Settings, and a stored tab that is
+not a view) and four unit tests for the last-backup date that `useBackups` keeps in step. Unit
+tests went from 2,366 to 2,370.
+
+Two things came up on the way:
+
+- The fallback to the list was meant to be tested with a second tab switching the view off. That
+  cannot pass today, because a tab that has not saved settings itself never hears another tab's
+  change. This is U0072, and the test is its reproducer now, a `test.fixme` with its body
+  written. The fallback is tested through Settings and back instead.
+- `storage.init.test.ts` gave the IndexedDB probe a fixed 10 ms to delete its probe database and
+  failed once in a full coverage run. It now waits for the database to go.
 
 ## Security units fixed in this batch
 

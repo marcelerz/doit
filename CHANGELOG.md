@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.1.250 - 24 November 2026 - Sweep batch 1 follow-ups: lint upgrade and the open answers
+
+Batch 1 left five questions for the owner; this applies the answers. Details are in
+[`docs/sweep-2026-11/phases/batch-01.md`](docs/sweep-2026-11/phases/batch-01.md#follow-ups).
+
+### Changed
+
+- **`eslint-config-next` 16.0.5 to 16.4.6**, the release `next` is on. Its newer hook rules
+  reported six errors and one warning in product code. Each is fixed in the code and none is
+  suppressed; `src` has two suppression comments fewer.
+- **Switching off the view that is open**: the app falls back to the list before the switched-off
+  view is drawn, instead of one frame after.
+- **Reloading**: the stored tab is no longer overwritten with the list for a moment before the
+  saved tab is restored.
+- `package.json` has no `version` field. `version.json` is the only version.
+- The deploy workflow's two checkouts do not persist credentials.
+
+### Added
+
+- Smoke specs for the list export, with and without a filter, and for a view that cannot be shown:
+  one that is switched off, and a stored tab that is not a view.
+- Unit tests for the last-backup date that the backup hook keeps in step with the stored backups.
+
+### Fixed
+
+- A unit test gave the IndexedDB probe a fixed 10 ms to delete its probe database and could fail
+  on a busy machine. It now waits for the database to go.
+
 ## 0.1.238 - 22 November 2026 - Sweep batch 1: guard rails
 
 The first batch of the November 2026 sweep puts the safety net in place before any fix batch
