@@ -252,22 +252,20 @@ export function TodoApp() {
   // Get the active template object
   const activeTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) : null;
 
-  // Redirect to list view if current view is disabled
-  useEffect(() => {
-    const viewFeatureMap: Record<string, boolean | undefined> = {
-      kanban: features?.kanbanView,
-      gantt: features?.ganttView,
-      calendar: features?.calendarView,
-      notes: features?.notesView,
-      sprints: features?.sprintsView,
-      reviews: features?.reviewsView,
-      stats: features?.statsView,
-    };
-
-    if (activeView in viewFeatureMap && viewFeatureMap[activeView] === false) {
-      setActiveView("list");
-    }
-  }, [activeView, features]);
+  // Redirect to list view if current view is disabled. Done while rendering,
+  // so the disabled view is never mounted.
+  const viewFeatureMap: Record<string, boolean | undefined> = {
+    kanban: features?.kanbanView,
+    gantt: features?.ganttView,
+    calendar: features?.calendarView,
+    notes: features?.notesView,
+    sprints: features?.sprintsView,
+    reviews: features?.reviewsView,
+    stats: features?.statsView,
+  };
+  if (activeView in viewFeatureMap && viewFeatureMap[activeView] === false) {
+    setActiveView("list");
+  }
 
   const {
     sortedPeople,
