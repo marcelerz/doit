@@ -433,15 +433,15 @@ export function TodoApp() {
   // replaced omitted notes, reviews and focus, so a user whose last view was
   // Notes was silently returned to the default one. VIEW_DEFINITIONS is the
   // authoritative list, which is what it exists for.
-  useEffect(() => {
-    if (!uiOptionsLoaded) return;
+  // Only on the first load: afterwards this state is driven by the tab bar.
+  const [tabRestored, setTabRestored] = useState(false);
+  if (uiOptionsLoaded && !tabRestored) {
+    setTabRestored(true);
     const saved = uiOptions.activeTab;
     if (saved && VIEW_DEFINITIONS.some((view) => view.id === saved)) {
       setActiveView(saved);
     }
-    // Only on the first load: afterwards this state is driven by the tab bar.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uiOptionsLoaded]);
+  }
 
   // Persist the active tab.
   useEffect(() => {
