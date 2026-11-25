@@ -155,8 +155,8 @@ the answers: branch `sweep-batch-1-followups`, twelve commits.
   U0642's. `version.json` is the only version.
 - **The pull-request rule stays**, and this change followed it.
 - **The deploy workflow's two checkouts set `persist-credentials: false`**, as the CI workflow's
-  already did. That belongs to U0611 in batch 4, which is ticked there once a deploy from `main`
-  has run with it.
+  already did. That completed U0611 of batch 4, which is ticked there: the deploy from `main` on
+  25 November 2026 ran green with it.
 
 Tests written first, on the code as it was: `list-export.spec.ts` (the export with and without a
 filter), `view-availability.spec.ts` (a view switched off in Settings, and a stored tab that is
